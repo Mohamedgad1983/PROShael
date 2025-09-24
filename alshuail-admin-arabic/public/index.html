@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+
+    <!-- Primary Meta Tags -->
+    <title>الشعيل - إدارة الأسرة | نظام إدارة شامل</title>
+    <meta name="title" content="الشعيل - إدارة الأسرة | نظام إدارة شامل">
+    <meta name="description" content="نظام إدارة شامل لأسرة الشعيل يتضمن إدارة الأعضاء والتقارير المالية والوثائق مع واجهة عربية متطورة">
+    <meta name="keywords" content="إدارة الأسرة, نظام إدارة, الشعيل, تقارير مالية, إدارة الأعضاء, PWA">
+    <meta name="author" content="Al-Shuail Family Management System">
+    <meta name="language" content="Arabic">
+
+    <!-- Viewport and Mobile Optimization -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=5, user-scalable=yes, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="الشعيل">
+    <meta name="format-detection" content="telephone=no">
+
+    <!-- Theme Colors for Different Platforms -->
+    <meta name="theme-color" content="#1e293b">
+    <meta name="msapplication-TileColor" content="#1e293b">
+    <meta name="msapplication-navbutton-color" content="#1e293b">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <!-- Icons and Favicons -->
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href="%PUBLIC_URL%/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="%PUBLIC_URL%/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="%PUBLIC_URL%/favicon-16x16.png">
+    <link rel="mask-icon" href="%PUBLIC_URL%/safari-pinned-tab.svg" color="#1e293b">
+
+    <!-- Microsoft Tiles -->
+    <meta name="msapplication-TileImage" content="%PUBLIC_URL%/mstile-144x144.png">
+    <meta name="msapplication-config" content="%PUBLIC_URL%/browserconfig.xml">
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://alshuail.vercel.app/">
+    <meta property="og:title" content="الشعيل - إدارة الأسرة">
+    <meta property="og:description" content="نظام إدارة شامل لأسرة الشعيل يتضمن إدارة الأعضاء والتقارير المالية والوثائق">
+    <meta property="og:image" content="%PUBLIC_URL%/og-image.png">
+    <meta property="og:locale" content="ar_SA">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://alshuail.vercel.app/">
+    <meta property="twitter:title" content="الشعيل - إدارة الأسرة">
+    <meta property="twitter:description" content="نظام إدارة شامل لأسرة الشعيل يتضمن إدارة الأعضاء والتقارير المالية والوثائق">
+    <meta property="twitter:image" content="%PUBLIC_URL%/twitter-image.png">
+
+    <!-- Preconnect to External Resources -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <!-- Arabic Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@200;300;400;500;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- Security Headers -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+
+    <!-- Performance Optimization -->
+    <link rel="dns-prefetch" href="//fonts.googleapis.com">
+    <link rel="dns-prefetch" href="//fonts.gstatic.com">
+
+    <!-- Critical CSS for Initial Paint -->
+    <style>
+      /* Critical CSS for faster initial paint */
+      body {
+        margin: 0;
+        font-family: 'Cairo', 'Tajawal', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        color: white;
+        direction: rtl;
+        overflow-x: hidden;
+      }
+
+      /* Loading spinner for better UX */
+      .initial-loader {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        transition: opacity 0.5s ease;
+      }
+
+      .loader-content {
+        text-align: center;
+        color: white;
+      }
+
+      .loader-logo {
+        font-size: 3rem;
+        margin-bottom: 20px;
+        animation: pulse 2s infinite;
+      }
+
+      .loader-text {
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin-bottom: 30px;
+      }
+
+      .loader-spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-top: 3px solid white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto;
+      }
+
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      /* Hide loader when app loads */
+      .app-loaded .initial-loader {
+        opacity: 0;
+        pointer-events: none;
+      }
+    </style>
+
+    <!-- Structured Data for SEO -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "الشعيل - إدارة الأسرة",
+      "description": "نظام إدارة شامل لأسرة الشعيل يتضمن إدارة الأعضاء والتقارير المالية والوثائق",
+      "url": "https://alshuail.vercel.app",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "All",
+      "inLanguage": "ar",
+      "author": {
+        "@type": "Organization",
+        "name": "Al-Shuail Family"
+      },
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "SAR"
+      }
+    }
+    </script>
+  </head>
+  <body>
+    <noscript>
+      <div style="text-align: center; padding: 50px; font-family: 'Cairo', sans-serif; color: white; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center;">
+        <div>
+          <h1>يرجى تفعيل JavaScript</h1>
+          <p>هذا التطبيق يحتاج إلى JavaScript ليعمل بشكل صحيح.</p>
+        </div>
+      </div>
+    </noscript>
+
+    <!-- Initial Loading Screen -->
+    <div class="initial-loader" id="initialLoader">
+      <div class="loader-content">
+        <div class="loader-logo">🏛️</div>
+        <div class="loader-text">الشعيل - إدارة الأسرة</div>
+        <div class="loader-spinner"></div>
+      </div>
+    </div>
+
+    <div id="root"></div>
+
+    <!-- PWA Install Prompt -->
+    <div id="pwa-install-prompt" style="display: none; position: fixed; bottom: 20px; right: 20px; background: rgba(0, 122, 255, 0.95); color: white; padding: 15px 20px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); backdrop-filter: blur(10px); z-index: 10000; max-width: 300px; text-align: center; font-family: 'Cairo', sans-serif;">
+      <div style="margin-bottom: 10px; font-weight: 600;">تثبيت التطبيق</div>
+      <div style="margin-bottom: 15px; font-size: 0.9rem; opacity: 0.9;">يمكنك تثبيت تطبيق الشعيل على جهازك للوصول السريع</div>
+      <button id="pwa-install-btn" style="background: white; color: #007AFF; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; margin-left: 10px;">تثبيت</button>
+      <button id="pwa-dismiss-btn" style="background: transparent; color: white; border: 1px solid rgba(255,255,255,0.5); padding: 8px 16px; border-radius: 8px; cursor: pointer;">لاحقاً</button>
+    </div>
+
+    <script>
+      // Hide initial loader when React app loads
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          document.body.classList.add('app-loaded');
+          const loader = document.getElementById('initialLoader');
+          if (loader) {
+            setTimeout(() => loader.remove(), 500);
+          }
+        }, 1000);
+      });
+
+      // PWA Install Prompt
+      let deferredPrompt;
+      const installPrompt = document.getElementById('pwa-install-prompt');
+      const installBtn = document.getElementById('pwa-install-btn');
+      const dismissBtn = document.getElementById('pwa-dismiss-btn');
+
+      window.addEventListener('beforeinstallprompt', (e) => {
+        console.log('PWA install prompt available');
+        e.preventDefault();
+        deferredPrompt = e;
+
+        // Check if user dismissed before
+        if (!localStorage.getItem('pwa-dismissed')) {
+          setTimeout(() => {
+            installPrompt.style.display = 'block';
+          }, 3000);
+        }
+      });
+
+      installBtn.addEventListener('click', async () => {
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          console.log('PWA install outcome:', outcome);
+          deferredPrompt = null;
+          installPrompt.style.display = 'none';
+        }
+      });
+
+      dismissBtn.addEventListener('click', () => {
+        installPrompt.style.display = 'none';
+        localStorage.setItem('pwa-dismissed', 'true');
+      });
+
+      // Track PWA installation
+      window.addEventListener('appinstalled', () => {
+        console.log('PWA installed successfully');
+        installPrompt.style.display = 'none';
+      });
+
+      // Register Service Worker
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+              console.log('SW registered: ', registration);
+            })
+            .catch((registrationError) => {
+              console.log('SW registration failed: ', registrationError);
+            });
+        });
+      }
+    </script>
+    <!--
+      This HTML file is a template.
+      If you open it directly in the browser, you will see an empty page.
+
+      You can add webfonts, meta tags, or analytics to this file.
+      The build step will place the bundled scripts into the <body> tag.
+
+      To begin the development, run `npm start` or `yarn start`.
+      To create a production bundle, use `npm run build` or `yarn build`.
+    -->
+  </body>
+</html>

@@ -1,0 +1,118 @@
+@import "tailwindcss";
+
+/* Apple Design System - Premium UI Components and Styling */
+@import "./styles/apple-design-system.css";
+
+/* Optimized Arabic Fonts - Enhanced for Apple Design System */
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&family=Tajawal:wght@300;400;500;700&family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply font-sans antialiased;
+    direction: rtl;
+    text-align: right;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+
+    /* Apple Design System Integration */
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', 'Cairo', 'Tajawal', system-ui, sans-serif;
+    background: var(--apple-bg-primary, #ffffff);
+    color: var(--apple-label-primary, #000000);
+  }
+
+  /* Optimized RTL Support */
+  [dir="rtl"] {
+    direction: rtl;
+    text-align: right;
+  }
+
+  /* Enhanced Arabic Typography */
+  .arabic-text {
+    @apply font-sans;
+    direction: rtl;
+    text-align: right;
+    font-feature-settings: 'liga', 'kern';
+  }
+
+  .arabic-numbers {
+    font-variant-numeric: normal;
+    direction: ltr;
+    display: inline-block;
+  }
+}
+
+@layer components {
+  /* Optimized Loading Animations with better performance */
+  .loading-spinner {
+    @apply w-10 h-10 border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin mx-auto;
+    will-change: transform;
+  }
+
+  /* Reusable Card Component */
+  .card {
+    @apply bg-white rounded-xl shadow-sm border border-gray-100 p-6;
+    transition: box-shadow 0.2s ease;
+  }
+
+  .card:hover {
+    @apply shadow-lg;
+  }
+
+  /* Button Base Styles */
+  .btn-primary {
+    @apply bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+  }
+
+  .btn-secondary {
+    @apply bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors duration-200;
+  }
+
+  /* Accessibility Improvements */
+  .focus-visible {
+    @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
+  }
+}
+
+@layer utilities {
+  /* Performance Optimizations */
+  .gpu-accelerated {
+    transform: translateZ(0);
+    will-change: transform;
+  }
+
+  /* RTL Utilities */
+  .rtl-flip {
+    transform: scaleX(-1);
+  }
+
+  [dir="rtl"] .rtl-flip {
+    transform: scaleX(1);
+  }
+}
+
+/* Reduced Motion Support for Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .loading-spinner {
+    animation: none;
+    border-top-color: transparent;
+  }
+}

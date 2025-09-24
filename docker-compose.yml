@@ -1,0 +1,168 @@
+# Al-Shuail Family Management System - Docker Compose
+# Local development environment with all services
+# Supports Arabic RTL interface and Islamic calendar integration
+
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: alshuail-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: alshuail_development
+      POSTGRES_USER: alshuail_user
+      POSTGRES_PASSWORD: alshuail_password
+      POSTGRES_INITDB_ARGS: '--encoding=UTF-8 --locale=C'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./alshuail-backend/setupDatabase.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    ports:
+      - "5432:5432"
+    networks:
+      - alshuail-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U alshuail_user -d alshuail_development"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Redis Cache (for sessions and caching)
+  redis:
+    image: redis:7-alpine
+    container_name: alshuail-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass alshuail_redis_password
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - alshuail-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Backend API
+  backend:
+    build:
+      context: ./alshuail-backend
+      dockerfile: Dockerfile
+    container_name: alshuail-backend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - DATABASE_URL=postgresql://alshuail_user:alshuail_password@postgres:5432/alshuail_development
+      - REDIS_URL=redis://:alshuail_redis_password@redis:6379
+      - JWT_SECRET=${JWT_SECRET:-development_jwt_secret_change_in_production}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+    volumes:
+      - ./alshuail-backend:/app
+      - /app/node_modules
+      - backend_uploads:/app/uploads
+      - backend_logs:/app/logs
+    ports:
+      - "3001:3001"
+    networks:
+      - alshuail-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "healthcheck.js"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Frontend Application
+  frontend:
+    build:
+      context: ./alshuail-admin-arabic
+      dockerfile: Dockerfile.dev
+    container_name: alshuail-frontend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - PORT=3002
+      - REACT_APP_API_URL=http://localhost:3001
+      - REACT_APP_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - ./alshuail-admin-arabic:/app
+      - /app/node_modules
+    ports:
+      - "3002:3002"
+    networks:
+      - alshuail-network
+    depends_on:
+      - backend
+    stdin_open: true
+    tty: true
+
+  # Nginx Reverse Proxy (Optional for production-like setup)
+  nginx:
+    image: nginx:alpine
+    container_name: alshuail-nginx
+    restart: unless-stopped
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - alshuail-network
+    depends_on:
+      - backend
+      - frontend
+    profiles:
+      - production
+
+  # PostgreSQL Admin Interface (Development only)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: alshuail-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@alshuail.local
+      PGADMIN_DEFAULT_PASSWORD: admin_password
+      PGADMIN_LISTEN_PORT: 5050
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    ports:
+      - "5050:5050"
+    networks:
+      - alshuail-network
+    depends_on:
+      - postgres
+    profiles:
+      - development
+
+networks:
+  alshuail-network:
+    driver: bridge
+    name: alshuail-network
+
+volumes:
+  postgres_data:
+    name: alshuail_postgres_data
+  redis_data:
+    name: alshuail_redis_data
+  backend_uploads:
+    name: alshuail_backend_uploads
+  backend_logs:
+    name: alshuail_backend_logs
+  pgadmin_data:
+    name: alshuail_pgadmin_data
+
+# Health check commands for manual testing:
+# docker-compose exec backend node healthcheck.js
+# docker-compose exec postgres pg_isready -U alshuail_user -d alshuail_development
+# docker-compose exec redis redis-cli ping

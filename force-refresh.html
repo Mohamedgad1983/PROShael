@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Force Refresh</title>
+</head>
+<body>
+    <h1>Clearing cache...</h1>
+    <script>
+        localStorage.clear();
+        localStorage.setItem("pwa_user", JSON.stringify({
+            phone: "0555555555",
+            name: "عضو تجريبي",
+            balance: 5000,
+            membershipId: "SH001"
+        }));
+        localStorage.setItem("pwa_token", "test-token-" + Date.now());
+        setTimeout(() => {
+            window.location.href = "http://localhost:3002/pwa/dashboard?" + Date.now();
+        }, 1000);
+    </script>
+</body>
+</html>

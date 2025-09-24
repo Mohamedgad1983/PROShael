@@ -1,0 +1,281 @@
+/* Hijri Date Filter Component Styles */
+
+.hijri-calendar-container {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  border-radius: 16px;
+  padding: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+/* Loading State */
+.loading-spinner {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 18px;
+  padding: 40px;
+}
+
+/* Current Hijri Date Display */
+.current-hijri-date {
+  text-align: center;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.hijri-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 16px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.current-date-display {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(147, 51, 234, 0.1));
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.hijri-date-primary {
+  font-size: 28px;
+  font-weight: 600;
+  color: #3b82f6;
+  margin-bottom: 8px;
+  direction: rtl;
+  text-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+}
+
+.gregorian-date-secondary {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 400;
+}
+
+/* Year Selector */
+.hijri-year-selector {
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.hijri-year-selector label {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.year-select {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.year-select:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.year-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+/* Months Grid */
+.hijri-months-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 768px) {
+  .hijri-months-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .hijri-months-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Month Buttons */
+.hijri-month-button {
+  padding: 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  text-align: center;
+}
+
+.hijri-month-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.hijri-month-button.selected {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.25), rgba(22, 163, 74, 0.35));
+  border-color: rgba(34, 197, 94, 0.4);
+  color: #22c55e;
+  box-shadow: 0 5px 20px rgba(34, 197, 94, 0.3);
+}
+
+.hijri-month-button.current {
+  border-color: rgba(59, 130, 246, 0.5);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(147, 51, 234, 0.15));
+}
+
+/* Sacred Months */
+.hijri-month-button.sacred {
+  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.hijri-month-button.sacred:hover {
+  background: rgba(239, 68, 68, 0.15);
+}
+
+/* Special Months - Ramadan */
+.hijri-month-button.ramadan {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.3));
+  border-color: rgba(251, 191, 36, 0.4);
+}
+
+.hijri-month-button.ramadan:hover {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.3), rgba(245, 158, 11, 0.4));
+  box-shadow: 0 5px 20px rgba(251, 191, 36, 0.3);
+}
+
+/* Special Months - Dhul Hijjah */
+.hijri-month-button.dhul-hijjah {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(22, 163, 74, 0.3));
+  border-color: rgba(34, 197, 94, 0.4);
+}
+
+.hijri-month-button.dhul-hijjah:hover {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.3), rgba(22, 163, 74, 0.4));
+  box-shadow: 0 5px 20px rgba(34, 197, 94, 0.3);
+}
+
+/* Month Labels */
+.month-name-ar {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.month-name-en {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+}
+
+/* Indicators */
+.current-month-indicator {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #3b82f6;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+}
+
+.special-month-indicator {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  font-size: 16px;
+}
+
+/* Quick Filters */
+.quick-filters {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.quick-filter-btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.quick-filter-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+.quick-filter-btn.reset {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+}
+
+.quick-filter-btn.reset:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hijri-calendar-container {
+  animation: fadeIn 0.5s ease-out;
+}
+
+.hijri-month-button {
+  animation: fadeIn 0.5s ease-out backwards;
+}
+
+.hijri-month-button:nth-child(1) { animation-delay: 0.05s; }
+.hijri-month-button:nth-child(2) { animation-delay: 0.1s; }
+.hijri-month-button:nth-child(3) { animation-delay: 0.15s; }
+.hijri-month-button:nth-child(4) { animation-delay: 0.2s; }
+.hijri-month-button:nth-child(5) { animation-delay: 0.25s; }
+.hijri-month-button:nth-child(6) { animation-delay: 0.3s; }
+.hijri-month-button:nth-child(7) { animation-delay: 0.35s; }
+.hijri-month-button:nth-child(8) { animation-delay: 0.4s; }
+.hijri-month-button:nth-child(9) { animation-delay: 0.45s; }
+.hijri-month-button:nth-child(10) { animation-delay: 0.5s; }
+.hijri-month-button:nth-child(11) { animation-delay: 0.55s; }
+.hijri-month-button:nth-child(12) { animation-delay: 0.6s; }

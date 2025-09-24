@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test PWA Login</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #10b981 0%, #a855f7 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f5f5f5;
+            border-radius: 12px;
+        }
+        .test-section h2 {
+            color: #10b981;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #10b981 0%, #16a34a 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            margin: 5px;
+            transition: transform 0.2s;
+            cursor: pointer;
+            border: none;
+            font-size: 14px;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3);
+        }
+        .btn-secondary {
+            background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);
+        }
+        .credentials {
+            background: #e8f5e9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            border-left: 4px solid #10b981;
+        }
+        .credentials code {
+            background: #fff;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            color: #333;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 20px;
+            text-align: center;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 تجربة PWA - آل شعيل</h1>
+
+        <div class="test-section">
+            <h2>📱 الوصول إلى PWA</h2>
+            <p>انقر على الروابط أدناه للوصول إلى التطبيق:</p>
+            <a href="http://localhost:3002/pwa" target="_blank" class="btn">
+                فتح PWA الرئيسي
+            </a>
+            <a href="http://localhost:3002/pwa/login" target="_blank" class="btn btn-secondary">
+                فتح صفحة تسجيل الدخول مباشرة
+            </a>
+        </div>
+
+        <div class="test-section">
+            <h2>🔐 بيانات الدخول التجريبية</h2>
+            <div class="credentials">
+                <p><strong>المستخدم الأول (رصيد منخفض):</strong></p>
+                <p>الهاتف: <code dir="ltr">0501234567</code></p>
+                <p>كلمة المرور: <code>password123</code></p>
+                <p style="color: #d32f2f; font-size: 12px;">الرصيد: 2500 ريال (أقل من الحد الأدنى 3000)</p>
+            </div>
+
+            <div class="credentials" style="margin-top: 15px;">
+                <p><strong>المستخدم الثاني (رصيد كافي):</strong></p>
+                <p>الهاتف: <code dir="ltr">0555555555</code></p>
+                <p>كلمة المرور: <code>password123</code></p>
+                <p style="color: #2e7d32; font-size: 12px;">الرصيد: 3500 ريال (أعلى من الحد الأدنى)</p>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>🧪 اختبار سريع للدخول</h2>
+            <button onclick="testLogin()" class="btn">
+                اختبار تسجيل الدخول التلقائي
+            </button>
+            <button onclick="clearAuth()" class="btn btn-secondary">
+                مسح بيانات الدخول
+            </button>
+            <div id="status"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>📊 حالة التطبيق</h2>
+            <p id="app-status">جاري فحص حالة التطبيق...</p>
+        </div>
+    </div>
+
+    <script>
+        // Check app status
+        function checkAppStatus() {
+            const statusEl = document.getElementById('app-status');
+
+            fetch('http://localhost:3002')
+                .then(response => {
+                    if (response.ok) {
+                        statusEl.innerHTML = '✅ التطبيق يعمل على المنفذ 3002';
+                        statusEl.style.color = '#2e7d32';
+                    } else {
+                        statusEl.innerHTML = '⚠️ التطبيق يستجيب ولكن مع رمز حالة: ' + response.status;
+                        statusEl.style.color = '#ff9800';
+                    }
+                })
+                .catch(error => {
+                    statusEl.innerHTML = '❌ التطبيق لا يعمل على المنفذ 3002';
+                    statusEl.style.color = '#d32f2f';
+                });
+        }
+
+        // Test login
+        function testLogin() {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = 'status success';
+            statusDiv.innerHTML = 'جاري تسجيل الدخول التجريبي...';
+
+            // Set test credentials in localStorage
+            const userData = {
+                phone: '0501234567',
+                name: 'أحمد محمد الشعيل',
+                balance: 2500,
+                membershipId: 'SH001',
+                joinDate: '2023-06-15',
+                totalPaid: 450,
+                minimumBalance: 3000
+            };
+
+            localStorage.setItem('pwa_user', JSON.stringify(userData));
+            localStorage.setItem('pwa_token', 'test-token-' + Date.now());
+
+            statusDiv.innerHTML = '✅ تم تسجيل الدخول بنجاح! سيتم توجيهك...';
+
+            setTimeout(() => {
+                window.open('http://localhost:3002/pwa/dashboard', '_blank');
+            }, 1500);
+        }
+
+        // Clear authentication
+        function clearAuth() {
+            localStorage.removeItem('pwa_user');
+            localStorage.removeItem('pwa_token');
+
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = 'status success';
+            statusDiv.innerHTML = '✅ تم مسح بيانات الدخول';
+        }
+
+        // Check status on load
+        checkAppStatus();
+        setInterval(checkAppStatus, 5000); // Check every 5 seconds
+    </script>
+</body>
+</html>

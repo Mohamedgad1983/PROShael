@@ -1,0 +1,98 @@
+{
+  "name": "alshuail-admin-arabic",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@heroicons/react": "^2.2.0",
+    "@tailwindcss/postcss": "^4.1.13",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.8.0",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^13.5.0",
+    "@types/jest": "^27.5.2",
+    "@types/node": "^16.18.126",
+    "@types/react": "^19.1.13",
+    "@types/react-dom": "^19.1.9",
+    "axios": "^1.12.2",
+    "buffer": "^6.0.3",
+    "chart.js": "^4.5.0",
+    "hijri-converter": "^1.1.1",
+    "js-cookie": "^3.0.5",
+    "playwright": "^1.55.0",
+    "process": "^0.11.10",
+    "react": "^19.1.1",
+    "react-chartjs-2": "^5.3.0",
+    "react-dom": "^19.1.1",
+    "react-router-dom": "^7.9.1",
+    "react-scripts": "5.0.1",
+    "recharts": "^3.2.0",
+    "typescript": "^4.9.5",
+    "web-vitals": "^2.1.4",
+    "workbox-sw": "^7.3.0",
+    "workbox-webpack-plugin": "^7.3.0",
+    "xlsx-populate": "^1.21.0"
+  },
+  "scripts": {
+    "start": "craco start",
+    "build": "set NODE_OPTIONS=--max-old-space-size=8192 && craco build",
+    "build:fast": "set NODE_OPTIONS=--max-old-space-size=8192 && set GENERATE_SOURCEMAP=false && craco build",
+    "test": "craco test",
+    "eject": "react-scripts eject",
+    "test:ci": "craco test --coverage --watchAll=false --testTimeout=10000",
+    "test:coverage": "craco test --coverage --watchAll=false",
+    "lint": "eslint src --ext .js,.jsx,.ts,.tsx --format=stylish",
+    "lint:fix": "eslint src --ext .js,.jsx,.ts,.tsx --fix",
+    "type-check": "tsc --noEmit",
+    "build:staging": "REACT_APP_ENV=staging craco build",
+    "build:production": "REACT_APP_ENV=production craco build",
+    "build:analyze": "npm run build && npx webpack-bundle-analyzer build/static/js/*.js",
+    "serve": "serve -s build -l 3000",
+    "docker:build": "docker build -t alshuail-frontend .",
+    "docker:build:dev": "docker build -f Dockerfile.dev -t alshuail-frontend:dev .",
+    "docker:run": "docker run -p 3000:3000 alshuail-frontend",
+    "docker:run:dev": "docker run -p 3002:3002 -v $(pwd):/app alshuail-frontend:dev",
+    "health-check": "curl -f http://localhost:3002/health || exit 1",
+    "rtl-check": "grep -r \"dir=\\\"rtl\\\"\" src/ && grep -r \"text-right\" src/",
+    "arabic-validation": "node scripts/validate-arabic-content.js",
+    "pre-deploy": "npm run lint && npm run type-check && npm run test:ci",
+    "deploy:staging": "npm run build:staging && npm run health-check",
+    "deploy:production": "npm run pre-deploy && npm run build:production",
+    "pwa:build": "npm run build && npx workbox generateSW workbox-config.js",
+    "pwa:serve": "npm run pwa:build && serve -s build -l 3000",
+    "pwa:analyze": "npx pwa-asset-generator public/icon-512x512.png public/ --background '#1e293b' --theme-color '#1e293b' --type png --purpose any maskable --favicon --manifest public/manifest.json",
+    "pwa:icons": "node scripts/generate-icons.js",
+    "pwa:validate": "npx lighthouse http://localhost:3000 --only-categories=pwa --chrome-flags='--headless'",
+    "pwa:audit": "npx pwa-audit-url http://localhost:3000",
+    "sw:update": "npx workbox generateSW workbox-config.js",
+    "offline:test": "npm run build && serve -s build -l 3000 --no-request-logging",
+    "manifest:validate": "npx web-app-manifest-validator public/manifest.json"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@craco/craco": "^7.1.0",
+    "@types/js-cookie": "^3.0.6",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^8.57.0",
+    "postcss": "^8.5.6",
+    "serve": "^14.2.1",
+    "tailwindcss": "^4.1.13",
+    "webpack-bundle-analyzer": "^4.9.1"
+  }
+}

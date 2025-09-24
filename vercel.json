@@ -1,0 +1,116 @@
+{
+  "name": "alshuail-admin-arabic",
+  "version": 2,
+  "framework": "create-react-app",
+  "buildCommand": "cd alshuail-admin-arabic && npm run build",
+  "outputDirectory": "alshuail-admin-arabic/build",
+  "installCommand": "cd alshuail-admin-arabic && npm ci",
+  "devCommand": "cd alshuail-admin-arabic && npm start",
+  "public": false,
+  "regions": ["iad1", "fra1"],
+  "functions": {
+    "alshuail-admin-arabic/src/**/*.{js,jsx,ts,tsx}": {
+      "runtime": "@vercel/node@18"
+    }
+  },
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/alshuail-admin-arabic/$1"
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "https://api.alshuail.com/api/$1"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://api.alshuail.com https://*.supabase.co; frame-src 'none'; object-src 'none';"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=()"
+        }
+      ]
+    },
+    {
+      "source": "/static/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/(.*\\.(?:css|js)$)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/(.*\\.(?:jpg|jpeg|png|gif|ico|svg|webp)$)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400"
+        }
+      ]
+    }
+  ],
+  "env": {
+    "REACT_APP_ENV": "production",
+    "REACT_APP_API_URL": "https://api.alshuail.com",
+    "GENERATE_SOURCEMAP": "false",
+    "INLINE_RUNTIME_CHUNK": "false"
+  },
+  "build": {
+    "env": {
+      "REACT_APP_ENV": "production",
+      "REACT_APP_API_URL": "https://api.alshuail.com",
+      "NODE_ENV": "production",
+      "GENERATE_SOURCEMAP": "false"
+    }
+  },
+  "github": {
+    "enabled": true,
+    "autoAlias": true,
+    "autoJobCancelation": true,
+    "previewDeploymentSuffix": "preview"
+  },
+  "crons": [
+    {
+      "path": "/api/health",
+      "schedule": "*/5 * * * *"
+    }
+  ]
+}

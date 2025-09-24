@@ -1,0 +1,175 @@
+.login-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  font-family: 'Cairo', sans-serif;
+}
+
+.login-form-wrapper {
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  padding: 40px;
+  max-width: 400px;
+  width: 100%;
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.login-header h1 {
+  color: #333;
+  font-size: 24px;
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.login-header p {
+  color: #666;
+  font-size: 16px;
+  margin: 0;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+}
+
+.form-group input {
+  padding: 12px 16px;
+  border: 2px solid #e1e5e9;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: border-color 0.3s ease;
+  font-family: 'Cairo', sans-serif;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.error-message {
+  background: #fee;
+  border: 1px solid #fcc;
+  color: #c33;
+  padding: 12px;
+  border-radius: 6px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.login-button {
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 14px 20px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  font-family: 'Cairo', sans-serif;
+}
+
+.login-button:hover {
+  background: #5a6fd8;
+}
+
+.login-button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.login-footer {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.login-footer p {
+  color: #888;
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+
+.demo-credentials {
+  background: #f0f7ff;
+  border: 1px solid #d1e7ff;
+  border-radius: 6px;
+  padding: 10px;
+  margin-top: 10px;
+}
+
+.demo-credentials small {
+  color: #0066cc;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+/* RTL Adjustments */
+[dir="rtl"] .form-group input {
+  text-align: right;
+}
+
+[dir="rtl"] .form-group input[dir="ltr"] {
+  text-align: left;
+}
+
+/* Phone Number Input Fix - Force LTR for numbers */
+input[type="tel"],
+input[type="text"][name="phone"],
+input[dir="ltr"] {
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: embed;
+  font-family: 'Arial', 'Helvetica', sans-serif;
+}
+
+/* Ensure phone input placeholder is also LTR */
+input[type="tel"]::placeholder,
+input[type="text"][name="phone"]::placeholder {
+  direction: ltr;
+  text-align: left;
+}
+
+/* Phone input specific styling */
+.form-group input[name="phone"] {
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: embed;
+  font-family: 'Arial', 'Helvetica', sans-serif;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 480px) {
+  .login-container {
+    padding: 10px;
+  }
+
+  .login-form-wrapper {
+    padding: 30px 20px;
+  }
+
+  .login-header h1 {
+    font-size: 20px;
+  }
+}

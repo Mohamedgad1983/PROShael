@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWA Final Test - Al Shuail</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans Arabic', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            direction: rtl;
+        }
+
+        .container {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 24px;
+            text-align: center;
+            color: #ffffff;
+            font-weight: 700;
+        }
+
+        .status-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+        }
+
+        .status-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .label {
+            font-size: 14px;
+            color: #cbd5e1;
+            font-weight: 500;
+        }
+
+        .value {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .success {
+            color: #22c55e;
+        }
+
+        .error {
+            color: #ef4444;
+        }
+
+        .warning {
+            color: #f59e0b;
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 16px 24px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 12px;
+            transition: background-color 0.1s ease;
+            text-decoration: none;
+            text-align: center;
+        }
+
+        .btn:hover {
+            background: #2563eb;
+        }
+
+        .btn-secondary {
+            background: #475569;
+        }
+
+        .btn-secondary:hover {
+            background: #64748b;
+        }
+
+        .btn-success {
+            background: #22c55e;
+        }
+
+        .btn-success:hover {
+            background: #16a34a;
+        }
+
+        .credentials {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 20px;
+        }
+
+        .credentials h3 {
+            font-size: 14px;
+            color: #22c55e;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .credentials-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .credentials-item .key {
+            color: #cbd5e1;
+        }
+
+        .credentials-item .val {
+            font-family: monospace;
+            color: #60a5fa;
+            direction: ltr;
+        }
+
+        #test-results {
+            margin-top: 20px;
+            padding: 16px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        #test-results.show {
+            display: block;
+        }
+
+        #test-results.success-bg {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+
+        #test-results.error-bg {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 اختبار نهائي لتطبيق PWA - آل شعيل</h1>
+
+        <div class="status-card">
+            <div class="status-item">
+                <span class="label">حالة التطبيق:</span>
+                <span id="app-status" class="value">جاري الفحص...</span>
+            </div>
+            <div class="status-item">
+                <span class="label">الواجهة الأمامية:</span>
+                <span id="frontend-status" class="value">جاري الفحص...</span>
+            </div>
+            <div class="status-item">
+                <span class="label">الواجهة الخلفية:</span>
+                <span id="backend-status" class="value">جاري الفحص...</span>
+            </div>
+        </div>
+
+        <a href="http://localhost:3002/pwa" target="_blank" class="btn">
+            فتح تطبيق PWA الرئيسي
+        </a>
+
+        <a href="http://localhost:3002/pwa/login" target="_blank" class="btn btn-secondary">
+            فتح صفحة تسجيل الدخول
+        </a>
+
+        <button onclick="testLogin()" class="btn btn-success">
+            اختبار تسجيل الدخول التلقائي
+        </button>
+
+        <div class="credentials">
+            <h3>📝 بيانات الدخول التجريبية</h3>
+            <div class="credentials-item">
+                <span class="key">رقم الهاتف:</span>
+                <span class="val">0501234567</span>
+            </div>
+            <div class="credentials-item">
+                <span class="key">كلمة المرور:</span>
+                <span class="val">password123</span>
+            </div>
+            <div class="credentials-item">
+                <span class="key">الرصيد:</span>
+                <span class="val" style="color: #ef4444;">2500 ر.س (أقل من الحد الأدنى)</span>
+            </div>
+        </div>
+
+        <div id="test-results"></div>
+    </div>
+
+    <script>
+        // Check app status
+        function checkStatus() {
+            // Check frontend
+            fetch('http://localhost:3002')
+                .then(response => {
+                    const frontendStatus = document.getElementById('frontend-status');
+                    if (response.ok) {
+                        frontendStatus.textContent = 'يعمل ✅';
+                        frontendStatus.className = 'value success';
+                    } else {
+                        frontendStatus.textContent = 'غير متاح ❌';
+                        frontendStatus.className = 'value error';
+                    }
+                })
+                .catch(() => {
+                    const frontendStatus = document.getElementById('frontend-status');
+                    frontendStatus.textContent = 'غير متاح ❌';
+                    frontendStatus.className = 'value error';
+                });
+
+            // Check backend
+            fetch('http://localhost:5001/health')
+                .then(response => {
+                    const backendStatus = document.getElementById('backend-status');
+                    if (response.ok) {
+                        backendStatus.textContent = 'يعمل ✅';
+                        backendStatus.className = 'value success';
+                    } else {
+                        backendStatus.textContent = 'غير متاح ❌';
+                        backendStatus.className = 'value error';
+                    }
+                })
+                .catch(() => {
+                    const backendStatus = document.getElementById('backend-status');
+                    backendStatus.textContent = 'غير متاح ❌';
+                    backendStatus.className = 'value error';
+                });
+
+            // Overall app status
+            setTimeout(() => {
+                const appStatus = document.getElementById('app-status');
+                const frontend = document.getElementById('frontend-status').textContent;
+                const backend = document.getElementById('backend-status').textContent;
+
+                if (frontend.includes('✅') && backend.includes('✅')) {
+                    appStatus.textContent = 'جاهز للعمل ✅';
+                    appStatus.className = 'value success';
+                } else if (frontend.includes('✅')) {
+                    appStatus.textContent = 'يعمل جزئياً ⚠️';
+                    appStatus.className = 'value warning';
+                } else {
+                    appStatus.textContent = 'غير متاح ❌';
+                    appStatus.className = 'value error';
+                }
+            }, 1000);
+        }
+
+        // Test login
+        async function testLogin() {
+            const resultsDiv = document.getElementById('test-results');
+            resultsDiv.innerHTML = '<h3>جاري الاختبار...</h3>';
+            resultsDiv.className = 'show';
+
+            try {
+                // Set test user data
+                const userData = {
+                    id: 'test-user-0501234567',
+                    phone: '0501234567',
+                    name: 'أحمد محمد الشعيل',
+                    balance: 2500,
+                    membershipId: 'SH001',
+                    joinDate: '2023-06-15',
+                    totalPaid: 450,
+                    minimumBalance: 3000,
+                    avatar: null,
+                    role: 'member'
+                };
+
+                localStorage.setItem('pwa_user', JSON.stringify(userData));
+                localStorage.setItem('pwa_token', 'test-token-' + Date.now());
+
+                resultsDiv.innerHTML = `
+                    <h3 style="color: #22c55e; margin-bottom: 12px;">✅ تم تسجيل الدخول بنجاح!</h3>
+                    <p style="color: #cbd5e1; font-size: 14px; margin-bottom: 8px;">تم حفظ البيانات في المتصفح</p>
+                    <p style="color: #cbd5e1; font-size: 14px;">سيتم توجيهك إلى لوحة التحكم...</p>
+                `;
+                resultsDiv.className = 'show success-bg';
+
+                setTimeout(() => {
+                    window.open('http://localhost:3002/pwa/dashboard', '_blank');
+                }, 2000);
+            } catch (error) {
+                resultsDiv.innerHTML = `
+                    <h3 style="color: #ef4444; margin-bottom: 12px;">❌ فشل الاختبار</h3>
+                    <p style="color: #cbd5e1; font-size: 14px;">${error.message}</p>
+                `;
+                resultsDiv.className = 'show error-bg';
+            }
+        }
+
+        // Check status on load
+        checkStatus();
+        setInterval(checkStatus, 5000);
+    </script>
+</body>
+</html>

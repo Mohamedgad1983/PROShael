@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Mobile Login</title>
+</head>
+<body>
+    <h1>Test Mobile Login</h1>
+    <button onclick="testLogin()">Test Login & Navigation</button>
+    <div id="result"></div>
+
+    <script>
+        async function testLogin() {
+            const resultDiv = document.getElementById('result');
+
+            try {
+                // Set localStorage items
+                localStorage.setItem('pwa_user', JSON.stringify({
+                    phone: '0555555555',
+                    name: 'Test User',
+                    balance: 5000
+                }));
+                localStorage.setItem('pwa_token', 'test-token-' + Date.now());
+
+                resultDiv.innerHTML = '<p style="color: green;">✓ localStorage set successfully</p>';
+
+                // Navigate to dashboard
+                setTimeout(() => {
+                    window.location.href = 'http://localhost:3002/pwa/dashboard';
+                }, 1000);
+
+            } catch (error) {
+                resultDiv.innerHTML = '<p style="color: red;">Error: ' + error.message + '</p>';
+            }
+        }
+    </script>
+</body>
+</html>

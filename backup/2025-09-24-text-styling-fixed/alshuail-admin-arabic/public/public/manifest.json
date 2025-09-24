@@ -1,0 +1,31 @@
+{
+  "name": "الشعيل - إدارة الأسرة",
+  "short_name": "الشعيل",
+  "description": "نظام إدارة شامل لأسرة الشعيل يتضمن إدارة الأعضاء والتقارير المالية والوثائق",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/members",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#1e293b",
+  "background_color": "#0f172a",
+  "categories": ["productivity", "business", "finance"],
+  "scope": "/",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
+  "handle_links": "preferred",
+  "capture_links": "existing-client-navigate"
+}

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test PWA Navigation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #5a67d8;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            background: #e0f2fe;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>اختبار التنقل في PWA</h1>
+
+        <div class="status">
+            <strong>الحالة:</strong> <span id="status">غير مسجل الدخول</span>
+        </div>
+
+        <button onclick="login()">تسجيل دخول تجريبي</button>
+
+        <h2>الصفحات المتاحة:</h2>
+        <button onclick="navigate('/pwa/dashboard')">لوحة التحكم</button>
+        <button onclick="navigate('/pwa/payments')">المدفوعات</button>
+        <button onclick="navigate('/pwa/notifications')">الإشعارات</button>
+        <button onclick="navigate('/pwa/profile')">الملف الشخصي</button>
+        <button onclick="navigate('/pwa/reports')">التقارير</button>
+        <button onclick="navigate('/pwa/settings')">الإعدادات</button>
+
+        <button onclick="logout()" style="background: #ef4444;">تسجيل خروج</button>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        function checkStatus() {
+            const user = localStorage.getItem('pwa_user');
+            const token = localStorage.getItem('pwa_token');
+
+            if (user && token) {
+                const userData = JSON.parse(user);
+                document.getElementById('status').textContent = `مسجل الدخول كـ: ${userData.name}`;
+            } else {
+                document.getElementById('status').textContent = 'غير مسجل الدخول';
+            }
+        }
+
+        function login() {
+            localStorage.setItem('pwa_user', JSON.stringify({
+                phone: '0555555555',
+                name: 'عضو تجريبي',
+                balance: 5000,
+                membershipId: 'SH001'
+            }));
+            localStorage.setItem('pwa_token', 'test-token-' + Date.now());
+            checkStatus();
+            alert('تم تسجيل الدخول بنجاح!');
+        }
+
+        function logout() {
+            localStorage.removeItem('pwa_user');
+            localStorage.removeItem('pwa_token');
+            checkStatus();
+            alert('تم تسجيل الخروج!');
+        }
+
+        function navigate(path) {
+            const user = localStorage.getItem('pwa_user');
+            if (!user && path !== '/pwa/login') {
+                alert('يجب تسجيل الدخول أولاً!');
+                return;
+            }
+
+            window.location.href = 'http://localhost:3002' + path;
+        }
+
+        // Check status on load
+        checkStatus();
+    </script>
+</body>
+</html>

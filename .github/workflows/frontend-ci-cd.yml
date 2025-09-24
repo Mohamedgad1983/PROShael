@@ -1,0 +1,316 @@
+# Al-Shuail Frontend CI/CD Pipeline
+# Premium Arabic RTL Family Management System
+# Supports Vercel deployment with staging and production environments
+
+name: Frontend CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'alshuail-admin-arabic/**'
+      - '.github/workflows/frontend-ci-cd.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'alshuail-admin-arabic/**'
+      - '.github/workflows/frontend-ci-cd.yml'
+
+env:
+  NODE_VERSION: '18'
+  WORKING_DIRECTORY: './alshuail-admin-arabic'
+
+jobs:
+  # Quality Gates - Code Quality and Testing
+  quality-gates:
+    name: Quality Gates (Linting & Testing)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: '${{ env.WORKING_DIRECTORY }}/package-lock.json'
+
+      - name: Install Dependencies
+        run: |
+          npm ci --prefer-offline --no-audit
+
+      - name: Cache Dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ${{ env.WORKING_DIRECTORY }}/node_modules
+            ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: ESLint - Code Quality Check
+        run: |
+          npx eslint src --ext .js,.jsx,.ts,.tsx --format=stylish --max-warnings=0
+        continue-on-error: false
+
+      - name: Arabic RTL Text Validation
+        run: |
+          echo "Validating Arabic RTL text patterns..."
+          # Check for proper RTL attributes and classes
+          grep -r "dir=\"rtl\"" src/ || echo "Warning: No RTL attributes found"
+          grep -r "text-right" src/ || echo "Warning: No RTL text alignment found"
+          grep -r "arabic" src/ --ignore-case || echo "Info: No Arabic-specific patterns found"
+          echo "Arabic RTL validation completed"
+
+      - name: TypeScript Type Checking
+        run: npx tsc --noEmit
+
+      - name: Run Tests with RTL Support
+        run: |
+          npm test -- --coverage --watchAll=false --testTimeout=10000
+        env:
+          CI: true
+          REACT_APP_API_URL: http://localhost:3001
+
+      - name: Upload Test Coverage
+        uses: codecov/codecov-action@v3
+        with:
+          flags: frontend
+          directory: ${{ env.WORKING_DIRECTORY }}
+        if: always()
+
+  # Build and Validation
+  build:
+    name: Build Application
+    runs-on: ubuntu-latest
+    needs: quality-gates
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+
+    strategy:
+      matrix:
+        environment: [staging, production]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: '${{ env.WORKING_DIRECTORY }}/package-lock.json'
+
+      - name: Restore Dependencies Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ${{ env.WORKING_DIRECTORY }}/node_modules
+            ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+
+      - name: Install Dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Set Environment Variables
+        run: |
+          if [ "${{ matrix.environment }}" == "production" ]; then
+            echo "REACT_APP_API_URL=${{ secrets.PROD_API_URL }}" >> $GITHUB_ENV
+            echo "REACT_APP_ENV=production" >> $GITHUB_ENV
+          else
+            echo "REACT_APP_API_URL=${{ secrets.STAGING_API_URL }}" >> $GITHUB_ENV
+            echo "REACT_APP_ENV=staging" >> $GITHUB_ENV
+          fi
+
+      - name: Build Application
+        run: |
+          echo "Building for ${{ matrix.environment }} environment..."
+          npm run build
+        env:
+          CI: false
+          GENERATE_SOURCEMAP: ${{ matrix.environment == 'production' && 'false' || 'true' }}
+
+      - name: Validate Build Artifacts
+        run: |
+          echo "Validating build artifacts..."
+          ls -la build/
+          # Check for Arabic font files and RTL CSS
+          find build/ -name "*.css" -exec grep -l "rtl\|arabic" {} \; || echo "Warning: No RTL styles found in build"
+          # Check build size
+          du -sh build/ | awk '{print "Build size: " $1}'
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-${{ matrix.environment }}-${{ github.sha }}
+          path: ${{ env.WORKING_DIRECTORY }}/build
+          retention-days: 7
+
+  # Security Audit
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Security Audit
+        run: |
+          npm audit --audit-level=moderate
+          npx audit-ci --moderate
+
+      - name: Check for Sensitive Files
+        run: |
+          echo "Checking for sensitive files..."
+          find . -name "*.env" -not -path "./node_modules/*" | while read file; do
+            echo "Found env file: $file"
+            # Check if it contains actual secrets (not template)
+            if grep -q "sk_\|pk_\|secret" "$file" 2>/dev/null; then
+              echo "Warning: Potential secrets found in $file"
+            fi
+          done
+
+  # Deploy to Staging (develop branch)
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [quality-gates, build, security]
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    environment:
+      name: staging
+      url: ${{ steps.deploy.outputs.preview-url }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: build-staging-${{ github.sha }}
+          path: ${{ env.WORKING_DIRECTORY }}/build
+
+      - name: Deploy to Vercel (Staging)
+        id: deploy
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: ${{ env.WORKING_DIRECTORY }}
+          vercel-args: '--prod'
+          scope: ${{ secrets.VERCEL_ORG_ID }}
+
+      - name: Update Deployment Status
+        run: |
+          echo "Staging deployment completed"
+          echo "Preview URL: ${{ steps.deploy.outputs.preview-url }}"
+
+  # Deploy to Production (main branch)
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [quality-gates, build, security]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: production
+      url: ${{ secrets.PROD_FRONTEND_URL }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download Build Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: build-production-${{ github.sha }}
+          path: ${{ env.WORKING_DIRECTORY }}/build
+
+      - name: Deploy to Production
+        id: deploy
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: ${{ env.WORKING_DIRECTORY }}
+          vercel-args: '--prod --confirm'
+          scope: ${{ secrets.VERCEL_ORG_ID }}
+
+      - name: Health Check
+        run: |
+          echo "Performing production health check..."
+          sleep 30  # Wait for deployment to be ready
+          curl -f ${{ secrets.PROD_FRONTEND_URL }}/health || echo "Health check endpoint not available"
+
+      - name: Notify Deployment Success
+        run: |
+          echo "✅ Production deployment completed successfully!"
+          echo "Production URL: ${{ secrets.PROD_FRONTEND_URL }}"
+
+  # Lighthouse Performance Audit
+  lighthouse:
+    name: Lighthouse Performance Audit
+    runs-on: ubuntu-latest
+    needs: [deploy-staging]
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Run Lighthouse Audit
+        uses: treosh/lighthouse-ci-action@v9
+        with:
+          urls: |
+            ${{ needs.deploy-staging.outputs.preview-url }}
+          configPath: '.github/lighthouse/lighthouserc.json'
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+
+  # Cleanup
+  cleanup:
+    name: Cleanup Artifacts
+    runs-on: ubuntu-latest
+    needs: [deploy-staging, deploy-production]
+    if: always()
+
+    steps:
+      - name: Delete Build Artifacts
+        uses: geekyeggo/delete-artifact@v2
+        with:
+          name: |
+            build-staging-${{ github.sha }}
+            build-production-${{ github.sha }}
+          failOnError: false
+
+# Notification placeholder for Slack/Teams integration
+# notifications:
+#   name: Send Notifications
+#   runs-on: ubuntu-latest
+#   needs: [deploy-staging, deploy-production]
+#   if: always()
+#   steps:
+#     - name: Slack Notification
+#       uses: 8398a7/action-slack@v3
+#       with:
+#         status: ${{ job.status }}
+#         channel: '#deployments'
+#         webhook_url: ${{ secrets.SLACK_WEBHOOK }}
