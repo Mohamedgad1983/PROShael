@@ -1,6 +1,0 @@
-
-claude mcp add supabase --scope user \
-  --env SUPABASE_ACCESS_TOKEN="sbp_d01876af30d185f1514e323e6fa5decd5b4b5296" \
-  -- npx -y @supabase-community/supabase-mcp@latest \
-  --project-ref="oneiggrfzagqjbkdinin" \
-  --enable-all-features

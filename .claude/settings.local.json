@@ -6,7 +6,12 @@
       "Bash(npm install:*)",
       "Bash(wrangler whoami:*)",
       "Bash(setx:*)",
-      "Bash(wrangler config:*)"
+      "Bash(wrangler config:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(dir:*)",
+      "Bash(cleanup.bat)",
+      "Bash(cmd:*)"
     ],
     "deny": [],
     "ask": []

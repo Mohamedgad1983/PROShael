@@ -82,6 +82,12 @@ npm start
 
 The application will be available at http://localhost:3002
 
+### Deployment
+
+The project is deployed automatically via GitHub Actions to Cloudflare Pages:
+- **Live URL**: https://alshuail-admin.pages.dev/
+- **Auto-deploy**: Push to `main` branch triggers deployment
+
 ## Project Structure
 
 ```
