@@ -17,6 +17,7 @@ import testRoutes from './src/routes/test.js';
 import expensesRoutes from './src/routes/expenses.js';
 import financialReportsRoutes from './src/routes/financialReports.js';
 import settingsRoutes from './src/routes/settings.js';
+import crisisRoutes from './src/routes/crisis.js';
 
 dotenv.config();
 
@@ -56,6 +57,7 @@ app.use('/api/test', testRoutes);
 app.use('/api/expenses', expensesRoutes);
 app.use('/api/reports', financialReportsRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/crisis', crisisRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({

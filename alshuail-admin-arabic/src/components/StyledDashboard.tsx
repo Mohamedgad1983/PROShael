@@ -41,7 +41,7 @@ import TwoSectionMembers from './Members/TwoSectionMembers.jsx';
 import Settings from './Settings/Settings.jsx';
 // Crisis Recovery Components - CRITICAL PRIORITY
 // @ts-ignore
-import CrisisDashboard from './Dashboard/CrisisDashboard.jsx';
+import CrisisDashboard from './Crisis/CrisisDashboard';
 // @ts-ignore
 import MemberStatementSearch from './Members/MemberStatementSearch.jsx';
 import { formatHijriDate, getCurrentHijriDate, formatDualDate } from '../utils/hijriDateUtils';
