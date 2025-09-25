@@ -16,7 +16,12 @@
       "Bash(git add:*)",
       "Bash(start view-github-logs.html)",
       "Bash(node:*)",
-      "Bash(powershell:*)"
+      "Bash(powershell:*)",
+      "Bash(copy alshuail-admin-arabicpublicoverride-styles.css alshuail-admin-arabicbuildoverride-styles.css)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(start http://localhost:3002)"
     ],
     "deny": [],
     "ask": []

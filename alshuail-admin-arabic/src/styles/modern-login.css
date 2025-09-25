@@ -1,480 +1,333 @@
-/* Modern Login Page Styles - Clean, Minimal, Professional */
+/* Modern Apple-style Login Page Styles */
 
-/* Root variables for modern design */
-:root {
-  --primary-color: #2563eb;
-  --primary-dark: #1e40af;
-  --primary-light: #3b82f6;
-  --secondary-color: #64748b;
-  --success-color: #10b981;
-  --danger-color: #ef4444;
-  --warning-color: #f59e0b;
-  --dark-bg: #0f172a;
-  --light-bg: #f8fafc;
-  --card-bg: #ffffff;
-  --border-color: #e2e8f0;
-  --text-primary: #1e293b;
-  --text-secondary: #64748b;
-  --text-light: #94a3b8;
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
-  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
-}
-
-/* Modern Login Container */
-.modern-login-container {
+.apple-login-container {
   min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  font-family: 'Tajawal', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   position: relative;
   overflow: hidden;
 }
 
-/* Geometric Background Pattern */
-.modern-bg-pattern {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  opacity: 0.1;
-  background-image:
-    repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(255,255,255,.1) 35px, rgba(255,255,255,.1) 70px),
-    repeating-linear-gradient(-45deg, transparent, transparent 35px, rgba(255,255,255,.05) 35px, rgba(255,255,255,.05) 70px);
+/* Header Styles */
+.apple-header-login {
+  position: relative;
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  z-index: 10;
 }
 
-/* Animated Circles Background */
-.modern-circles {
+.apple-header-background {
   position: absolute;
-  width: 100%;
-  height: 100%;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   overflow: hidden;
+  z-index: -1;
 }
 
-.circle {
+.apple-gradient-overlay {
   position: absolute;
-  border-radius: 50%;
-  background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0));
-  animation: drift 20s infinite;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+  animation: pulse 15s ease-in-out infinite;
 }
 
-.circle-1 {
-  width: 300px;
-  height: 300px;
-  top: -150px;
-  left: -150px;
-  animation-duration: 25s;
+@keyframes pulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.1); }
 }
 
-.circle-2 {
-  width: 200px;
-  height: 200px;
-  bottom: -100px;
-  right: -100px;
-  animation-duration: 20s;
-  animation-delay: 5s;
-}
-
-.circle-3 {
-  width: 150px;
-  height: 150px;
-  top: 50%;
-  left: -75px;
-  animation-duration: 30s;
-  animation-delay: 10s;
+.apple-particle-effect {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.5) 1px, transparent 1px);
+  background-size: 50px 50px;
+  animation: drift 20s linear infinite;
 }
 
 @keyframes drift {
-  0%, 100% {
-    transform: translate(0, 0) rotate(0deg);
-  }
-  33% {
-    transform: translate(30px, -30px) rotate(120deg);
-  }
-  66% {
-    transform: translate(-20px, 20px) rotate(240deg);
-  }
+  from { transform: translate(0, 0); }
+  to { transform: translate(50px, 50px); }
 }
 
-/* Main Content Area */
-.modern-main-content {
+.apple-header-content {
+  position: relative;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.apple-logo-section {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.apple-logo-wrapper {
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, #007AFF 0%, #5856D6 100%);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.apple-logo-icon {
+  width: 30px;
+  height: 30px;
+  color: white;
+}
+
+.apple-logo-text {
+  color: white;
+}
+
+.apple-logo-title {
+  font-size: 2rem;
+  font-weight: 400 !important;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.apple-logo-subtitle {
+  font-size: 1rem;
+  font-weight: 400 !important;
+  opacity: 0.9;
+  margin: 0.25rem 0 0;
+}
+
+/* Main Content */
+.apple-main-content {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 2rem;
-  position: relative;
-  z-index: 10;
 }
 
-/* Modern Login Card */
-.modern-login-card {
+/* Login Card */
+.apple-login-card {
+  position: relative;
   width: 100%;
-  max-width: 440px;
-  background: white;
-  border-radius: 24px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  overflow: hidden;
-  position: relative;
-  animation: slideUp 0.6s ease-out;
+  max-width: 460px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border-radius: 30px;
+  padding: 3rem;
+  box-shadow:
+    0 30px 60px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(255, 255, 255, 0.5) inset;
 }
 
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Card Header with Gradient */
-.modern-card-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 3rem 2.5rem 2.5rem;
-  text-align: center;
-  position: relative;
-}
-
-.modern-card-header::after {
-  content: '';
+.apple-card-glow {
   position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
   bottom: -2px;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, #667eea, #764ba2, #667eea);
-  background-size: 200% 100%;
-  animation: shimmer 3s infinite;
+  background: linear-gradient(45deg, #007AFF, #5856D6, #AF52DE, #FF2D55, #007AFF);
+  border-radius: 30px;
+  opacity: 0.5;
+  filter: blur(20px);
+  z-index: -1;
+  animation: glow-rotate 10s linear infinite;
 }
 
-@keyframes shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
+@keyframes glow-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
-/* Logo Section */
-.modern-logo-wrapper {
-  width: 120px;
-  height: 120px;
-  margin: 0 auto 1.5rem;
-  background: white;
-  border-radius: 20px;
-  padding: 20px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+/* Login Header */
+.apple-login-header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.apple-login-title {
+  font-size: 2.5rem;
+  font-weight: 400 !important;
+  color: #1d1d1f;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.apple-login-subtitle {
+  font-size: 1.1rem;
+  font-weight: 400 !important;
+  color: #86868b;
+  margin: 0.5rem 0 0;
+}
+
+/* Form Styles */
+.apple-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.apple-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.apple-input-label {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 400 !important;
+  color: #1d1d1f;
+  margin-right: 0.25rem;
+}
+
+.apple-label-icon {
+  width: 20px;
+  height: 20px;
+  color: #007AFF;
+}
+
+.apple-input-wrapper {
   position: relative;
 }
 
-.modern-logo-wrapper img {
+.apple-input-field {
   width: 100%;
-  height: 100%;
-  object-fit: contain;
-  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
-}
-
-/* Logo Pulse Animation */
-.modern-logo-wrapper::before {
-  content: '';
-  position: absolute;
-  top: -5px;
-  left: -5px;
-  right: -5px;
-  bottom: -5px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  border-radius: 25px;
-  opacity: 0;
-  z-index: -1;
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 0;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.3;
-    transform: scale(1.05);
-  }
-}
-
-/* Title Text */
-.modern-title {
-  color: white;
-  font-size: 28px;
-  font-weight: 400;
-  margin-bottom: 0.5rem;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.modern-subtitle {
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 16px;
-  font-weight: 400;
-  margin-bottom: 0.25rem;
-}
-
-.modern-system-text {
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 14px;
-  font-weight: 300;
-}
-
-/* Login Form Container */
-.modern-form-container {
-  padding: 2.5rem;
-}
-
-/* Welcome Text */
-.modern-welcome {
-  text-align: center;
-  margin-bottom: 2rem;
-}
-
-.modern-welcome-title {
-  font-size: 22px;
-  color: var(--text-primary);
-  font-weight: 400;
-  margin-bottom: 0.5rem;
-}
-
-.modern-welcome-subtitle {
-  font-size: 15px;
-  color: var(--text-secondary);
-}
-
-/* Modern Form */
-.modern-login-form {
-  width: 100%;
-}
-
-/* Input Groups */
-.modern-input-group {
-  margin-bottom: 1.5rem;
-  position: relative;
-}
-
-.modern-input-label {
-  display: block;
-  font-size: 14px;
-  font-weight: 400;
-  color: var(--text-primary);
-  margin-bottom: 0.5rem;
-  transition: all 0.3s ease;
-}
-
-/* Modern Input Field */
-.modern-input-wrapper {
-  position: relative;
-}
-
-.modern-input-field {
-  width: 100%;
-  padding: 14px 16px 14px 48px;
-  font-size: 15px;
-  border: 2px solid var(--border-color);
+  padding: 1rem 1.25rem;
+  font-size: 1.1rem;
+  font-weight: 400 !important;
+  border: 2px solid #e5e5e7;
   border-radius: 12px;
   background: white;
-  color: var(--text-primary);
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   outline: none;
 }
 
-.modern-input-field:focus {
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+.apple-input-field:focus {
+  border-color: #007AFF;
+  box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
 }
 
-.modern-input-field::placeholder {
-  color: var(--text-light);
+.apple-input-field::placeholder {
+  color: #c7c7cc;
+  font-weight: 400 !important;
 }
 
-/* Input Icons */
-.modern-input-icon {
-  position: absolute;
-  right: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 20px;
-  height: 20px;
-  color: var(--text-secondary);
-  transition: color 0.3s ease;
-}
-
-.modern-input-wrapper:focus-within .modern-input-icon {
-  color: #667eea;
-}
-
-/* Modern Login Button */
-.modern-login-button {
-  width: 100%;
-  padding: 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+/* Login Button */
+.apple-login-button {
+  margin-top: 1rem;
+  padding: 1.25rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 400 !important;
   color: white;
+  background: linear-gradient(135deg, #007AFF 0%, #5856D6 100%);
   border: none;
   border-radius: 12px;
-  font-size: 16px;
-  font-weight: 400;
   cursor: pointer;
-  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 1.5rem;
 }
 
-.modern-login-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
-}
-
-.modern-login-button:active {
-  transform: translateY(0);
-}
-
-/* Button Ripple Effect */
-.modern-login-button::before {
+.apple-login-button::before {
   content: '';
   position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 0;
-  height: 0;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.5);
-  transform: translate(-50%, -50%);
-  transition: width 0.6s, height 0.6s;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
 }
 
-.modern-login-button:hover::before {
-  width: 300px;
-  height: 300px;
+.apple-login-button:hover::before {
+  left: 100%;
 }
 
-/* Button Arrow Icon */
-.modern-button-arrow {
+.apple-login-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(0, 122, 255, 0.3);
+}
+
+.apple-button-arrow {
   width: 20px;
   height: 20px;
-  transition: transform 0.3s ease;
+  transition: transform 0.3s;
 }
 
-.modern-login-button:hover .modern-button-arrow {
-  transform: translateX(4px);
+.apple-login-button:hover .apple-button-arrow {
+  transform: translateX(-5px);
 }
 
-/* Footer Links */
-.modern-footer-links {
+/* Footer Section */
+.apple-footer-section {
   margin-top: 2rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--border-color);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 1rem;
-}
-
-.modern-secure-text {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-
-.modern-lock-icon {
-  width: 14px;
-  height: 14px;
-  color: var(--success-color);
-}
-
-/* Footer Copyright */
-.modern-footer {
-  padding: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid #e5e5e7;
   text-align: center;
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 14px;
-  position: relative;
-  z-index: 10;
+}
+
+.apple-security-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 400 !important;
+  color: #86868b;
+}
+
+.apple-security-icon {
+  width: 18px;
+  height: 18px;
+  color: #34C759;
 }
 
 /* Responsive Design */
-@media (max-width: 640px) {
-  .modern-login-card {
-    max-width: 100%;
-    margin: 1rem;
+@media (max-width: 768px) {
+  .apple-login-card {
+    padding: 2rem;
   }
 
-  .modern-card-header {
-    padding: 2rem 1.5rem 1.5rem;
+  .apple-login-title {
+    font-size: 2rem;
   }
 
-  .modern-form-container {
-    padding: 1.5rem;
-  }
-
-  .modern-title {
-    font-size: 24px;
-  }
-
-  .modern-logo-wrapper {
-    width: 100px;
-    height: 100px;
+  .apple-logo-title {
+    font-size: 1.5rem;
   }
 }
 
-/* Loading State */
-.modern-loading {
-  display: inline-block;
-  width: 20px;
-  height: 20px;
-  border: 3px solid rgba(255, 255, 255, 0.3);
-  border-radius: 50%;
-  border-top-color: white;
-  animation: spin 1s ease-in-out infinite;
+/* Remove all font-weight bold */
+* {
+  font-weight: 400 !important;
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* Error Message */
-.modern-error {
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #dc2626;
-  padding: 12px 16px;
-  border-radius: 8px;
-  font-size: 14px;
-  margin-bottom: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-/* Success Message */
-.modern-success {
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  color: #16a34a;
-  padding: 12px 16px;
-  border-radius: 8px;
-  font-size: 14px;
-  margin-bottom: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+h1, h2, h3, h4, h5, h6,
+b, strong,
+.font-bold, .font-semibold, .font-medium {
+  font-weight: 400 !important;
 }
