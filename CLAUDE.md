@@ -1058,6 +1058,41 @@ git push origin develop
 git push origin main
 ```
 
+## Cloudflare Pages Deployment (Current Production)
+
+### Live URL
+- **Production**: https://alshuail-admin.pages.dev
+- **Preview**: https://[deployment-id].alshuail-admin.pages.dev
+
+### Manual Deployment Process
+```bash
+# 1. Navigate to frontend directory
+cd alshuail-admin-arabic
+
+# 2. Build the project (when TypeScript issue is fixed)
+npm run build
+
+# 3. Deploy to Cloudflare Pages
+wrangler pages deploy build --project-name=alshuail-admin --env-file .env.local --commit-dirty=true
+```
+
+### Quick Deploy (Using Existing Build)
+```bash
+cd alshuail-admin-arabic && wrangler pages deploy build --project-name=alshuail-admin --env-file .env.local --commit-dirty=true
+```
+
+### Cloudflare Configuration
+- **Project Name**: alshuail-admin
+- **Account ID**: 425423960a5734e5ede200086b63fb4c
+- **API Token**: Stored in .env.local (with Pages:Edit permissions)
+- **Build Output**: alshuail-admin-arabic/build/
+
+### Important Notes
+- Local changes do NOT automatically update the live site
+- Must deploy after each change for updates to appear online
+- GitHub Actions workflow available for automatic deployment
+- Current build issue on Windows with TypeScript paths
+
 ### GitHub Secrets Required
 ```
 # Database
