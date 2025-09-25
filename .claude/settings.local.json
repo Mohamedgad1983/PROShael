@@ -22,7 +22,11 @@
       "Bash(findstr:*)",
       "Bash(taskkill:*)",
       "Bash(start http://localhost:3002)",
-      "Bash(git merge:*)"
+      "Bash(git merge:*)",
+      "Bash(timeout:*)",
+      "Bash(cp:*)",
+      "Bash(git filter-branch:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []
