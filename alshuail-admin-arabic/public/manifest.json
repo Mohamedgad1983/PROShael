@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
   "name": "الشعيل - إدارة الأسرة",
   "short_name": "الشعيل",
   "description": "نظام إدارة شامل لأسرة الشعيل يتضمن إدارة الأعضاء والتقارير المالية والوثائق",
@@ -11,11 +12,16 @@
   "background_color": "#0f172a",
   "categories": ["productivity", "business", "finance"],
   "scope": "/",
+=======
+  "short_name": "React App",
+  "name": "Create React App Sample",
+>>>>>>> a5fb1535e6a5072e663226a993218935989cb409
   "icons": [
     {
       "src": "favicon.ico",
       "sizes": "64x64 32x32 24x24 16x16",
       "type": "image/x-icon"
+<<<<<<< HEAD
     }
   ],
   "related_applications": [],
@@ -28,4 +34,22 @@
   },
   "handle_links": "preferred",
   "capture_links": "existing-client-navigate"
+=======
+    },
+    {
+      "src": "logo192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "logo512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#000000",
+  "background_color": "#ffffff"
+>>>>>>> a5fb1535e6a5072e663226a993218935989cb409
 }

@@ -54,6 +54,36 @@ router.get('/occasions', async (req, res) => {
   }
 });
 
+// Test database connection
+router.get('/connection', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('members')
+      .select('count')
+      .limit(1);
+
+    if (error) {
+      return res.status(500).json({
+        success: false,
+        error: 'Database connection failed',
+        details: error.message
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Database connection successful',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Test failed',
+      details: error.message
+    });
+  }
+});
+
 router.get('/initiatives', async (req, res) => {
   try {
     console.log('Test initiatives endpoint called');
@@ -106,6 +136,17 @@ router.get('/notifications', async (req, res) => {
       message: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
+});
+
+// Basic health check
+router.get('/health', (req, res) => {
+  res.json({
+    success: true,
+    status: 'healthy',
+    service: 'Al-Shuail Backend API',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
 });
 
 export default router;

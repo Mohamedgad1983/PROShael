@@ -1,4 +1,8 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
+<<<<<<< HEAD
+=======
+import { apiService } from '../services/api';
+>>>>>>> a5fb1535e6a5072e663226a993218935989cb409
 
 const AuthContext = createContext();
 
@@ -12,6 +16,7 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+<<<<<<< HEAD
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -122,11 +127,41 @@ export const AuthProvider = ({ children }) => {
         success: false,
         error: 'خطأ في الاتصال بالخادم'
       };
+=======
+  const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    checkAuthState();
+  }, []);
+
+  const checkAuthState = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (token) {
+        // Verify token with backend
+        const response = await apiService.get('/auth/verify');
+        if (response.data.valid) {
+          setUser(response.data.user);
+          setIsAuthenticated(true);
+        } else {
+          // Token is invalid, clear it
+          localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
+        }
+      }
+    } catch (error) {
+      console.error('Auth check failed:', error);
+      // Clear invalid tokens
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+>>>>>>> a5fb1535e6a5072e663226a993218935989cb409
     } finally {
       setLoading(false);
     }
   };
 
+<<<<<<< HEAD
   const logout = () => {
     // Remove both old and new localStorage keys
     localStorage.removeItem('auth_token');
@@ -269,19 +304,89 @@ export const AuthProvider = ({ children }) => {
 
     const allowedRoles = moduleAccess[module] || [];
     return allowedRoles.includes(user.role);
+=======
+  const login = async (email, password) => {
+    try {
+      const response = await apiService.login(email, password);
+      const { user: userData, accessToken, refreshToken } = response;
+      
+      // Store tokens
+      localStorage.setItem('token', accessToken);
+      localStorage.setItem('refreshToken', refreshToken);
+      
+      // Set user state
+      setUser(userData);
+      setIsAuthenticated(true);
+      
+      return { success: true, user: userData };
+    } catch (error) {
+      console.error('Login failed:', error);
+      return { 
+        success: false, 
+        error: error.response?.data?.message || 'فشل في تسجيل الدخول' 
+      };
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await apiService.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      // Clear state regardless of API call success
+      setUser(null);
+      setIsAuthenticated(false);
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('currentUser');
+    }
+  };
+
+  const updateUser = (userData) => {
+    setUser(prevUser => ({ ...prevUser, ...userData }));
+  };
+
+  const refreshToken = async () => {
+    try {
+      const refreshToken = localStorage.getItem('refreshToken');
+      if (!refreshToken) {
+        throw new Error('No refresh token available');
+      }
+
+      const response = await apiService.refreshAuthToken(refreshToken);
+      const { accessToken } = response.data;
+      
+      localStorage.setItem('token', accessToken);
+      return accessToken;
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+      await logout();
+      throw error;
+    }
+>>>>>>> a5fb1535e6a5072e663226a993218935989cb409
   };
 
   const value = {
     user,
+<<<<<<< HEAD
     token,
+=======
+>>>>>>> a5fb1535e6a5072e663226a993218935989cb409
     loading,
     isAuthenticated,
     login,
     logout,
+<<<<<<< HEAD
     hasRole,
     hasPermission,
     canAccessModule,
     checkAuthStatus
+=======
+    updateUser,
+    refreshToken,
+    checkAuthState
+>>>>>>> a5fb1535e6a5072e663226a993218935989cb409
   };
 
   return (
@@ -289,4 +394,10 @@ export const AuthProvider = ({ children }) => {
       {children}
     </AuthContext.Provider>
   );
+<<<<<<< HEAD
 };
+=======
+};
+
+export default AuthContext;
+>>>>>>> a5fb1535e6a5072e663226a993218935989cb409
