@@ -1,0 +1,120 @@
+/* =====================================
+   NORMALIZE TEXT WEIGHTS & PAGE SCROLL
+   ===================================== */
+
+/* Force all text to normal weight (400) */
+* {
+  font-weight: 400 !important;
+}
+
+/* Specific overrides for commonly bold elements */
+h1, h2, h3, h4, h5, h6,
+b, strong,
+.font-bold, .font-semibold, .font-medium,
+.fw-bold, .fw-semibold, .fw-medium,
+[class*="font-weight-"],
+[class*="fw-"],
+th, dt, legend, label,
+.btn, button,
+.title, .heading,
+.card-title, .modal-title {
+  font-weight: 400 !important;
+}
+
+/* Fix page height to prevent scrolling */
+html, body {
+  height: 100vh !important;
+  max-height: 100vh !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Main app container should be fixed height */
+#root, .App, [class*="app"], [class*="container-main"] {
+  height: 100vh !important;
+  max-height: 100vh !important;
+  overflow: hidden !important;
+}
+
+/* Content areas should scroll internally if needed */
+.content-area,
+.main-content,
+.page-content,
+[class*="content-wrapper"],
+[class*="scroll-area"],
+.table-container,
+.card-body {
+  max-height: calc(100vh - 200px) !important; /* Adjust based on header/footer */
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+/* Ensure modals don't cause page scroll */
+.modal, .modal-backdrop {
+  position: fixed !important;
+}
+
+/* Arabic text specific - ensure normal weight */
+[dir="rtl"] *,
+[lang="ar"] * {
+  font-weight: 400 !important;
+}
+
+/* Remove any text shadow that might make text appear bold */
+* {
+  text-shadow: none !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+}
+
+/* Ensure form inputs have normal text */
+input, textarea, select, button {
+  font-weight: 400 !important;
+}
+
+/* Table headers normal weight */
+table th {
+  font-weight: 400 !important;
+}
+
+/* Navigation items normal weight */
+nav *,
+.nav *,
+.navbar *,
+.menu *,
+.sidebar * {
+  font-weight: 400 !important;
+}
+
+/* Card titles and headers normal weight */
+.card-header *,
+.card-title,
+.panel-heading *,
+.panel-title {
+  font-weight: 400 !important;
+}
+
+/* Badges and labels normal weight */
+.badge, .label, .tag, .chip {
+  font-weight: 400 !important;
+}
+
+/* Prevent any webkit specific bold rendering */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  * {
+    -webkit-font-smoothing: antialiased !important;
+    font-weight: 400 !important;
+  }
+}
+
+/* Reset Tailwind font-weight utilities */
+.font-thin { font-weight: 400 !important; }
+.font-extralight { font-weight: 400 !important; }
+.font-light { font-weight: 400 !important; }
+.font-normal { font-weight: 400 !important; }
+.font-medium { font-weight: 400 !important; }
+.font-semibold { font-weight: 400 !important; }
+.font-bold { font-weight: 400 !important; }
+.font-extrabold { font-weight: 400 !important; }
+.font-black { font-weight: 400 !important; }
