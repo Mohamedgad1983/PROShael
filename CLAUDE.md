@@ -5,8 +5,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 Al-Shuail Family Management System - A comprehensive platform consisting of:
 1. **Admin Dashboard** - Premium, Apple-inspired admin system with member management, financial tracking, and document handling
+   - **Live URL**: https://alshuail-admin.pages.dev (Cloudflare Pages)
 2. **Member Mobile App** - Mobile-first application for members with payment processing, notifications, and account management
+   - **Access**: `/member` route on the main application
 3. **Backend API** - Node.js/Express API with Supabase integration for both admin and mobile clients
+   - **Live URL**: https://proshael.onrender.com (Render free hosting)
+   - **Health Check**: https://proshael.onrender.com/api/health
 
 Features glassmorphism design, sophisticated animations, full RTL support for Arabic interface, and complete mobile experience.
 
@@ -82,7 +86,8 @@ npm test
 ### Frontend API Service Pattern
 All API calls go through service layers in `src/services/`:
 ```javascript
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+// Production URL configured
+const API_URL = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
 
 // Always include Authorization header
 headers: {
@@ -92,12 +97,19 @@ headers: {
 ```
 
 ### Backend CORS Configuration
-Backend configured for frontend at port 3002:
+Backend configured for multiple origins:
 ```javascript
-app.use(cors({
-  origin: 'http://localhost:3002',
+const corsOptions = {
+  origin: [
+    'http://localhost:3002',
+    'https://alshuail-admin.pages.dev',
+    'https://proshael.pages.dev',
+    process.env.FRONTEND_URL
+  ].filter(Boolean),
   credentials: true
-}));
+};
+
+app.use(cors(corsOptions));
 ```
 
 ## Critical Implementation Notes
@@ -1087,31 +1099,73 @@ cd alshuail-admin-arabic && wrangler pages deploy build --project-name=alshuail-
 - **API Token**: Stored in .env.local (with Pages:Edit permissions)
 - **Build Output**: alshuail-admin-arabic/build/
 
-### Important Notes
-- Local changes do NOT automatically update the live site
-- Must deploy after each change for updates to appear online
-- GitHub Actions workflow available for automatic deployment
-- Current build issue on Windows with TypeScript paths
+## 🚀 Deployment & Infrastructure
 
-### GitHub Secrets Required
+### Production URLs
+- **Frontend (Admin Dashboard)**: https://alshuail-admin.pages.dev
+- **Backend API**: https://proshael.onrender.com
+- **API Health Check**: https://proshael.onrender.com/api/health
+- **Database**: Supabase (oneiggrfzagqjbkdinin)
+
+### Deployment Platforms
+- **Frontend**: Cloudflare Pages (automatic deployment via GitHub Actions)
+- **Backend**: Render.com (free tier with auto-deploy from GitHub)
+- **Database**: Supabase (PostgreSQL with Row Level Security)
+
+### CI/CD Pipeline
+1. **Push to main branch** triggers automatic deployment
+2. **GitHub Actions** builds and deploys frontend to Cloudflare Pages
+3. **Render** auto-deploys backend on new commits
+4. **Deployment time**: ~2-3 minutes for frontend, ~5 minutes for backend
+
+### GitHub Secrets Configuration
 ```
-# Database
-SUPABASE_URL
-SUPABASE_KEY
-JWT_SECRET
+# Required for Frontend Deployment
+CLOUDFLARE_API_TOKEN=<your-cloudflare-api-token>
+REACT_APP_SUPABASE_URL=https://oneiggrfzagqjbkdinin.supabase.co
+REACT_APP_SUPABASE_ANON_KEY=<your-supabase-anon-key>
+REACT_APP_API_URL=https://proshael.onrender.com
 
-# Deployment Platforms
-VERCEL_TOKEN
-VERCEL_ORG_ID
-VERCEL_PROJECT_ID
-RAILWAY_TOKEN
-DOCKER_USERNAME
-DOCKER_TOKEN
-
-# Monitoring (Optional)
-SLACK_WEBHOOK_URL
-SENTRY_DSN
+# Optional for future enhancements
+SLACK_WEBHOOK_URL=<for-deployment-notifications>
+SENTRY_DSN=<for-error-monitoring>
 ```
+
+### Environment Variables (Backend - Render)
+```
+NODE_ENV=production
+PORT=5001
+SUPABASE_URL=https://oneiggrfzagqjbkdinin.supabase.co
+SUPABASE_ANON_KEY=<your-supabase-anon-key>
+SUPABASE_SERVICE_KEY=<your-supabase-service-key>
+JWT_SECRET=<your-jwt-secret>
+FRONTEND_URL=https://alshuail-admin.pages.dev
+```
+
+### Deployment Commands
+```bash
+# Deploy frontend (automatic via GitHub Actions)
+git add .
+git commit -m "your changes"
+git push origin main
+
+# Manual frontend deployment (if needed)
+cd alshuail-admin-arabic
+npm run build
+wrangler pages deploy build --project-name=alshuail-admin
+
+# Backend deploys automatically on Render
+# Manual restart if needed via Render dashboard
+```
+
+### Important Deployment Notes
+- **Frontend**: Deploys automatically on push to main branch via GitHub Actions
+- **Backend**: Auto-deploys from GitHub to Render (may take 30s to wake after inactivity)
+- **Free Tier Limitations**:
+  - Render backend sleeps after 15 min inactivity
+  - First request after sleep takes ~30 seconds
+  - Use UptimeRobot to keep backend awake (optional)
+- **CORS**: Backend configured to accept requests from Cloudflare Pages domains
 
 ### Quality Assurance Features
 - **Automated testing** on every push
@@ -1145,5 +1199,32 @@ SENTRY_DSN
 - **Arabic font** optimization in builds
 - **Prayer time API** integration ready
 - **Islamic date** formatting validation
-- to expense pleaee
-- to any anything related mobile
+
+## Quick Reference
+
+### Common Tasks
+```bash
+# Start local development
+cd alshuail-admin-arabic && npm start  # Frontend on port 3002
+cd alshuail-backend && npm run dev     # Backend on port 5001
+
+# Deploy changes
+git add .
+git commit -m "description of changes"
+git push origin main  # Auto-deploys to production
+
+# Check deployment status
+# Frontend: https://github.com/Mohamedgad1983/PROShael/actions
+# Backend: https://dashboard.render.com
+```
+
+### Troubleshooting
+- **Backend not responding**: Check Render dashboard, may need 30s to wake up
+- **CORS errors**: Verify backend is running and CORS settings include your domain
+- **Build failures**: Check GitHub Actions logs for detailed error messages
+- **Database issues**: Check Supabase dashboard for connection status
+
+### Support Resources
+- **GitHub Repository**: https://github.com/Mohamedgad1983/PROShael
+- **Live Application**: https://alshuail-admin.pages.dev
+- **API Documentation**: Available at `/api/docs` when backend is running locally
