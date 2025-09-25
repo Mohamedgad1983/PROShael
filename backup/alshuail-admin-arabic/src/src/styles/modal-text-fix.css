@@ -1,0 +1,101 @@
+/* Global Modal Text Visibility Fix - AGGRESSIVE */
+
+/* Force ALL text to be black in modals */
+.fixed[dir="rtl"] * {
+  color: black !important;
+  opacity: 1 !important;
+  -webkit-text-fill-color: black !important;
+  text-shadow: none !important;
+}
+
+/* Ensure all modal text is clearly visible */
+.fixed[dir="rtl"] label,
+.fixed[dir="rtl"] h1,
+.fixed[dir="rtl"] h2,
+.fixed[dir="rtl"] h3,
+.fixed[dir="rtl"] h4,
+.fixed[dir="rtl"] h5,
+.fixed[dir="rtl"] h6,
+.fixed[dir="rtl"] p,
+.fixed[dir="rtl"] span,
+.fixed[dir="rtl"] div {
+  color: black !important;
+  opacity: 1 !important;
+  -webkit-text-fill-color: black !important;
+}
+
+/* Ensure input text is visible */
+.fixed[dir="rtl"] input[type="text"],
+.fixed[dir="rtl"] input[type="email"],
+.fixed[dir="rtl"] input[type="tel"],
+.fixed[dir="rtl"] input[type="number"],
+.fixed[dir="rtl"] input[type="password"],
+.fixed[dir="rtl"] textarea,
+.fixed[dir="rtl"] select {
+  color: black !important;
+  font-weight: 400 !important;
+  background-color: white !important;
+  border-width: 2px !important;
+  border-color: rgb(156 163 175) !important; /* border-gray-400 */
+}
+
+/* Placeholder text should be lighter but visible */
+.fixed[dir="rtl"] input::placeholder,
+.fixed[dir="rtl"] textarea::placeholder {
+  color: rgb(107 114 128) !important; /* text-gray-500 */
+  opacity: 1 !important;
+}
+
+/* Labels should be bold and dark */
+.fixed[dir="rtl"] label {
+  font-weight: 400 !important;
+  font-size: 1rem !important;
+  color: rgb(17 24 39) !important; /* text-gray-900 */
+}
+
+/* Section headers should be very prominent */
+.fixed[dir="rtl"] h3 {
+  color: rgb(17 24 39) !important; /* text-gray-900 */
+  font-weight: 400 !important;
+  font-size: 1.25rem !important;
+}
+
+/* Focus states should be clear */
+.fixed[dir="rtl"] input:focus,
+.fixed[dir="rtl"] textarea:focus,
+.fixed[dir="rtl"] select:focus {
+  border-color: rgb(59 130 246) !important; /* border-blue-500 */
+  outline: 2px solid rgb(59 130 246) !important;
+  outline-offset: 2px !important;
+}
+
+/* Buttons should have clear text */
+.fixed[dir="rtl"] button {
+  font-weight: 400 !important;
+}
+
+/* Error messages should be prominent */
+.fixed[dir="rtl"] .text-red-800,
+.fixed[dir="rtl"] .text-red-600 {
+  color: rgb(153 27 27) !important;
+  font-weight: 400 !important;
+}
+
+/* Success messages should be clear */
+.fixed[dir="rtl"] .text-green-600,
+.fixed[dir="rtl"] .text-green-800 {
+  color: rgb(22 101 52) !important;
+  font-weight: 400 !important;
+}
+
+/* Icons should have proper contrast */
+.fixed[dir="rtl"] svg {
+  opacity: 1 !important;
+}
+
+/* Checkbox and radio labels */
+.fixed[dir="rtl"] input[type="checkbox"] + span,
+.fixed[dir="rtl"] input[type="radio"] + span {
+  color: rgb(17 24 39) !important;
+  font-weight: 400 !important;
+}

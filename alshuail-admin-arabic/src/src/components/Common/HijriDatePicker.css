@@ -1,0 +1,67 @@
+/* Hijri Date Picker Styles */
+.hijri-select {
+  width: 100%;
+  padding: 10px;
+  border: 2px solid #3B82F6;
+  border-radius: 8px;
+  font-size: 16px;
+  background-color: #FFFFFF;
+  color: #1E40AF;
+  font-weight: 400;
+  cursor: pointer;
+  outline: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.hijri-select:hover {
+  border-color: #2563EB;
+  box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);
+}
+
+.hijri-select:focus {
+  border-color: #1D4ED8;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+/* Style for option elements */
+.hijri-select option {
+  color: #1E40AF !important;
+  font-weight: 400 !important;
+  background-color: #FFFFFF !important;
+  padding: 8px !important;
+  font-size: 15px !important;
+}
+
+.hijri-select option:hover {
+  background-color: #EFF6FF !important;
+}
+
+.hijri-select option:checked {
+  background: linear-gradient(to right, #3B82F6, #2563EB) !important;
+  color: white !important;
+}
+
+/* Empty option style */
+.hijri-select option[value=""] {
+  color: #9CA3AF !important;
+  font-weight: normal !important;
+}
+
+/* For WebKit browsers (Chrome, Safari) */
+.hijri-select::-webkit-scrollbar {
+  width: 8px;
+}
+
+.hijri-select::-webkit-scrollbar-track {
+  background: #F3F4F6;
+}
+
+.hijri-select::-webkit-scrollbar-thumb {
+  background: #3B82F6;
+  border-radius: 4px;
+}
+
+.hijri-select::-webkit-scrollbar-thumb:hover {
+  background: #2563EB;
+}

@@ -21,7 +21,10 @@
       "Bash(netstat:*)",
       "Bash(findstr:*)",
       "Bash(taskkill:*)",
-      "Bash(start http://localhost:3002)"
+      "Bash(start http://localhost:3002)",
+      "Bash(timeout:*)",
+      "Bash(cp:*)",
+      "Bash(git filter-branch:*)"
     ],
     "deny": [],
     "ask": []

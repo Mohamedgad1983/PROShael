@@ -1,0 +1,395 @@
+/* Hijri Grouped Payments Component Styles */
+
+.hijri-grouped-payments {
+  padding: 20px 0;
+  space: 24px;
+}
+
+/* Empty State */
+.hijri-grouped-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+}
+
+/* Month Group Container */
+.hijri-month-group {
+  margin-bottom: 32px;
+  animation: fadeInUp 0.5s ease-out;
+}
+
+/* Month Group Headers */
+.hijri-month-header {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(147, 51, 234, 0.15));
+  border-radius: 12px 12px 0 0;
+  padding: 16px 20px;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.hijri-month-header:hover {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(147, 51, 234, 0.2));
+  transform: translateY(-2px);
+}
+
+/* Special Month Styling */
+.month-ramadan .hijri-month-header {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.3));
+  border-color: rgba(251, 191, 36, 0.4);
+}
+
+.month-dhul-hijjah .hijri-month-header {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(22, 163, 74, 0.3));
+  border-color: rgba(34, 197, 94, 0.4);
+}
+
+.month-sacred .hijri-month-header {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.2));
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+/* Header Content */
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.expand-btn {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.3s ease;
+}
+
+.expand-btn:hover {
+  transform: scale(1.1);
+}
+
+.month-title {
+  font-size: 20px;
+  font-weight: 400;
+  color: white;
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Header Statistics */
+.header-stats {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+}
+
+.stat-label {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.stat-value {
+  font-weight: 400;
+  color: white;
+}
+
+.stat-value.total {
+  color: #22c55e;
+  font-size: 16px;
+}
+
+.stat-item.paid {
+  color: #22c55e;
+}
+
+.stat-item.pending {
+  color: #f59e0b;
+}
+
+/* Progress Bar */
+.progress-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.progress-fill {
+  height: 100%;
+  transition: width 0.5s ease;
+}
+
+.progress-fill.paid {
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+}
+
+/* Payments List */
+.month-payments-list {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: none;
+  border-radius: 0 0 12px 12px;
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+  animation: slideDown 0.3s ease-out;
+}
+
+/* Payment Card */
+.payment-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.payment-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateX(-4px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Payment Header */
+.payment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.payment-member {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.member-name {
+  color: white;
+  font-weight: 400;
+  font-size: 16px;
+}
+
+.payment-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-text {
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.status-pending { color: #f59e0b; }
+.status-paid { color: #22c55e; }
+.status-approved { color: #3b82f6; }
+.status-rejected { color: #ef4444; }
+.status-cancelled { color: #6b7280; }
+.status-overdue { color: #dc2626; }
+.status-refunded { color: #a855f7; }
+
+/* Payment Body */
+.payment-body {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.payment-amount {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.amount-value {
+  color: #22c55e;
+  font-size: 20px;
+  font-weight: 400;
+}
+
+/* Payment Dates */
+.payment-dates {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.date-hijri {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #3b82f6;
+  font-weight: 400;
+  font-size: 15px;
+}
+
+.date-gregorian {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+}
+
+/* Category Badge */
+.payment-category {
+  margin-top: 8px;
+}
+
+.category-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  background: rgba(147, 51, 234, 0.2);
+  border: 1px solid rgba(147, 51, 234, 0.3);
+  border-radius: 16px;
+  color: #c084fc;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+/* Notes Section */
+.payment-notes {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.notes-text {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .header-stats {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+  }
+
+  .payment-body {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .payment-dates {
+    align-items: flex-start;
+    width: 100%;
+  }
+
+  .month-payments-list {
+    padding: 12px;
+  }
+
+  .payment-card {
+    padding: 12px;
+  }
+
+  .amount-value {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .header-stats {
+    width: 100%;
+    align-items: flex-start;
+  }
+
+  .hijri-month-header {
+    padding: 12px;
+  }
+
+  .month-title {
+    font-size: 18px;
+  }
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    max-height: 0;
+    opacity: 0;
+  }
+  to {
+    max-height: 2000px;
+    opacity: 1;
+  }
+}
+
+/* Loading State */
+.payment-card.loading {
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+/* Print Styles */
+@media print {
+  .hijri-grouped-payments {
+    background: white;
+    color: black;
+  }
+
+  .hijri-month-header {
+    page-break-inside: avoid;
+    background: #f3f4f6;
+    color: black;
+    border: 1px solid #d1d5db;
+  }
+
+  .payment-card {
+    page-break-inside: avoid;
+    background: white;
+    border: 1px solid #d1d5db;
+    color: black;
+  }
+
+  .expand-btn {
+    display: none;
+  }
+}

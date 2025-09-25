@@ -1,0 +1,702 @@
+/*
+ * OPTIMIZED TEXT READABILITY WITHOUT BOLD
+ * ========================================
+ * Comprehensive solution for maintaining excellent text visibility
+ * and hierarchy without relying on bold font weights
+ * Optimized for Arabic RTL text and mobile readability
+ */
+
+/* ============================================
+   GLOBAL FONT WEIGHT OVERRIDE
+   ============================================ */
+* {
+  font-weight: normal !important;
+  font-weight: 400 !important;
+}
+
+/* ============================================
+   ENHANCED ARABIC FONT SETTINGS
+   ============================================ */
+:root {
+  /* Optimal Arabic Font Stack */
+  --arabic-font-stack: 'Noto Sans Arabic', 'Cairo', 'Tajawal', 'Dubai', -apple-system, system-ui, sans-serif;
+
+  /* Enhanced Color Palette for Better Contrast */
+  --text-primary: #1a1a1a;
+  --text-secondary: #2d3436;
+  --text-tertiary: #4a5568;
+  --text-muted: #6c757d;
+  --text-light: #8b95a1;
+
+  /* High Contrast Dark Colors */
+  --dark-text-primary: #0d0d0d;
+  --dark-text-secondary: #1f2937;
+  --dark-text-accent: #111827;
+
+  /* Accent Colors for Emphasis */
+  --accent-blue: #0066cc;
+  --accent-green: #00875a;
+  --accent-purple: #5b21b6;
+  --accent-orange: #dc2626;
+
+  /* Background Colors for Contrast */
+  --bg-light: #ffffff;
+  --bg-soft: #f8f9fa;
+  --bg-muted: #f3f4f6;
+  --bg-highlight: #fef3c7;
+
+  /* Compact Font Sizes for Hierarchy - Aligned with compact-sizing.css */
+  --text-xs: 10px;
+  --text-sm: 11px;
+  --text-base: 12px;
+  --text-lg: 14px;
+  --text-xl: 15px;
+  --text-2xl: 16px;
+  --text-3xl: 18px;
+  --text-4xl: 20px;
+  --text-5xl: 24px;
+
+  /* Letter Spacing for Readability */
+  --letter-spacing-tight: -0.02em;
+  --letter-spacing-normal: 0;
+  --letter-spacing-wide: 0.025em;
+  --letter-spacing-wider: 0.05em;
+
+  /* Line Height for Better Readability */
+  --line-height-tight: 1.3;
+  --line-height-normal: 1.6;
+  --line-height-relaxed: 1.8;
+  --line-height-loose: 2;
+}
+
+/* ============================================
+   TYPOGRAPHY HIERARCHY WITHOUT BOLD
+   ============================================ */
+
+/* Headings - Use Size and Color for Emphasis */
+h1, .h1 {
+  font-size: var(--text-4xl) !important;
+  color: var(--dark-text-primary) !important;
+  letter-spacing: var(--letter-spacing-tight) !important;
+  line-height: var(--line-height-tight) !important;
+  font-weight: 400 !important;
+  margin-bottom: 1.5rem !important;
+  font-family: var(--arabic-font-stack) !important;
+}
+
+h2, .h2 {
+  font-size: var(--text-3xl) !important;
+  color: var(--dark-text-primary) !important;
+  letter-spacing: var(--letter-spacing-tight) !important;
+  line-height: var(--line-height-tight) !important;
+  font-weight: 400 !important;
+  margin-bottom: 1.25rem !important;
+  font-family: var(--arabic-font-stack) !important;
+}
+
+h3, .h3 {
+  font-size: var(--text-2xl) !important;
+  color: var(--dark-text-secondary) !important;
+  letter-spacing: var(--letter-spacing-normal) !important;
+  line-height: var(--line-height-normal) !important;
+  font-weight: 400 !important;
+  margin-bottom: 1rem !important;
+  font-family: var(--arabic-font-stack) !important;
+}
+
+h4, .h4 {
+  font-size: var(--text-xl) !important;
+  color: var(--dark-text-secondary) !important;
+  letter-spacing: var(--letter-spacing-normal) !important;
+  line-height: var(--line-height-normal) !important;
+  font-weight: 400 !important;
+  margin-bottom: 0.875rem !important;
+  font-family: var(--arabic-font-stack) !important;
+}
+
+h5, .h5 {
+  font-size: var(--text-lg) !important;
+  color: var(--text-primary) !important;
+  letter-spacing: var(--letter-spacing-wide) !important;
+  line-height: var(--line-height-normal) !important;
+  font-weight: 400 !important;
+  margin-bottom: 0.75rem !important;
+  font-family: var(--arabic-font-stack) !important;
+}
+
+h6, .h6 {
+  font-size: var(--text-base) !important;
+  color: var(--text-primary) !important;
+  letter-spacing: var(--letter-spacing-wider) !important;
+  text-transform: uppercase !important;
+  line-height: var(--line-height-normal) !important;
+  font-weight: 400 !important;
+  margin-bottom: 0.75rem !important;
+  font-family: var(--arabic-font-stack) !important;
+}
+
+/* ============================================
+   BODY TEXT OPTIMIZATION
+   ============================================ */
+
+/* Regular Paragraphs */
+p, .paragraph {
+  font-size: var(--text-base) !important;
+  color: var(--text-secondary) !important;
+  line-height: var(--line-height-relaxed) !important;
+  font-weight: 400 !important;
+  letter-spacing: var(--letter-spacing-normal) !important;
+  font-family: var(--arabic-font-stack) !important;
+}
+
+/* Small Text */
+small, .small-text {
+  font-size: var(--text-sm) !important;
+  color: var(--text-tertiary) !important;
+  line-height: var(--line-height-normal) !important;
+  font-weight: 400 !important;
+  letter-spacing: var(--letter-spacing-wide) !important;
+}
+
+/* ============================================
+   FORM ELEMENTS WITHOUT BOLD
+   ============================================ */
+
+/* Labels - Use Color and Size Instead of Bold */
+label, .form-label {
+  font-size: var(--text-base) !important;
+  color: var(--dark-text-secondary) !important;
+  font-weight: 400 !important;
+  letter-spacing: var(--letter-spacing-wide) !important;
+  margin-bottom: 0.5rem !important;
+  display: block !important;
+  font-family: var(--arabic-font-stack) !important;
+}
+
+/* Required Field Indicator */
+label.required::after,
+.form-label.required::after {
+  content: ' *';
+  color: var(--accent-orange) !important;
+  font-size: var(--text-base) !important;
+}
+
+/* Input Fields */
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="password"],
+input[type="number"],
+textarea,
+select {
+  font-size: var(--text-base) !important;
+  color: var(--dark-text-primary) !important;
+  font-weight: 400 !important;
+  line-height: var(--line-height-normal) !important;
+  padding: 12px 16px !important;
+  border: 2px solid #d1d5db !important;
+  border-radius: 8px !important;
+  background-color: var(--bg-light) !important;
+  font-family: var(--arabic-font-stack) !important;
+  transition: all 0.2s ease !important;
+}
+
+/* Focused Input - Higher Contrast Border */
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--accent-blue) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1) !important;
+  background-color: #fafbfc !important;
+}
+
+/* Placeholder Text */
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-muted) !important;
+  opacity: 0.8 !important;
+  font-weight: 400 !important;
+}
+
+/* ============================================
+   BUTTONS WITHOUT BOLD
+   ============================================ */
+
+/* Primary Buttons - Use Background for Emphasis */
+.btn-primary,
+button[type="submit"],
+.submit-btn {
+  font-size: var(--text-base) !important;
+  color: white !important;
+  background: linear-gradient(135deg, var(--accent-blue) 0%, var(--accent-purple) 100%) !important;
+  font-weight: 400 !important;
+  letter-spacing: var(--letter-spacing-wide) !important;
+  padding: 14px 28px !important;
+  border-radius: 10px !important;
+  text-transform: uppercase !important;
+  box-shadow: 0 4px 12px rgba(0, 102, 204, 0.25) !important;
+  transition: all 0.3s ease !important;
+  font-family: var(--arabic-font-stack) !important;
+}
+
+/* Secondary Buttons */
+.btn-secondary,
+button[type="button"] {
+  font-size: var(--text-base) !important;
+  color: var(--dark-text-primary) !important;
+  background: var(--bg-light) !important;
+  border: 2px solid var(--accent-blue) !important;
+  font-weight: 400 !important;
+  letter-spacing: var(--letter-spacing-wide) !important;
+  padding: 12px 24px !important;
+  border-radius: 10px !important;
+  transition: all 0.3s ease !important;
+  font-family: var(--arabic-font-stack) !important;
+}
+
+/* Button Hover States */
+.btn-primary:hover,
+button[type="submit"]:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(0, 102, 204, 0.35) !important;
+}
+
+.btn-secondary:hover {
+  background: var(--accent-blue) !important;
+  color: white !important;
+}
+
+/* ============================================
+   NAVIGATION WITHOUT BOLD
+   ============================================ */
+
+/* Navigation Links */
+.nav-link,
+a.navigation-item {
+  font-size: var(--text-base) !important;
+  color: var(--text-primary) !important;
+  font-weight: 400 !important;
+  letter-spacing: var(--letter-spacing-wide) !important;
+  text-decoration: none !important;
+  padding: 10px 16px !important;
+  border-radius: 8px !important;
+  transition: all 0.2s ease !important;
+  font-family: var(--arabic-font-stack) !important;
+}
+
+/* Active Navigation Item */
+.nav-link.active,
+.navigation-item.active {
+  color: white !important;
+  background: var(--accent-blue) !important;
+  box-shadow: 0 2px 8px rgba(0, 102, 204, 0.2) !important;
+}
+
+/* Navigation Hover */
+.nav-link:hover:not(.active),
+.navigation-item:hover:not(.active) {
+  color: var(--accent-blue) !important;
+  background: rgba(0, 102, 204, 0.08) !important;
+}
+
+/* ============================================
+   CARDS AND CONTAINERS
+   ============================================ */
+
+/* Card Headers */
+.card-header,
+.panel-header {
+  font-size: var(--text-base) !important;
+  color: var(--dark-text-primary) !important;
+  font-weight: 400 !important;
+  letter-spacing: var(--letter-spacing-wide) !important;
+  padding: 1.25rem !important;
+  background: linear-gradient(to right, var(--bg-soft), var(--bg-light)) !important;
+  border-bottom: 2px solid var(--accent-blue) !important;
+  font-family: var(--arabic-font-stack) !important;
+}
+
+/* Card Body Text */
+.card-body {
+  font-size: var(--text-base) !important;
+  color: var(--text-secondary) !important;
+  font-weight: 400 !important;
+  line-height: var(--line-height-relaxed) !important;
+  padding: 1.5rem !important;
+  font-family: var(--arabic-font-stack) !important;
+}
+
+/* ============================================
+   TABLES WITHOUT BOLD
+   ============================================ */
+
+/* Table Headers */
+th, .table-header {
+  font-size: var(--text-base) !important;
+  color: white !important;
+  background: var(--dark-text-primary) !important;
+  font-weight: 400 !important;
+  letter-spacing: var(--letter-spacing-wider) !important;
+  text-transform: uppercase !important;
+  padding: 14px 16px !important;
+  font-family: var(--arabic-font-stack) !important;
+}
+
+/* Table Cells */
+td, .table-cell {
+  font-size: var(--text-base) !important;
+  color: var(--text-primary) !important;
+  font-weight: 400 !important;
+  padding: 12px 16px !important;
+  font-family: var(--arabic-font-stack) !important;
+}
+
+/* Alternating Row Colors for Better Readability */
+tr:nth-child(even) td {
+  background-color: var(--bg-soft) !important;
+}
+
+tr:hover td {
+  background-color: var(--bg-highlight) !important;
+  color: var(--dark-text-primary) !important;
+}
+
+/* ============================================
+   MOBILE SPECIFIC OPTIMIZATIONS
+   ============================================ */
+
+/* Mobile Headers */
+.mobile-header h1,
+.mobile-header h2 {
+  font-size: var(--text-xl) !important;
+  color: white !important;
+  font-weight: 400 !important;
+  letter-spacing: var(--letter-spacing-normal) !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Mobile Cards */
+.mobile-card {
+  background: var(--bg-light) !important;
+  border: 1px solid rgba(0, 102, 204, 0.15) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+}
+
+.mobile-card-title {
+  font-size: var(--text-base) !important;
+  color: var(--dark-text-primary) !important;
+  font-weight: 400 !important;
+  margin-bottom: 0.75rem !important;
+  padding-bottom: 0.75rem !important;
+  border-bottom: 2px solid var(--accent-blue) !important;
+}
+
+/* Mobile Balance Display */
+.balance-amount {
+  font-size: var(--text-2xl) !important;
+  color: var(--accent-green) !important;
+  font-weight: 400 !important;
+  letter-spacing: var(--letter-spacing-tight) !important;
+  font-family: 'SF Mono', 'Monaco', monospace !important;
+}
+
+.balance-amount.low {
+  color: var(--accent-orange) !important;
+}
+
+/* Mobile Notifications */
+.notification-title {
+  font-size: var(--text-base) !important;
+  color: var(--dark-text-primary) !important;
+  font-weight: 400 !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.notification-body {
+  font-size: var(--text-base) !important;
+  color: var(--text-secondary) !important;
+  font-weight: 400 !important;
+  line-height: var(--line-height-relaxed) !important;
+}
+
+/* ============================================
+   ARABIC RTL SPECIFIC ADJUSTMENTS
+   ============================================ */
+
+[dir="rtl"] {
+  font-family: var(--arabic-font-stack) !important;
+  letter-spacing: 0.02em !important;
+}
+
+/* Arabic Text Specific */
+[dir="rtl"] p,
+[dir="rtl"] span,
+[dir="rtl"] div {
+  font-size: var(--text-base) !important;
+  line-height: var(--line-height-loose) !important;
+  font-weight: 400 !important;
+}
+
+/* Arabic Headings */
+[dir="rtl"] h1,
+[dir="rtl"] h2,
+[dir="rtl"] h3 {
+  letter-spacing: 0 !important;
+  font-weight: 400 !important;
+}
+
+/* Arabic Form Labels */
+[dir="rtl"] label {
+  font-size: var(--text-sm) !important;
+  color: var(--dark-text-secondary) !important;
+  font-weight: 400 !important;
+  margin-bottom: 0.625rem !important;
+}
+
+/* Arabic Buttons */
+[dir="rtl"] button {
+  font-size: var(--text-base) !important;
+  letter-spacing: 0.01em !important;
+  font-weight: 400 !important;
+}
+
+/* ============================================
+   STATUS AND BADGE ELEMENTS
+   ============================================ */
+
+/* Status Badges - Use Color Instead of Bold */
+.badge,
+.status-badge {
+  font-size: var(--text-sm) !important;
+  font-weight: 400 !important;
+  letter-spacing: var(--letter-spacing-wider) !important;
+  text-transform: uppercase !important;
+  padding: 6px 12px !important;
+  border-radius: 6px !important;
+  display: inline-block !important;
+}
+
+.badge-success,
+.status-active {
+  color: white !important;
+  background-color: var(--accent-green) !important;
+}
+
+.badge-warning,
+.status-pending {
+  color: var(--dark-text-primary) !important;
+  background-color: #fbbf24 !important;
+}
+
+.badge-danger,
+.status-inactive {
+  color: white !important;
+  background-color: var(--accent-orange) !important;
+}
+
+/* ============================================
+   MODAL DIALOGS
+   ============================================ */
+
+/* Modal Headers */
+.modal-header,
+.dialog-header {
+  font-size: var(--text-lg) !important;
+  color: var(--dark-text-primary) !important;
+  font-weight: 400 !important;
+  padding: 1.5rem !important;
+  border-bottom: 2px solid var(--accent-blue) !important;
+  background: linear-gradient(to right, var(--bg-soft), var(--bg-light)) !important;
+}
+
+/* Modal Body */
+.modal-body,
+.dialog-body {
+  font-size: var(--text-base) !important;
+  color: var(--text-secondary) !important;
+  font-weight: 400 !important;
+  line-height: var(--line-height-relaxed) !important;
+  padding: 1.5rem !important;
+}
+
+/* ============================================
+   TOOLTIPS AND HINTS
+   ============================================ */
+
+/* Tooltip Text */
+.tooltip,
+.hint-text {
+  font-size: var(--text-sm) !important;
+  color: white !important;
+  background-color: var(--dark-text-primary) !important;
+  font-weight: 400 !important;
+  padding: 8px 12px !important;
+  border-radius: 6px !important;
+  letter-spacing: var(--letter-spacing-wide) !important;
+}
+
+/* ============================================
+   ERROR AND SUCCESS MESSAGES
+   ============================================ */
+
+/* Error Messages */
+.error-message,
+.alert-error {
+  font-size: var(--text-base) !important;
+  color: white !important;
+  background-color: var(--accent-orange) !important;
+  font-weight: 400 !important;
+  padding: 12px 16px !important;
+  border-radius: 8px !important;
+  border-left: 4px solid #991b1b !important;
+}
+
+/* Success Messages */
+.success-message,
+.alert-success {
+  font-size: var(--text-base) !important;
+  color: white !important;
+  background-color: var(--accent-green) !important;
+  font-weight: 400 !important;
+  padding: 12px 16px !important;
+  border-radius: 8px !important;
+  border-left: 4px solid #065f46 !important;
+}
+
+/* ============================================
+   ACCESSIBILITY ENHANCEMENTS
+   ============================================ */
+
+/* Focus Visible Styles */
+*:focus-visible {
+  outline: 3px solid var(--accent-blue) !important;
+  outline-offset: 2px !important;
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+  * {
+    font-weight: 400 !important;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: #000000 !important;
+  }
+
+  p, span, div {
+    color: #1a1a1a !important;
+  }
+
+  input, textarea, select {
+    border-width: 3px !important;
+    border-color: #000000 !important;
+  }
+}
+
+/* ============================================
+   PRINT STYLES
+   ============================================ */
+
+@media print {
+  * {
+    font-weight: 400 !important;
+  }
+
+  h1, h2, h3 {
+    color: #000000 !important;
+    border-bottom: 2px solid #000000 !important;
+    padding-bottom: 0.5rem !important;
+  }
+
+  p {
+    color: #333333 !important;
+    line-height: 1.6 !important;
+  }
+}
+
+/* ============================================
+   ANIMATIONS FOR EMPHASIS
+   ============================================ */
+
+/* Subtle Pulse for Important Elements */
+@keyframes subtle-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+.emphasis-pulse {
+  animation: subtle-pulse 2s ease-in-out infinite;
+}
+
+/* Underline Animation for Links */
+a {
+  position: relative;
+  text-decoration: none !important;
+  color: var(--accent-blue) !important;
+  font-weight: 400 !important;
+}
+
+a::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background-color: var(--accent-blue);
+  transition: width 0.3s ease;
+}
+
+a:hover::after {
+  width: 100%;
+}
+
+/* ============================================
+   FINAL OVERRIDES
+   ============================================ */
+
+/* Ensure No Bold Anywhere */
+b, strong {
+  font-weight: 400 !important;
+  color: var(--dark-text-primary) !important;
+  text-decoration: underline !important;
+  text-decoration-color: var(--accent-blue) !important;
+  text-decoration-thickness: 2px !important;
+  text-underline-offset: 3px !important;
+}
+
+/* Make Important Text Stand Out Without Bold */
+.important,
+.emphasis {
+  font-size: var(--text-base) !important;
+  color: var(--dark-text-primary) !important;
+  background: linear-gradient(to right, transparent, var(--bg-highlight), transparent) !important;
+  padding: 2px 8px !important;
+  border-radius: 4px !important;
+  font-weight: 400 !important;
+}
+
+/* Highlighted Text */
+mark, .highlight {
+  background-color: #fef3c7 !important;
+  color: var(--dark-text-primary) !important;
+  padding: 2px 6px !important;
+  border-radius: 3px !important;
+  font-weight: 400 !important;
+}
+
+/* Code and Pre */
+code, pre {
+  font-family: 'SF Mono', 'Monaco', 'Courier New', monospace !important;
+  font-size: var(--text-sm) !important;
+  font-weight: 400 !important;
+  background-color: var(--bg-muted) !important;
+  padding: 4px 8px !important;
+  border-radius: 4px !important;
+  color: var(--accent-purple) !important;
+}

@@ -1,0 +1,488 @@
+/* ==========================================
+   AL-SHUAIL PWA EMERGENCY FIX CSS
+   MODERN, HIGH-CONTRAST, NO GLASSMORPHISM
+   ========================================== */
+
+/* ========== CRITICAL FIXES ========== */
+
+/* 1. Fix page jumping - Smooth transitions only */
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  /* REMOVE ALL ANIMATIONS */
+  animation: none !important;
+  transition: none !important;
+}
+
+html {
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Noto Sans Arabic', 'Cairo', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #0f172a;
+  color: #ffffff;
+  direction: rtl;
+  text-align: right;
+  overflow-x: hidden;
+}
+
+/* NO PAGE JUMPING - Fixed positioning */
+.mobile-app,
+.pwa-app,
+.mobile-pwa-app {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+}
+
+/* Only allow essential smooth transitions */
+.smooth-transition {
+  transition: opacity 0.2s ease, transform 0.2s ease !important;
+}
+
+/* ========== HIGH-CONTRAST COLOR SYSTEM ========== */
+
+:root {
+  /* Background Colors */
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-card: rgba(30, 41, 59, 0.8);
+  --bg-modal: rgba(15, 23, 42, 0.95);
+
+  /* Text Colors - HIGHLY VISIBLE */
+  --text-primary: #ffffff;
+  --text-secondary: #e2e8f0;
+  --text-muted: #cbd5e1;
+  --text-accent: #60a5fa;
+
+  /* Status Colors - CLEAR VISIBILITY */
+  --success: #22c55e;
+  --success-bg: rgba(34, 197, 94, 0.1);
+  --error: #ef4444;
+  --error-bg: rgba(239, 68, 68, 0.1);
+  --warning: #f59e0b;
+  --warning-bg: rgba(245, 158, 11, 0.1);
+
+  /* Balance Colors */
+  --balance-good: #22c55e;
+  --balance-low: #ef4444;
+  --balance-medium: #f59e0b;
+
+  /* Interactive Elements */
+  --button-primary: #3b82f6;
+  --button-primary-hover: #2563eb;
+  --button-secondary: #475569;
+  --button-secondary-hover: #64748b;
+
+  /* Borders */
+  --border-primary: rgba(255, 255, 255, 0.1);
+  --border-focus: #3b82f6;
+}
+
+/* ========== MODERN CARD DESIGN - NO GLASSMORPHISM ========== */
+
+.modern-card,
+.pwa-card,
+.mobile-card {
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-primary) !important;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  /* NO GLASSMORPHISM */
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.balance-card {
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-card) 100%) !important;
+  border: 2px solid var(--border-primary) !important;
+  border-radius: 16px;
+  padding: 24px;
+  text-align: center;
+  /* NO GLASSMORPHISM */
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.balance-amount {
+  font-size: 2.5rem;
+  font-weight: 400;
+  margin: 12px 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.balance-good { color: var(--balance-good) !important; }
+.balance-low { color: var(--balance-low) !important; }
+.balance-medium { color: var(--balance-medium) !important; }
+
+/* ========== BUTTON SYSTEM - NO VIBRATIONS ========== */
+
+.btn-primary,
+.pwa-btn-primary,
+.login-btn {
+  background: var(--button-primary) !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 8px;
+  padding: 16px 24px;
+  font-size: 16px;
+  font-weight: 400;
+  width: 100%;
+  min-height: 48px;
+  cursor: pointer;
+  font-family: inherit;
+  direction: rtl;
+  /* Simple transition only */
+  transition: background-color 0.1s ease !important;
+  /* Remove all effects */
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.btn-primary:hover,
+.pwa-btn-primary:hover,
+.login-btn:hover {
+  background: var(--button-primary-hover) !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.btn-secondary,
+.pwa-btn-secondary {
+  background: var(--button-secondary) !important;
+  color: white !important;
+  border: 1px solid var(--border-primary) !important;
+  border-radius: 8px;
+  padding: 16px 24px;
+  font-size: 16px;
+  font-weight: 400;
+  width: 100%;
+  min-height: 48px;
+  cursor: pointer;
+  font-family: inherit;
+  direction: rtl;
+  transition: background-color 0.1s ease !important;
+}
+
+.btn-secondary:hover,
+.pwa-btn-secondary:hover {
+  background: var(--button-secondary-hover) !important;
+}
+
+/* Remove all button animations and effects */
+button, .button, [type="button"], [type="submit"] {
+  transform: none !important;
+  animation: none !important;
+  box-shadow: none !important;
+}
+
+/* ========== TYPOGRAPHY SYSTEM - HIGHLY VISIBLE ========== */
+
+.text-title,
+.pwa-title,
+h1, h2 {
+  font-size: 1.5rem;
+  font-weight: 400;
+  color: var(--text-primary);
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+
+.text-subtitle,
+.pwa-subtitle,
+h3, h4 {
+  font-size: 1.125rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.text-body,
+.pwa-text,
+p {
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.text-caption,
+.pwa-caption {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* Force high contrast */
+.text-high-contrast {
+  color: #ffffff !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  font-weight: 400;
+}
+
+/* ========== FORM INPUTS - CLEAR VISIBILITY ========== */
+
+.form-input,
+.pwa-input,
+input[type="text"],
+input[type="tel"],
+input[type="password"],
+input[type="email"],
+input[type="number"],
+textarea,
+select {
+  background: var(--bg-secondary) !important;
+  border: 2px solid var(--border-primary) !important;
+  border-radius: 8px;
+  padding: 16px;
+  font-size: 16px;
+  color: var(--text-primary) !important;
+  width: 100%;
+  font-family: inherit;
+  direction: rtl;
+}
+
+.form-input:focus,
+.pwa-input:focus,
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none !important;
+  border-color: var(--border-focus) !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+.form-input::placeholder,
+.pwa-input::placeholder,
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-muted) !important;
+  font-weight: 400;
+}
+
+.form-label,
+.pwa-label,
+label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--text-primary) !important;
+  margin-bottom: 8px;
+}
+
+/* ========== LOGIN SCREEN - MODERN & FAST ========== */
+
+.mobile-login-screen,
+.pwa-login-screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 24px;
+  background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 40px;
+  color: white;
+}
+
+.login-header h1 {
+  font-size: 2rem;
+  margin-bottom: 8px;
+  color: white;
+  font-weight: 400;
+}
+
+.login-header p {
+  color: var(--text-muted);
+  font-size: 1rem;
+}
+
+.login-form {
+  width: 100%;
+  max-width: 400px;
+}
+
+.form-group {
+  margin-bottom: 24px;
+}
+
+/* ========== NAVIGATION - NO JUMPING ========== */
+
+.bottom-navigation,
+.pwa-navigation {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: var(--bg-secondary);
+  border-top: 1px solid var(--border-primary);
+  display: flex;
+  padding: 8px 0;
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+  z-index: 1000;
+}
+
+.nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px;
+  background-color: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  min-height: 48px;
+}
+
+.nav-item.active {
+  color: var(--text-accent);
+}
+
+/* ========== REMOVE ALL GLASSMORPHISM ========== */
+
+/* Override any existing glassmorphism */
+* {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.glass, .glassmorphic, .glass-card, .glass-container {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: var(--bg-card) !important;
+}
+
+/* ========== PERFORMANCE OPTIMIZATIONS ========== */
+
+/* Disable all animations globally */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Fast loading strategy */
+.skeleton-loader {
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  height: 20px;
+  margin-bottom: 12px;
+}
+
+/* ========== ERROR AND SUCCESS MESSAGES ========== */
+
+.error-message {
+  background: var(--error-bg) !important;
+  border: 1px solid var(--error) !important;
+  color: var(--error) !important;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  text-align: center;
+}
+
+.success-message {
+  background: var(--success-bg) !important;
+  border: 1px solid var(--success) !important;
+  color: var(--success) !important;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  text-align: center;
+}
+
+/* ========== MOBILE SPECIFIC ========== */
+
+@media (max-width: 768px) {
+  .mobile-app,
+  .pwa-app {
+    padding-bottom: 60px; /* Space for bottom navigation */
+  }
+
+  .modern-card,
+  .pwa-card {
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+}
+
+/* ========== OVERRIDE ANY PROBLEMATIC STYLES ========== */
+
+/* Remove all floating animations */
+@keyframes float { /* REMOVED */ }
+@keyframes pulse { /* REMOVED */ }
+@keyframes shake { /* REMOVED */ }
+@keyframes bounce { /* REMOVED */ }
+@keyframes spin { /* REMOVED */ }
+
+/* Simple fade only if needed */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Apply fade only where absolutely necessary */
+.fade-in {
+  animation: fadeIn 0.2s ease-in-out !important;
+}
+
+/* ========== ACCESSIBILITY ========== */
+
+/* Focus visible for keyboard navigation */
+*:focus-visible {
+  outline: 2px solid var(--border-focus) !important;
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --text-primary: #ffffff;
+    --text-secondary: #f0f0f0;
+    --bg-primary: #000000;
+    --bg-secondary: #1a1a1a;
+  }
+}
+
+/* ========== FINAL OVERRIDES ========== */
+
+/* Ensure no element can break the layout */
+* {
+  max-width: 100%;
+  word-wrap: break-word;
+}
+
+/* Remove any transform effects */
+.transform-none {
+  transform: none !important;
+}
+
+/* Safe area for iOS devices */
+.safe-area-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
