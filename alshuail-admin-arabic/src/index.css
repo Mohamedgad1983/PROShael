@@ -1,23 +1,5 @@
 @import "tailwindcss";
 
-<<<<<<< HEAD
-/* EMERGENCY TEXT VISIBILITY FIX - MUST BE LOADED FIRST */
-@import "./styles/emergency-text-fix.css";
-
-/* OPTIMIZED TEXT READABILITY WITHOUT BOLD - Enhanced contrast and hierarchy */
-@import "./styles/optimized-text-readability.css";
-
-/* Apple Design System - Premium UI Components and Styling */
-@import "./styles/apple-design-system.css";
-
-/* COMPACT SIZING - Reduces font sizes and spacing for better screen fit */
-@import "./styles/compact-sizing.css";
-
-=======
-/* Apple Design System - Premium UI Components and Styling */
-@import "./styles/apple-design-system.css";
-
->>>>>>> a5fb1535e6a5072e663226a993218935989cb409
 /* Optimized Arabic Fonts - Enhanced for Apple Design System */
 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&family=Tajawal:wght@300;400;500;700&family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
@@ -29,16 +11,6 @@
   html {
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
-<<<<<<< HEAD
-    height: 100%;
-    overflow: hidden;
-  }
-
-  #root {
-    height: 100vh;
-    overflow: hidden;
-=======
->>>>>>> a5fb1535e6a5072e663226a993218935989cb409
   }
 
   body {
@@ -48,13 +20,6 @@
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-<<<<<<< HEAD
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-    height: 100vh;
-=======
->>>>>>> a5fb1535e6a5072e663226a993218935989cb409
 
     /* Apple Design System Integration */
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', 'Cairo', 'Tajawal', system-ui, sans-serif;

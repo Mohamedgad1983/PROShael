@@ -15,7 +15,8 @@
       "Bash(curl:*)",
       "Bash(git add:*)",
       "Bash(start view-github-logs.html)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(powershell:*)"
     ],
     "deny": [],
     "ask": []

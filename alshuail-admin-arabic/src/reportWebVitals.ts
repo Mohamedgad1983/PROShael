@@ -12,8 +12,3 @@ const reportWebVitals = (onPerfEntry?: ReportHandler) => {
   }
 };
 
-<<<<<<< HEAD
-export default reportWebVitals;
-=======
-export default reportWebVitals;
->>>>>>> a5fb1535e6a5072e663226a993218935989cb409
