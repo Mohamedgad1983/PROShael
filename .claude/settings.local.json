@@ -11,7 +11,10 @@
       "Bash(git push:*)",
       "Bash(dir:*)",
       "Bash(cleanup.bat)",
-      "Bash(cmd:*)"
+      "Bash(cmd:*)",
+      "Bash(curl:*)",
+      "Bash(git add:*)",
+      "Bash(start view-github-logs.html)"
     ],
     "deny": [],
     "ask": []
