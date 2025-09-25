@@ -9,6 +9,7 @@ require('dotenv').config();
 const activitiesRoutes = require('./routes/activities');
 const authRoutes = require('./routes/auth');
 const membersRoutes = require('./routes/members');
+const expensesRoutes = require('./routes/expenses');
 
 const app = express();
 
@@ -20,7 +21,7 @@ app.use(helmet({
 // CORS configuration
 app.use(cors({
     origin: process.env.NODE_ENV === 'production'
-        ? ['https://your-frontend-domain.com']
+        ? ['https://alshuail-admin.pages.dev', 'https://alshuail.vercel.app', 'https://your-frontend-domain.com']
         : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -45,6 +46,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use('/api/activities', activitiesRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/members', membersRoutes);
+app.use('/api/expenses', expensesRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
