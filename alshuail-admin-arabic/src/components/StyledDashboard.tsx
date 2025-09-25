@@ -39,6 +39,11 @@ import EnhancedMembersManagement from './Members/EnhancedMembersManagement.jsx';
 import TwoSectionMembers from './Members/TwoSectionMembers.jsx';
 // @ts-ignore
 import Settings from './Settings/Settings.jsx';
+// Crisis Recovery Components - CRITICAL PRIORITY
+// @ts-ignore
+import CrisisDashboard from './Dashboard/CrisisDashboard.jsx';
+// @ts-ignore
+import MemberStatementSearch from './Members/MemberStatementSearch.jsx';
 import { formatHijriDate, getCurrentHijriDate, formatDualDate } from '../utils/hijriDateUtils';
 // Import Apple Design System CSS for premium styling
 import './Members/AppleDesignSystem.css';
@@ -551,6 +556,8 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
   }, []);
 
   const menuItems = [
+    { id: 'crisis', label: '🚨 لوحة الأزمة', icon: ChartBarIcon }, // CRITICAL: 90.3% non-compliance
+    { id: 'statement', label: '📋 البحث عن كشف', icon: DocumentTextIcon }, // Member statement search
     { id: 'dashboard', label: 'لوحة التحكم', icon: HomeIcon },
     { id: 'members', label: 'الأعضاء', icon: UsersIcon },
     { id: 'subscriptions', label: 'الاشتراكات', icon: CreditCardIcon },
@@ -2413,6 +2420,15 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
 
                 {activeSection === 'settings' && (
                   <Settings />
+                )}
+
+                {/* CRITICAL: Crisis Recovery Features for 90.3% Non-Compliance */}
+                {activeSection === 'crisis' && (
+                  <CrisisDashboard />
+                )}
+
+                {activeSection === 'statement' && (
+                  <MemberStatementSearch />
                 )}
               </>
             )}
