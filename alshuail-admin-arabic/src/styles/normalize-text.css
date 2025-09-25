@@ -2,9 +2,12 @@
    NORMALIZE TEXT WEIGHTS & PAGE SCROLL
    ===================================== */
 
-/* Force all text to normal weight (400) */
-* {
+/* Force all text to normal weight (400) - MAXIMUM PRIORITY */
+*,
+*::before,
+*::after {
   font-weight: 400 !important;
+  font-weight: normal !important;
 }
 
 /* Specific overrides for commonly bold elements */

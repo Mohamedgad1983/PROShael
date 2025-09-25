@@ -1,0 +1,176 @@
+/* ====================================================
+   FORCE ALL TEXT TO NORMAL WEIGHT - ABSOLUTE OVERRIDE
+   ==================================================== */
+
+/* Universal selector with maximum specificity */
+html *,
+html *::before,
+html *::after,
+body *,
+body *::before,
+body *::after,
+#root *,
+#root *::before,
+#root *::after {
+  font-weight: 400 !important;
+  font-weight: normal !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+}
+
+/* Override all possible font-weight values */
+* {
+  font-weight: 400 !important;
+}
+
+/* Target specific HTML elements */
+html, body, div, span, applet, object, iframe,
+h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+a, abbr, acronym, address, big, cite, code,
+del, dfn, em, img, ins, kbd, q, s, samp,
+small, strike, strong, sub, sup, tt, var,
+b, u, i, center,
+dl, dt, dd, ol, ul, li,
+fieldset, form, label, legend,
+table, caption, tbody, tfoot, thead, tr, th, td,
+article, aside, canvas, details, embed,
+figure, figcaption, footer, header, hgroup,
+menu, nav, output, ruby, section, summary,
+time, mark, audio, video,
+button, input, select, textarea, option {
+  font-weight: 400 !important;
+  font-weight: normal !important;
+}
+
+/* Override inline styles */
+[style*="font-weight"] {
+  font-weight: 400 !important;
+}
+
+/* Override all class-based font weights */
+[class*="font-weight"],
+[class*="fw-"],
+[class*="font-bold"],
+[class*="font-semibold"],
+[class*="font-medium"],
+[class*="font-light"],
+[class*="font-thin"],
+[class*="font-extrabold"],
+[class*="font-black"],
+[class*="bold"],
+[class*="semibold"],
+[class*="medium"],
+.font-weight-100,
+.font-weight-200,
+.font-weight-300,
+.font-weight-400,
+.font-weight-500,
+.font-weight-600,
+.font-weight-700,
+.font-weight-800,
+.font-weight-900,
+.fw-100,
+.fw-200,
+.fw-300,
+.fw-400,
+.fw-500,
+.fw-600,
+.fw-700,
+.fw-800,
+.fw-900,
+.fw-light,
+.fw-lighter,
+.fw-normal,
+.fw-medium,
+.fw-semibold,
+.fw-bold,
+.fw-bolder,
+.fw-black {
+  font-weight: 400 !important;
+  font-weight: normal !important;
+}
+
+/* Tailwind CSS overrides */
+.font-thin,
+.font-extralight,
+.font-light,
+.font-normal,
+.font-medium,
+.font-semibold,
+.font-bold,
+.font-extrabold,
+.font-black {
+  font-weight: 400 !important;
+}
+
+/* Bootstrap overrides */
+.font-weight-bold,
+.font-weight-bolder,
+.font-weight-light,
+.font-weight-lighter,
+.font-weight-normal,
+.text-bold,
+.text-weight-bold {
+  font-weight: 400 !important;
+}
+
+/* Material-UI overrides */
+.MuiTypography-fontWeightLight,
+.MuiTypography-fontWeightRegular,
+.MuiTypography-fontWeightMedium,
+.MuiTypography-fontWeightBold,
+.MuiButton-root,
+.MuiInputBase-root,
+.MuiFormLabel-root {
+  font-weight: 400 !important;
+}
+
+/* Custom class overrides */
+.apple-logo-title,
+.apple-login-title,
+.apple-login-button,
+.apple-input-label,
+.card-title,
+.modal-title,
+.dashboard-title,
+.header-title,
+.menu-title,
+.sidebar-title {
+  font-weight: 400 !important;
+}
+
+/* Pseudo-elements */
+*::placeholder,
+*::selection,
+*::-moz-selection {
+  font-weight: 400 !important;
+}
+
+/* Media query for all screen sizes */
+@media screen and (min-width: 0px) {
+  * {
+    font-weight: 400 !important;
+  }
+}
+
+/* Print media */
+@media print {
+  * {
+    font-weight: 400 !important;
+  }
+}
+
+/* Remove any text shadows that might make text appear bold */
+* {
+  text-shadow: none !important;
+}
+
+/* Ensure imported fonts use normal weight */
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400&display=swap');
+
+/* Override font-face declarations */
+@font-face {
+  font-family: 'Tajawal';
+  font-weight: 100 900;
+  font-weight: 400 !important;
+}

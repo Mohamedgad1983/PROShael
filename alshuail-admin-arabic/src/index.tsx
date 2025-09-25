@@ -4,6 +4,7 @@ import './index.css';
 import './styles/normalize-text.css'; // Import normalize text styles
 import App from './App';
 import reportWebVitals from './reportWebVitals';
+import './styles/force-normal-text.css'; // Force all text to normal weight - loaded last!
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
