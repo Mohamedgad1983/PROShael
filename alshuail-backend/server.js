@@ -38,6 +38,16 @@ app.use('/api', limiter);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.status(200).json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    service: 'alshuail-backend',
+    version: '1.0.0'
+  });
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/members', membersRoutes);
 app.use('/api/payments', paymentsRoutes);
