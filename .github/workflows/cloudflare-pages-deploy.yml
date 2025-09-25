@@ -54,7 +54,7 @@ jobs:
         uses: cloudflare/pages-action@v1
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          accountId: '425423960a5734e5ede200086b63fb4c'
           projectName: alshuail-admin
           directory: alshuail-admin-arabic/build
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
