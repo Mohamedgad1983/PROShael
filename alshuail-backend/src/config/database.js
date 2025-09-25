@@ -4,17 +4,35 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY;
 
-export const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
-  }
-});
+// Check if environment variables are loaded
+if (!supabaseUrl) {
+  console.error('❌ SUPABASE_URL is not set in environment variables');
+  console.log('Available env vars:', Object.keys(process.env).filter(key => key.includes('SUPABASE')));
+}
+
+if (!supabaseServiceKey) {
+  console.error('❌ SUPABASE_SERVICE_KEY or SUPABASE_ANON_KEY is not set');
+}
+
+// Create client only if we have the required variables
+export const supabase = supabaseUrl && supabaseServiceKey
+  ? createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    })
+  : null;
 
 export const testConnection = async () => {
   try {
+    if (!supabase) {
+      console.error('❌ Supabase client not initialized - check environment variables');
+      return false;
+    }
+
     const { data, error } = await supabase
       .from('members')
       .select('*')

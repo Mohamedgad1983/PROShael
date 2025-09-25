@@ -3,6 +3,11 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
+
+// Load environment variables first
+dotenv.config();
+
+// Import database after env vars are loaded
 import { testConnection } from './src/config/database.js';
 import membersRoutes from './src/routes/members.js';
 import paymentsRoutes from './src/routes/payments.js';
@@ -17,8 +22,6 @@ import testRoutes from './src/routes/test.js';
 import expensesRoutes from './src/routes/expenses.js';
 import financialReportsRoutes from './src/routes/financialReports.js';
 import settingsRoutes from './src/routes/settings.js';
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
