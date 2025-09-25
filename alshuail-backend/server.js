@@ -27,10 +27,19 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(helmet());
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3002',
+
+// Configure CORS to allow both local and production frontend
+const corsOptions = {
+  origin: [
+    'http://localhost:3002',
+    'https://alshuail-admin.pages.dev',
+    'https://proshael.pages.dev',
+    process.env.FRONTEND_URL
+  ].filter(Boolean),
   credentials: true
-}));
+};
+
+app.use(cors(corsOptions));
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
