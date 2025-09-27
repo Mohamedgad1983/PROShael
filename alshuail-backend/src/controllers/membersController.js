@@ -17,6 +17,9 @@ export const getAllMembers = async (req, res) => {
       status
     } = req.query;
 
+    // Ensure limit is a valid number and within reasonable bounds
+    const pageLimit = Math.min(Math.max(parseInt(limit) || 25, 1), 100);
+
     let query = supabase
       .from('members')
       .select('*', { count: 'exact' });
@@ -39,11 +42,11 @@ export const getAllMembers = async (req, res) => {
       );
     }
 
-    // Apply pagination
-    const offset = (page - 1) * limit;
+    // Apply pagination with validated limit
+    const offset = (page - 1) * pageLimit;
     query = query
       .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+      .range(offset, offset + pageLimit - 1);
 
     const { data: members, error, count } = await query;
 
@@ -54,9 +57,9 @@ export const getAllMembers = async (req, res) => {
       data: members || [],
       pagination: {
         page: parseInt(page),
-        limit: parseInt(limit),
+        limit: pageLimit,
         total: count || 0,
-        pages: Math.ceil((count || 0) / limit)
+        pages: Math.ceil((count || 0) / pageLimit)
       }
     });
   } catch (error) {

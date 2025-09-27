@@ -56,16 +56,15 @@ const TwoSectionMembers = () => {
 
   // Load members when component mounts or filters change (NOT search or pagination)
   useEffect(() => {
-    // Don't trigger on pagination change, handlePageChange will handle it
-    if (pagination.page === 1) {
-      loadMembers();
-    }
+    // Reset to page 1 and load when filters change
+    setPagination(prev => ({ ...prev, page: 1 }));
+    loadMembers();
   }, [filters]);
 
-  // Load members on mount
+  // Load members on mount and when limit changes
   useEffect(() => {
     loadMembers();
-  }, []);
+  }, [pagination.limit]);
 
   // Debounced search - only search after user stops typing for 500ms
   useEffect(() => {
@@ -95,8 +94,8 @@ const TwoSectionMembers = () => {
     console.log('Auth Token:', localStorage.getItem('token') ? 'Present' : 'Missing');
     console.log('User Role:', getUserRole());
 
-    // Check cache first for pagination
-    const cacheKey = `${pagination.page}-${searchQuery}-${JSON.stringify(filters)}`;
+    // Check cache first for pagination - include limit in cache key
+    const cacheKey = `${pagination.page}-${pagination.limit}-${searchQuery}-${JSON.stringify(filters)}`;
     if (isPagination && membersCache.current.has(cacheKey)) {
       console.log('✅ Using cached data for page', pagination.page);
       const cachedData = membersCache.current.get(cacheKey);
@@ -314,15 +313,17 @@ const TwoSectionMembers = () => {
   };
 
   const handlePageSizeChange = (newSize) => {
-    setPagination(prev => ({
-      ...prev,
-      limit: parseInt(newSize),
-      page: 1 // Reset to first page when changing page size
-    }));
+    const newLimit = parseInt(newSize);
+    console.log('🔄 Changing page size to:', newLimit);
     // Clear cache when page size changes
     membersCache.current.clear();
-    // Reload data with new page size
-    loadMembers();
+    // Update pagination with new limit and reset to page 1
+    setPagination(prev => ({
+      ...prev,
+      limit: newLimit,
+      page: 1
+    }));
+    // The useEffect will trigger loadMembers when limit changes
   };
 
   const handleMemberAdded = (newMember) => {
