@@ -32,6 +32,7 @@ if (!process.env.JWT_SECRET) {
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+// Deploy trigger: Member monitoring support added
 
 app.use(helmet());
 app.use(cors({
