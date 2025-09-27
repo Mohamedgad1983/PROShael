@@ -27,6 +27,7 @@ const TwoSectionMembers = () => {
   const [currentView, setCurrentView] = useState('list'); // 'list' or 'add'
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
+  const [activeEditTab, setActiveEditTab] = useState('personal'); // 'personal', 'address', 'account'
   const searchTimeoutRef = useRef(null);
   const [filters, setFilters] = useState({
     status: '',
@@ -367,6 +368,7 @@ const TwoSectionMembers = () => {
 
   const handleEditClick = (member) => {
     setEditingMember({ ...member });
+    setActiveEditTab('personal'); // Reset to personal tab when opening
     setShowEditModal(true);
   };
 
@@ -769,13 +771,29 @@ const TwoSectionMembers = () => {
             <div className="modal-body">
               {/* Section Headers */}
               <div className="section-tabs">
-                <div className="tab active">المعلومات الشخصية</div>
-                <div className="tab">العنوان والعمل</div>
-                <div className="tab">معلومات الحساب</div>
+                <div
+                  className={`tab ${activeEditTab === 'personal' ? 'active' : ''}`}
+                  onClick={() => setActiveEditTab('personal')}
+                >
+                  المعلومات الشخصية
+                </div>
+                <div
+                  className={`tab ${activeEditTab === 'address' ? 'active' : ''}`}
+                  onClick={() => setActiveEditTab('address')}
+                >
+                  العنوان والعمل
+                </div>
+                <div
+                  className={`tab ${activeEditTab === 'account' ? 'active' : ''}`}
+                  onClick={() => setActiveEditTab('account')}
+                >
+                  معلومات الحساب
+                </div>
               </div>
 
               <div className="form-sections">
                 {/* Personal Information Section */}
+                {activeEditTab === 'personal' && (
                 <div className="form-section">
                   <h3 className="section-title">المعلومات الشخصية</h3>
                   <div className="form-grid">
@@ -876,8 +894,10 @@ const TwoSectionMembers = () => {
                     </div>
                   </div>
                 </div>
+                )}
 
                 {/* Address and Work Section */}
+                {activeEditTab === 'address' && (
                 <div className="form-section">
                   <h3 className="section-title">العنوان والعمل</h3>
                   <div className="form-grid">
@@ -937,8 +957,10 @@ const TwoSectionMembers = () => {
                     </div>
                   </div>
                 </div>
+                )}
 
                 {/* Account Information Section */}
+                {activeEditTab === 'account' && (
                 <div className="form-section">
                   <h3 className="section-title">معلومات الحساب</h3>
                   <div className="form-grid">
@@ -990,8 +1012,10 @@ const TwoSectionMembers = () => {
                     </div>
                   </div>
                 </div>
+                )}
 
-                {/* Additional Information */}
+                {/* Additional Information - Show with Account tab */}
+                {activeEditTab === 'account' && (
                 <div className="form-section">
                   <h3 className="section-title">معلومات إضافية</h3>
                   <div className="form-grid">
@@ -1056,6 +1080,7 @@ const TwoSectionMembers = () => {
                     </div>
                   </div>
                 </div>
+                )}
               </div>
             </div>
 

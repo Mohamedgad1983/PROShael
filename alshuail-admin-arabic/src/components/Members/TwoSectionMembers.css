@@ -822,6 +822,24 @@
   }
 }
 
+/* Tab Navigation Styles */
+.section-tabs .tab {
+  cursor: pointer;
+  transition: all 0.3s ease;
+  user-select: none;
+}
+
+.section-tabs .tab:hover:not(.active) {
+  background-color: #f0f0f5;
+  color: #6366f1;
+}
+
+.section-tabs .tab.active {
+  background-color: #6366f1;
+  color: white;
+  font-weight: 600;
+}
+
 /* Edit Modal Styles */
 .modal-overlay {
   position: fixed;
