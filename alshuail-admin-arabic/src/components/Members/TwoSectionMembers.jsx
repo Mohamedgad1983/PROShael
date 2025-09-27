@@ -786,10 +786,17 @@ const TwoSectionMembers = () => {
                         className="form-input"
                       >
                         <option value="">اختر الفخذ</option>
-                        <option value="الشمالي">الشمالي</option>
-                        <option value="الجنوبي">الجنوبي</option>
-                        <option value="الشرقي">الشرقي</option>
-                        <option value="الغربي">الغربي</option>
+                        <option value="البديد">البديد</option>
+                        <option value="جميع المتحد">جميع المتحد</option>
+                        <option value="جميع الفديد">جميع الفديد</option>
+                        <option value="رشود">رشود</option>
+                        <option value="الرشيس">الرشيس</option>
+                        <option value="نيد">نيد</option>
+                        <option value="المد">المد</option>
+                        <option value="الوايلة">الوايلة</option>
+                        <option value="الشيمان">الشيمان</option>
+                        <option value="المسعود">المسعود</option>
+                        <option value="عقاب">عقاب</option>
                       </select>
                     </div>
 
