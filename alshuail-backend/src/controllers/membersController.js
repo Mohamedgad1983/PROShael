@@ -1,6 +1,7 @@
 import { supabase } from '../config/database.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { sanitizeJSON, prepareUpdateData } from '../utils/jsonSanitizer.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -173,68 +174,29 @@ export const createMember = async (req, res) => {
 export const updateMember = async (req, res) => {
   try {
     const { id } = req.params;
-    let updateData = {};
 
-    // Handle both string and object bodies
-    if (typeof req.body === 'string') {
-      try {
-        // Clean the string before parsing to handle special characters
-        const cleanedBody = req.body
-          .replace(/\\n/g, ' ')
-          .replace(/\\r/g, ' ')
-          .replace(/\\t/g, ' ')
-          .trim();
-        updateData = JSON.parse(cleanedBody);
-      } catch (parseError) {
-        console.error('❌ Error parsing string body:', parseError);
-        console.error('❌ Raw body:', req.body);
-        return res.status(400).json({
-          success: false,
-          error: 'Invalid JSON format in request'
-        });
-      }
-    } else {
+    console.log('🔍 Update Member Request Started');
+    console.log('📋 Member ID:', id);
+    console.log('📋 Request body type:', typeof req.body);
+    console.log('📋 Raw request body:', JSON.stringify(req.body, null, 2));
+
+    // Use the sanitizer to handle the request body
+    let updateData = sanitizeJSON(req.body);
+
+    // If sanitization failed, try direct parsing
+    if (!updateData || Object.keys(updateData).length === 0) {
       updateData = req.body || {};
     }
 
-    // Log what data we're receiving
-    console.log('📥 Update Member Request - ID:', id);
-    console.log('📋 Data type:', typeof updateData);
-    console.log('📋 Data received from frontend:', JSON.stringify(updateData, null, 2));
+    console.log('✅ Parsed update data:', JSON.stringify(updateData, null, 2));
 
-    // Ensure we have the fields that might be missing
-    // Handle both empty strings and nulls properly
-    const fieldsToUpdate = {
-      full_name: updateData.full_name !== undefined ? updateData.full_name : null,
-      phone: updateData.phone !== undefined ? updateData.phone : null,
-      email: updateData.email !== undefined ? updateData.email : null,
-      national_id: updateData.national_id !== undefined ? updateData.national_id : null,
-      tribal_section: updateData.tribal_section !== undefined ? updateData.tribal_section : null,
-      date_of_birth: updateData.date_of_birth !== undefined ? updateData.date_of_birth : null,
-      gender: updateData.gender !== undefined ? updateData.gender : null,
-      nationality: updateData.nationality !== undefined ? updateData.nationality : null,
-      city: updateData.city !== undefined ? updateData.city : null,
-      district: updateData.district !== undefined ? updateData.district : null,
-      address: updateData.address !== undefined ? updateData.address : null,
-      employer: updateData.employer !== undefined ? updateData.employer : null,
-      occupation: updateData.occupation !== undefined ? updateData.occupation : null,
-      membership_number: updateData.membership_number !== undefined ? updateData.membership_number : null,
-      membership_status: updateData.membership_status !== undefined ? updateData.membership_status : null,
-      membership_date: updateData.membership_date !== undefined ? updateData.membership_date : null,
-      membership_type: updateData.membership_type !== undefined ? updateData.membership_type : null,
-      notes: updateData.notes !== undefined ? updateData.notes : null,
-      updated_at: new Date().toISOString()
-    };
+    // Use our utility to prepare the update data
+    const fieldsToUpdate = prepareUpdateData(updateData);
 
-    // Keep empty strings for fields to properly clear them if needed
-    // Only remove truly null/undefined values
-    Object.keys(fieldsToUpdate).forEach(key => {
-      if (fieldsToUpdate[key] === null && updateData[key] === undefined && key !== 'updated_at') {
-        delete fieldsToUpdate[key];
-      }
-    });
+    // Ensure critical fields are not lost
+    if (updateData.id) fieldsToUpdate.id = updateData.id;
 
-    console.log('🔄 Fields to update:', JSON.stringify(fieldsToUpdate, null, 2));
+    console.log('🔄 Prepared fields to update:', JSON.stringify(fieldsToUpdate, null, 2));
 
     // Try to update with error handling
     const { data: updatedMember, error } = await supabase
