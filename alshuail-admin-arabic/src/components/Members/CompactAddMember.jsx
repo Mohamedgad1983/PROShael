@@ -276,16 +276,13 @@ const CompactAddMember = ({ onMemberAdded }) => {
                 dir="rtl"
               >
                 <option value="">اختر الفخذ</option>
-                <option value="البديد">البديد</option>
-                <option value="جميع المتحد">جميع المتحد</option>
-                <option value="جميع الفديد">جميع الفديد</option>
-                <option value="رشود">رشود</option>
-                <option value="الرشيس">الرشيس</option>
-                <option value="نيد">نيد</option>
-                <option value="المد">المد</option>
-                <option value="الوايلة">الوايلة</option>
-                <option value="الشيمان">الشيمان</option>
+                <option value="الدغيش">الدغيش</option>
+                <option value="الرشيد">الرشيد</option>
+                <option value="الشبيعان">الشبيعان</option>
+                <option value="العيد">العيد</option>
                 <option value="المسعود">المسعود</option>
+                <option value="رشود">رشود</option>
+                <option value="رشيد">رشيد</option>
                 <option value="عقاب">عقاب</option>
               </select>
             </div>
