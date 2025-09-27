@@ -673,6 +673,8 @@ const TwoSectionMembers = () => {
                     <th>الاسم الكامل</th>
                     <th>رقم الهاتف</th>
                     <th>البريد الإلكتروني</th>
+                    <th>الجنس</th>
+                    <th>الفخذ</th>
                     <th>الحالة</th>
                     <th>اكتمال الملف</th>
                     <th>الإجراءات</th>
@@ -686,6 +688,8 @@ const TwoSectionMembers = () => {
                         <td><div className="skeleton skeleton-text"></div></td>
                         <td><div className="skeleton skeleton-text"></div></td>
                         <td><div className="skeleton skeleton-text"></div></td>
+                        <td><div className="skeleton skeleton-text"></div></td>
+                        <td><div className="skeleton skeleton-text"></div></td>
                         <td><div className="skeleton skeleton-badge"></div></td>
                         <td><div className="skeleton skeleton-badge"></div></td>
                         <td><div className="skeleton skeleton-actions"></div></td>
@@ -696,7 +700,7 @@ const TwoSectionMembers = () => {
                   {/* Show empty state when no data */}
                   {!loading && members.length === 0 && (
                     <tr>
-                      <td colSpan="6" className="empty-cell">
+                      <td colSpan="8" className="empty-cell">
                         <div className="empty-state">
                           <span>لا توجد بيانات</span>
                         </div>
@@ -710,6 +714,8 @@ const TwoSectionMembers = () => {
                       <td className="member-name">{member.full_name}</td>
                       <td className="member-phone">{member.phone}</td>
                       <td className="member-email">{member.email || '-'}</td>
+                      <td className="member-gender">{member.gender === 'male' ? 'ذكر' : member.gender === 'female' ? 'أنثى' : '-'}</td>
+                      <td className="member-tribal">{member.tribal_section || '-'}</td>
                       <td>
                         <span className={`status-badge ${member.status}`}>
                           {member.status === 'active' ? 'نشط' : 'غير نشط'}
@@ -889,6 +895,7 @@ const TwoSectionMembers = () => {
                         value={editingMember.tribal_section || ''}
                         onChange={(e) => handleEditChange('tribal_section', e.target.value)}
                         className="form-input"
+                        dir="rtl"
                       >
                         <option value="">اختر الفخذ</option>
                         <option value="الدغيش">الدغيش</option>
@@ -900,6 +907,11 @@ const TwoSectionMembers = () => {
                         <option value="رشيد">رشيد</option>
                         <option value="عقاب">عقاب</option>
                       </select>
+                      {editingMember.tribal_section && (
+                        <small className="field-hint">
+                          الاختيار الحالي: {editingMember.tribal_section}
+                        </small>
+                      )}
                     </div>
 
                     <div className="form-group">
@@ -918,11 +930,17 @@ const TwoSectionMembers = () => {
                         value={editingMember.gender || ''}
                         onChange={(e) => handleEditChange('gender', e.target.value)}
                         className="form-input"
+                        dir="rtl"
                       >
-                        <option value="">اختر</option>
+                        <option value="">اختر الجنس</option>
                         <option value="male">ذكر</option>
                         <option value="female">أنثى</option>
                       </select>
+                      {editingMember.gender && (
+                        <small className="field-hint">
+                          الاختيار الحالي: {editingMember.gender === 'male' ? 'ذكر' : editingMember.gender === 'female' ? 'أنثى' : ''}
+                        </small>
+                      )}
                     </div>
 
                     <div className="form-group">

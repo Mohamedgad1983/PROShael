@@ -1277,6 +1277,16 @@ textarea.form-input {
   cursor: pointer;
 }
 
+/* Field hint for showing current selection */
+.field-hint {
+  display: block;
+  margin-top: 5px;
+  color: #6b7280;
+  font-size: 0.85rem;
+  font-style: italic;
+  padding-right: 5px;
+}
+
 /* Modal Footer Enhancement */
 .edit-member-modal .modal-footer {
   border-top: 2px solid #e5e7eb;
