@@ -941,13 +941,21 @@
   transition: all 0.2s;
   font-family: inherit;
   width: 100%;
-  text-overflow: clip; /* Prevent ellipsis */
-  white-space: nowrap;
 }
 
 /* Specific fix for select elements */
 select.form-input {
-  text-overflow: clip !important;
+  text-overflow: initial !important;
+  overflow: visible !important;
+  white-space: normal !important;
+  text-indent: 0 !important;
+  line-height: normal !important;
+}
+
+/* Ensure option text is fully visible */
+select.form-input option {
+  text-overflow: initial !important;
+  white-space: normal !important;
   overflow: visible !important;
 }
 
@@ -1284,18 +1292,12 @@ textarea.form-input {
 
 .edit-member-modal select.form-input {
   cursor: pointer;
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-  background-repeat: no-repeat;
-  background-position: left 10px center;
-  background-size: 20px;
-  padding-left: 40px;
-  padding-right: 16px;
   min-width: 200px;
   color: #1f2937;
   font-size: 15px;
+  padding: 12px 16px;
+  text-overflow: initial !important;
+  white-space: normal !important;
 }
 
 /* Fix text display in select options */
@@ -1303,6 +1305,8 @@ textarea.form-input {
   color: #1f2937;
   padding: 10px;
   font-size: 15px;
+  text-overflow: initial !important;
+  white-space: normal !important;
 }
 
 /* Field hint for showing current selection */

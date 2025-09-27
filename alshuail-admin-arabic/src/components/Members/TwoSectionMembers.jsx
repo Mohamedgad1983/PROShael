@@ -896,6 +896,11 @@ const TwoSectionMembers = () => {
                         onChange={(e) => handleEditChange('tribal_section', e.target.value)}
                         className="form-input"
                         dir="rtl"
+                        style={{
+                          textOverflow: 'initial',
+                          whiteSpace: 'normal',
+                          overflow: 'visible'
+                        }}
                       >
                         <option value="">اختر الفخذ</option>
                         <option value="الدغيش">الدغيش</option>
@@ -931,6 +936,11 @@ const TwoSectionMembers = () => {
                         onChange={(e) => handleEditChange('gender', e.target.value)}
                         className="form-input"
                         dir="rtl"
+                        style={{
+                          textOverflow: 'initial',
+                          whiteSpace: 'normal',
+                          overflow: 'visible'
+                        }}
                       >
                         <option value="">اختر الجنس</option>
                         <option value="male">ذكر</option>
