@@ -35,12 +35,13 @@ const TwoSectionMembers = () => {
   });
   const [pagination, setPagination] = useState({
     page: 1,
-    limit: 25, // Increased from 10 to 25 for better performance
+    limit: 50, // Increased to 50 for better performance
     total: 0,
     totalPages: 0
   });
-  const [paginationLoading, setPaginationLoading] = useState(false); // Separate loading state for pagination
+  const [initialLoad, setInitialLoad] = useState(true); // Track initial load
   const membersCache = useRef(new Map()); // Cache for loaded pages
+  const [isSearching, setIsSearching] = useState(false); // Track search state
 
   // Get current user role
   const getUserRole = () => {
@@ -72,32 +73,39 @@ const TwoSectionMembers = () => {
     // return role === 'super_admin' || role === 'admin';
   };
 
-  // Load members when component mounts or filters change (NOT search or pagination)
+  // Load members only on initial mount
   useEffect(() => {
-    // Reset to page 1 and load when filters change
-    setPagination(prev => ({ ...prev, page: 1 }));
-    loadMembers();
+    loadMembers(false, true);
+  }, []);
+
+  // Load members when filters change (NOT search or pagination)
+  useEffect(() => {
+    if (!initialLoad) {
+      // Reset to page 1 and load when filters change
+      setPagination(prev => ({ ...prev, page: 1 }));
+      loadMembers();
+    }
   }, [filters]);
 
-  // Load members on mount and when limit changes
+  // Load members when limit changes
   useEffect(() => {
-    loadMembers();
+    if (!initialLoad) {
+      loadMembers();
+    }
   }, [pagination.limit]);
 
-  // Debounced search - only search after user stops typing for 500ms
+  // Debounced search - only search after user stops typing for 300ms
   useEffect(() => {
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
 
-    searchTimeoutRef.current = setTimeout(() => {
-      if (searchQuery !== '') {
-        loadMembers();
-      } else if (searchQuery === '') {
-        // Load all members when search is cleared
-        loadMembers();
-      }
-    }, 500); // Wait 500ms after user stops typing
+    if (!initialLoad) {
+      setIsSearching(true);
+      searchTimeoutRef.current = setTimeout(() => {
+        loadMembers(false, false, true);
+      }, 300); // Reduced to 300ms for faster response
+    }
 
     return () => {
       if (searchTimeoutRef.current) {
@@ -106,15 +114,15 @@ const TwoSectionMembers = () => {
     };
   }, [searchQuery]);
 
-  const loadMembers = async (isPagination = false) => {
+  const loadMembers = async (isPagination = false, isInitial = false, isSearch = false) => {
     console.log('🔍 Loading members...');
     console.log('API Base URL:', memberService.baseURL);
     console.log('Auth Token:', localStorage.getItem('token') ? 'Present' : 'Missing');
     console.log('User Role:', getUserRole());
 
-    // Check cache first for pagination - include limit in cache key
+    // Check cache first - include limit in cache key
     const cacheKey = `${pagination.page}-${pagination.limit}-${searchQuery}-${JSON.stringify(filters)}`;
-    if (isPagination && membersCache.current.has(cacheKey)) {
+    if (!isInitial && !isSearch && membersCache.current.has(cacheKey)) {
       console.log('✅ Using cached data for page', pagination.page);
       const cachedData = membersCache.current.get(cacheKey);
       setMembers(cachedData.members);
@@ -126,11 +134,14 @@ const TwoSectionMembers = () => {
       return;
     }
 
-    // Use different loading state for pagination
-    if (isPagination) {
-      setPaginationLoading(true);
-    } else {
+    // Only show loading on initial load or when specifically requested
+    if (isInitial) {
       setLoading(true);
+    }
+
+    // Mark initial load as complete
+    if (isInitial) {
+      setInitialLoad(false);
     }
     try {
       // Only include non-empty filters
@@ -184,8 +195,8 @@ const TwoSectionMembers = () => {
         totalPages: paginationData.pages || response.totalPages || 0
       });
 
-      // Keep only last 5 pages in cache to avoid memory issues
-      if (membersCache.current.size > 5) {
+      // Keep only last 10 pages in cache for better performance
+      if (membersCache.current.size > 10) {
         const firstKey = membersCache.current.keys().next().value;
         membersCache.current.delete(firstKey);
       }
@@ -207,7 +218,7 @@ const TwoSectionMembers = () => {
       }));
     } finally {
       setLoading(false);
-      setPaginationLoading(false);
+      setIsSearching(false);
       console.log('✅ Loading complete');
     }
   };
@@ -322,10 +333,7 @@ const TwoSectionMembers = () => {
 
   const handlePageChange = (newPage) => {
     setPagination(prev => ({ ...prev, page: newPage }));
-    // Clear current members to show loading state
-    setMembers([]);
-    // Clear cache when page changes to ensure fresh data
-    membersCache.current.clear();
+    // Don't clear members to avoid flashing
     // Trigger load with pagination flag
     loadMembers(true);
   };
@@ -616,6 +624,32 @@ const TwoSectionMembers = () => {
                   </tr>
                 </thead>
                 <tbody>
+                  {/* Show skeleton during initial load only */}
+                  {loading && members.length === 0 && (
+                    [...Array(5)].map((_, i) => (
+                      <tr key={`skeleton-${i}`} className="table-row skeleton-row">
+                        <td><div className="skeleton skeleton-text"></div></td>
+                        <td><div className="skeleton skeleton-text"></div></td>
+                        <td><div className="skeleton skeleton-text"></div></td>
+                        <td><div className="skeleton skeleton-badge"></div></td>
+                        <td><div className="skeleton skeleton-badge"></div></td>
+                        <td><div className="skeleton skeleton-actions"></div></td>
+                      </tr>
+                    ))
+                  )}
+
+                  {/* Show empty state when no data */}
+                  {!loading && members.length === 0 && (
+                    <tr>
+                      <td colSpan="6" className="empty-cell">
+                        <div className="empty-state">
+                          <span>لا توجد بيانات</span>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+
+                  {/* Show members */}
                   {members.map(member => (
                     <tr key={member.id} className="table-row">
                       <td className="member-name">{member.full_name}</td>

@@ -1,5 +1,56 @@
 /* Two Section Members Layout - Modern Clean Design */
 
+/* Skeleton Loading Animation */
+@keyframes skeleton-loading {
+  0% {
+    background-color: #f0f0f0;
+  }
+  50% {
+    background-color: #e0e0e0;
+  }
+  100% {
+    background-color: #f0f0f0;
+  }
+}
+
+.skeleton {
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+  border-radius: 4px;
+}
+
+.skeleton-text {
+  height: 16px;
+  width: 80%;
+  margin: 8px 0;
+}
+
+.skeleton-badge {
+  height: 24px;
+  width: 60px;
+  margin: 8px 0;
+}
+
+.skeleton-actions {
+  height: 32px;
+  width: 100px;
+  margin: 4px 0;
+}
+
+.skeleton-row td {
+  padding: 12px;
+}
+
+/* Empty State */
+.empty-cell {
+  text-align: center;
+  padding: 60px 20px !important;
+}
+
+.empty-state {
+  color: #6b7280;
+  font-size: 16px;
+}
+
 .two-section-container {
   display: flex;
   flex-direction: column;
