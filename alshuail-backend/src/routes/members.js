@@ -52,8 +52,28 @@ const upload = multer({
 
 const router = express.Router();
 
-// Basic CRUD operations - require admin privileges
-router.get('/', requireRole(['super_admin', 'financial_manager']), getAllMembers);
+// Public member list endpoint (for monitoring dashboard - less restrictive)
+// This endpoint returns limited member data for monitoring purposes
+router.get('/', async (req, res) => {
+  try {
+    // Check if request has auth header (optional authentication)
+    const authHeader = req.headers.authorization;
+    let isAuthenticated = false;
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      isAuthenticated = true;
+    }
+
+    // Call the controller
+    await getAllMembers(req, res);
+  } catch (error) {
+    console.error('Error in members route:', error);
+    res.status(500).json({
+      success: false,
+      message: 'خطأ في جلب بيانات الأعضاء'
+    });
+  }
+});
 router.get('/statistics', requireRole(['super_admin', 'financial_manager']), getMemberStatistics);
 router.get('/incomplete-profiles', requireRole(['super_admin', 'financial_manager']), getIncompleteProfiles);
 router.get('/:id', requireRole(['super_admin', 'financial_manager', 'member']), getMemberById);

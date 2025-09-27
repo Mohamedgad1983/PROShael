@@ -66,45 +66,76 @@ const MemberMonitoringDashboard = () => {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`${API_URL}/api/member-monitoring`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
+      // Prepare headers with optional authentication
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+
+      const token = localStorage.getItem('token');
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      // Try member-monitoring endpoint first, fallback to members endpoint for production
+      let response = await fetch(`${API_URL}/api/member-monitoring`, { headers });
+
+      // If member-monitoring fails, try regular members endpoint (for production compatibility)
+      if (!response.ok && response.status === 404) {
+        console.log('⚠️ Member monitoring endpoint not found, using members endpoint');
+        response = await fetch(`${API_URL}/api/members`, { headers });
+      }
 
       if (!response.ok) {
-        throw new Error('Failed to fetch members data');
+        const errorText = await response.text();
+        console.error('❌ API Error:', response.status, errorText);
+        throw new Error(`Failed to fetch members data: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
       console.log('✅ API Response:', data);
 
       // Handle the response structure from the backend
-      const membersData = data.data?.members || data.members || [];
+      const membersData = data.data || data.members || [];
 
       // Map the backend data to frontend format
       const formattedMembers = membersData.map(m => ({
         id: m.id,
-        memberId: m.memberId,
-        name: m.fullName || m.name,
-        phone: m.phone,
-        balance: m.balance || 0,
-        tribalSection: m.tribalSection,
-        status: m.balance >= 3000 ? 'sufficient' : 'insufficient',
-        isSuspended: m.status === 'suspended'
+        memberId: m.membership_number || m.memberId || 'N/A',
+        name: m.full_name || m.fullName || m.name || 'غير متوفر',
+        phone: m.phone || 'غير متوفر',
+        balance: parseFloat(m.total_balance || m.balance || 0),
+        tribalSection: m.tribal_section || m.tribalSection || 'غير محدد',
+        status: (parseFloat(m.total_balance || m.balance || 0)) >= 3000 ? 'sufficient' : 'insufficient',
+        isSuspended: m.membership_status === 'suspended' || m.status === 'suspended'
       }));
 
       console.log('✅ First 3 members with balances:', formattedMembers.slice(0, 3).map(m => ({ name: m.name, balance: m.balance })));
       console.log('📊 Total members loaded:', formattedMembers.length);
+
+      if (formattedMembers.length === 0) {
+        console.warn('⚠️ No members data received from API');
+        throw new Error('No members data available');
+      }
+
       setMembers(formattedMembers);
       setFilteredMembers(formattedMembers);
+      setError(null); // Clear any previous errors
     } catch (err) {
       console.error('❌ Error fetching members:', err);
-      console.log('⚠️ Falling back to mock data');
-      setError('حدث خطأ في تحميل بيانات الأعضاء');
-      // Use mock data for development
-      loadMockData();
+      console.error('❌ Error details:', {
+        message: err.message,
+        stack: err.stack,
+        apiUrl: API_URL
+      });
+
+      // Only show error without mock data in production
+      setError(`حدث خطأ في تحميل بيانات الأعضاء. ${err.message}`);
+
+      // Use mock data only in development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('⚠️ Falling back to mock data (development mode)');
+        loadMockData();
+      }
     } finally {
       setLoading(false);
     }
