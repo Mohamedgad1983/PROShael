@@ -121,6 +121,21 @@ class MemberService {
   }
 
   /**
+   * Add a new member
+   * @param {Object} memberData - New member data
+   * @returns {Promise} Created member
+   */
+  async addMember(memberData) {
+    return this.makeRequest('/api/members', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(memberData)
+    });
+  }
+
+  /**
    * Update member information
    * @param {string} memberId - Member ID
    * @param {Object} memberData - Updated member data

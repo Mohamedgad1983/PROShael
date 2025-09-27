@@ -387,13 +387,66 @@ const TwoSectionMembers = () => {
   const handleSaveEdit = async () => {
     try {
       setLoading(true);
-      await memberService.updateMember(editingMember.id, editingMember);
-      alert('تم تحديث بيانات العضو بنجاح');
-      setShowEditModal(false);
-      setEditingMember(null);
-      loadMembers(); // Reload the list
+
+      // Log the current state of editingMember to debug
+      console.log('🔍 Current editingMember state:', editingMember);
+
+      // Prepare the update data with all fields - using the exact values from editingMember
+      const updateData = {
+        full_name: editingMember.full_name,
+        phone: editingMember.phone,
+        email: editingMember.email,
+        national_id: editingMember.national_id,
+        tribal_section: editingMember.tribal_section,
+        date_of_birth: editingMember.date_of_birth,
+        gender: editingMember.gender,
+        nationality: editingMember.nationality || 'سعودي',
+        // Address fields
+        city: editingMember.city,
+        district: editingMember.district,
+        address: editingMember.address,
+        employer: editingMember.employer,
+        occupation: editingMember.occupation,
+        // Account fields
+        membership_number: editingMember.membership_number,
+        membership_status: editingMember.membership_status || 'active',
+        membership_date: editingMember.membership_date,
+        membership_type: editingMember.membership_type || 'regular',
+        notes: editingMember.notes
+      };
+
+      // Remove undefined values but keep empty strings
+      Object.keys(updateData).forEach(key => {
+        if (updateData[key] === undefined) {
+          updateData[key] = '';
+        }
+      });
+
+      console.log('📤 Sending data to backend:', JSON.stringify(updateData, null, 2));
+
+      const response = await memberService.updateMember(editingMember.id, updateData);
+
+      console.log('📥 Update response from backend:', response);
+
+      if (response.success) {
+        // Update the local state with the response data
+        const updatedMembers = members.map(member =>
+          member.id === editingMember.id ? { ...member, ...response.data } : member
+        );
+        setMembers(updatedMembers);
+
+        alert('تم تحديث بيانات العضو بنجاح');
+        setShowEditModal(false);
+        setEditingMember(null);
+        setActiveEditTab('personal'); // Reset to personal tab
+
+        // Reload to ensure data is synced
+        await loadMembers();
+      } else {
+        throw new Error(response.error || 'Failed to update member');
+      }
     } catch (error) {
-      console.error('Error updating member:', error);
+      console.error('❌ Error updating member:', error);
       alert('حدث خطأ في تحديث البيانات: ' + error.message);
     } finally {
       setLoading(false);

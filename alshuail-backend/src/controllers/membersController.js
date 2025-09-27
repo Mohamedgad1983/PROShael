@@ -105,6 +105,8 @@ export const createMember = async (req, res) => {
   try {
     const memberData = req.body;
 
+    console.log('📥 Create Member Request:', JSON.stringify(memberData, null, 2));
+
     const requiredFields = ['full_name', 'phone'];
     for (const field of requiredFields) {
       if (!memberData[field]) {
@@ -115,15 +117,44 @@ export const createMember = async (req, res) => {
       }
     }
 
-    memberData.membership_number = 'SH-' + Date.now().toString().slice(-8);
+    // Generate membership number if not provided
+    if (!memberData.membership_number) {
+      memberData.membership_number = 'SH-' + Date.now().toString().slice(-8);
+    }
+
+    // Ensure all fields are properly set
+    const memberToCreate = {
+      full_name: memberData.full_name,
+      phone: memberData.phone,
+      email: memberData.email || null,
+      national_id: memberData.national_id || null,
+      tribal_section: memberData.tribal_section || null,
+      city: memberData.city || null,
+      district: memberData.district || null,
+      address: memberData.address || null,
+      occupation: memberData.occupation || null,
+      employer: memberData.employer || null,
+      password: memberData.password || null,
+      membership_number: memberData.membership_number,
+      membership_status: memberData.membership_status || 'active',
+      profile_completed: memberData.profile_completed || false,
+      created_at: new Date().toISOString()
+    };
+
+    console.log('🔄 Member to create:', JSON.stringify(memberToCreate, null, 2));
 
     const { data: newMember, error } = await supabase
       .from('members')
-      .insert([memberData])
+      .insert([memberToCreate])
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Supabase create error:', error);
+      throw error;
+    }
+
+    console.log('✅ Member created successfully:', newMember);
 
     res.status(201).json({
       success: true,
@@ -131,6 +162,7 @@ export const createMember = async (req, res) => {
       message: 'تم إضافة العضو بنجاح'
     });
   } catch (error) {
+    console.error('❌ Create failed:', error);
     res.status(500).json({
       success: false,
       error: error.message || 'فشل في إضافة العضو'
@@ -143,14 +175,56 @@ export const updateMember = async (req, res) => {
     const { id } = req.params;
     const updateData = req.body;
 
+    // Log what data we're receiving
+    console.log('📥 Update Member Request - ID:', id);
+    console.log('📋 Data received from frontend:', JSON.stringify(updateData, null, 2));
+
+    // Ensure we have the fields that might be missing
+    // Handle both empty strings and nulls properly
+    const fieldsToUpdate = {
+      full_name: updateData.full_name !== undefined ? updateData.full_name : null,
+      phone: updateData.phone !== undefined ? updateData.phone : null,
+      email: updateData.email !== undefined ? updateData.email : null,
+      national_id: updateData.national_id !== undefined ? updateData.national_id : null,
+      tribal_section: updateData.tribal_section !== undefined ? updateData.tribal_section : null,
+      date_of_birth: updateData.date_of_birth !== undefined ? updateData.date_of_birth : null,
+      gender: updateData.gender !== undefined ? updateData.gender : null,
+      nationality: updateData.nationality !== undefined ? updateData.nationality : null,
+      city: updateData.city !== undefined ? updateData.city : null,
+      district: updateData.district !== undefined ? updateData.district : null,
+      address: updateData.address !== undefined ? updateData.address : null,
+      employer: updateData.employer !== undefined ? updateData.employer : null,
+      occupation: updateData.occupation !== undefined ? updateData.occupation : null,
+      membership_number: updateData.membership_number !== undefined ? updateData.membership_number : null,
+      membership_status: updateData.membership_status !== undefined ? updateData.membership_status : null,
+      membership_date: updateData.membership_date !== undefined ? updateData.membership_date : null,
+      membership_type: updateData.membership_type !== undefined ? updateData.membership_type : null,
+      notes: updateData.notes !== undefined ? updateData.notes : null,
+      updated_at: new Date().toISOString()
+    };
+
+    // Remove null values for optional fields to avoid overwriting existing data
+    Object.keys(fieldsToUpdate).forEach(key => {
+      if (fieldsToUpdate[key] === null && key !== 'updated_at') {
+        delete fieldsToUpdate[key];
+      }
+    });
+
+    console.log('🔄 Fields to update:', JSON.stringify(fieldsToUpdate, null, 2));
+
     const { data: updatedMember, error } = await supabase
       .from('members')
-      .update(updateData)
+      .update(fieldsToUpdate)
       .eq('id', id)
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Supabase update error:', error);
+      throw error;
+    }
+
+    console.log('✅ Member updated successfully:', updatedMember);
 
     res.json({
       success: true,
@@ -158,6 +232,7 @@ export const updateMember = async (req, res) => {
       message: 'تم تحديث بيانات العضو بنجاح'
     });
   } catch (error) {
+    console.error('❌ Update failed:', error);
     res.status(500).json({
       success: false,
       error: error.message || 'فشل في تحديث بيانات العضو'

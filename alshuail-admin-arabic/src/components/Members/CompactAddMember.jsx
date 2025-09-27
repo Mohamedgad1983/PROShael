@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './CompactAddMember.css';
+import memberService from '../../services/memberService';
 import {
   UserIcon,
   PhoneIcon,
@@ -143,44 +144,58 @@ const CompactAddMember = ({ onMemberAdded }) => {
     setLoading(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      // Mock successful response
-      const newMember = {
-        id: Date.now(),
-        ...formData,
-        status: 'active',
-        profile_completed: true,
-        created_at: new Date().toISOString()
+      // Prepare member data for API
+      const memberData = {
+        full_name: formData.full_name,
+        phone: formData.phone,
+        email: formData.email || '',
+        national_id: formData.national_id || '',
+        tribal_section: formData.tribal_section || '',
+        city: formData.city || '',
+        district: formData.district || '',
+        occupation: formData.occupation || '',
+        employer: formData.workplace || '', // Map workplace to employer field
+        password: formData.password,
+        membership_status: 'active',
+        profile_completed: false // Will be set to true once they complete profile
       };
 
-      setSuccess(true);
+      console.log('📤 Sending new member data:', memberData);
 
-      // Clear form after 2 seconds and call parent callback
-      setTimeout(() => {
-        setFormData({
-          full_name: '',
-          phone: '',
-          email: '',
-          national_id: '',
-          tribal_section: '',
-          city: '',
-          district: '',
-          occupation: '',
-          workplace: '',
-          password: '',
-          confirmPassword: ''
-        });
-        setSuccess(false);
-        if (onMemberAdded) {
-          onMemberAdded(newMember);
-        }
-      }, 2000);
+      // Call the actual API
+      const response = await memberService.addMember(memberData);
 
+      console.log('📥 Add member response:', response);
+
+      if (response.success) {
+        setSuccess(true);
+
+        // Clear form after 2 seconds and call parent callback
+        setTimeout(() => {
+          setFormData({
+            full_name: '',
+            phone: '',
+            email: '',
+            national_id: '',
+            tribal_section: '',
+            city: '',
+            district: '',
+            occupation: '',
+            workplace: '',
+            password: '',
+            confirmPassword: ''
+          });
+          setSuccess(false);
+          if (onMemberAdded) {
+            onMemberAdded(response.data);
+          }
+        }, 2000);
+      } else {
+        throw new Error(response.error || 'Failed to add member');
+      }
     } catch (error) {
-      console.error('Error adding member:', error);
-      setErrors({ submit: 'حدث خطأ في إضافة العضو' });
+      console.error('❌ Error adding member:', error);
+      setErrors({ submit: error.message || 'حدث خطأ في إضافة العضو' });
     } finally {
       setLoading(false);
     }
