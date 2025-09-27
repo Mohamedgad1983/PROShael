@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   MagnifyingGlassIcon,
   FunnelIcon,
@@ -13,11 +13,16 @@ import {
 import './MemberMonitoringDashboard.css';
 
 const MemberMonitoringDashboard = () => {
-  // State Management
+  // State Management with Performance Optimizations
   const [members, setMembers] = useState([]);
-  const [filteredMembers, setFilteredMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+
+  // Cache ref to store fetched data
+  const membersCache = useRef(null);
+  const lastFetchTime = useRef(null);
+  const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
 
   // Filter States
   const [searchMemberId, setSearchMemberId] = useState('');
@@ -36,7 +41,7 @@ const MemberMonitoringDashboard = () => {
 
   // Pagination States
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20); // Default to 20
+  const [pageSize, setPageSize] = useState(50); // Increased to 50 for better performance
 
   // Modal States
   const [showSuspendModal, setShowSuspendModal] = useState(false);
@@ -60,10 +65,25 @@ const MemberMonitoringDashboard = () => {
     { value: 'عقاب', label: 'عقاب' }
   ];
 
-  // Fetch Members Data
-  const fetchMembers = async () => {
+  // Fetch Members Data with Caching
+  const fetchMembers = async (forceRefresh = false) => {
     try {
-      setLoading(true);
+      // Check cache first
+      if (!forceRefresh && membersCache.current && lastFetchTime.current) {
+        const timeSinceLastFetch = Date.now() - lastFetchTime.current;
+        if (timeSinceLastFetch < CACHE_DURATION) {
+          console.log('✅ Using cached data');
+          setMembers(membersCache.current);
+          setInitialLoadComplete(true);
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Only show loading on initial load or force refresh
+      if (!initialLoadComplete || forceRefresh) {
+        setLoading(true);
+      }
       setError(null);
 
       // Prepare headers with optional authentication
@@ -128,8 +148,12 @@ const MemberMonitoringDashboard = () => {
         throw new Error('No members data available');
       }
 
+      // Cache the data
+      membersCache.current = formattedMembers;
+      lastFetchTime.current = Date.now();
+
       setMembers(formattedMembers);
-      setFilteredMembers(formattedMembers);
+      setInitialLoadComplete(true);
       setError(null); // Clear any previous errors
     } catch (err) {
       console.error('❌ Error fetching members:', err);
@@ -155,8 +179,11 @@ const MemberMonitoringDashboard = () => {
   // Load Mock Data for Development
   const loadMockData = () => {
     const mockMembers = generateMockMembers();
+    // Cache mock data as well
+    membersCache.current = mockMembers;
+    lastFetchTime.current = Date.now();
     setMembers(mockMembers);
-    setFilteredMembers(mockMembers);
+    setInitialLoadComplete(true);
   };
 
   // Generate Mock Members
@@ -183,97 +210,99 @@ const MemberMonitoringDashboard = () => {
     return mockData;
   };
 
-  // Apply Filters with Debouncing
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      let filtered = [...members];
+  // Optimized filtering with useMemo - no debouncing needed
+  const filteredMembers = useMemo(() => {
+    if (!members || members.length === 0) return [];
 
-      // Filter by Member ID
-      if (searchMemberId) {
-        filtered = filtered.filter(m =>
-          m.memberId.toLowerCase().includes(searchMemberId.toLowerCase())
-        );
-      }
+    let filtered = [...members];
 
-      // Filter by Name
-      if (searchName) {
-        filtered = filtered.filter(m =>
-          m.name.includes(searchName)
-        );
-      }
+    // Filter by Member ID
+    if (searchMemberId) {
+      filtered = filtered.filter(m =>
+        m.memberId && m.memberId.toLowerCase().includes(searchMemberId.toLowerCase())
+      );
+    }
 
-      // Filter by Phone
-      if (searchPhone) {
-        filtered = filtered.filter(m =>
-          m.phone.includes(searchPhone)
-        );
-      }
+    // Filter by Name
+    if (searchName) {
+      filtered = filtered.filter(m =>
+        m.name && m.name.includes(searchName)
+      );
+    }
 
-      // Filter by Tribal Section
-      if (selectedTribalSection !== 'all') {
-        filtered = filtered.filter(m =>
-          m.tribalSection === selectedTribalSection
-        );
-      }
+    // Filter by Phone
+    if (searchPhone) {
+      filtered = filtered.filter(m =>
+        m.phone && m.phone.includes(searchPhone)
+      );
+    }
 
-      // Apply Balance Filters
-      if (balanceFilterType === 'comparison' && balanceComparisonAmount) {
-        const amount = parseFloat(balanceComparisonAmount);
-        if (!isNaN(amount)) {
-          filtered = filtered.filter(m => {
-            switch (balanceComparison) {
-              case 'greater':
-                return m.balance > amount;
-              case 'less':
-                return m.balance < amount;
-              case 'equal':
-                return m.balance === amount;
-              default:
-                return true;
-            }
-          });
-        }
-      } else if (balanceFilterType === 'range' && (balanceRangeFrom || balanceRangeTo)) {
-        const from = balanceRangeFrom ? parseFloat(balanceRangeFrom) : 0;
-        const to = balanceRangeTo ? parseFloat(balanceRangeTo) : Infinity;
-        filtered = filtered.filter(m => m.balance >= from && m.balance <= to);
-      } else if (balanceFilterType === 'category' && balanceCategory !== 'all') {
+    // Filter by Tribal Section
+    if (selectedTribalSection !== 'all') {
+      filtered = filtered.filter(m =>
+        m.tribalSection === selectedTribalSection
+      );
+    }
+
+    // Apply Balance Filters
+    if (balanceFilterType === 'comparison' && balanceComparisonAmount) {
+      const amount = parseFloat(balanceComparisonAmount);
+      if (!isNaN(amount)) {
         filtered = filtered.filter(m => {
-          switch (balanceCategory) {
-            case 'compliant':
-              return m.balance >= 3000;
-            case 'non-compliant':
-              return m.balance < 3000;
-            case 'critical':
-              return m.balance < 1000;
-            case 'excellent':
-              return m.balance >= 5000;
-            case '0-500':
-              return m.balance >= 0 && m.balance <= 500;
-            case '500-1000':
-              return m.balance > 500 && m.balance <= 1000;
-            case '1000-2000':
-              return m.balance > 1000 && m.balance <= 2000;
-            case '2000-3000':
-              return m.balance > 2000 && m.balance < 3000;
-            case '3000-5000':
-              return m.balance >= 3000 && m.balance < 5000;
-            case '5000+':
-              return m.balance >= 5000;
+          switch (balanceComparison) {
+            case 'greater':
+              return m.balance > amount;
+            case 'less':
+              return m.balance < amount;
+            case 'equal':
+              return m.balance === amount;
             default:
               return true;
           }
         });
       }
+    } else if (balanceFilterType === 'range' && (balanceRangeFrom || balanceRangeTo)) {
+      const from = balanceRangeFrom ? parseFloat(balanceRangeFrom) : -Infinity;
+      const to = balanceRangeTo ? parseFloat(balanceRangeTo) : Infinity;
+      filtered = filtered.filter(m => m.balance >= from && m.balance <= to);
+    } else if (balanceFilterType === 'category' && balanceCategory !== 'all') {
+      filtered = filtered.filter(m => {
+        switch (balanceCategory) {
+          case 'compliant':
+            return m.balance >= 3000;
+          case 'non-compliant':
+            return m.balance < 3000;
+          case 'critical':
+            return m.balance < 1000;
+          case 'excellent':
+            return m.balance >= 5000;
+          case '0-500':
+            return m.balance >= 0 && m.balance <= 500;
+          case '500-1000':
+            return m.balance > 500 && m.balance <= 1000;
+          case '1000-2000':
+            return m.balance > 1000 && m.balance <= 2000;
+          case '2000-3000':
+            return m.balance > 2000 && m.balance < 3000;
+          case '3000-5000':
+            return m.balance >= 3000 && m.balance < 5000;
+          case '5000+':
+            return m.balance >= 5000;
+          default:
+            return true;
+        }
+      });
+    }
 
-      setFilteredMembers(filtered);
-      setCurrentPage(1); // Reset to first page on filter change
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [searchMemberId, searchName, searchPhone, selectedTribalSection, members,
+    return filtered;
+  }, [members, searchMemberId, searchName, searchPhone, selectedTribalSection,
       balanceFilterType, balanceComparison, balanceComparisonAmount,
       balanceRangeFrom, balanceRangeTo, balanceCategory]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filteredMembers]);
 
   // Pagination Logic
   const totalPages = Math.ceil(filteredMembers.length / pageSize) || 1;
@@ -897,8 +926,20 @@ const MemberMonitoringDashboard = () => {
 
       {/* Table */}
       <div className="table-container">
-        {loading ? (
-          <div className="loading-state">جاري التحميل...</div>
+        {loading && !initialLoadComplete ? (
+          <div className="loading-skeleton">
+            {/* Skeleton loader for better UX */}
+            {[...Array(10)].map((_, index) => (
+              <div key={index} className="skeleton-row">
+                <div className="skeleton skeleton-cell" style={{ width: '12%' }}></div>
+                <div className="skeleton skeleton-cell" style={{ width: '25%' }}></div>
+                <div className="skeleton skeleton-cell" style={{ width: '15%' }}></div>
+                <div className="skeleton skeleton-cell" style={{ width: '15%' }}></div>
+                <div className="skeleton skeleton-cell" style={{ width: '15%' }}></div>
+                <div className="skeleton skeleton-cell" style={{ width: '18%' }}></div>
+              </div>
+            ))}
+          </div>
         ) : error ? (
           <div className="error-state">{error}</div>
         ) : (

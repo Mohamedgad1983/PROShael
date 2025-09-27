@@ -1,4 +1,42 @@
 /* Member Monitoring Dashboard - Light Modern Theme */
+
+/* Skeleton Loader Animation */
+@keyframes skeleton-loading {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.loading-skeleton {
+  padding: 20px;
+}
+
+.skeleton-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 15px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #f0f0f0 25%,
+    #e0e0e0 50%,
+    #f0f0f0 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+  border-radius: 4px;
+}
+
+.skeleton-cell {
+  height: 20px;
+}
 .member-monitoring-dashboard {
   padding: 24px;
   background-color: #F8F9FA;
