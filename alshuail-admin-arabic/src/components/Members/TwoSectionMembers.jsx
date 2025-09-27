@@ -722,10 +722,9 @@ const TwoSectionMembers = () => {
         </div>
       </div>
 
-      {/* Edit Member Modal */}
+      {/* Edit Member Modal - Full Page */}
       {showEditModal && editingMember && (
-        <div className="modal-overlay" onClick={handleCloseEditModal}>
-          <div className="modal-content edit-member-modal" onClick={(e) => e.stopPropagation()} dir="rtl">
+        <div className="edit-member-fullpage" dir="rtl">
             <div className="modal-header">
               <h2>تعديل بيانات العضو</h2>
               <button className="close-btn" onClick={handleCloseEditModal}>
@@ -980,15 +979,40 @@ const TwoSectionMembers = () => {
                             const file = e.target.files[0];
                             if (file) {
                               // You can handle file upload here
-                              console.log('File selected:', file);
+                              console.log('Member photo selected:', file);
+                              handleEditChange('photo_file', file);
                             }
                           }}
                           className="file-input"
                           id="member-photo"
                         />
                         <label htmlFor="member-photo" className="file-upload-label">
-                          <span>اضغط لرفع صورة العضو</span>
+                          <span>📸 اضغط لرفع صورة العضو</span>
                           <span className="file-info">PNG, JPG حد أقصى 10MB</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label>صورة الهوية الوطنية</label>
+                      <div className="file-upload-area">
+                        <input
+                          type="file"
+                          accept="image/*,application/pdf"
+                          onChange={(e) => {
+                            // Handle file upload
+                            const file = e.target.files[0];
+                            if (file) {
+                              console.log('National ID selected:', file);
+                              handleEditChange('national_id_file', file);
+                            }
+                          }}
+                          className="file-input"
+                          id="national-id"
+                        />
+                        <label htmlFor="national-id" className="file-upload-label">
+                          <span>🆔 اضغط لرفع صورة الهوية الوطنية</span>
+                          <span className="file-info">PNG, JPG, PDF حد أقصى 10MB</span>
                         </label>
                       </div>
                     </div>
@@ -1005,7 +1029,6 @@ const TwoSectionMembers = () => {
                 <span>💾</span> حفظ التغييرات
               </button>
             </div>
-          </div>
         </div>
       )}
 
