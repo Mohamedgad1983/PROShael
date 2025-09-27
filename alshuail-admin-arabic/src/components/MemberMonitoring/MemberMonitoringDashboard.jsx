@@ -81,51 +81,20 @@ const MemberMonitoringDashboard = () => {
 
       // If member-monitoring fails, try regular members endpoint (for production compatibility)
       if (!response.ok && response.status === 404) {
-        console.log('⚠️ Member monitoring endpoint not found, fetching all members with pagination');
+        console.log('⚠️ Member monitoring endpoint not found, fetching all members in single request');
 
-        // Fetch all members by making multiple requests if needed
-        let allMembers = [];
-        let page = 1;
-        let hasMore = true;
+        // Fetch all members in a single request with high limit
+        // Backend max is 100 per the code, but it seems to return more when asked
+        response = await fetch(`${API_URL}/api/members?limit=500&page=1`, { headers });
 
-        while (hasMore) {
-          const pageResponse = await fetch(`${API_URL}/api/members?limit=100&page=${page}`, { headers });
-
-          if (!pageResponse.ok) {
-            if (page === 1) {
-              // If first page fails, throw error
-              const errorText = await pageResponse.text();
-              console.error('❌ API Error:', pageResponse.status, errorText);
-              throw new Error(`Failed to fetch members data: ${pageResponse.status} ${pageResponse.statusText}`);
-            } else {
-              // If subsequent pages fail, just break the loop
-              break;
-            }
-          }
-
-          const pageData = await pageResponse.json();
-          const pageMembers = pageData.data || pageData.members || [];
-
-          if (pageMembers.length === 0) {
-            hasMore = false;
-          } else {
-            allMembers = [...allMembers, ...pageMembers];
-            page++;
-
-            // Safety check: stop after 10 pages to avoid infinite loops
-            if (page > 10) {
-              hasMore = false;
-            }
-          }
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('❌ API Error:', response.status, errorText);
+          throw new Error(`Failed to fetch members data: ${response.status} ${response.statusText}`);
         }
 
-        console.log(`✅ Fetched ${allMembers.length} members across ${page - 1} pages`);
-
-        // Create a response-like object with all members
-        response = {
-          ok: true,
-          json: async () => ({ success: true, data: allMembers })
-        };
+        const data = await response.json();
+        console.log(`✅ Fetched ${(data.data || data.members || []).length} members in single request`);
       }
 
       if (!response.ok) {
