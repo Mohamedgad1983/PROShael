@@ -616,7 +616,7 @@ const MemberMonitoringDashboard = () => {
             <ExclamationTriangleIcon className="icon" />
           </div>
           <div className="stat-content">
-            <h3>غير ملتزمين (<3000 ريال)</h3>
+            <h3>غير ملتزمين (&lt;3000 ريال)</h3>
             <p className="stat-value">
               {filteredMembers.filter(m => m.balance < 3000).length}
             </p>
@@ -631,7 +631,7 @@ const MemberMonitoringDashboard = () => {
             <ExclamationTriangleIcon className="icon" />
           </div>
           <div className="stat-content">
-            <h3>وضع حرج (<1000 ريال)</h3>
+            <h3>وضع حرج (&lt;1000 ريال)</h3>
             <p className="stat-value">
               {filteredMembers.filter(m => m.balance < 1000).length}
             </p>
