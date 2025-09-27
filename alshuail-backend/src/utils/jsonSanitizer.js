@@ -1,22 +1,20 @@
 // Utility to sanitize JSON data and prevent parsing errors
 export const sanitizeJSON = (data) => {
+  // If data is already an object (parsed by Express), return it as-is
+  if (typeof data === 'object' && data !== null) {
+    return data;
+  }
+
+  // Only parse if it's actually a string
   if (typeof data === 'string') {
     try {
-      // Remove problematic characters
-      const cleaned = data
-        .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Remove control characters
-        .replace(/\\/g, '\\\\') // Escape backslashes
-        .replace(/"/g, '\\"') // Escape quotes
-        .replace(/\n/g, '\\n') // Escape newlines
-        .replace(/\r/g, '\\r') // Escape carriage returns
-        .replace(/\t/g, '\\t'); // Escape tabs
-
-      return JSON.parse(cleaned);
+      return JSON.parse(data);
     } catch (error) {
-      console.error('Failed to parse JSON after sanitization:', error);
+      console.error('Failed to parse JSON string:', error);
       return {};
     }
   }
+
   return data;
 };
 
@@ -34,14 +32,17 @@ export const prepareUpdateData = (data) => {
 
   validFields.forEach(field => {
     if (field in data) {
-      // Convert undefined or null to empty string for database
-      if (data[field] === undefined || data[field] === null) {
-        result[field] = '';
-      } else if (typeof data[field] === 'string') {
-        // Clean string values
-        result[field] = data[field].trim();
+      const value = data[field];
+
+      // Handle null or undefined - convert to null for database (not empty string)
+      if (value === undefined || value === null || value === '') {
+        result[field] = null;
+      } else if (typeof value === 'string') {
+        // Trim whitespace but preserve the actual content
+        const trimmed = value.trim();
+        result[field] = trimmed === '' ? null : trimmed;
       } else {
-        result[field] = data[field];
+        result[field] = value;
       }
     }
   });

@@ -963,6 +963,10 @@ select.form-input {
   background-position: left 10px center;
   background-size: 20px;
   padding-left: 35px;
+  /* Prevent text truncation - show full text */
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
 }
 
 /* Option styling */

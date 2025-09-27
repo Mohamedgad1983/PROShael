@@ -180,23 +180,23 @@ export const updateMember = async (req, res) => {
     console.log('📋 Request body type:', typeof req.body);
     console.log('📋 Raw request body:', JSON.stringify(req.body, null, 2));
 
-    // Use the sanitizer to handle the request body
-    let updateData = sanitizeJSON(req.body);
+    // Express JSON middleware already parses the body - use it directly
+    const updateData = req.body || {};
 
-    // If sanitization failed, try direct parsing
-    if (!updateData || Object.keys(updateData).length === 0) {
-      updateData = req.body || {};
-    }
-
-    console.log('✅ Parsed update data:', JSON.stringify(updateData, null, 2));
+    console.log('✅ Update data received:', JSON.stringify(updateData, null, 2));
 
     // Use our utility to prepare the update data
     const fieldsToUpdate = prepareUpdateData(updateData);
 
-    // Ensure critical fields are not lost
-    if (updateData.id) fieldsToUpdate.id = updateData.id;
-
     console.log('🔄 Prepared fields to update:', JSON.stringify(fieldsToUpdate, null, 2));
+
+    // Validate that we have at least one field to update
+    if (Object.keys(fieldsToUpdate).length <= 1) { // Only updated_at
+      return res.status(400).json({
+        success: false,
+        error: 'لا توجد بيانات للتحديث'
+      });
+    }
 
     // Try to update with error handling
     const { data: updatedMember, error } = await supabase
@@ -208,30 +208,22 @@ export const updateMember = async (req, res) => {
 
     if (error) {
       console.error('❌ Supabase update error:', error);
-      throw error;
+      throw new Error(`Database error: ${error.message}`);
+    }
+
+    if (!updatedMember) {
+      return res.status(404).json({
+        success: false,
+        error: 'العضو غير موجود'
+      });
     }
 
     console.log('✅ Member updated successfully');
     console.log('✅ Updated data:', JSON.stringify(updatedMember, null, 2));
 
-    // Ensure we return all fields including the ones that might be null
-    const responseData = {
-      ...updatedMember,
-      // Explicitly include these fields even if null
-      gender: updatedMember.gender || '',
-      tribal_section: updatedMember.tribal_section || '',
-      national_id: updatedMember.national_id || '',
-      date_of_birth: updatedMember.date_of_birth || '',
-      city: updatedMember.city || '',
-      district: updatedMember.district || '',
-      address: updatedMember.address || '',
-      occupation: updatedMember.occupation || '',
-      employer: updatedMember.employer || ''
-    };
-
     res.json({
       success: true,
-      data: responseData,
+      data: updatedMember,
       message: 'تم تحديث بيانات العضو بنجاح'
     });
   } catch (error) {

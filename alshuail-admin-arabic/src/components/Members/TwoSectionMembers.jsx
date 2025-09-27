@@ -367,21 +367,24 @@ const TwoSectionMembers = () => {
   };
 
   const handleEditClick = (member) => {
-    // Ensure all fields are properly populated
+    // Ensure all fields are properly populated with empty strings for form inputs
     const memberToEdit = {
       ...member,
-      // Ensure these fields are strings or empty strings, not null
-      gender: member.gender || '',
-      tribal_section: member.tribal_section || '',
-      national_id: member.national_id || '',
-      date_of_birth: member.date_of_birth || '',
-      city: member.city || '',
-      district: member.district || '',
-      address: member.address || '',
-      occupation: member.occupation || '',
-      employer: member.employer || '',
-      nationality: member.nationality || 'سعودي',
-      notes: member.notes || ''
+      // Convert null to empty string for form compatibility
+      gender: member.gender ?? '',
+      tribal_section: member.tribal_section ?? '',
+      national_id: member.national_id ?? '',
+      date_of_birth: member.date_of_birth ?? '',
+      city: member.city ?? '',
+      district: member.district ?? '',
+      address: member.address ?? '',
+      occupation: member.occupation ?? '',
+      employer: member.employer ?? '',
+      nationality: member.nationality ?? 'سعودي',
+      notes: member.notes ?? '',
+      email: member.email ?? '',
+      phone: member.phone ?? '',
+      full_name: member.full_name ?? ''
     };
     console.log('🖊️ Opening edit modal with member:', memberToEdit);
     setEditingMember(memberToEdit);
