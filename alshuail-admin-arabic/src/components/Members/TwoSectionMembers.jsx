@@ -307,8 +307,22 @@ const TwoSectionMembers = () => {
     setPagination(prev => ({ ...prev, page: newPage }));
     // Clear current members to show loading state
     setMembers([]);
+    // Clear cache when page changes to ensure fresh data
+    membersCache.current.clear();
     // Trigger load with pagination flag
     loadMembers(true);
+  };
+
+  const handlePageSizeChange = (newSize) => {
+    setPagination(prev => ({
+      ...prev,
+      limit: parseInt(newSize),
+      page: 1 // Reset to first page when changing page size
+    }));
+    // Clear cache when page size changes
+    membersCache.current.clear();
+    // Reload data with new page size
+    loadMembers();
   };
 
   const handleMemberAdded = (newMember) => {
@@ -476,9 +490,34 @@ const TwoSectionMembers = () => {
       {/* BOTTOM SECTION - Members Table */}
       <div className="bottom-data-section">
         <div className="data-section-inner">
-          {/* Results Count */}
-          <div className="results-info">
+          {/* Results Count and Page Size Selector */}
+          <div className="results-info" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <span>عرض {members.length} من {pagination.total} عضو</span>
+
+            {/* Page Size Selector */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <label htmlFor="pageSize" style={{ fontSize: '14px' }}>عرض:</label>
+              <select
+                id="pageSize"
+                value={pagination.limit}
+                onChange={(e) => handlePageSizeChange(e.target.value)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid #ddd',
+                  backgroundColor: 'white',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  minWidth: '80px'
+                }}
+              >
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+              <span style={{ fontSize: '14px' }}>في الصفحة</span>
+            </div>
           </div>
 
           {/* Members Table */}
@@ -590,34 +629,56 @@ const TwoSectionMembers = () => {
 
           {/* Pagination */}
           {pagination.totalPages > 1 && (
-            <div className="pagination-container">
-              <button
-                className="pagination-btn"
-                onClick={() => handlePageChange(pagination.page - 1)}
-                disabled={pagination.page === 1}
-              >
-                <ChevronRightIcon />
-              </button>
+            <div className="pagination-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <button
+                  className="pagination-btn"
+                  onClick={() => handlePageChange(pagination.page - 1)}
+                  disabled={pagination.page === 1}
+                >
+                  <ChevronRightIcon />
+                </button>
 
-              <div className="page-numbers">
-                {[...Array(pagination.totalPages)].map((_, index) => (
-                  <button
-                    key={index + 1}
-                    className={`page-number ${pagination.page === index + 1 ? 'active' : ''}`}
-                    onClick={() => handlePageChange(index + 1)}
-                  >
-                    {index + 1}
-                  </button>
-                ))}
+                <div className="page-numbers">
+                  {/* Show max 5 page numbers at a time */}
+                  {(() => {
+                    const maxPages = 5;
+                    let startPage = Math.max(1, pagination.page - Math.floor(maxPages / 2));
+                    let endPage = Math.min(pagination.totalPages, startPage + maxPages - 1);
+
+                    if (endPage - startPage + 1 < maxPages) {
+                      startPage = Math.max(1, endPage - maxPages + 1);
+                    }
+
+                    const pages = [];
+                    for (let i = startPage; i <= endPage; i++) {
+                      pages.push(
+                        <button
+                          key={i}
+                          className={`page-number ${pagination.page === i ? 'active' : ''}`}
+                          onClick={() => handlePageChange(i)}
+                        >
+                          {i}
+                        </button>
+                      );
+                    }
+                    return pages;
+                  })()}
+                </div>
+
+                <button
+                  className="pagination-btn"
+                  onClick={() => handlePageChange(pagination.page + 1)}
+                  disabled={pagination.page === pagination.totalPages}
+                >
+                  <ChevronLeftIcon />
+                </button>
               </div>
 
-              <button
-                className="pagination-btn"
-                onClick={() => handlePageChange(pagination.page + 1)}
-                disabled={pagination.page === pagination.totalPages}
-              >
-                <ChevronLeftIcon />
-              </button>
+              {/* Page info */}
+              <div style={{ fontSize: '14px', color: '#666' }}>
+                الصفحة {pagination.page} من {pagination.totalPages}
+              </div>
             </div>
           )}
         </div>
