@@ -57,7 +57,8 @@
       "Bash(npm run:*)",
       "mcp__filesystem__edit_file",
       "Bash(set PORT=5001)",
-      "Bash(set PORT=3002)"
+      "Bash(set PORT=3002)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []
