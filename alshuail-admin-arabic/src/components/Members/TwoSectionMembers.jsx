@@ -378,10 +378,15 @@ const TwoSectionMembers = () => {
   };
 
   const handleEditChange = (field, value) => {
-    setEditingMember(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    console.log(`📝 Field changed: ${field} = ${value}`);
+    setEditingMember(prev => {
+      const updated = {
+        ...prev,
+        [field]: value
+      };
+      console.log('Updated member state:', updated);
+      return updated;
+    });
   };
 
   const handleSaveEdit = async () => {
@@ -419,12 +424,17 @@ const TwoSectionMembers = () => {
       Object.keys(updateData).forEach(key => {
         if (updateData[key] === undefined) {
           updateData[key] = '';
+        } else if (updateData[key] === null) {
+          updateData[key] = '';
         }
       });
 
-      console.log('📤 Sending data to backend:', JSON.stringify(updateData, null, 2));
+      // Clean data to prevent JSON parsing errors
+      const cleanedData = JSON.parse(JSON.stringify(updateData));
 
-      const response = await memberService.updateMember(editingMember.id, updateData);
+      console.log('📤 Sending data to backend:', JSON.stringify(cleanedData, null, 2));
+
+      const response = await memberService.updateMember(editingMember.id, cleanedData);
 
       console.log('📥 Update response from backend:', response);
 
@@ -896,11 +906,6 @@ const TwoSectionMembers = () => {
                         onChange={(e) => handleEditChange('tribal_section', e.target.value)}
                         className="form-input"
                         dir="rtl"
-                        style={{
-                          textOverflow: 'initial',
-                          whiteSpace: 'normal',
-                          overflow: 'visible'
-                        }}
                       >
                         <option value="">اختر الفخذ</option>
                         <option value="الدغيش">الدغيش</option>
@@ -912,11 +917,9 @@ const TwoSectionMembers = () => {
                         <option value="رشيد">رشيد</option>
                         <option value="عقاب">عقاب</option>
                       </select>
-                      {editingMember.tribal_section && (
-                        <small className="field-hint">
-                          الاختيار الحالي: {editingMember.tribal_section}
-                        </small>
-                      )}
+                      <div style={{marginTop: '5px', fontSize: '14px', color: '#666'}}>
+                        القيمة المحددة: {editingMember.tribal_section || 'لم يتم الاختيار'}
+                      </div>
                     </div>
 
                     <div className="form-group">
@@ -936,21 +939,14 @@ const TwoSectionMembers = () => {
                         onChange={(e) => handleEditChange('gender', e.target.value)}
                         className="form-input"
                         dir="rtl"
-                        style={{
-                          textOverflow: 'initial',
-                          whiteSpace: 'normal',
-                          overflow: 'visible'
-                        }}
                       >
                         <option value="">اختر الجنس</option>
                         <option value="male">ذكر</option>
                         <option value="female">أنثى</option>
                       </select>
-                      {editingMember.gender && (
-                        <small className="field-hint">
-                          الاختيار الحالي: {editingMember.gender === 'male' ? 'ذكر' : editingMember.gender === 'female' ? 'أنثى' : ''}
-                        </small>
-                      )}
+                      <div style={{marginTop: '5px', fontSize: '14px', color: '#666'}}>
+                        القيمة المحددة: {editingMember.gender === 'male' ? 'ذكر' : editingMember.gender === 'female' ? 'أنثى' : 'لم يتم الاختيار'}
+                      </div>
                     </div>
 
                     <div className="form-group">

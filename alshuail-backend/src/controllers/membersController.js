@@ -203,9 +203,10 @@ export const updateMember = async (req, res) => {
       updated_at: new Date().toISOString()
     };
 
-    // Remove null values for optional fields to avoid overwriting existing data
+    // Keep empty strings for fields to properly clear them if needed
+    // Only remove truly null/undefined values
     Object.keys(fieldsToUpdate).forEach(key => {
-      if (fieldsToUpdate[key] === null && key !== 'updated_at') {
+      if (fieldsToUpdate[key] === null && updateData[key] === undefined && key !== 'updated_at') {
         delete fieldsToUpdate[key];
       }
     });
