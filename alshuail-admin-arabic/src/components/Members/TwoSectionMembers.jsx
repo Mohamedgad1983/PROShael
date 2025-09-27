@@ -62,11 +62,14 @@ const TwoSectionMembers = () => {
     return role || 'viewer';
   };
 
-  // Check if user can edit (super_admin or admin for now)
+  // Check if user can edit - TEMPORARILY ALLOW ALL USERS FOR TESTING
   const canEdit = () => {
-    const role = getUserRole();
-    // Allow both super_admin and admin to edit for testing
-    return role === 'super_admin' || role === 'admin';
+    // TEMPORARY: Allow all users to see the buttons for testing
+    return true;
+
+    // Original code - uncomment after testing:
+    // const role = getUserRole();
+    // return role === 'super_admin' || role === 'admin';
   };
 
   // Load members when component mounts or filters change (NOT search or pagination)
