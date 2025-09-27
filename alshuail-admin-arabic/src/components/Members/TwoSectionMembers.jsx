@@ -44,14 +44,29 @@ const TwoSectionMembers = () => {
 
   // Get current user role
   const getUserRole = () => {
-    const role = localStorage.getItem('userRole') || 'admin';
-    return role;
+    // First try to get from localStorage
+    let role = localStorage.getItem('userRole');
+
+    // Also check if user data is stored
+    const userData = localStorage.getItem('user');
+    if (!role && userData) {
+      try {
+        const user = JSON.parse(userData);
+        role = user.role;
+      } catch (e) {
+        console.error('Error parsing user data:', e);
+      }
+    }
+
+    console.log('Current user role:', role);
+    return role || 'viewer';
   };
 
-  // Check if user can edit (only super_admin)
+  // Check if user can edit (super_admin or admin for now)
   const canEdit = () => {
     const role = getUserRole();
-    return role === 'super_admin';
+    // Allow both super_admin and admin to edit for testing
+    return role === 'super_admin' || role === 'admin';
   };
 
   // Load members when component mounts or filters change (NOT search or pagination)
@@ -617,7 +632,7 @@ const TwoSectionMembers = () => {
                         <button className="action-btn view" title="عرض">
                           <EyeIcon />
                         </button>
-                        {canEdit() && (
+                        {canEdit() ? (
                           <>
                             <button
                               className="action-btn edit"
@@ -634,10 +649,9 @@ const TwoSectionMembers = () => {
                               <TrashIcon />
                             </button>
                           </>
-                        )}
-                        {!canEdit() && (
-                          <span className="no-permission-text" title="صلاحية مطلوبة">
-                            (عرض فقط)
+                        ) : (
+                          <span className="no-permission-text" title={`الدور الحالي: ${getUserRole()}`}>
+                            (عرض فقط - {getUserRole()})
                           </span>
                         )}
                       </td>
