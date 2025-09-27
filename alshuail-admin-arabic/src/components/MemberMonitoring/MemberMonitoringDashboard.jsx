@@ -36,7 +36,7 @@ const MemberMonitoringDashboard = () => {
 
   // Pagination States
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(15);
+  const [pageSize, setPageSize] = useState(20); // Default to 20
 
   // Modal States
   const [showSuspendModal, setShowSuspendModal] = useState(false);
@@ -96,6 +96,7 @@ const MemberMonitoringDashboard = () => {
       }));
 
       console.log('✅ First 3 members with balances:', formattedMembers.slice(0, 3).map(m => ({ name: m.name, balance: m.balance })));
+      console.log('📊 Total members loaded:', formattedMembers.length);
       setMembers(formattedMembers);
       setFilteredMembers(formattedMembers);
     } catch (err) {
@@ -233,10 +234,18 @@ const MemberMonitoringDashboard = () => {
       balanceRangeFrom, balanceRangeTo, balanceCategory]);
 
   // Pagination Logic
-  const totalPages = Math.ceil(filteredMembers.length / pageSize);
-  const startIndex = (currentPage - 1) * pageSize;
+  const totalPages = Math.ceil(filteredMembers.length / pageSize) || 1;
+  const validCurrentPage = Math.min(currentPage, totalPages);
+  const startIndex = (validCurrentPage - 1) * pageSize;
   const endIndex = startIndex + pageSize;
   const paginatedMembers = filteredMembers.slice(startIndex, endIndex);
+
+  // Ensure current page is valid when page size changes
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(1);
+    }
+  }, [totalPages, currentPage]);
 
   // Handle Suspend Action
   const handleSuspend = async (member) => {
@@ -938,7 +947,9 @@ const MemberMonitoringDashboard = () => {
                 <select
                   value={pageSize}
                   onChange={(e) => {
-                    setPageSize(Number(e.target.value));
+                    const newSize = Number(e.target.value);
+                    console.log('📄 Changing page size to:', newSize);
+                    setPageSize(newSize);
                     setCurrentPage(1);
                   }}
                   className="page-size-select"
@@ -955,8 +966,11 @@ const MemberMonitoringDashboard = () => {
               <div className="pagination-controls">
                 <button
                   className="page-btn"
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                  disabled={currentPage === 1}
+                  onClick={() => {
+                    console.log('⬅️ Previous page clicked, current:', currentPage);
+                    setCurrentPage(prev => Math.max(1, prev - 1));
+                  }}
+                  disabled={currentPage === 1 || totalPages === 0}
                 >
                   <ChevronRightIcon className="page-icon" />
                   السابق
@@ -989,8 +1003,11 @@ const MemberMonitoringDashboard = () => {
 
                 <button
                   className="page-btn"
-                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                  disabled={currentPage === totalPages}
+                  onClick={() => {
+                    console.log('➡️ Next page clicked, current:', currentPage, 'total:', totalPages);
+                    setCurrentPage(prev => Math.min(totalPages, prev + 1));
+                  }}
+                  disabled={currentPage >= totalPages || totalPages === 0}
                 >
                   التالي
                   <ChevronLeftIcon className="page-icon" />
