@@ -78,6 +78,7 @@ const MemberMonitoringDashboard = () => {
 
       // Try member-monitoring endpoint first, fallback to members endpoint for production
       let response = await fetch(`${API_URL}/api/member-monitoring`, { headers });
+      let data;
 
       // If member-monitoring fails, try regular members endpoint (for production compatibility)
       if (!response.ok && response.status === 404) {
@@ -93,18 +94,16 @@ const MemberMonitoringDashboard = () => {
           throw new Error(`Failed to fetch members data: ${response.status} ${response.statusText}`);
         }
 
-        const data = await response.json();
+        data = await response.json();
         console.log(`✅ Fetched ${(data.data || data.members || []).length} members in single request`);
-      }
-
-      if (!response.ok) {
+      } else if (!response.ok) {
         const errorText = await response.text();
         console.error('❌ API Error:', response.status, errorText);
         throw new Error(`Failed to fetch members data: ${response.status} ${response.statusText}`);
+      } else {
+        data = await response.json();
+        console.log('✅ API Response:', data);
       }
-
-      const data = await response.json();
-      console.log('✅ API Response:', data);
 
       // Handle the response structure from the backend
       const membersData = data.data || data.members || [];
