@@ -58,7 +58,9 @@
       "mcp__filesystem__edit_file",
       "Bash(set PORT=5001)",
       "Bash(set PORT=3002)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(start D:PROShaeltest-member-monitoring-production.html)",
+      "Bash(start test-member-monitoring-production.html)"
     ],
     "deny": [],
     "ask": []

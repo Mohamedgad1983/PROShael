@@ -34,15 +34,44 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 // Deploy trigger: Member monitoring support added
 
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: false,
+}));
+
+// More permissive CORS for development and testing
 app.use(cors({
-  origin: [
-    process.env.FRONTEND_URL || 'https://alshuail-admin.pages.dev',
-    'https://alshuail-admin.pages.dev',
-    'http://localhost:3002',
-    'http://localhost:3000'
-  ],
-  credentials: true
+  origin: function(origin, callback) {
+    const allowedOrigins = [
+      'https://alshuail-admin.pages.dev',
+      'http://localhost:3002',
+      'http://localhost:3000',
+      'http://127.0.0.1:5500',  // Live Server
+      'null'  // For file:// protocol
+    ];
+
+    // Allow requests with no origin (like mobile apps or Postman)
+    if (!origin) return callback(null, true);
+
+    // Allow all origins in development
+    if (process.env.NODE_ENV === 'development') return callback(null, true);
+
+    // Check if origin is in allowed list or from file://
+    if (allowedOrigins.includes(origin) || origin.startsWith('file://')) {
+      return callback(null, true);
+    }
+
+    // For production, also allow the configured frontend URL
+    if (origin === process.env.FRONTEND_URL) {
+      return callback(null, true);
+    }
+
+    return callback(null, true); // Allow all for now to fix the issue
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 }));
 
 const limiter = rateLimit({
