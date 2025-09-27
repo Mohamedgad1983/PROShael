@@ -1,0 +1,222 @@
+import XLSX from 'xlsx';
+import { createClient } from '@supabase/supabase-js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Validate required environment variables
+if (!process.env.SUPABASE_URL) {
+  throw new Error('SUPABASE_URL is required in environment variables');
+}
+if (!process.env.SUPABASE_SERVICE_KEY) {
+  throw new Error('SUPABASE_SERVICE_KEY is required in environment variables');
+}
+
+// Load Supabase credentials from environment
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+
+// Initialize Supabase client with environment credentials
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+console.log('🚀 FINAL UPLOAD - YOUR REAL EXCEL DATA');
+console.log('======================================\n');
+
+async function finalUpload() {
+  try {
+    // Read Excel file
+    console.log('📖 Reading your Excel file...');
+    const excelPath = path.join(__dirname, '../../../AlShuail_Members_Prefilled_Import.xlsx');
+
+    const workbook = XLSX.readFile(excelPath);
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+    const headers = rawData[0];
+
+    // Find year columns
+    const yearColumns = {};
+    headers.forEach((header, index) => {
+      if (header && header.toString().match(/202[1-5]/)) {
+        const yearMatch = header.toString().match(/(202[1-5])/);
+        if (yearMatch) {
+          yearColumns[yearMatch[1]] = index;
+        }
+      }
+    });
+
+    console.log('📅 Found payment years:', Object.keys(yearColumns));
+
+    // Get all existing members
+    const { data: members } = await supabase
+      .from('members')
+      .select('id, membership_number, full_name, phone');
+
+    console.log(`✅ Found ${members.length} members in database\n`);
+
+    // Create lookup maps
+    const memberByPhone = {};
+    const memberByNumber = {};
+    members.forEach(m => {
+      if (m.phone) memberByPhone[m.phone] = m;
+      if (m.membership_number) memberByNumber[m.membership_number] = m;
+    });
+
+    // Process payments with correct required fields
+    const payments = [];
+    let processedCount = 0;
+    let totalAmount = 0;
+    const nullSubscriptionId = "00000000-0000-0000-0000-000000000000"; // Null UUID
+
+    console.log('💰 Processing member payments from Excel...\n');
+
+    for (let i = 1; i < rawData.length && i <= 200; i++) { // Process first 200
+      const row = rawData[i];
+      if (!row || row.length === 0) continue;
+
+      const membershipNumber = row[0];
+      const memberName = row[1] || `Member ${i}`;
+      const phone = row[3];
+
+      // Find member in database
+      let dbMember = memberByPhone[phone] || memberByNumber[membershipNumber];
+
+      if (dbMember) {
+        processedCount++;
+        let memberTotal = 0;
+
+        // Process each year's payment
+        for (const [year, colIndex] of Object.entries(yearColumns)) {
+          const amount = parseFloat(row[colIndex]) || 0;
+
+          if (amount > 0) {
+            memberTotal += amount;
+            totalAmount += amount;
+
+            // Create payment with all required fields
+            payments.push({
+              payer_id: dbMember.id,
+              beneficiary_id: dbMember.id, // Same as payer for self-payment
+              subscription_id: nullSubscriptionId, // Use null UUID since subscriptions aren't set up
+              amount: amount,
+              payment_date: `${year}-06-15`, // Mid-year date
+              payment_method: 'bank_transfer',
+              category: 'subscription',
+              status: 'approved', // Use approved status for paid amounts
+              reference_number: `REF-${year}-${membershipNumber}-${Math.random().toString(36).substr(2, 9)}`,
+              notes: `Payment for ${year} - ${memberName}`,
+              created_at: new Date().toISOString()
+            });
+          }
+        }
+
+        if (memberTotal > 0) {
+          const status = memberTotal >= 3000 ? '✅' : '❌';
+          console.log(`${status} ${processedCount}. ${memberName}: ${memberTotal} SAR`);
+        }
+      }
+    }
+
+    console.log(`\n📤 Uploading ${payments.length} payments (Total: ${totalAmount} SAR)...\n`);
+
+    // Upload in small batches
+    if (payments.length > 0) {
+      const batchSize = 5;
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (let i = 0; i < payments.length; i += batchSize) {
+        const batch = payments.slice(i, i + batchSize);
+
+        const { data, error } = await supabase
+          .from('payments')
+          .insert(batch)
+          .select();
+
+        if (error) {
+          errorCount++;
+          console.error(`❌ Batch ${Math.floor(i/batchSize) + 1} failed:`, error.message);
+
+          // If first batch fails, show sample payment structure for debugging
+          if (i === 0) {
+            console.log('\nSample payment being sent:');
+            console.log(JSON.stringify(batch[0], null, 2));
+          }
+        } else if (data) {
+          successCount += data.length;
+          console.log(`✅ Batch ${Math.floor(i/batchSize) + 1}: Uploaded ${data.length} payments`);
+        }
+      }
+
+      if (successCount > 0) {
+        console.log(`\n🎉 SUCCESS: ${successCount} payments uploaded!`);
+      } else {
+        console.log(`\n⚠️ No payments were uploaded. Check the error messages above.`);
+      }
+    }
+
+    // Show final statistics
+    console.log('\n📊 CHECKING DATABASE FOR ALL PAYMENTS...');
+
+    const { data: allPayments } = await supabase
+      .from('payments')
+      .select('payer_id, amount')
+      .in('status', ['approved', 'pending']);
+
+    if (allPayments && allPayments.length > 0) {
+      const balances = {};
+
+      // Calculate total for each member
+      allPayments.forEach(p => {
+        balances[p.payer_id] = (balances[p.payer_id] || 0) + parseFloat(p.amount);
+      });
+
+      const sufficient = Object.values(balances).filter(b => b >= 3000).length;
+      const insufficient = Object.values(balances).filter(b => b < 3000).length;
+      const totalMembers = Object.keys(balances).length;
+
+      console.log('\n========================================');
+      console.log('📊 FINAL DATABASE STATISTICS');
+      console.log('========================================');
+      console.log(`Total members with payments: ${totalMembers}`);
+      console.log(`Total payment records in database: ${allPayments.length}`);
+      console.log(`\n✅ Members with balance ≥3000 SAR: ${sufficient} (${(sufficient/totalMembers*100).toFixed(1)}%)`);
+      console.log(`❌ Members with balance <3000 SAR: ${insufficient} (${(insufficient/totalMembers*100).toFixed(1)}%)`);
+
+      // Show top 5 members with highest balance
+      const sortedBalances = Object.entries(balances)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+
+      console.log('\n📋 Top 5 Members by Balance:');
+      for (const [memberId, balance] of sortedBalances) {
+        const member = members.find(m => m.id === memberId);
+        if (member) {
+          console.log(`   ${member.full_name}: ${balance} SAR`);
+        }
+      }
+    } else {
+      console.log('⚠️ No payments found in database yet.');
+    }
+
+    console.log('\n✅ PROCESS COMPLETE!');
+    console.log('========================================');
+    console.log('You can now open http://localhost:3002');
+    console.log('1. Click "🚨 لوحة الأزمة" to see real member balances');
+    console.log('2. Click "📋 البحث عن كشف" to search payment history');
+
+  } catch (error) {
+    console.error('\n❌ Unexpected error:', error.message);
+    console.error(error);
+  }
+}
+
+// Run it
+finalUpload();

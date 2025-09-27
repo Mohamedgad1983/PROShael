@@ -3,8 +3,15 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const supabaseUrl = process.env.SUPABASE_URL || 'https://oneiggrfzagqjbkdinin.supabase.co';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9uZWlnZ3JmemFncWpia2RpbmluIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NDczNzkwMywiZXhwIjoyMDcwMzEzOTAzfQ.rBZIRsifsQiR3j5OgViWLjaBi_W8Jp0gD7HPf9fS5vI';
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+if (!supabaseUrl) {
+  throw new Error('SUPABASE_URL is required but was not provided');
+}
+
+if (!supabaseServiceKey) {
+  throw new Error('SUPABASE_SERVICE_KEY is required but was not provided');
+}
 
 export const supabase = createClient(supabaseUrl, supabaseServiceKey, {
   auth: {
@@ -209,3 +216,4 @@ async function createTablesIfNotExist() {
     console.log('Note: Tables might already exist or will be created manually');
   }
 }
+

@@ -52,24 +52,24 @@ const upload = multer({
 
 const router = express.Router();
 
-// Basic CRUD operations
-router.get('/', getAllMembers);
-router.get('/statistics', getMemberStatistics);
-router.get('/incomplete-profiles', getIncompleteProfiles);
-router.get('/:id', getMemberById);
-router.post('/', createMember);
-router.put('/:id', updateMember);
-router.delete('/:id', deleteMember);
+// Basic CRUD operations - require admin privileges
+router.get('/', requireRole(['super_admin', 'financial_manager']), getAllMembers);
+router.get('/statistics', requireRole(['super_admin', 'financial_manager']), getMemberStatistics);
+router.get('/incomplete-profiles', requireRole(['super_admin', 'financial_manager']), getIncompleteProfiles);
+router.get('/:id', requireRole(['super_admin', 'financial_manager', 'member']), getMemberById);
+router.post('/', requireRole(['super_admin']), createMember);
+router.put('/:id', requireRole(['super_admin']), updateMember);
+router.delete('/:id', requireRole(['super_admin']), deleteMember);
 
-// Admin routes for Excel import (require authentication in production)
-router.post('/admin/import', upload.single('excel_file'), importMembersFromExcel);
-router.get('/admin/import-history', getImportHistory);
-router.get('/admin/import-batches/:batchId', getImportBatchDetails);
-router.post('/admin/send-reminders', sendRegistrationReminders);
-router.post('/admin/resend-token/:memberId', resendRegistrationToken);
-router.post('/add-manual', addMemberManually);
+// Admin routes for Excel import - require super admin privileges
+router.post('/admin/import', requireRole(['super_admin']), upload.single('excel_file'), importMembersFromExcel);
+router.get('/admin/import-history', requireRole(['super_admin']), getImportHistory);
+router.get('/admin/import-batches/:batchId', requireRole(['super_admin']), getImportBatchDetails);
+router.post('/admin/send-reminders', requireRole(['super_admin']), sendRegistrationReminders);
+router.post('/admin/resend-token/:memberId', requireRole(['super_admin']), resendRegistrationToken);
+router.post('/add-manual', requireRole(['super_admin']), addMemberManually);
 
-// Public registration routes (no authentication required)
+// Public registration routes (no authentication required - these are for initial member registration)
 router.get('/verify-token/:token', verifyRegistrationToken);
 router.post('/complete-profile/:token', completeProfile);
 

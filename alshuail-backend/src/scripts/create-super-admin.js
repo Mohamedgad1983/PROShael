@@ -1,0 +1,155 @@
+import dotenv from 'dotenv';
+import { createClient } from '@supabase/supabase-js';
+import bcrypt from 'bcrypt';
+import readline from 'readline';
+
+dotenv.config();
+
+// Initialize Supabase client
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
+);
+
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
+
+const question = (query) => new Promise((resolve) => rl.question(query, resolve));
+
+async function createSuperAdmin() {
+  try {
+    console.log('========================================');
+    console.log('إنشاء حساب مدير عام جديد');
+    console.log('Create New Super Admin Account');
+    console.log('========================================\n');
+
+    // Get user input
+    const fullName = await question('أدخل الاسم الكامل بالعربية (Full Name in Arabic): ');
+    const phone = await question('أدخل رقم الهاتف مع رمز الدولة (Phone with country code +965/+966): ');
+    const password = await question('أدخل كلمة المرور (Password): ');
+
+    // Validate phone format
+    const phoneRegex = /^(\+965|\+966)[0-9]{8,9}$/;
+    if (!phoneRegex.test(phone)) {
+      console.error('❌ رقم الهاتف غير صحيح! يجب أن يبدأ بـ +965 أو +966');
+      console.error('Invalid phone format! Must start with +965 or +966');
+      rl.close();
+      return;
+    }
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    // Check if user already exists
+    const { data: existingUser } = await supabase
+      .from('members')
+      .select('id')
+      .eq('phone', phone)
+      .single();
+
+    if (existingUser) {
+      console.log('\n⚠️ المستخدم موجود بالفعل، سيتم تحديث البيانات...');
+      console.log('User already exists, updating...\n');
+
+      // Update existing user to super admin
+      const { data, error } = await supabase
+        .from('members')
+        .update({
+          full_name: fullName,
+          password_hash: hashedPassword,
+          role: 'super_admin',
+          is_active: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('phone', phone)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ خطأ في التحديث:', error.message);
+        console.error('Update error:', error.message);
+      } else {
+        console.log('\n✅ تم تحديث المستخدم كمدير عام بنجاح!');
+        console.log('User updated as super admin successfully!\n');
+        console.log('========================================');
+        console.log('بيانات الدخول / Login Credentials:');
+        console.log('========================================');
+        console.log(`الهاتف (Phone): ${phone}`);
+        console.log(`كلمة المرور (Password): ${password}`);
+        console.log(`الصلاحية (Role): super_admin`);
+        console.log('========================================');
+      }
+    } else {
+      // Create new super admin
+      const { data, error } = await supabase
+        .from('members')
+        .insert([{
+          phone: phone,
+          full_name: fullName,
+          password_hash: hashedPassword,
+          role: 'super_admin',
+          is_active: true,
+          member_status: 'active',
+          country_code: phone.startsWith('+965') ? '+965' : '+966',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ خطأ في الإنشاء:', error.message);
+        console.error('Creation error:', error.message);
+      } else {
+        console.log('\n✅ تم إنشاء حساب المدير العام بنجاح!');
+        console.log('Super admin account created successfully!\n');
+        console.log('========================================');
+        console.log('بيانات الدخول / Login Credentials:');
+        console.log('========================================');
+        console.log(`الاسم (Name): ${fullName}`);
+        console.log(`الهاتف (Phone): ${phone}`);
+        console.log(`كلمة المرور (Password): ${password}`);
+        console.log(`الصلاحية (Role): super_admin`);
+        console.log('========================================');
+      }
+    }
+
+    // Test the login
+    console.log('\n🔧 اختبار تسجيل الدخول...');
+    console.log('Testing login...\n');
+
+    const { data: loginTest } = await supabase
+      .from('members')
+      .select('*')
+      .eq('phone', phone)
+      .single();
+
+    if (loginTest) {
+      const passwordMatch = await bcrypt.compare(password, loginTest.password_hash);
+      if (passwordMatch) {
+        console.log('✅ تسجيل الدخول يعمل بشكل صحيح!');
+        console.log('Login test successful!');
+      } else {
+        console.log('⚠️ كلمة المرور لا تطابق');
+        console.log('Password mismatch');
+      }
+    }
+
+    console.log('\n========================================');
+    console.log('يمكنك الآن تسجيل الدخول من الموقع:');
+    console.log('You can now login at:');
+    console.log('http://localhost:3002');
+    console.log('========================================\n');
+
+  } catch (error) {
+    console.error('❌ خطأ غير متوقع:', error);
+    console.error('Unexpected error:', error);
+  } finally {
+    rl.close();
+  }
+}
+
+// Run the script
+createSuperAdmin();

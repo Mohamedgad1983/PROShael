@@ -4,7 +4,6 @@
   "private": true,
   "dependencies": {
     "@heroicons/react": "^2.2.0",
-    "@tailwindcss/postcss": "^4.1.13",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.8.0",
     "@testing-library/react": "^16.3.0",
@@ -17,7 +16,9 @@
     "buffer": "^6.0.3",
     "chart.js": "^4.5.0",
     "hijri-converter": "^1.1.1",
+    "html2canvas": "^1.4.1",
     "js-cookie": "^3.0.5",
+    "jspdf": "^3.0.3",
     "playwright": "^1.55.0",
     "process": "^0.11.10",
     "react": "^19.1.1",
@@ -30,6 +31,7 @@
     "web-vitals": "^2.1.4",
     "workbox-sw": "^7.3.0",
     "workbox-webpack-plugin": "^7.3.0",
+    "xlsx": "^0.18.5",
     "xlsx-populate": "^1.21.0"
   },
   "scripts": {
@@ -87,12 +89,14 @@
   },
   "devDependencies": {
     "@craco/craco": "^7.1.0",
+    "@tailwindcss/forms": "^0.5.10",
+    "@tailwindcss/typography": "^0.5.19",
     "@types/js-cookie": "^3.0.6",
     "autoprefixer": "^10.4.21",
     "eslint": "^8.57.0",
     "postcss": "^8.5.6",
     "serve": "^14.2.1",
-    "tailwindcss": "^4.1.13",
+    "tailwindcss": "^3.4.17",
     "webpack-bundle-analyzer": "^4.9.1"
   }
 }

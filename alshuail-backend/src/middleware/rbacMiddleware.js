@@ -6,6 +6,12 @@
 import jwt from 'jsonwebtoken';
 import { supabase } from '../config/database.js';
 
+const JWT_SECRET = process.env.JWT_SECRET || 'alshuail-dev-secret-2024-very-long-and-secure';
+if (!process.env.JWT_SECRET) {
+  console.warn('⚠️  WARNING: JWT_SECRET not set in environment. Using fallback for development.');
+}
+
+
 /**
  * Role hierarchy for permission inheritance
  */
@@ -80,7 +86,7 @@ export const requireRole = (allowedRoles) => {
       // Verify token
       let decoded;
       try {
-        decoded = jwt.verify(token, process.env.JWT_SECRET || 'dev-secret-key-2024');
+        decoded = jwt.verify(token, JWT_SECRET);
       } catch (err) {
         return res.status(401).json({
           success: false,
@@ -169,7 +175,7 @@ export const requirePermission = (permissionName) => {
       }
 
       const token = authHeader.substring(7);
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, JWT_SECRET);
 
       // Check permission
       const hasUserPermission = await hasPermission(decoded.userId, permissionName);
@@ -390,3 +396,5 @@ export default {
   validateRoleAssignment,
   getRoleDataFilter
 };
+
+

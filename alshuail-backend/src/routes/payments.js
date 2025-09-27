@@ -52,36 +52,51 @@ const upload = multer({
 
 const router = express.Router();
 
-// Basic CRUD Operations
-router.get('/', getAllPayments);
-router.post('/', createPayment);
-router.get('/:id', getPaymentById);
-router.put('/:id/status', updatePaymentStatus);
-router.post('/:id/process', processPayment);
+// Basic CRUD Operations - require financial access
+router.get('/', requireRole(['super_admin', 'financial_manager']), getAllPayments);
+router.post('/', requireRole(['super_admin', 'financial_manager']), createPayment);
+router.get('/:id', requireRole(['super_admin', 'financial_manager', 'member']), getPaymentById);
+router.put('/:id/status', requireRole(['super_admin', 'financial_manager']), updatePaymentStatus);
+router.post('/:id/process', requireRole(['super_admin', 'financial_manager']), processPayment);
 
-// Statistics and Analytics
-router.get('/statistics', getPaymentStatistics);
-router.get('/stats', getPaymentStats); // Keep for backward compatibility
-router.get('/revenue', getRevenueStats);
-router.get('/categories', getPaymentsByCategory);
-router.get('/contributions', getMemberContributions);
-router.get('/overdue', getOverduePayments);
+// Statistics and Analytics - require financial access
+router.get('/statistics', requireRole(['super_admin', 'financial_manager']), getPaymentStatistics);
+router.get('/stats', requireRole(['super_admin', 'financial_manager']), getPaymentStats); // Keep for backward compatibility
+router.get('/revenue', requireRole(['super_admin', 'financial_manager']), getRevenueStats);
+router.get('/categories', requireRole(['super_admin', 'financial_manager']), getPaymentsByCategory);
+router.get('/contributions', requireRole(['super_admin', 'financial_manager']), getMemberContributions);
+router.get('/overdue', requireRole(['super_admin', 'financial_manager']), getOverduePayments);
 
-// Member-specific Operations
-router.get('/member/:memberId', getMemberPayments);
+// Member-specific Operations - members can view their own, admins can view all
+router.get('/member/:memberId', 
+  requireRole(['super_admin', 'financial_manager', 'member']),
+  async (req, res, next) => {
+    // For members, only allow access to their own payments
+    if (req.user.role === 'member') {
+      if (req.user.id !== req.params.memberId && req.user.membershipNumber !== req.params.memberId) {
+        return res.status(403).json({ 
+          success: false, 
+          message: 'ليس لديك الصلاحية للوصول إلى مدفوعات عضو آخر' 
+        });
+      }
+    }
+    next();
+  },
+  getMemberPayments
+);
 
-// Bulk Operations
-router.post('/bulk-update', bulkUpdatePayments);
+// Bulk Operations - require super admin access
+router.post('/bulk-update', requireRole(['super_admin']), bulkUpdatePayments);
 
-// Reports and Receipts
-router.get('/report', generateFinancialReport);
-router.post('/receipt/:paymentId', generateReceipt);
-router.get('/receipt/:paymentId', generateReceipt);
+// Reports and Receipts - financial manager access
+router.get('/report', requireRole(['super_admin', 'financial_manager']), generateFinancialReport);
+router.post('/receipt/:paymentId', requireRole(['super_admin', 'financial_manager', 'member']), generateReceipt);
+router.get('/receipt/:paymentId', requireRole(['super_admin', 'financial_manager', 'member']), generateReceipt);
 
-// Hijri Calendar Operations
-router.get('/hijri-calendar', getHijriCalendarData);
-router.get('/grouped-hijri', getPaymentsGroupedByHijri);
-router.get('/hijri-stats', getHijriFinancialStats);
+// Hijri Calendar Operations - require financial access
+router.get('/hijri-calendar', requireRole(['super_admin', 'financial_manager']), getHijriCalendarData);
+router.get('/grouped-hijri', requireRole(['super_admin', 'financial_manager']), getPaymentsGroupedByHijri);
+router.get('/hijri-stats', requireRole(['super_admin', 'financial_manager']), getHijriFinancialStats);
 
 // Mobile Payment Endpoints (require member authentication)
 router.post('/mobile/initiative', requireRole(['member']), payForInitiative);

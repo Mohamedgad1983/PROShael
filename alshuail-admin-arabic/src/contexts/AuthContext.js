@@ -1,5 +1,9 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+console.log('🔧 AuthContext API_BASE_URL:', API_BASE_URL);
+console.log('🔧 process.env.REACT_APP_API_URL:', process.env.REACT_APP_API_URL);
+
 const AuthContext = createContext();
 
 export const useAuth = () => {
@@ -16,119 +20,29 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  const checkAuthStatus = async () => {
-    try {
-      // Check both old and new localStorage keys for compatibility
-      const storedToken = localStorage.getItem('token') || localStorage.getItem('auth_token');
-      const storedUser = localStorage.getItem('user') || localStorage.getItem('user_data');
+  const persistSession = (tokenValue, userData) => {
+    if (!tokenValue || !userData) {
+      return;
+    }
 
-      if (storedToken && storedUser) {
-        const userData = JSON.parse(storedUser);
-        setUser(userData);
-        setToken(storedToken);
-        setIsAuthenticated(true);
+    setToken(tokenValue);
+    setUser(userData);
+    setIsAuthenticated(true);
 
-        // Ensure both keys exist for compatibility
-        if (!localStorage.getItem('token') && localStorage.getItem('auth_token')) {
-          localStorage.setItem('token', localStorage.getItem('auth_token'));
-        }
-        if (!localStorage.getItem('user') && localStorage.getItem('user_data')) {
-          localStorage.setItem('user', localStorage.getItem('user_data'));
-        }
-
-        // No need to verify with backend every time, trust the stored data
-        // This avoids potential backend issues
-      }
-    } catch (error) {
-      console.error('Auth status check failed:', error);
-      // Don't logout on error, just set not authenticated
-      setIsAuthenticated(false);
-    } finally {
-      setLoading(false);
+    localStorage.setItem('token', tokenValue);
+    localStorage.setItem('auth_token', tokenValue);
+    localStorage.setItem('user', JSON.stringify(userData));
+    localStorage.setItem('user_data', JSON.stringify(userData));
+    localStorage.setItem('isLoggedIn', 'true');
+    if (userData.email) {
+      localStorage.setItem('userEmail', userData.email);
+    }
+    if (userData.role) {
+      localStorage.setItem('userRole', userData.role);
     }
   };
 
-  useEffect(() => {
-    checkAuthStatus();
-  }, []);
-
-  const login = async (phone, password, role = 'user_member') => {
-    try {
-      setLoading(true);
-
-      // For demo/development - simulate login with selected role
-      const mockUser = {
-        id: 1,
-        phone: phone,
-        name: 'مستخدم تجريبي',
-        role: role, // Use the selected role
-        email: `${phone}@alshuail.com`,
-        created_at: new Date().toISOString()
-      };
-
-      // Create a valid mock JWT token
-      const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
-      const payload = btoa(JSON.stringify({
-        id: 1,
-        phone: phone,
-        role: role,
-        exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24), // Expires in 24 hours
-        iat: Math.floor(Date.now() / 1000)
-      }));
-      const signature = btoa('mock-signature');
-      const mockToken = `${header}.${payload}.${signature}`;
-
-      // Store in both keys for compatibility
-      localStorage.setItem('auth_token', mockToken);
-      localStorage.setItem('token', mockToken); // Also store as 'token' for ExpenseManagement
-      localStorage.setItem('user_data', JSON.stringify(mockUser));
-      localStorage.setItem('user', JSON.stringify(mockUser)); // Also store as 'user' for compatibility
-
-      setUser(mockUser);
-      setToken(mockToken);
-      setIsAuthenticated(true);
-
-      return { success: true, user: mockUser, token: mockToken };
-
-      /* Original backend integration code - uncomment when backend is ready
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ phone, password, role })
-      });
-
-      const data = await response.json();
-
-      if (data.status === 'success') {
-        localStorage.setItem('auth_token', data.data.token);
-        localStorage.setItem('user_data', JSON.stringify(data.data.user));
-
-        setUser(data.data.user);
-        setToken(data.data.token);
-        setIsAuthenticated(true);
-
-        return { success: true, user: data.data.user, token: data.data.token };
-      } else {
-        return {
-          success: false,
-          error: data.message_ar || 'خطأ في تسجيل الدخول'
-        };
-      }
-      */
-    } catch (error) {
-      return {
-        success: false,
-        error: 'خطأ في الاتصال بالخادم'
-      };
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const logout = () => {
-    // Remove both old and new localStorage keys
+  const clearSession = () => {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user_data');
     localStorage.removeItem('token');
@@ -139,6 +53,121 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setToken(null);
     setIsAuthenticated(false);
+  };
+
+
+
+  const checkAuthStatus = async () => {
+    setLoading(true);
+    try {
+      const storedToken = localStorage.getItem('token') || localStorage.getItem('auth_token');
+      const storedUser = localStorage.getItem('user') || localStorage.getItem('user_data');
+
+      if (!storedToken || !storedUser) {
+        clearSession();
+        return;
+      }
+
+      let parsedUser = null;
+      try {
+        parsedUser = JSON.parse(storedUser);
+      } catch (parseError) {
+        console.error('Failed to parse stored user payload', parseError);
+        clearSession();
+        return;
+      }
+
+      const verifyUrl = `${API_BASE_URL}/api/auth/verify`;
+      console.log('🔧 Verifying auth with URL:', verifyUrl);
+      const response = await fetch(verifyUrl, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${storedToken}`
+        }
+      });
+
+      if (!response.ok) {
+        clearSession();
+        return;
+      }
+
+      const verification = await response.json();
+      const verifiedUser = verification?.user ? { ...parsedUser, ...verification.user } : parsedUser;
+
+      persistSession(storedToken, verifiedUser);
+    } catch (error) {
+      console.error('Auth status check failed:', error);
+      clearSession();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    checkAuthStatus();
+  }, []);
+
+  const authenticate = async (endpoint, payload) => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (response.ok && data?.success && (data.token || data?.data?.token)) {
+        const sessionToken = data.token || data?.data?.token;
+        const sessionUser = data.user || data?.data?.user;
+
+        if (sessionToken && sessionUser) {
+          persistSession(sessionToken, sessionUser);
+          return { success: true, user: sessionUser, token: sessionToken };
+        }
+      }
+
+      const errorMessage = data?.error || data?.message_ar || 'خطأ في تسجيل الدخول';
+      return { success: false, error: errorMessage };
+    } catch (error) {
+      console.error('Authentication error:', error);
+      return {
+        success: false,
+        error: 'خطأ في الاتصال بالخادم'
+      };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loginAdmin = async (phone, password, role = 'super_admin') => {
+    // For admin login, we need to use email format - convert phone to email
+    // or check if it's already an email
+    const isEmail = phone.includes('@');
+    const loginData = isEmail
+      ? { email: phone, password }
+      : { phone, password, role };
+
+    return authenticate('/api/auth/login', loginData);
+  };
+
+  const loginMember = async (phone, password) => {
+    return authenticate('/api/auth/member-login', { phone, password });
+  };
+
+  const login = async (phone, password, role = null) => {
+    // If role is provided, it's an admin login, otherwise member login
+    if (role && role !== 'user_member') {
+      return loginAdmin(phone, password, role);
+    }
+    return loginMember(phone, password);
+  };
+
+  const logout = () => {
+    clearSession();
   };
 
   const hasRole = (requiredRoles) => {
@@ -171,6 +200,10 @@ export const AuthProvider = ({ children }) => {
 
   const hasPermission = (permission) => {
     if (!user) return false;
+
+    if (user?.permissions && user.permissions.all_access) {
+      return true;
+    }
 
     // Updated permissions with new role system
     const permissions = {
@@ -277,6 +310,8 @@ export const AuthProvider = ({ children }) => {
     loading,
     isAuthenticated,
     login,
+    loginAdmin,
+    loginMember,
     logout,
     hasRole,
     hasPermission,
@@ -290,3 +325,14 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
+
+
+
+
+
+
+
+
+
+
+

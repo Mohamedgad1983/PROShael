@@ -10,6 +10,7 @@ import MemberMobileApp from './components/MemberMobile/MemberMobileApp';
 import { RoleProvider } from './contexts/RoleContext';
 import { AuthProvider } from './contexts/AuthContext';
 import logo from './assets/logo.svg';
+import { showToast } from './utils/toast';
 
 // Admin Dashboard Component
 const AdminDashboard: React.FC = () => {
@@ -34,7 +35,7 @@ const AdminDashboard: React.FC = () => {
     e.preventDefault();
 
     // Optimized login - instant response
-    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
     try {
       const response = await fetch(`${API_URL}/api/auth/login`, {
@@ -61,19 +62,17 @@ const AdminDashboard: React.FC = () => {
         // Pre-cache dashboard data
         localStorage.setItem('loginTime', Date.now().toString());
       } else {
-        alert(data.error || 'فشل تسجيل الدخول');
+        showToast({
+          message: data.error || 'فشل تسجيل الدخول',
+          type: 'error'
+        });
       }
     } catch (error) {
       console.error('Login error:', error);
-      // Fallback - allow login anyway for development
-      setIsLoggedIn(true);
-      localStorage.setItem('isLoggedIn', 'true');
-      localStorage.setItem('userEmail', formData.email);
-      localStorage.setItem('token', 'dev-token-' + Date.now());
-      localStorage.setItem('user', JSON.stringify({
-        email: formData.email,
-        role: 'super_admin'
-      }));
+      showToast({
+        message: 'خطأ في الاتصال بالخادم. يرجى المحاولة مرة أخرى',
+        type: 'error'
+      });
     }
   };
 

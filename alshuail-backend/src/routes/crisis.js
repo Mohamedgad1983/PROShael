@@ -3,7 +3,7 @@ import { getCrisisDashboard, updateMemberBalance } from '../controllers/crisisCo
 
 const router = express.Router();
 
-// Get crisis dashboard data
+// Get crisis dashboard data (PUBLIC - no auth required for local testing)
 router.get('/dashboard', getCrisisDashboard);
 
 // Update member balance (when payment is made)

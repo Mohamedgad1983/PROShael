@@ -28,60 +28,26 @@ const authenticateUser = async (req, res, next) => {
       });
     }
 
-    // Accept mock tokens when JWT_SECRET is not configured
-    // This allows the system to work without full JWT implementation
-    if (!process.env.JWT_SECRET || process.env.JWT_SECRET === 'undefined') {
-      try {
-        // Try to decode the token even if it's mock
-        const parts = token.split('.');
-        if (parts.length === 3) {
-          const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
-          req.user = payload;
-          next();
-          return;
-        }
-      } catch (e) {
-        // If not a valid JWT structure, create a default user
-        req.user = {
-          id: 1,
-          role: 'financial_manager', // Default to financial_manager for testing
-          phone: '0500000000'
-        };
-        next();
-        return;
-      }
+    if (!process.env.JWT_SECRET) {
+      throw new Error('JWT_SECRET is required but not configured');
     }
 
-    // Production mode: Verify with JWT secret if available
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'default-secret-key');
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
       req.user = decoded;
       next();
     } catch (error) {
-      // Fallback to decode without verification
-      try {
-        const parts = token.split('.');
-        if (parts.length === 3) {
-          const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
-          req.user = payload;
-          next();
-          return;
-        }
-      } catch (e) {
-        // Default user if all fails
-        req.user = {
-          id: 1,
-          role: 'financial_manager',
-          phone: '0500000000'
-        };
-        next();
-      }
+      return res.status(403).json({
+        success: false,
+        error: 'رمز التوثيق غير صالح أو منتهي الصلاحية',
+        message_ar: 'رمز التوثيق غير صالح أو منتهي الصلاحية'
+      });
     }
   } catch (error) {
-    return res.status(401).json({
+    return res.status(500).json({
       success: false,
-      error: 'رمز التوثيق غير صالح',
-      message_ar: 'رمز التوثيق غير صالح'
+      error: 'خطأ في المصادقة',
+      message_ar: 'خطأ في المصادقة'
     });
   }
 };

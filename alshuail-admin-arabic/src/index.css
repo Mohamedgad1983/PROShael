@@ -1,4 +1,6 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* EMERGENCY TEXT VISIBILITY FIX - MUST BE LOADED FIRST */
 @import "./styles/emergency-text-fix.css";

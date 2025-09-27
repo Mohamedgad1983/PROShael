@@ -5,7 +5,6 @@ import CompactAddMember from './CompactAddMember';
 import './TwoSectionMembers.css';
 import {
   MagnifyingGlassIcon,
-  FunnelIcon,
   UserPlusIcon,
   ArrowDownTrayIcon,
   ArrowUpTrayIcon,
@@ -26,6 +25,8 @@ const TwoSectionMembers = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [showAddMember, setShowAddMember] = useState(false);
   const [currentView, setCurrentView] = useState('list'); // 'list' or 'add'
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingMember, setEditingMember] = useState(null);
   const [filters, setFilters] = useState({
     status: '',
     profile_completed: '',
@@ -38,18 +39,52 @@ const TwoSectionMembers = () => {
     totalPages: 0
   });
 
+  // Get current user role
+  const getUserRole = () => {
+    const role = localStorage.getItem('userRole') || 'admin';
+    return role;
+  };
+
+  // Check if user can edit (only super_admin)
+  const canEdit = () => {
+    const role = getUserRole();
+    return role === 'super_admin';
+  };
+
   // Load members when component mounts or filters change
   useEffect(() => {
     loadMembers();
   }, [filters, pagination.page, searchQuery]);
 
   const loadMembers = async () => {
+    console.log('🔍 Loading members...');
+    console.log('API Base URL:', memberService.baseURL);
+    console.log('Auth Token:', localStorage.getItem('token') ? 'Present' : 'Missing');
+    console.log('User Role:', getUserRole());
+
     setLoading(true);
     try {
-      const searchFilters = { ...filters };
+      // Only include non-empty filters
+      const searchFilters = {};
+
+      // Add search query if present
       if (searchQuery.trim()) {
         searchFilters.search = searchQuery.trim();
       }
+
+      // Only add filter values that are not empty strings
+      if (filters.status) {
+        searchFilters.status = filters.status;
+      }
+      if (filters.profile_completed) {
+        searchFilters.profile_completed = filters.profile_completed;
+      }
+      if (filters.social_security_beneficiary) {
+        searchFilters.social_security_beneficiary = filters.social_security_beneficiary;
+      }
+
+      console.log('📤 Sending request with filters:', searchFilters);
+      console.log('Page:', pagination.page, 'Limit:', pagination.limit);
 
       const response = await memberService.getMembersList(
         searchFilters,
@@ -57,23 +92,40 @@ const TwoSectionMembers = () => {
         pagination.limit
       );
 
-      setMembers(response.members || []);
+      console.log('✅ API Response received:', response);
+
+      // Handle API response format: { success, data, pagination }
+      const membersData = response.data || response.members || [];
+      const paginationData = response.pagination || {};
+
+      console.log('✅ Members count:', membersData.length);
+      console.log('✅ Total members:', paginationData.total || response.total);
+
+      setMembers(membersData);
       setPagination(prev => ({
         ...prev,
-        total: response.total || 0,
-        totalPages: response.totalPages || 0
+        total: paginationData.total || response.total || 0,
+        totalPages: paginationData.pages || response.totalPages || 0
       }));
     } catch (error) {
-      console.error('Error loading members:', error);
-      // Use mock data if service fails
-      setMembers(getMockMembers());
+      console.error('❌ API Error:', error);
+      console.error('❌ Error details:', error.message);
+      console.error('❌ Error stack:', error.stack);
+      console.error('❌ Full error object:', JSON.stringify(error, null, 2));
+
+      // Show error message to user instead of silently falling back
+      alert(`خطأ في تحميل البيانات: ${error.message}\n\nتحقق من:\n1. الخادم يعمل على المنفذ 5001\n2. الاتصال بقاعدة البيانات`);
+
+      console.log('⚠️ Setting empty members array due to error');
+      setMembers([]);
       setPagination(prev => ({
         ...prev,
-        total: 50,
-        totalPages: 5
+        total: 0,
+        totalPages: 0
       }));
     } finally {
       setLoading(false);
+      console.log('✅ Loading complete');
     }
   };
 
@@ -200,6 +252,39 @@ const TwoSectionMembers = () => {
 
   const handleBackToList = () => {
     setCurrentView('list');
+  };
+
+  const handleEditClick = (member) => {
+    setEditingMember({ ...member });
+    setShowEditModal(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setShowEditModal(false);
+    setEditingMember(null);
+  };
+
+  const handleEditChange = (field, value) => {
+    setEditingMember(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSaveEdit = async () => {
+    try {
+      setLoading(true);
+      await memberService.updateMember(editingMember.id, editingMember);
+      alert('تم تحديث بيانات العضو بنجاح');
+      setShowEditModal(false);
+      setEditingMember(null);
+      loadMembers(); // Reload the list
+    } catch (error) {
+      console.error('Error updating member:', error);
+      alert('حدث خطأ في تحديث البيانات: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // If showing Add Member full page
@@ -332,6 +417,47 @@ const TwoSectionMembers = () => {
               <div className="loading-spinner"></div>
               <p>جاري تحميل البيانات...</p>
             </div>
+          ) : members.length === 0 ? (
+            <div style={{
+              padding: '40px',
+              textAlign: 'center',
+              background: '#f8f9fa',
+              borderRadius: '12px',
+              margin: '20px 0'
+            }}>
+              <h3 style={{ color: '#666', marginBottom: '20px' }}>⚠️ لا توجد بيانات</h3>
+              <p style={{ color: '#999', marginBottom: '20px' }}>
+                يرجى التحقق من الاتصال بالخادم ووجود بيانات في قاعدة البيانات
+              </p>
+              <div style={{
+                background: 'white',
+                padding: '20px',
+                borderRadius: '8px',
+                textAlign: 'right',
+                maxWidth: '600px',
+                margin: '0 auto'
+              }}>
+                <p><strong>معلومات التشخيص:</strong></p>
+                <p>API URL: {memberService.baseURL}</p>
+                <p>Token: {localStorage.getItem('token') ? '✅ موجود' : '❌ غير موجود'}</p>
+                <p>User Role: {getUserRole()}</p>
+                <p>Total: {pagination.total}</p>
+                <button
+                  onClick={loadMembers}
+                  style={{
+                    marginTop: '15px',
+                    padding: '10px 20px',
+                    background: '#007AFF',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  🔄 إعادة المحاولة
+                </button>
+              </div>
+            </div>
           ) : (
             <div className="members-table-container">
               <table className="members-table">
@@ -365,12 +491,25 @@ const TwoSectionMembers = () => {
                         <button className="action-btn view" title="عرض">
                           <EyeIcon />
                         </button>
-                        <button className="action-btn edit" title="تعديل">
-                          <PencilIcon />
-                        </button>
-                        <button className="action-btn delete" title="حذف">
-                          <TrashIcon />
-                        </button>
+                        {canEdit() && (
+                          <>
+                            <button
+                              className="action-btn edit"
+                              title="تعديل"
+                              onClick={() => handleEditClick(member)}
+                            >
+                              <PencilIcon />
+                            </button>
+                            <button className="action-btn delete" title="حذف">
+                              <TrashIcon />
+                            </button>
+                          </>
+                        )}
+                        {!canEdit() && (
+                          <span className="no-permission-text" title="صلاحية مطلوبة">
+                            (عرض فقط)
+                          </span>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -413,6 +552,115 @@ const TwoSectionMembers = () => {
           )}
         </div>
       </div>
+
+      {/* Edit Member Modal */}
+      {showEditModal && editingMember && (
+        <div className="modal-overlay" onClick={handleCloseEditModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} dir="rtl">
+            <div className="modal-header">
+              <h2>تعديل بيانات العضو</h2>
+              <button className="close-btn" onClick={handleCloseEditModal}>
+                <XMarkIcon style={{ width: '24px', height: '24px' }} />
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <div className="form-grid">
+                <div className="form-group">
+                  <label>الاسم الكامل *</label>
+                  <input
+                    type="text"
+                    value={editingMember.full_name || ''}
+                    onChange={(e) => handleEditChange('full_name', e.target.value)}
+                    className="form-input"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>رقم الهاتف *</label>
+                  <input
+                    type="text"
+                    value={editingMember.phone || ''}
+                    onChange={(e) => handleEditChange('phone', e.target.value)}
+                    className="form-input"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>البريد الإلكتروني</label>
+                  <input
+                    type="email"
+                    value={editingMember.email || ''}
+                    onChange={(e) => handleEditChange('email', e.target.value)}
+                    className="form-input"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>رقم العضوية</label>
+                  <input
+                    type="text"
+                    value={editingMember.membership_number || ''}
+                    onChange={(e) => handleEditChange('membership_number', e.target.value)}
+                    className="form-input"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>الحالة</label>
+                  <select
+                    value={editingMember.membership_status || 'active'}
+                    onChange={(e) => handleEditChange('membership_status', e.target.value)}
+                    className="form-input"
+                  >
+                    <option value="active">نشط</option>
+                    <option value="inactive">غير نشط</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>المدينة</label>
+                  <input
+                    type="text"
+                    value={editingMember.city || ''}
+                    onChange={(e) => handleEditChange('city', e.target.value)}
+                    className="form-input"
+                  />
+                </div>
+
+                <div className="form-group full-width">
+                  <label>العنوان</label>
+                  <input
+                    type="text"
+                    value={editingMember.address || ''}
+                    onChange={(e) => handleEditChange('address', e.target.value)}
+                    className="form-input"
+                  />
+                </div>
+
+                <div className="form-group full-width">
+                  <label>ملاحظات</label>
+                  <textarea
+                    value={editingMember.notes || ''}
+                    onChange={(e) => handleEditChange('notes', e.target.value)}
+                    className="form-input"
+                    rows="3"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button className="btn-cancel" onClick={handleCloseEditModal}>
+                إلغاء
+              </button>
+              <button className="btn-save" onClick={handleSaveEdit}>
+                حفظ التغييرات
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

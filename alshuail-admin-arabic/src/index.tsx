@@ -9,7 +9,8 @@ import { registerServiceWorker, initPerformanceMonitoring } from './utils/perfor
 initPerformanceMonitoring();
 
 // Register service worker for caching
-registerServiceWorker();
+// TEMPORARILY DISABLED - Service worker was caching API responses
+// registerServiceWorker();
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement

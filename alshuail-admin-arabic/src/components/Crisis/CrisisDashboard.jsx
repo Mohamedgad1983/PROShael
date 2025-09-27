@@ -9,31 +9,161 @@ const CrisisDashboard = () => {
   const [filterStatus, setFilterStatus] = useState('all'); // all, insufficient, sufficient
   const [refreshing, setRefreshing] = useState(false);
 
-  const API_URL = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
+  // CRITICAL: Force localhost:3001 for backend - DO NOT CHANGE
+  // Ignore environment variable to ensure correct backend connection
+  const API_URL = 'http://localhost:3001';
 
-  // Fetch crisis data from backend
+  // Log on component mount to debug
+  console.log('🚀 Crisis Dashboard Component Mounted');
+  console.log('🔧 Using API_URL:', API_URL);
+  console.log('🔧 process.env.REACT_APP_API_URL:', process.env.REACT_APP_API_URL);
+
+  // Fetch crisis data from backend with comprehensive error handling
   const fetchCrisisData = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`${API_URL}/api/crisis/dashboard`, {
+      // Build the complete URL
+      const url = `${API_URL}/api/crisis/dashboard`;
+
+      // Log the exact URL we're calling
+      console.log('🔍 Crisis Dashboard - Fetching from URL:', url);
+      console.log('📡 API_URL configured as:', API_URL);
+      console.log('🔧 Environment:', process.env.NODE_ENV);
+      console.log('🔧 REACT_APP_API_URL from env:', process.env.REACT_APP_API_URL);
+
+      // Make the fetch request with proper headers
+      const response = await fetch(url, {
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+          'Accept': 'application/json'
+        },
+        credentials: 'omit' // Don't send credentials for testing
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      // Log response details
+      console.log('📡 Response received:');
+      console.log('  - Status:', response.status);
+      console.log('  - Status Text:', response.statusText);
+      console.log('  - OK:', response.ok);
+      console.log('  - URL:', response.url);
+
+      // Log all response headers
+      const headers = {};
+      response.headers.forEach((value, key) => {
+        headers[key] = value;
+      });
+      console.log('  - Headers:', headers);
+
+      // Check content type
+      const contentType = response.headers.get('content-type');
+      console.log('📡 Content-Type header:', contentType);
+
+      // If we're getting HTML instead of JSON, it's likely a redirect or wrong URL
+      if (!contentType || !contentType.includes('application/json')) {
+        console.error('❌ ERROR: Response is not JSON!');
+        console.error('  - Expected: application/json');
+        console.error('  - Received:', contentType);
+
+        // Try to read the response as text to see what we got
+        const textResponse = await response.text();
+        console.error('❌ Response body (first 500 chars):');
+        console.error(textResponse.substring(0, 500));
+
+        // Check if it's an HTML page
+        if (textResponse.includes('<!DOCTYPE') || textResponse.includes('<html')) {
+          console.error('❌ CRITICAL: Receiving HTML page instead of JSON!');
+          console.error('  - This usually means:');
+          console.error('    1. Wrong URL (frontend URL instead of backend)');
+          console.error('    2. Backend is not running on port 3001');
+          console.error('    3. CORS redirect to error page');
+        }
+
+        throw new Error(`Server returned ${contentType || 'unknown content'} instead of JSON. Check console for details.`);
       }
 
-      const data = await response.json();
-      setCrisisData(data.data);
+      // Check if response is not OK
+      if (!response.ok) {
+        console.error('❌ HTTP Error:', response.status, response.statusText);
+
+        // Try to parse error message from response
+        try {
+          const errorData = await response.json();
+          console.error('❌ Error response data:', errorData);
+          throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        } catch (jsonErr) {
+          // If we can't parse JSON, use status text
+          throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+        }
+      }
+
+      // Parse JSON response
+      let data;
+      try {
+        const responseText = await response.text();
+        console.log('📡 Raw response text length:', responseText.length);
+
+        // Parse the JSON
+        data = JSON.parse(responseText);
+        console.log('✅ Successfully parsed JSON');
+        console.log('📊 Response data structure:', {
+          hasSuccess: 'success' in data,
+          hasData: 'data' in data,
+          hasStatistics: 'statistics' in data,
+          hasMembers: 'members' in data,
+          keys: Object.keys(data)
+        });
+
+        // Log first member if available for debugging
+        if (data.data?.members && data.data.members.length > 0) {
+          console.log('📊 First member sample:', data.data.members[0]);
+        } else if (data.members && data.members.length > 0) {
+          console.log('📊 First member sample:', data.members[0]);
+        }
+      } catch (parseErr) {
+        console.error('❌ JSON Parse Error:', parseErr);
+        console.error('  - Error message:', parseErr.message);
+        throw new Error('Failed to parse JSON response from server');
+      }
+
+      // Handle different response structures
+      if (data.success && data.data) {
+        console.log('✅ Setting crisis data from data.data');
+        setCrisisData(data.data);
+      } else if (data.statistics && data.members) {
+        console.log('✅ Setting crisis data from root level');
+        setCrisisData(data);
+      } else {
+        console.error('❌ Unexpected data structure:', data);
+        console.error('  - Expected either: { success: true, data: {...} }');
+        console.error('  - Or: { statistics: {...}, members: [...] }');
+        throw new Error('Unexpected data structure from server');
+      }
+
+      console.log('✅ Crisis data successfully loaded and set');
+
     } catch (err) {
-      console.error('Error fetching crisis data:', err);
-      setError('فشل في تحميل بيانات الأزمة');
+      console.error('❌ FULL ERROR DETAILS:');
+      console.error('  - Error Name:', err.name);
+      console.error('  - Error Message:', err.message);
+      console.error('  - Error Stack:', err.stack);
+
+      // Check for specific error types
+      if (err.name === 'TypeError' && err.message.includes('Failed to fetch')) {
+        console.error('❌ NETWORK ERROR: Cannot connect to backend!');
+        console.error('  - Make sure backend is running on http://localhost:3001');
+        console.error('  - Run: cd alshuail-backend && npm run dev');
+        setError('لا يمكن الاتصال بالخادم - تأكد من تشغيل الخادم على المنفذ 3001');
+      } else if (err.message.includes('JSON')) {
+        setError('خطأ في تنسيق البيانات من الخادم');
+      } else {
+        setError(err.message || 'فشل في تحميل بيانات الأزمة');
+      }
+
       // Use mock data as fallback
+      console.log('📊 Using mock data as fallback');
       setCrisisData(generateMockData());
     } finally {
       setLoading(false);
@@ -139,13 +269,49 @@ const CrisisDashboard = () => {
             متابعة الأعضاء الذين لم يحققوا الحد الأدنى المطلوب (3000 ريال)
           </p>
         </div>
-        <button
-          onClick={handleRefresh}
-          className={`refresh-button ${refreshing ? 'refreshing' : ''}`}
-          disabled={refreshing}
-        >
-          {refreshing ? 'جاري التحديث...' : '🔄 تحديث البيانات'}
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
+            onClick={handleRefresh}
+            className={`refresh-button ${refreshing ? 'refreshing' : ''}`}
+            disabled={refreshing}
+          >
+            {refreshing ? 'جاري التحديث...' : '🔄 تحديث البيانات'}
+          </button>
+          <button
+            onClick={async () => {
+              console.log('🧪 Testing direct fetch...');
+              try {
+                const testUrl = 'http://localhost:3001/api/crisis/dashboard';
+                console.log('Testing URL:', testUrl);
+                const resp = await fetch(testUrl);
+                const text = await resp.text();
+                console.log('Response headers:', resp.headers);
+                console.log('Response text (first 200 chars):', text.substring(0, 200));
+                try {
+                  const json = JSON.parse(text);
+                  console.log('✅ Parsed JSON successfully:', json);
+                  alert('✅ Direct fetch successful! Check console for data.');
+                } catch (e) {
+                  console.error('❌ JSON parse failed:', e);
+                  alert('❌ Failed to parse JSON. Check console.');
+                }
+              } catch (err) {
+                console.error('❌ Direct fetch failed:', err);
+                alert('❌ Direct fetch failed: ' + err.message);
+              }
+            }}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#ff6b6b',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            🧪 Test Direct Fetch
+          </button>
+        </div>
       </div>
 
       {/* Critical Alert */}

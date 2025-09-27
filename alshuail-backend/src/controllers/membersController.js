@@ -2,6 +2,11 @@ import { supabase } from '../config/database.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET must be defined before using member controller operations');
+}
+
 export const getAllMembers = async (req, res) => {
   try {
     const {
@@ -540,7 +545,7 @@ export const getMemberProfile = async (req, res) => {
 
     if (!memberId) {
       const token = req.headers.authorization?.replace('Bearer ', '');
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'dev-secret-key-2024');
+      const decoded = jwt.verify(token, JWT_SECRET);
       memberId = decoded.id;
     }
 
@@ -577,7 +582,7 @@ export const getMemberProfile = async (req, res) => {
 export const getMemberBalance = async (req, res) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'dev-secret-key-2024');
+    const decoded = jwt.verify(token, JWT_SECRET);
     const memberId = decoded.id;
 
     // Get member balance from payments table using correct column names
@@ -628,7 +633,7 @@ export const getMemberBalance = async (req, res) => {
 export const getMemberTransactions = async (req, res) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'dev-secret-key-2024');
+    const decoded = jwt.verify(token, JWT_SECRET);
     const memberId = decoded.id;
 
     const { page = 1, limit = 20 } = req.query;
@@ -665,7 +670,7 @@ export const getMemberTransactions = async (req, res) => {
 export const getMemberNotifications = async (req, res) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'dev-secret-key-2024');
+    const decoded = jwt.verify(token, JWT_SECRET);
     const memberId = decoded.id;
 
     const { page = 1, limit = 20, unread_only = false } = req.query;
@@ -707,7 +712,7 @@ export const getMemberNotifications = async (req, res) => {
 export const updateMemberProfile = async (req, res) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'dev-secret-key-2024');
+    const decoded = jwt.verify(token, JWT_SECRET);
     const memberId = decoded.id;
 
     const updateData = req.body;

@@ -49,7 +49,7 @@ class APIService {
 
   // Dashboard
   async getDashboardStats() {
-    return this.request('/dashboard/stats');
+    return this.request('/api/dashboard/stats');
   }
 
   // Members

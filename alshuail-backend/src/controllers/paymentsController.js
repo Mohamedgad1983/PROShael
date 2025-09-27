@@ -5,6 +5,11 @@ import { ReceiptService } from '../services/receiptService.js';
 import { HijriDateManager, convertToHijriString, convertToHijriYear, convertToHijriMonth, convertToHijriDay, convertToHijriMonthName } from '../utils/hijriDateUtils.js';
 import jwt from 'jsonwebtoken';
 
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET must be defined before using payments controller operations');
+}
+
 export const getAllPayments = async (req, res) => {
   try {
     const {
@@ -571,7 +576,7 @@ function generateReferenceNumber() {
 export const payForInitiative = async (req, res) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'dev-secret-key-2024');
+    const decoded = jwt.verify(token, JWT_SECRET);
     const memberId = decoded.id;
 
     const { initiative_id, amount, notes } = req.body;
@@ -643,7 +648,7 @@ export const payForInitiative = async (req, res) => {
 export const payForDiya = async (req, res) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'dev-secret-key-2024');
+    const decoded = jwt.verify(token, JWT_SECRET);
     const memberId = decoded.id;
 
     const { diya_id, amount, notes } = req.body;
@@ -701,7 +706,7 @@ export const payForDiya = async (req, res) => {
 export const paySubscription = async (req, res) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'dev-secret-key-2024');
+    const decoded = jwt.verify(token, JWT_SECRET);
     const memberId = decoded.id;
 
     const { amount, subscription_period, notes } = req.body;
@@ -759,7 +764,7 @@ export const paySubscription = async (req, res) => {
 export const payForMember = async (req, res) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'dev-secret-key-2024');
+    const decoded = jwt.verify(token, JWT_SECRET);
     const payerId = decoded.id;
 
     const { beneficiary_id, amount, payment_category, notes } = req.body;
@@ -841,7 +846,7 @@ export const payForMember = async (req, res) => {
 export const uploadPaymentReceipt = async (req, res) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'dev-secret-key-2024');
+    const decoded = jwt.verify(token, JWT_SECRET);
     const memberId = decoded.id;
     const { paymentId } = req.params;
 

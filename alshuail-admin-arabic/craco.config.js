@@ -1,8 +1,10 @@
 const webpack = require('webpack');
+const path = require('path');
 
 module.exports = {
   webpack: {
     configure: (webpackConfig) => {
+
       // Fix for xlsx-populate and other node modules
       webpackConfig.resolve.fallback = {
         ...webpackConfig.resolve.fallback,
@@ -27,6 +29,7 @@ module.exports = {
           process: 'process'
         })
       );
+
 
       // Optimize for production
       if (process.env.NODE_ENV === 'production') {
@@ -57,16 +60,5 @@ module.exports = {
       return webpackConfig;
     }
   },
-  style: {
-    postcss: {
-      loaderOptions: (postcssLoaderOptions) => {
-        // Override the PostCSS plugins to use Tailwind v4
-        postcssLoaderOptions.postcssOptions.plugins = [
-          require('@tailwindcss/postcss')(),
-          require('autoprefixer')
-        ];
-        return postcssLoaderOptions;
-      }
-    }
-  }
+  // PostCSS configuration is now handled by postcss.config.js
 };

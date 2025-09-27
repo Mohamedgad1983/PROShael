@@ -375,6 +375,13 @@ async function runIntegrationTests() {
 }
 
 // Export for use in other files
+
+describe('Integration test harness', () => {
+  it('exposes runIntegrationTests helper', () => {
+    expect(typeof runIntegrationTests).toBe('function');
+  });
+});
+
 export {
   runIntegrationTests,
   testHealthCheck,
@@ -392,3 +399,4 @@ if (typeof window !== 'undefined' && window.location) {
   window.runIntegrationTests = runIntegrationTests;
   console.log('Integration tests available. Run: window.runIntegrationTests()');
 }
+

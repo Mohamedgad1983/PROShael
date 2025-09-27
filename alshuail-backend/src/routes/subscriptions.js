@@ -1,9 +1,11 @@
 import express from 'express';
 import { supabase } from '../config/database.js';
+import { requireRole } from '../middleware/rbacMiddleware.js';
 
 const router = express.Router();
 
-router.get('/', async (req, res) => {
+// Get all subscriptions - requires financial access
+router.get('/', requireRole(['super_admin', 'financial_manager']), async (req, res) => {
   try {
     const { data: subscriptions, error } = await supabase
       .from('subscriptions')
@@ -24,7 +26,8 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.post('/', async (req, res) => {
+// Create new subscription - requires financial manager access
+router.post('/', requireRole(['super_admin', 'financial_manager']), async (req, res) => {
   try {
     const subscriptionData = req.body;
 

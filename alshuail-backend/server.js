@@ -18,8 +18,17 @@ import expensesRoutes from './src/routes/expenses.js';
 import financialReportsRoutes from './src/routes/financialReports.js';
 import settingsRoutes from './src/routes/settings.js';
 import crisisRoutes from './src/routes/crisis.js';
+import statementRoutes from './src/routes/statementRoutes.js';
+import memberStatementRoutes from './src/routes/memberStatementRoutes.js';
+import memberMonitoringRoutes from './src/routes/memberMonitoring.js';
 
 dotenv.config();
+
+// Check JWT_SECRET but don't throw error - just warn
+if (!process.env.JWT_SECRET) {
+  console.warn('⚠️  WARNING: JWT_SECRET not set. Using fallback secret for development.');
+  process.env.JWT_SECRET = process.env.JWT_SECRET || 'alshuail-dev-secret-2024-very-long-and-secure';
+}
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -41,11 +50,27 @@ const limiter = rateLimit({
 });
 app.use('/api', limiter);
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Configure JSON parsing with UTF-8 support for Arabic text
+app.use(express.json({
+  limit: '10mb',
+  type: 'application/json'
+}));
+app.use(express.urlencoded({
+  extended: true,
+  limit: '10mb'
+}));
+
+// Set proper headers for Arabic text support
+app.use((req, res, next) => {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  next();
+});
 
 app.use('/api/auth', authRoutes);
 app.use('/api/members', membersRoutes);
+// Add member monitoring routes under /api/member-monitoring to avoid conflict
+app.use('/api/member-monitoring', memberMonitoringRoutes);
 app.use('/api/payments', paymentsRoutes);
 app.use('/api/subscriptions', subscriptionsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
@@ -58,6 +83,8 @@ app.use('/api/expenses', expensesRoutes);
 app.use('/api/reports', financialReportsRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/crisis', crisisRoutes);
+app.use('/api/statements', statementRoutes);
+app.use('/api/member-statement', memberStatementRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({
@@ -90,3 +117,5 @@ const startServer = async () => {
 };
 
 startServer();
+
+
