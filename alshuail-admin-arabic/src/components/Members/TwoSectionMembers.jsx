@@ -389,6 +389,34 @@ const TwoSectionMembers = () => {
     });
   };
 
+  // Monitor editingMember changes to ensure select values display properly
+  useEffect(() => {
+    if (editingMember) {
+      console.log('🔍 Current editing member state:', {
+        gender: editingMember.gender,
+        tribal_section: editingMember.tribal_section,
+        full_name: editingMember.full_name
+      });
+
+      // Force re-render of select elements by ensuring values are strings
+      if (editingMember.gender !== undefined && editingMember.gender !== null) {
+        const genderSelect = document.querySelector('select[value="' + (editingMember.gender || '') + '"]');
+        if (genderSelect && genderSelect.value !== editingMember.gender) {
+          console.log('🔧 Forcing gender select update');
+          genderSelect.value = editingMember.gender;
+        }
+      }
+
+      if (editingMember.tribal_section !== undefined && editingMember.tribal_section !== null) {
+        const tribalSelect = document.querySelector('select.select-rtl');
+        if (tribalSelect && tribalSelect.value !== editingMember.tribal_section) {
+          console.log('🔧 Forcing tribal section select update');
+          tribalSelect.value = editingMember.tribal_section;
+        }
+      }
+    }
+  }, [editingMember]);
+
   const handleSaveEdit = async () => {
     try {
       setLoading(true);
@@ -904,8 +932,7 @@ const TwoSectionMembers = () => {
                       <select
                         value={editingMember.tribal_section || ''}
                         onChange={(e) => handleEditChange('tribal_section', e.target.value)}
-                        className="form-input"
-                        dir="rtl"
+                        className="form-input select-rtl"
                       >
                         <option value="">اختر الفخذ</option>
                         <option value="الدغيش">الدغيش</option>
@@ -917,9 +944,6 @@ const TwoSectionMembers = () => {
                         <option value="رشيد">رشيد</option>
                         <option value="عقاب">عقاب</option>
                       </select>
-                      <div style={{marginTop: '5px', fontSize: '14px', color: '#666'}}>
-                        القيمة المحددة: {editingMember.tribal_section || 'لم يتم الاختيار'}
-                      </div>
                     </div>
 
                     <div className="form-group">
@@ -937,16 +961,12 @@ const TwoSectionMembers = () => {
                       <select
                         value={editingMember.gender || ''}
                         onChange={(e) => handleEditChange('gender', e.target.value)}
-                        className="form-input"
-                        dir="rtl"
+                        className="form-input select-rtl"
                       >
                         <option value="">اختر الجنس</option>
                         <option value="male">ذكر</option>
                         <option value="female">أنثى</option>
                       </select>
-                      <div style={{marginTop: '5px', fontSize: '14px', color: '#666'}}>
-                        القيمة المحددة: {editingMember.gender === 'male' ? 'ذكر' : editingMember.gender === 'female' ? 'أنثى' : 'لم يتم الاختيار'}
-                      </div>
                     </div>
 
                     <div className="form-group">
