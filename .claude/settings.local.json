@@ -60,7 +60,8 @@
       "Bash(set PORT=3002)",
       "WebSearch",
       "Bash(start D:PROShaeltest-member-monitoring-production.html)",
-      "Bash(start test-member-monitoring-production.html)"
+      "Bash(start test-member-monitoring-production.html)",
+      "Bash(start https://alshuail-admin.pages.dev)"
     ],
     "deny": [],
     "ask": []
