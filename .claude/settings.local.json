@@ -61,7 +61,9 @@
       "WebSearch",
       "Bash(start D:PROShaeltest-member-monitoring-production.html)",
       "Bash(start test-member-monitoring-production.html)",
-      "Bash(start https://alshuail-admin.pages.dev)"
+      "Bash(start https://alshuail-admin.pages.dev)",
+      "Bash(gh workflow view:*)",
+      "Bash(start https://github.com/Mohamedgad1983/PROShael/actions)"
     ],
     "deny": [],
     "ask": []

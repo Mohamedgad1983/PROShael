@@ -367,7 +367,24 @@ const TwoSectionMembers = () => {
   };
 
   const handleEditClick = (member) => {
-    setEditingMember({ ...member });
+    // Ensure all fields are properly populated
+    const memberToEdit = {
+      ...member,
+      // Ensure these fields are strings or empty strings, not null
+      gender: member.gender || '',
+      tribal_section: member.tribal_section || '',
+      national_id: member.national_id || '',
+      date_of_birth: member.date_of_birth || '',
+      city: member.city || '',
+      district: member.district || '',
+      address: member.address || '',
+      occupation: member.occupation || '',
+      employer: member.employer || '',
+      nationality: member.nationality || 'سعودي',
+      notes: member.notes || ''
+    };
+    console.log('🖊️ Opening edit modal with member:', memberToEdit);
+    setEditingMember(memberToEdit);
     setActiveEditTab('personal'); // Reset to personal tab when opening
     setShowEditModal(true);
   };
@@ -391,31 +408,37 @@ const TwoSectionMembers = () => {
 
   // Monitor editingMember changes to ensure select values display properly
   useEffect(() => {
-    if (editingMember) {
+    if (editingMember && showEditModal) {
       console.log('🔍 Current editing member state:', {
         gender: editingMember.gender,
         tribal_section: editingMember.tribal_section,
         full_name: editingMember.full_name
       });
 
-      // Force re-render of select elements by ensuring values are strings
-      if (editingMember.gender !== undefined && editingMember.gender !== null) {
-        const genderSelect = document.querySelector('select[value="' + (editingMember.gender || '') + '"]');
-        if (genderSelect && genderSelect.value !== editingMember.gender) {
-          console.log('🔧 Forcing gender select update');
-          genderSelect.value = editingMember.gender;
-        }
-      }
-
-      if (editingMember.tribal_section !== undefined && editingMember.tribal_section !== null) {
-        const tribalSelect = document.querySelector('select.select-rtl');
-        if (tribalSelect && tribalSelect.value !== editingMember.tribal_section) {
-          console.log('🔧 Forcing tribal section select update');
-          tribalSelect.value = editingMember.tribal_section;
-        }
-      }
+      // Use setTimeout to ensure DOM is ready
+      setTimeout(() => {
+        // Update gender select
+        const genderSelects = document.querySelectorAll('select');
+        genderSelects.forEach(select => {
+          if (select.name === 'gender' || select.id === 'gender' ||
+              (select.previousElementSibling && select.previousElementSibling.textContent === 'الجنس')) {
+            if (editingMember.gender) {
+              select.value = editingMember.gender;
+              console.log('✅ Set gender select to:', editingMember.gender);
+            }
+          }
+          // Update tribal section select
+          if (select.name === 'tribal_section' || select.id === 'tribal_section' ||
+              (select.previousElementSibling && select.previousElementSibling.textContent === 'الفخذ')) {
+            if (editingMember.tribal_section) {
+              select.value = editingMember.tribal_section;
+              console.log('✅ Set tribal section select to:', editingMember.tribal_section);
+            }
+          }
+        });
+      }, 100);
     }
-  }, [editingMember]);
+  }, [editingMember, showEditModal]);
 
   const handleSaveEdit = async () => {
     try {
@@ -448,17 +471,24 @@ const TwoSectionMembers = () => {
         notes: editingMember.notes
       };
 
-      // Remove undefined values but keep empty strings
+      // Clean data to prevent JSON parsing errors
+      // Convert nulls and undefined to empty strings
+      const cleanedData = {};
       Object.keys(updateData).forEach(key => {
-        if (updateData[key] === undefined) {
-          updateData[key] = '';
-        } else if (updateData[key] === null) {
-          updateData[key] = '';
+        const value = updateData[key];
+        if (value === undefined || value === null) {
+          cleanedData[key] = '';
+        } else if (typeof value === 'string') {
+          // Clean string values to prevent JSON errors
+          cleanedData[key] = value
+            .replace(/\\/g, '\\\\')
+            .replace(/\n/g, ' ')
+            .replace(/\r/g, ' ')
+            .replace(/\t/g, ' ');
+        } else {
+          cleanedData[key] = value;
         }
       });
-
-      // Clean data to prevent JSON parsing errors
-      const cleanedData = JSON.parse(JSON.stringify(updateData));
 
       console.log('📤 Sending data to backend:', JSON.stringify(cleanedData, null, 2));
 
@@ -930,9 +960,15 @@ const TwoSectionMembers = () => {
                     <div className="form-group">
                       <label>الفخذ</label>
                       <select
+                        id="tribal_section"
+                        name="tribal_section"
                         value={editingMember.tribal_section || ''}
-                        onChange={(e) => handleEditChange('tribal_section', e.target.value)}
+                        onChange={(e) => {
+                          console.log('Tribal section changed to:', e.target.value);
+                          handleEditChange('tribal_section', e.target.value);
+                        }}
                         className="form-input select-rtl"
+                        style={{ color: editingMember.tribal_section ? '#1f2937' : '#9ca3af' }}
                       >
                         <option value="">اختر الفخذ</option>
                         <option value="الدغيش">الدغيش</option>
@@ -959,9 +995,15 @@ const TwoSectionMembers = () => {
                     <div className="form-group">
                       <label>الجنس</label>
                       <select
+                        id="gender"
+                        name="gender"
                         value={editingMember.gender || ''}
-                        onChange={(e) => handleEditChange('gender', e.target.value)}
+                        onChange={(e) => {
+                          console.log('Gender changed to:', e.target.value);
+                          handleEditChange('gender', e.target.value);
+                        }}
                         className="form-input select-rtl"
+                        style={{ color: editingMember.gender ? '#1f2937' : '#9ca3af' }}
                       >
                         <option value="">اختر الجنس</option>
                         <option value="male">ذكر</option>

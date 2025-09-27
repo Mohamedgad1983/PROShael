@@ -175,19 +175,31 @@ export const updateMember = async (req, res) => {
     const { id } = req.params;
     let updateData = {};
 
-    // Try to parse the body safely
-    try {
+    // Handle both string and object bodies
+    if (typeof req.body === 'string') {
+      try {
+        // Clean the string before parsing to handle special characters
+        const cleanedBody = req.body
+          .replace(/\\n/g, ' ')
+          .replace(/\\r/g, ' ')
+          .replace(/\\t/g, ' ')
+          .trim();
+        updateData = JSON.parse(cleanedBody);
+      } catch (parseError) {
+        console.error('❌ Error parsing string body:', parseError);
+        console.error('❌ Raw body:', req.body);
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid JSON format in request'
+        });
+      }
+    } else {
       updateData = req.body || {};
-    } catch (parseError) {
-      console.error('❌ Error parsing request body:', parseError);
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid request data format'
-      });
     }
 
     // Log what data we're receiving
     console.log('📥 Update Member Request - ID:', id);
+    console.log('📋 Data type:', typeof updateData);
     console.log('📋 Data received from frontend:', JSON.stringify(updateData, null, 2));
 
     // Ensure we have the fields that might be missing
@@ -237,11 +249,27 @@ export const updateMember = async (req, res) => {
       throw error;
     }
 
-    console.log('✅ Member updated successfully:', updatedMember);
+    console.log('✅ Member updated successfully');
+    console.log('✅ Updated data:', JSON.stringify(updatedMember, null, 2));
+
+    // Ensure we return all fields including the ones that might be null
+    const responseData = {
+      ...updatedMember,
+      // Explicitly include these fields even if null
+      gender: updatedMember.gender || '',
+      tribal_section: updatedMember.tribal_section || '',
+      national_id: updatedMember.national_id || '',
+      date_of_birth: updatedMember.date_of_birth || '',
+      city: updatedMember.city || '',
+      district: updatedMember.district || '',
+      address: updatedMember.address || '',
+      occupation: updatedMember.occupation || '',
+      employer: updatedMember.employer || ''
+    };
 
     res.json({
       success: true,
-      data: updatedMember,
+      data: responseData,
       message: 'تم تحديث بيانات العضو بنجاح'
     });
   } catch (error) {
