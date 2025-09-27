@@ -79,9 +79,25 @@ const MemberMonitoringDashboard = () => {
 
       const data = await response.json();
       console.log('✅ API Response:', data);
-      console.log('✅ First 3 members with balances:', data.members?.slice(0, 3).map(m => ({ name: m.name, balance: m.balance })));
-      setMembers(data.members || []);
-      setFilteredMembers(data.members || []);
+
+      // Handle the response structure from the backend
+      const membersData = data.data?.members || data.members || [];
+
+      // Map the backend data to frontend format
+      const formattedMembers = membersData.map(m => ({
+        id: m.id,
+        memberId: m.memberId,
+        name: m.fullName || m.name,
+        phone: m.phone,
+        balance: m.balance || 0,
+        tribalSection: m.tribalSection,
+        status: m.balance >= 3000 ? 'sufficient' : 'insufficient',
+        isSuspended: m.status === 'suspended'
+      }));
+
+      console.log('✅ First 3 members with balances:', formattedMembers.slice(0, 3).map(m => ({ name: m.name, balance: m.balance })));
+      setMembers(formattedMembers);
+      setFilteredMembers(formattedMembers);
     } catch (err) {
       console.error('❌ Error fetching members:', err);
       console.log('⚠️ Falling back to mock data');
