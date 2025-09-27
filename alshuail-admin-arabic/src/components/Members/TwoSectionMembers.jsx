@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { memberService } from '../../services/memberService';
 import PremiumRegistration from '../Registration/PremiumRegistration';
 import CompactAddMember from './CompactAddMember';
@@ -27,6 +27,7 @@ const TwoSectionMembers = () => {
   const [currentView, setCurrentView] = useState('list'); // 'list' or 'add'
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
+  const searchTimeoutRef = useRef(null);
   const [filters, setFilters] = useState({
     status: '',
     profile_completed: '',
@@ -51,10 +52,32 @@ const TwoSectionMembers = () => {
     return role === 'super_admin';
   };
 
-  // Load members when component mounts or filters change
+  // Load members when component mounts or filters/pagination change (NOT search)
   useEffect(() => {
     loadMembers();
-  }, [filters, pagination.page, searchQuery]);
+  }, [filters, pagination.page]);
+
+  // Debounced search - only search after user stops typing for 500ms
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    searchTimeoutRef.current = setTimeout(() => {
+      if (searchQuery !== '') {
+        loadMembers();
+      } else if (searchQuery === '') {
+        // Load all members when search is cleared
+        loadMembers();
+      }
+    }, 500); // Wait 500ms after user stops typing
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchQuery]);
 
   const loadMembers = async () => {
     console.log('🔍 Loading members...');
