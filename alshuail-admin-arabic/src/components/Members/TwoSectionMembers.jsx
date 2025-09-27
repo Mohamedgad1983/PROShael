@@ -372,6 +372,22 @@ const TwoSectionMembers = () => {
     }
   };
 
+  const handleDelete = async (memberId) => {
+    if (window.confirm('هل أنت متأكد من حذف هذا العضو؟')) {
+      try {
+        setLoading(true);
+        await memberService.deleteMember(memberId);
+        alert('تم حذف العضو بنجاح');
+        loadMembers(); // Reload the list
+      } catch (error) {
+        console.error('Error deleting member:', error);
+        alert('حدث خطأ في حذف العضو: ' + error.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   // If showing Add Member full page
   if (currentView === 'add') {
     return (
@@ -610,7 +626,11 @@ const TwoSectionMembers = () => {
                             >
                               <PencilIcon />
                             </button>
-                            <button className="action-btn delete" title="حذف">
+                            <button
+                              className="action-btn delete"
+                              title="حذف"
+                              onClick={() => handleDelete(member.id)}
+                            >
                               <TrashIcon />
                             </button>
                           </>
@@ -688,7 +708,7 @@ const TwoSectionMembers = () => {
       {/* Edit Member Modal */}
       {showEditModal && editingMember && (
         <div className="modal-overlay" onClick={handleCloseEditModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} dir="rtl">
+          <div className="modal-content edit-member-modal" onClick={(e) => e.stopPropagation()} dir="rtl">
             <div className="modal-header">
               <h2>تعديل بيانات العضو</h2>
               <button className="close-btn" onClick={handleCloseEditModal}>
@@ -697,87 +717,265 @@ const TwoSectionMembers = () => {
             </div>
 
             <div className="modal-body">
-              <div className="form-grid">
-                <div className="form-group">
-                  <label>الاسم الكامل *</label>
-                  <input
-                    type="text"
-                    value={editingMember.full_name || ''}
-                    onChange={(e) => handleEditChange('full_name', e.target.value)}
-                    className="form-input"
-                  />
+              {/* Section Headers */}
+              <div className="section-tabs">
+                <div className="tab active">المعلومات الشخصية</div>
+                <div className="tab">العنوان والعمل</div>
+                <div className="tab">معلومات الحساب</div>
+              </div>
+
+              <div className="form-sections">
+                {/* Personal Information Section */}
+                <div className="form-section">
+                  <h3 className="section-title">المعلومات الشخصية</h3>
+                  <div className="form-grid">
+                    <div className="form-group">
+                      <label>الاسم الكامل *</label>
+                      <input
+                        type="text"
+                        value={editingMember.full_name || ''}
+                        onChange={(e) => handleEditChange('full_name', e.target.value)}
+                        className="form-input"
+                        placeholder="أدخل الاسم الكامل"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>رقم الهاتف *</label>
+                      <input
+                        type="text"
+                        value={editingMember.phone || ''}
+                        onChange={(e) => handleEditChange('phone', e.target.value)}
+                        className="form-input"
+                        placeholder="05xxxxxxxx"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>البريد الإلكتروني</label>
+                      <input
+                        type="email"
+                        value={editingMember.email || ''}
+                        onChange={(e) => handleEditChange('email', e.target.value)}
+                        className="form-input"
+                        placeholder="example@email.com"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>الفخذ</label>
+                      <select
+                        value={editingMember.tribal_section || ''}
+                        onChange={(e) => handleEditChange('tribal_section', e.target.value)}
+                        className="form-input"
+                      >
+                        <option value="">اختر الفخذ</option>
+                        <option value="الشمالي">الشمالي</option>
+                        <option value="الجنوبي">الجنوبي</option>
+                        <option value="الشرقي">الشرقي</option>
+                        <option value="الغربي">الغربي</option>
+                      </select>
+                    </div>
+
+                    <div className="form-group">
+                      <label>تاريخ الميلاد</label>
+                      <input
+                        type="date"
+                        value={editingMember.date_of_birth || ''}
+                        onChange={(e) => handleEditChange('date_of_birth', e.target.value)}
+                        className="form-input"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>الجنس</label>
+                      <select
+                        value={editingMember.gender || ''}
+                        onChange={(e) => handleEditChange('gender', e.target.value)}
+                        className="form-input"
+                      >
+                        <option value="">اختر</option>
+                        <option value="male">ذكر</option>
+                        <option value="female">أنثى</option>
+                      </select>
+                    </div>
+
+                    <div className="form-group">
+                      <label>رقم الهوية الوطنية</label>
+                      <input
+                        type="text"
+                        value={editingMember.national_id || ''}
+                        onChange={(e) => handleEditChange('national_id', e.target.value)}
+                        className="form-input"
+                        placeholder="10xxxxxxxxx"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>الجنسية</label>
+                      <input
+                        type="text"
+                        value={editingMember.nationality || 'سعودي'}
+                        onChange={(e) => handleEditChange('nationality', e.target.value)}
+                        className="form-input"
+                      />
+                    </div>
+                  </div>
                 </div>
 
-                <div className="form-group">
-                  <label>رقم الهاتف *</label>
-                  <input
-                    type="text"
-                    value={editingMember.phone || ''}
-                    onChange={(e) => handleEditChange('phone', e.target.value)}
-                    className="form-input"
-                  />
+                {/* Address and Work Section */}
+                <div className="form-section">
+                  <h3 className="section-title">العنوان والعمل</h3>
+                  <div className="form-grid">
+                    <div className="form-group">
+                      <label>المدينة</label>
+                      <input
+                        type="text"
+                        value={editingMember.city || ''}
+                        onChange={(e) => handleEditChange('city', e.target.value)}
+                        className="form-input"
+                        placeholder="المدينة"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>الحي</label>
+                      <input
+                        type="text"
+                        value={editingMember.district || ''}
+                        onChange={(e) => handleEditChange('district', e.target.value)}
+                        className="form-input"
+                        placeholder="الحي"
+                      />
+                    </div>
+
+                    <div className="form-group full-width">
+                      <label>العنوان الكامل</label>
+                      <input
+                        type="text"
+                        value={editingMember.address || ''}
+                        onChange={(e) => handleEditChange('address', e.target.value)}
+                        className="form-input"
+                        placeholder="العنوان بالتفصيل"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>جهة العمل</label>
+                      <input
+                        type="text"
+                        value={editingMember.employer || ''}
+                        onChange={(e) => handleEditChange('employer', e.target.value)}
+                        className="form-input"
+                        placeholder="اسم جهة العمل"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>المهنة</label>
+                      <input
+                        type="text"
+                        value={editingMember.occupation || ''}
+                        onChange={(e) => handleEditChange('occupation', e.target.value)}
+                        className="form-input"
+                        placeholder="المسمى الوظيفي"
+                      />
+                    </div>
+                  </div>
                 </div>
 
-                <div className="form-group">
-                  <label>البريد الإلكتروني</label>
-                  <input
-                    type="email"
-                    value={editingMember.email || ''}
-                    onChange={(e) => handleEditChange('email', e.target.value)}
-                    className="form-input"
-                  />
+                {/* Account Information Section */}
+                <div className="form-section">
+                  <h3 className="section-title">معلومات الحساب</h3>
+                  <div className="form-grid">
+                    <div className="form-group">
+                      <label>رقم العضوية</label>
+                      <input
+                        type="text"
+                        value={editingMember.membership_number || ''}
+                        onChange={(e) => handleEditChange('membership_number', e.target.value)}
+                        className="form-input"
+                        placeholder="سيتم توليده تلقائياً"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>حالة العضوية</label>
+                      <select
+                        value={editingMember.membership_status || 'active'}
+                        onChange={(e) => handleEditChange('membership_status', e.target.value)}
+                        className="form-input"
+                      >
+                        <option value="active">نشط</option>
+                        <option value="inactive">غير نشط</option>
+                        <option value="suspended">معلق</option>
+                      </select>
+                    </div>
+
+                    <div className="form-group">
+                      <label>تاريخ الانضمام</label>
+                      <input
+                        type="date"
+                        value={editingMember.membership_date || ''}
+                        onChange={(e) => handleEditChange('membership_date', e.target.value)}
+                        className="form-input"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>نوع العضوية</label>
+                      <select
+                        value={editingMember.membership_type || 'regular'}
+                        onChange={(e) => handleEditChange('membership_type', e.target.value)}
+                        className="form-input"
+                      >
+                        <option value="regular">عادي</option>
+                        <option value="vip">VIP</option>
+                        <option value="honorary">شرفي</option>
+                      </select>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="form-group">
-                  <label>رقم العضوية</label>
-                  <input
-                    type="text"
-                    value={editingMember.membership_number || ''}
-                    onChange={(e) => handleEditChange('membership_number', e.target.value)}
-                    className="form-input"
-                  />
-                </div>
+                {/* Additional Information */}
+                <div className="form-section">
+                  <h3 className="section-title">معلومات إضافية</h3>
+                  <div className="form-grid">
+                    <div className="form-group full-width">
+                      <label>ملاحظات</label>
+                      <textarea
+                        value={editingMember.notes || ''}
+                        onChange={(e) => handleEditChange('notes', e.target.value)}
+                        className="form-input"
+                        rows="3"
+                        placeholder="أي ملاحظات إضافية..."
+                      />
+                    </div>
 
-                <div className="form-group">
-                  <label>الحالة</label>
-                  <select
-                    value={editingMember.membership_status || 'active'}
-                    onChange={(e) => handleEditChange('membership_status', e.target.value)}
-                    className="form-input"
-                  >
-                    <option value="active">نشط</option>
-                    <option value="inactive">غير نشط</option>
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label>المدينة</label>
-                  <input
-                    type="text"
-                    value={editingMember.city || ''}
-                    onChange={(e) => handleEditChange('city', e.target.value)}
-                    className="form-input"
-                  />
-                </div>
-
-                <div className="form-group full-width">
-                  <label>العنوان</label>
-                  <input
-                    type="text"
-                    value={editingMember.address || ''}
-                    onChange={(e) => handleEditChange('address', e.target.value)}
-                    className="form-input"
-                  />
-                </div>
-
-                <div className="form-group full-width">
-                  <label>ملاحظات</label>
-                  <textarea
-                    value={editingMember.notes || ''}
-                    onChange={(e) => handleEditChange('notes', e.target.value)}
-                    className="form-input"
-                    rows="3"
-                  />
+                    <div className="form-group">
+                      <label>صورة العضو</label>
+                      <div className="file-upload-area">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            // Handle file upload
+                            const file = e.target.files[0];
+                            if (file) {
+                              // You can handle file upload here
+                              console.log('File selected:', file);
+                            }
+                          }}
+                          className="file-input"
+                          id="member-photo"
+                        />
+                        <label htmlFor="member-photo" className="file-upload-label">
+                          <span>اضغط لرفع صورة العضو</span>
+                          <span className="file-info">PNG, JPG حد أقصى 10MB</span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -787,7 +985,7 @@ const TwoSectionMembers = () => {
                 إلغاء
               </button>
               <button className="btn-save" onClick={handleSaveEdit}>
-                حفظ التغييرات
+                <span>💾</span> حفظ التغييرات
               </button>
             </div>
           </div>

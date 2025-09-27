@@ -947,3 +947,166 @@ textarea.form-input {
     padding: 20px;
   }
 }
+
+/* Enhanced Edit Member Modal Styles */
+.edit-member-modal {
+  max-width: 1000px !important;
+  width: 95%;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.edit-member-modal .modal-body {
+  overflow-y: auto;
+  max-height: calc(90vh - 200px);
+  padding: 0;
+}
+
+/* Section Tabs */
+.section-tabs {
+  display: flex;
+  gap: 10px;
+  padding: 20px 30px;
+  border-bottom: 2px solid #f0f0f0;
+  background: #fafafa;
+}
+
+.section-tabs .tab {
+  padding: 10px 20px;
+  background: white;
+  border-radius: 10px 10px 0 0;
+  cursor: pointer;
+  transition: all 0.3s;
+  color: #666;
+  font-weight: 500;
+  border: 1px solid #e0e0e0;
+  border-bottom: none;
+}
+
+.section-tabs .tab.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-color: transparent;
+}
+
+/* Form Sections */
+.form-sections {
+  padding: 30px;
+}
+
+.form-section {
+  margin-bottom: 30px;
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #f0f0f0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.section-title::before {
+  content: '📋';
+  font-size: 20px;
+}
+
+.form-section:nth-child(2) .section-title::before {
+  content: '🏠';
+}
+
+.form-section:nth-child(3) .section-title::before {
+  content: '👤';
+}
+
+.form-section:nth-child(4) .section-title::before {
+  content: '📝';
+}
+
+/* File Upload Area */
+.file-upload-area {
+  position: relative;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.file-input {
+  display: none;
+}
+
+.file-upload-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  border: 2px dashed #d1d5db;
+  border-radius: 12px;
+  background: #f9fafb;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.file-upload-label:hover {
+  border-color: #667eea;
+  background: #f5f7ff;
+}
+
+.file-upload-label::before {
+  content: '📸';
+  font-size: 48px;
+  margin-bottom: 10px;
+}
+
+.file-upload-label span {
+  display: block;
+  color: #4b5563;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 5px;
+}
+
+.file-upload-label .file-info {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+/* Form Input Enhancements */
+.edit-member-modal .form-input {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+}
+
+.edit-member-modal .form-input:focus {
+  background: white;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.edit-member-modal select.form-input {
+  cursor: pointer;
+}
+
+/* Modal Footer Enhancement */
+.edit-member-modal .modal-footer {
+  border-top: 2px solid #e5e7eb;
+  padding: 20px 30px;
+  background: linear-gradient(to bottom, #fafafa, #f3f4f6);
+}
+
+.edit-member-modal .btn-save {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
