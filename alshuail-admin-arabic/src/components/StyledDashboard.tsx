@@ -748,7 +748,7 @@ interface StyledDashboardProps {
 }
 
 const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
-  const [activeSection, setActiveSection] = useState('dashboard');
+  const [activeSection, setActiveSection] = useState('monitoring');
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -976,13 +976,11 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
   }, []);
 
   const menuItems = [
-    { id: 'crisis', label: '🚨 لوحة الأزمة', icon: ChartBarIcon }, // CRITICAL: 90.3% non-compliance
-
-    { id: 'statement', label: '📋 البحث عن كشف', icon: DocumentTextIcon }, // Member statement search
-
-    { id: 'monitoring', label: '📊 مراقبة الأعضاء', icon: ChartBarIcon }, // Member Monitoring Dashboard
+    { id: 'monitoring', label: '📊 مراقبة الأعضاء', icon: ChartBarIcon }, // Member Monitoring Dashboard - TOP PRIORITY
 
     { id: 'dashboard', label: 'لوحة التحكم', icon: HomeIcon },
+
+    { id: 'statement', label: '📋 البحث عن كشف', icon: DocumentTextIcon }, // Member statement search
 
     { id: 'members', label: 'الأعضاء', icon: UsersIcon },
 
@@ -4380,10 +4378,7 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
 
                 {activeSection === 'settings' && <Settings />}
 
-                {/* CRITICAL: Crisis Recovery Features for 90.3% Non-Compliance */}
-
-                {activeSection === 'crisis' && <CrisisDashboard />}
-
+                {/* Member Statement Search */}
                 {activeSection === 'statement' && <MemberStatementSearch />}
 
                 {/* Member Monitoring Dashboard */}
