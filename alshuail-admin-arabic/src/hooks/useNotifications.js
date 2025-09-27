@@ -241,7 +241,7 @@ const useNotifications = () => {
     checkPermission();
     checkConnectionStatus();
 
-    // Periodic checks every 30 seconds
+    // Periodic checks every 2 minutes for stability
     intervalRef.current = setInterval(() => {
       checkConnectionStatus();
 
@@ -249,7 +249,7 @@ const useNotifications = () => {
       if (lastUpdateTime && Date.now() - lastUpdateTime.getTime() > 5 * 60 * 1000) {
         syncNotifications();
       }
-    }, 30000);
+    }, 120000); // 2 minutes instead of 30 seconds
 
     // Cleanup
     return () => {

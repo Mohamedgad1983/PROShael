@@ -52,7 +52,7 @@ export type PaymentRecord = Record<string, unknown>;
 export type SubscriptionRecord = Record<string, unknown>;
 export type PaymentFilters = Record<string, string | number | boolean | undefined>;
 
-const DASHBOARD_REFRESH_INTERVAL = 30000;
+const DASHBOARD_REFRESH_INTERVAL = 300000; // 5 minutes instead of 30 seconds for stability
 
 const emptyDashboardData: DashboardData = {
   members: { total: 0, active: 0, inactive: 0, newThisMonth: 0 },
