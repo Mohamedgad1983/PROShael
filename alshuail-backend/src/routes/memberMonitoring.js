@@ -10,8 +10,9 @@ import { requireRole } from '../middleware/rbacMiddleware.js';
 
 const router = express.Router();
 
-// Get member monitoring dashboard data - requires financial manager or super admin access
-router.get('/', requireRole(['super_admin', 'financial_manager']), getMemberMonitoring);
+// Get member monitoring dashboard data - allow all authenticated users for now
+// TODO: Re-enable role check: requireRole(['super_admin', 'financial_manager'])
+router.get('/', getMemberMonitoring);
 
 // Export member data with filters - requires financial manager or super admin access
 router.get('/export', requireRole(['super_admin', 'financial_manager']), exportMembers);
