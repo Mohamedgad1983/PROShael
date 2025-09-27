@@ -6,7 +6,9 @@ import {
   BellIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  CheckCircleIcon
+  CheckCircleIcon,
+  ArrowDownTrayIcon,
+  DocumentArrowDownIcon
 } from '@heroicons/react/24/outline';
 import './MemberMonitoringDashboard.css';
 
@@ -22,6 +24,15 @@ const MemberMonitoringDashboard = () => {
   const [searchName, setSearchName] = useState('');
   const [searchPhone, setSearchPhone] = useState('');
   const [selectedTribalSection, setSelectedTribalSection] = useState('all');
+
+  // Balance Filter States
+  const [balanceFilterType, setBalanceFilterType] = useState('all'); // all, comparison, range, category
+  const [balanceComparison, setBalanceComparison] = useState('greater'); // greater, less, equal
+  const [balanceComparisonAmount, setBalanceComparisonAmount] = useState('');
+  const [balanceRangeFrom, setBalanceRangeFrom] = useState('');
+  const [balanceRangeTo, setBalanceRangeTo] = useState('');
+  const [balanceCategory, setBalanceCategory] = useState('all'); // all, compliant, non-compliant, critical, excellent
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   // Pagination States
   const [currentPage, setCurrentPage] = useState(1);
@@ -146,12 +157,64 @@ const MemberMonitoringDashboard = () => {
         );
       }
 
+      // Apply Balance Filters
+      if (balanceFilterType === 'comparison' && balanceComparisonAmount) {
+        const amount = parseFloat(balanceComparisonAmount);
+        if (!isNaN(amount)) {
+          filtered = filtered.filter(m => {
+            switch (balanceComparison) {
+              case 'greater':
+                return m.balance > amount;
+              case 'less':
+                return m.balance < amount;
+              case 'equal':
+                return m.balance === amount;
+              default:
+                return true;
+            }
+          });
+        }
+      } else if (balanceFilterType === 'range' && (balanceRangeFrom || balanceRangeTo)) {
+        const from = balanceRangeFrom ? parseFloat(balanceRangeFrom) : 0;
+        const to = balanceRangeTo ? parseFloat(balanceRangeTo) : Infinity;
+        filtered = filtered.filter(m => m.balance >= from && m.balance <= to);
+      } else if (balanceFilterType === 'category' && balanceCategory !== 'all') {
+        filtered = filtered.filter(m => {
+          switch (balanceCategory) {
+            case 'compliant':
+              return m.balance >= 3000;
+            case 'non-compliant':
+              return m.balance < 3000;
+            case 'critical':
+              return m.balance < 1000;
+            case 'excellent':
+              return m.balance >= 5000;
+            case '0-500':
+              return m.balance >= 0 && m.balance <= 500;
+            case '500-1000':
+              return m.balance > 500 && m.balance <= 1000;
+            case '1000-2000':
+              return m.balance > 1000 && m.balance <= 2000;
+            case '2000-3000':
+              return m.balance > 2000 && m.balance < 3000;
+            case '3000-5000':
+              return m.balance >= 3000 && m.balance < 5000;
+            case '5000+':
+              return m.balance >= 5000;
+            default:
+              return true;
+          }
+        });
+      }
+
       setFilteredMembers(filtered);
       setCurrentPage(1); // Reset to first page on filter change
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchMemberId, searchName, searchPhone, selectedTribalSection, members]);
+  }, [searchMemberId, searchName, searchPhone, selectedTribalSection, members,
+      balanceFilterType, balanceComparison, balanceComparisonAmount,
+      balanceRangeFrom, balanceRangeTo, balanceCategory]);
 
   // Pagination Logic
   const totalPages = Math.ceil(filteredMembers.length / pageSize);
@@ -380,6 +443,107 @@ const MemberMonitoringDashboard = () => {
     }
   };
 
+  // Clear All Filters
+  const clearAllFilters = () => {
+    setSearchMemberId('');
+    setSearchName('');
+    setSearchPhone('');
+    setSelectedTribalSection('all');
+    setBalanceFilterType('all');
+    setBalanceComparisonAmount('');
+    setBalanceRangeFrom('');
+    setBalanceRangeTo('');
+    setBalanceCategory('all');
+  };
+
+  // Check if any filter is active
+  const hasActiveFilters = () => {
+    return searchMemberId || searchName || searchPhone ||
+           selectedTribalSection !== 'all' || balanceFilterType !== 'all';
+  };
+
+  // Export to CSV
+  const exportToCSV = () => {
+    const headers = ['رقم العضوية', 'الاسم', 'رقم الهاتف', 'الرصيد', 'الفخذ', 'الحالة'];
+    const csvContent = [
+      headers.join(','),
+      ...filteredMembers.map(member => [
+        member.memberId,
+        `"${member.name}"`,
+        member.phone,
+        member.balance,
+        member.tribalSection,
+        member.balance >= 3000 ? 'ملتزم' : 'غير ملتزم'
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `members_report_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Export to Excel (simple HTML table format)
+  const exportToExcel = () => {
+    const tableHtml = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta charset="utf-8">
+        <style>
+          table { border-collapse: collapse; width: 100%; direction: rtl; }
+          th, td { border: 1px solid #ddd; padding: 8px; text-align: right; }
+          th { background-color: #f2f2f2; font-weight: bold; }
+          .sufficient { background-color: #d4edda; }
+          .insufficient { background-color: #f8d7da; }
+        </style>
+      </head>
+      <body>
+        <table>
+          <thead>
+            <tr>
+              <th>رقم العضوية</th>
+              <th>الاسم</th>
+              <th>رقم الهاتف</th>
+              <th>الرصيد</th>
+              <th>الفخذ</th>
+              <th>الحالة</th>
+              <th>النقص</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filteredMembers.map(member => `
+              <tr class="${member.balance >= 3000 ? 'sufficient' : 'insufficient'}">
+                <td>${member.memberId}</td>
+                <td>${member.name}</td>
+                <td>${member.phone}</td>
+                <td>${member.balance}</td>
+                <td>${member.tribalSection}</td>
+                <td>${member.balance >= 3000 ? 'ملتزم' : 'غير ملتزم'}</td>
+                <td>${member.balance < 3000 ? (3000 - member.balance) : '-'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob([tableHtml], { type: 'application/vnd.ms-excel' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `members_report_${new Date().toISOString().split('T')[0]}.xls`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // Initial Load
   useEffect(() => {
     fetchMembers();
@@ -393,7 +557,34 @@ const MemberMonitoringDashboard = () => {
         <p className="dashboard-subtitle">متابعة حالة الأعضاء والأرصدة المالية</p>
       </div>
 
-      {/* Statistics Cards */}
+      {/* Statistics - Enhanced Inline Format */}
+      <div className="stats-inline-container">
+        <div className="stats-inline">
+          <span className="stat-inline-item total">
+            <span className="stat-inline-icon">📊</span>
+            <span className="stat-inline-label">إجمالي:</span>
+            <span className="stat-inline-value">{filteredMembers.length}</span>
+          </span>
+          <span className="stat-divider">|</span>
+          <span className="stat-inline-item sufficient">
+            <span className="stat-inline-icon">✅</span>
+            <span className="stat-inline-label">ملتزمون:</span>
+            <span className="stat-inline-value">
+              {filteredMembers.filter(m => m.balance >= 3000).length}
+            </span>
+          </span>
+          <span className="stat-divider">|</span>
+          <span className="stat-inline-item insufficient">
+            <span className="stat-inline-icon">❌</span>
+            <span className="stat-inline-label">غير ملتزمين:</span>
+            <span className="stat-inline-value">
+              {filteredMembers.filter(m => m.balance < 3000).length}
+            </span>
+          </span>
+        </div>
+      </div>
+
+      {/* Detailed Statistics Cards */}
       <div className="stats-container">
         <div className="stat-card">
           <div className="stat-icon total">
@@ -410,12 +601,12 @@ const MemberMonitoringDashboard = () => {
             <CheckCircleIcon className="icon" />
           </div>
           <div className="stat-content">
-            <h3>أرصدة كافية</h3>
+            <h3>ملتزمون (≥3000 ريال)</h3>
             <p className="stat-value">
-              {filteredMembers.filter(m => m.status === 'sufficient').length}
+              {filteredMembers.filter(m => m.balance >= 3000).length}
             </p>
             <span className="stat-percentage">
-              {((filteredMembers.filter(m => m.status === 'sufficient').length / filteredMembers.length) * 100 || 0).toFixed(1)}%
+              {((filteredMembers.filter(m => m.balance >= 3000).length / filteredMembers.length) * 100 || 0).toFixed(1)}%
             </span>
           </div>
         </div>
@@ -425,12 +616,27 @@ const MemberMonitoringDashboard = () => {
             <ExclamationTriangleIcon className="icon" />
           </div>
           <div className="stat-content">
-            <h3>أرصدة غير كافية</h3>
+            <h3>غير ملتزمين (<3000 ريال)</h3>
             <p className="stat-value">
-              {filteredMembers.filter(m => m.status === 'insufficient').length}
+              {filteredMembers.filter(m => m.balance < 3000).length}
             </p>
             <span className="stat-percentage warning">
-              {((filteredMembers.filter(m => m.status === 'insufficient').length / filteredMembers.length) * 100 || 0).toFixed(1)}%
+              {((filteredMembers.filter(m => m.balance < 3000).length / filteredMembers.length) * 100 || 0).toFixed(1)}%
+            </span>
+          </div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-icon critical">
+            <ExclamationTriangleIcon className="icon" />
+          </div>
+          <div className="stat-content">
+            <h3>وضع حرج (<1000 ريال)</h3>
+            <p className="stat-value">
+              {filteredMembers.filter(m => m.balance < 1000).length}
+            </p>
+            <span className="stat-percentage critical">
+              {((filteredMembers.filter(m => m.balance < 1000).length / filteredMembers.length) * 100 || 0).toFixed(1)}%
             </span>
           </div>
         </div>
@@ -438,63 +644,186 @@ const MemberMonitoringDashboard = () => {
 
       {/* Filters Bar */}
       <div className="filters-container">
-        <div className="filter-group">
-          <label>رقم العضوية</label>
-          <div className="input-wrapper">
-            <MagnifyingGlassIcon className="input-icon" />
-            <input
-              type="text"
-              placeholder="البحث برقم العضوية"
-              value={searchMemberId}
-              onChange={(e) => setSearchMemberId(e.target.value)}
-              className="filter-input"
-            />
+        <div className="filter-row">
+          <div className="filter-group">
+            <label>رقم العضوية</label>
+            <div className="input-wrapper">
+              <MagnifyingGlassIcon className="input-icon" />
+              <input
+                type="text"
+                placeholder="البحث برقم العضوية"
+                value={searchMemberId}
+                onChange={(e) => setSearchMemberId(e.target.value)}
+                className="filter-input"
+              />
+            </div>
+          </div>
+
+          <div className="filter-group">
+            <label>الاسم</label>
+            <div className="input-wrapper">
+              <MagnifyingGlassIcon className="input-icon" />
+              <input
+                type="text"
+                placeholder="البحث بالاسم"
+                value={searchName}
+                onChange={(e) => setSearchName(e.target.value)}
+                className="filter-input"
+              />
+            </div>
+          </div>
+
+          <div className="filter-group">
+            <label>رقم التليفون</label>
+            <div className="input-wrapper">
+              <MagnifyingGlassIcon className="input-icon" />
+              <input
+                type="text"
+                placeholder="البحث برقم التليفون"
+                value={searchPhone}
+                onChange={(e) => setSearchPhone(e.target.value)}
+                className="filter-input"
+              />
+            </div>
+          </div>
+
+          <div className="filter-group">
+            <label>الفخذ</label>
+            <div className="input-wrapper">
+              <FunnelIcon className="input-icon" />
+              <select
+                value={selectedTribalSection}
+                onChange={(e) => setSelectedTribalSection(e.target.value)}
+                className="filter-select"
+              >
+                {tribalSections.map(section => (
+                  <option key={section.value} value={section.value}>
+                    {section.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
-        <div className="filter-group">
-          <label>الاسم</label>
-          <div className="input-wrapper">
-            <MagnifyingGlassIcon className="input-icon" />
-            <input
-              type="text"
-              placeholder="البحث بالاسم"
-              value={searchName}
-              onChange={(e) => setSearchName(e.target.value)}
-              className="filter-input"
-            />
-          </div>
-        </div>
-
-        <div className="filter-group">
-          <label>رقم التليفون</label>
-          <div className="input-wrapper">
-            <MagnifyingGlassIcon className="input-icon" />
-            <input
-              type="text"
-              placeholder="البحث برقم التليفون"
-              value={searchPhone}
-              onChange={(e) => setSearchPhone(e.target.value)}
-              className="filter-input"
-            />
-          </div>
-        </div>
-
-        <div className="filter-group">
-          <label>الفخذ</label>
-          <div className="input-wrapper">
-            <FunnelIcon className="input-icon" />
+        {/* Advanced Balance Filters */}
+        <div className="filter-row">
+          <div className="filter-group">
+            <label>فلتر الرصيد</label>
             <select
-              value={selectedTribalSection}
-              onChange={(e) => setSelectedTribalSection(e.target.value)}
+              value={balanceFilterType}
+              onChange={(e) => setBalanceFilterType(e.target.value)}
               className="filter-select"
             >
-              {tribalSections.map(section => (
-                <option key={section.value} value={section.value}>
-                  {section.label}
-                </option>
-              ))}
+              <option value="all">جميع الأرصدة</option>
+              <option value="comparison">مقارنة بمبلغ</option>
+              <option value="range">نطاق مبلغ</option>
+              <option value="category">فئات محددة</option>
             </select>
+          </div>
+
+          {balanceFilterType === 'comparison' && (
+            <>
+              <div className="filter-group">
+                <label>المقارنة</label>
+                <select
+                  value={balanceComparison}
+                  onChange={(e) => setBalanceComparison(e.target.value)}
+                  className="filter-select"
+                >
+                  <option value="greater">أكثر من</option>
+                  <option value="less">أقل من</option>
+                  <option value="equal">يساوي</option>
+                </select>
+              </div>
+              <div className="filter-group">
+                <label>المبلغ</label>
+                <input
+                  type="number"
+                  placeholder="3000"
+                  value={balanceComparisonAmount}
+                  onChange={(e) => setBalanceComparisonAmount(e.target.value)}
+                  className="filter-input"
+                />
+              </div>
+            </>
+          )}
+
+          {balanceFilterType === 'range' && (
+            <>
+              <div className="filter-group">
+                <label>من</label>
+                <input
+                  type="number"
+                  placeholder="1000"
+                  value={balanceRangeFrom}
+                  onChange={(e) => setBalanceRangeFrom(e.target.value)}
+                  className="filter-input"
+                />
+              </div>
+              <div className="filter-group">
+                <label>إلى</label>
+                <input
+                  type="number"
+                  placeholder="5000"
+                  value={balanceRangeTo}
+                  onChange={(e) => setBalanceRangeTo(e.target.value)}
+                  className="filter-input"
+                />
+              </div>
+            </>
+          )}
+
+          {balanceFilterType === 'category' && (
+            <div className="filter-group">
+              <label>الفئة</label>
+              <select
+                value={balanceCategory}
+                onChange={(e) => setBalanceCategory(e.target.value)}
+                className="filter-select"
+              >
+                <option value="all">جميع الفئات</option>
+                <option value="compliant">ملتزمون (≥3000 ريال)</option>
+                <option value="non-compliant">غير ملتزمين (&lt;3000 ريال)</option>
+                <option value="critical">وضع حرج (&lt;1000 ريال)</option>
+                <option value="excellent">ممتاز (≥5000 ريال)</option>
+                <option value="0-500">0 - 500 ريال</option>
+                <option value="500-1000">500 - 1000 ريال</option>
+                <option value="1000-2000">1000 - 2000 ريال</option>
+                <option value="2000-3000">2000 - 3000 ريال</option>
+                <option value="3000-5000">3000 - 5000 ريال</option>
+                <option value="5000+">5000+ ريال</option>
+              </select>
+            </div>
+          )}
+
+          {/* Filter Actions */}
+          <div className="filter-actions">
+            <button
+              className="btn-export excel"
+              onClick={exportToExcel}
+              title="تصدير إلى Excel"
+            >
+              <DocumentArrowDownIcon className="btn-icon-svg" />
+              Excel
+            </button>
+            <button
+              className="btn-export csv"
+              onClick={exportToCSV}
+              title="تصدير إلى CSV"
+            >
+              <ArrowDownTrayIcon className="btn-icon-svg" />
+              CSV
+            </button>
+            {hasActiveFilters() && (
+              <button
+                className="btn-clear-filters"
+                onClick={clearAllFilters}
+                title="مسح جميع الفلاتر"
+              >
+                🗑️ مسح الكل
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -525,7 +854,7 @@ const MemberMonitoringDashboard = () => {
                     <td className="member-name">{member.name}</td>
                     <td className="member-phone">{member.phone}</td>
                     <td className="member-balance">
-                      <span className={`balance ${member.status}`}>
+                      <span className={`balance ${member.status} ${member.balance < 1000 ? 'critical' : ''}`}>
                         {member.balance >= 3000 ? '🟢' : '🔴'} {member.balance.toLocaleString()} ر.س
                       </span>
                       {member.status === 'insufficient' && (
@@ -543,6 +872,49 @@ const MemberMonitoringDashboard = () => {
               </tbody>
             </table>
 
+            {/* Mobile Card View */}
+            <div className="member-cards">
+              {paginatedMembers.map(member => (
+                <div key={member.id} className="member-card">
+                  <div className="member-card-header">
+                    <span className="member-card-id">{member.memberId}</span>
+                    <span className={`member-card-status ${member.status}`}>
+                      {member.balance >= 3000 ? '🟢 ملتزم' : '🔴 غير ملتزم'}
+                    </span>
+                  </div>
+
+                  <div className="member-card-body">
+                    <div className="member-card-name">{member.name}</div>
+
+                    <div className="member-card-info">
+                      <div className="member-card-info-item">
+                        <span className="member-card-info-label">الهاتف:</span>
+                        <span>{member.phone}</span>
+                      </div>
+                      <div className="member-card-info-item">
+                        <span className="member-card-info-label">الفخذ:</span>
+                        <span>{member.tribalSection}</span>
+                      </div>
+                    </div>
+
+                    <div className={`member-card-balance ${member.balance < 1000 ? 'critical' : ''}`}>
+                      {member.balance >= 3000 ? '🟢' : '🔴'} {member.balance.toLocaleString()} ريال
+                    </div>
+
+                    {member.balance < 3000 && (
+                      <div className="member-card-deficit">
+                        نقص: {(3000 - member.balance).toLocaleString()} ريال
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="member-card-actions">
+                    {renderActionButtons(member)}
+                  </div>
+                </div>
+              ))}
+            </div>
+
             {/* Pagination */}
             <div className="pagination-container">
               <div className="page-size-selector">
@@ -558,6 +930,8 @@ const MemberMonitoringDashboard = () => {
                   <option value={10}>10</option>
                   <option value={15}>15</option>
                   <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
                 </select>
                 <span>عضو لكل صفحة</span>
               </div>
