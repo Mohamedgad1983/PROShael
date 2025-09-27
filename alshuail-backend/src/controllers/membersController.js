@@ -12,7 +12,7 @@ export const getAllMembers = async (req, res) => {
     const {
       profile_completed,
       page = 1,
-      limit = 50,
+      limit = 25, // Optimized default limit for better performance
       search,
       status
     } = req.query;

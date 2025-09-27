@@ -35,10 +35,12 @@ const TwoSectionMembers = () => {
   });
   const [pagination, setPagination] = useState({
     page: 1,
-    limit: 10,
+    limit: 25, // Increased from 10 to 25 for better performance
     total: 0,
     totalPages: 0
   });
+  const [paginationLoading, setPaginationLoading] = useState(false); // Separate loading state for pagination
+  const membersCache = useRef(new Map()); // Cache for loaded pages
 
   // Get current user role
   const getUserRole = () => {
@@ -52,10 +54,18 @@ const TwoSectionMembers = () => {
     return role === 'super_admin';
   };
 
-  // Load members when component mounts or filters/pagination change (NOT search)
+  // Load members when component mounts or filters change (NOT search or pagination)
+  useEffect(() => {
+    // Don't trigger on pagination change, handlePageChange will handle it
+    if (pagination.page === 1) {
+      loadMembers();
+    }
+  }, [filters]);
+
+  // Load members on mount
   useEffect(() => {
     loadMembers();
-  }, [filters, pagination.page]);
+  }, []);
 
   // Debounced search - only search after user stops typing for 500ms
   useEffect(() => {
@@ -79,13 +89,32 @@ const TwoSectionMembers = () => {
     };
   }, [searchQuery]);
 
-  const loadMembers = async () => {
+  const loadMembers = async (isPagination = false) => {
     console.log('🔍 Loading members...');
     console.log('API Base URL:', memberService.baseURL);
     console.log('Auth Token:', localStorage.getItem('token') ? 'Present' : 'Missing');
     console.log('User Role:', getUserRole());
 
-    setLoading(true);
+    // Check cache first for pagination
+    const cacheKey = `${pagination.page}-${searchQuery}-${JSON.stringify(filters)}`;
+    if (isPagination && membersCache.current.has(cacheKey)) {
+      console.log('✅ Using cached data for page', pagination.page);
+      const cachedData = membersCache.current.get(cacheKey);
+      setMembers(cachedData.members);
+      setPagination(prev => ({
+        ...prev,
+        total: cachedData.total,
+        totalPages: cachedData.totalPages
+      }));
+      return;
+    }
+
+    // Use different loading state for pagination
+    if (isPagination) {
+      setPaginationLoading(true);
+    } else {
+      setLoading(true);
+    }
     try {
       // Only include non-empty filters
       const searchFilters = {};
@@ -130,6 +159,19 @@ const TwoSectionMembers = () => {
         total: paginationData.total || response.total || 0,
         totalPages: paginationData.pages || response.totalPages || 0
       }));
+
+      // Cache the data for this page
+      membersCache.current.set(cacheKey, {
+        members: membersData,
+        total: paginationData.total || response.total || 0,
+        totalPages: paginationData.pages || response.totalPages || 0
+      });
+
+      // Keep only last 5 pages in cache to avoid memory issues
+      if (membersCache.current.size > 5) {
+        const firstKey = membersCache.current.keys().next().value;
+        membersCache.current.delete(firstKey);
+      }
     } catch (error) {
       console.error('❌ API Error:', error);
       console.error('❌ Error details:', error.message);
@@ -148,6 +190,7 @@ const TwoSectionMembers = () => {
       }));
     } finally {
       setLoading(false);
+      setPaginationLoading(false);
       console.log('✅ Loading complete');
     }
   };
@@ -262,6 +305,10 @@ const TwoSectionMembers = () => {
 
   const handlePageChange = (newPage) => {
     setPagination(prev => ({ ...prev, page: newPage }));
+    // Clear current members to show loading state
+    setMembers([]);
+    // Trigger load with pagination flag
+    loadMembers(true);
   };
 
   const handleMemberAdded = (newMember) => {

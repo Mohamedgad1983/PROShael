@@ -78,7 +78,7 @@ class MemberService {
    * @param {number} limit - Items per page
    * @returns {Promise} Paginated members list
    */
-  async getMembersList(filters = {}, page = 1, limit = 10) {
+  async getMembersList(filters = {}, page = 1, limit = 25) {
     const params = new URLSearchParams({
       page: page.toString(),
       limit: limit.toString(),
