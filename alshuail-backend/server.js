@@ -81,10 +81,22 @@ const limiter = rateLimit({
 app.use('/api', limiter);
 
 // Configure JSON parsing with UTF-8 support for Arabic text
+// JSON parser with better error handling
 app.use(express.json({
   limit: '10mb',
-  type: 'application/json'
+  type: 'application/json',
+  strict: false // Allow non-standard JSON
 }));
+
+// Handle JSON parsing errors
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    console.error('Bad JSON received:', err);
+    return res.status(400).json({ success: false, error: 'Invalid JSON format' });
+  }
+  next();
+});
+
 app.use(express.urlencoded({
   extended: true,
   limit: '10mb'

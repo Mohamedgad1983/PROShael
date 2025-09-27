@@ -173,7 +173,18 @@ export const createMember = async (req, res) => {
 export const updateMember = async (req, res) => {
   try {
     const { id } = req.params;
-    const updateData = req.body;
+    let updateData = {};
+
+    // Try to parse the body safely
+    try {
+      updateData = req.body || {};
+    } catch (parseError) {
+      console.error('❌ Error parsing request body:', parseError);
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid request data format'
+      });
+    }
 
     // Log what data we're receiving
     console.log('📥 Update Member Request - ID:', id);
@@ -213,6 +224,7 @@ export const updateMember = async (req, res) => {
 
     console.log('🔄 Fields to update:', JSON.stringify(fieldsToUpdate, null, 2));
 
+    // Try to update with error handling
     const { data: updatedMember, error } = await supabase
       .from('members')
       .update(fieldsToUpdate)
