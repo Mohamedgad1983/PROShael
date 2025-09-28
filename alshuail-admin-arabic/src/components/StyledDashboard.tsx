@@ -976,9 +976,9 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
   }, []);
 
   const menuItems = [
-    { id: 'monitoring', label: '📊 مراقبة الأعضاء', icon: ChartBarIcon }, // Member Monitoring Dashboard - TOP PRIORITY
+    { id: 'dashboard', label: 'لوحة التحكم', icon: HomeIcon }, // Main Dashboard - FIRST
 
-    { id: 'dashboard', label: 'لوحة التحكم', icon: HomeIcon },
+    { id: 'monitoring', label: '📊 مراقبة الأعضاء', icon: ChartBarIcon }, // Member Monitoring - SECOND
 
     { id: 'statement', label: '📋 البحث عن كشف', icon: DocumentTextIcon }, // Member statement search
 
