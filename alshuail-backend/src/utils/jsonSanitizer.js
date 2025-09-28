@@ -35,21 +35,30 @@ export const prepareUpdateData = (data) => {
     if (field in data) {
       const value = data[field];
 
-      // Special handling for specific fields
-      if (field === 'gender' && value) {
-        // Ensure gender is lowercase
-        result[field] = value.toLowerCase().trim();
-      } else if (field === 'tribal_section' && value) {
-        // Keep tribal_section as-is but trimmed
-        result[field] = value.trim();
-      } else if (value === undefined || value === null || value === '') {
-        // Convert empty values to null
+      // Special handling for date fields
+      if ((field === 'date_of_birth' || field === 'membership_date') &&
+          (value === '' || value === undefined || value === null)) {
         result[field] = null;
-      } else if (typeof value === 'string') {
-        // Trim whitespace but preserve the actual content
+      }
+      // Special handling for gender field
+      else if (field === 'gender' && value) {
+        result[field] = value.toLowerCase().trim();
+      }
+      // Special handling for tribal_section field
+      else if (field === 'tribal_section' && value) {
+        result[field] = value.trim();
+      }
+      // Handle empty strings and null values
+      else if (value === undefined || value === null || value === '') {
+        result[field] = null;
+      }
+      // Handle string values
+      else if (typeof value === 'string') {
         const trimmed = value.trim();
         result[field] = trimmed === '' ? null : trimmed;
-      } else {
+      }
+      // Keep other values as-is
+      else {
         result[field] = value;
       }
     }
