@@ -371,22 +371,24 @@ const TwoSectionMembers = () => {
     const memberToEdit = {
       ...member,
       // Convert null to empty string for form compatibility
-      gender: member.gender ?? '',
-      tribal_section: member.tribal_section ?? '',
-      national_id: member.national_id ?? '',
-      date_of_birth: member.date_of_birth ?? '',
-      city: member.city ?? '',
-      district: member.district ?? '',
-      address: member.address ?? '',
-      occupation: member.occupation ?? '',
-      employer: member.employer ?? '',
-      nationality: member.nationality ?? 'سعودي',
-      notes: member.notes ?? '',
-      email: member.email ?? '',
-      phone: member.phone ?? '',
-      full_name: member.full_name ?? ''
+      gender: member.gender || '',
+      tribal_section: member.tribal_section || '',
+      national_id: member.national_id || '',
+      date_of_birth: member.date_of_birth || '',
+      city: member.city || '',
+      district: member.district || '',
+      address: member.address || '',
+      occupation: member.occupation || '',
+      employer: member.employer || '',
+      nationality: member.nationality || 'سعودي',
+      notes: member.notes || '',
+      email: member.email || '',
+      phone: member.phone || '',
+      full_name: member.full_name || ''
     };
     console.log('🖊️ Opening edit modal with member:', memberToEdit);
+    console.log('Gender value:', memberToEdit.gender);
+    console.log('Tribal section value:', memberToEdit.tribal_section);
     setEditingMember(memberToEdit);
     setActiveEditTab('personal'); // Reset to personal tab when opening
     setShowEditModal(true);
@@ -940,7 +942,8 @@ const TwoSectionMembers = () => {
                         style={{
                           direction: 'rtl',
                           color: editingMember?.tribal_section ? '#1f2937' : '#9ca3af',
-                          fontSize: '15px'
+                          fontSize: '15px',
+                          fontFamily: 'system-ui, -apple-system, Arial, sans-serif'
                         }}
                       >
                         <option value="">اختر الفخذ</option>
@@ -979,7 +982,8 @@ const TwoSectionMembers = () => {
                         style={{
                           direction: 'rtl',
                           color: editingMember?.gender ? '#1f2937' : '#9ca3af',
-                          fontSize: '15px'
+                          fontSize: '15px',
+                          fontFamily: 'system-ui, -apple-system, Arial, sans-serif'
                         }}
                       >
                         <option value="">اختر الجنس</option>

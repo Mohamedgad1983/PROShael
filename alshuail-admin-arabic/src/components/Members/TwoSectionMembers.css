@@ -949,7 +949,7 @@ select.form-input {
   border: 1px solid #D1D5DB;
   border-radius: 8px;
   font-size: 15px;
-  font-family: inherit;
+  font-family: system-ui, -apple-system, Arial, sans-serif;
   width: 100%;
   background-color: white;
   direction: rtl;
@@ -963,10 +963,11 @@ select.form-input {
   background-position: left 10px center;
   background-size: 20px;
   padding-left: 35px;
-  /* Prevent text truncation - show full text */
-  white-space: normal;
-  overflow: visible;
-  text-overflow: clip;
+  /* Fix text display */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.5;
 }
 
 /* Option styling */
