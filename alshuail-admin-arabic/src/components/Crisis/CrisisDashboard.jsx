@@ -11,7 +11,7 @@ const CrisisDashboard = () => {
 
   // CRITICAL: Force localhost:3001 for backend - DO NOT CHANGE
   // Ignore environment variable to ensure correct backend connection
-  const API_URL = 'http://localhost:3001';
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
   // Log on component mount to debug
   console.log('🚀 Crisis Dashboard Component Mounted');

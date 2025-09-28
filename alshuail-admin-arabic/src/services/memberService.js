@@ -8,7 +8,7 @@ import { apiService } from './api.js';
 
 class MemberService {
   constructor() {
-    this.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+    this.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
   }
 
   /**
