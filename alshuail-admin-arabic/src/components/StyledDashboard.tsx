@@ -1335,6 +1335,35 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
     };
   }, [dashboardData]);
 
+  // Tribal sections data with real member counts and balances
+  const tribalSectionsData = useMemo(() => {
+    // Define the 8 tribal sections with mock data (replace with real API data)
+    const tribalData = [
+      { section: 'الدغيش', members: 45, balance: 125000 },
+      { section: 'الرشيد', members: 38, balance: 95000 },
+      { section: 'العتيق', members: 42, balance: 110000 },
+      { section: 'الظاهر', members: 35, balance: 85000 },
+      { section: 'المحمد', members: 40, balance: 102000 },
+      { section: 'السالم', members: 33, balance: 78000 },
+      { section: 'الفهد', members: 36, balance: 92000 },
+      { section: 'العبيد', members: 30, balance: 70000 }
+    ];
+
+    return {
+      labels: tribalData.map(t => t.section),
+      datasets: [{
+        label: 'توزيع الأعضاء حسب الفخذ',
+        data: tribalData.map(t => t.members),
+        backgroundColor: [
+          '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
+          '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
+        ],
+        borderWidth: 2,
+        borderColor: '#fff',
+      }],
+    };
+  }, []);
+
   const memberDistribution = useMemo(() => {
     const members = dashboardData?.members ?? {
       total: 0,
@@ -4340,6 +4369,7 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
                       revenueData={revenueData}
                       memberDistribution={memberDistribution}
                       chartOptions={chartOptions}
+                      tribalSectionsData={tribalSectionsData}
                     />
 
                     <RecentActivities activities={overviewActivities} />
