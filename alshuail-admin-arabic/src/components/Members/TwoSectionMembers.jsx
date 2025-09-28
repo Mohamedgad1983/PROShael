@@ -377,7 +377,6 @@ const TwoSectionMembers = () => {
       national_id: member.national_id || '',
       date_of_birth: member.date_of_birth || '',
       city: member.city || '',
-      district: member.district || '',
       address: member.address || '',
       occupation: member.occupation || '',
       employer: member.employer || '',
@@ -441,9 +440,8 @@ const TwoSectionMembers = () => {
         date_of_birth: editingMember.date_of_birth,
         gender: editingMember.gender,
         nationality: editingMember.nationality || 'سعودي',
-        // Address fields
+        // Address fields (removed district as it doesn't exist in DB)
         city: editingMember.city,
-        district: editingMember.district,
         address: editingMember.address,
         employer: editingMember.employer,
         occupation: editingMember.occupation,

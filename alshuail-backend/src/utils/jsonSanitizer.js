@@ -21,11 +21,12 @@ export const sanitizeJSON = (data) => {
 export const prepareUpdateData = (data) => {
   const result = {};
 
-  // List of valid fields
+  // List of valid fields that exist in the database
+  // Removed 'district' as it doesn't exist in the schema
   const validFields = [
     'full_name', 'phone', 'email', 'national_id', 'gender',
     'tribal_section', 'date_of_birth', 'nationality', 'city',
-    'district', 'address', 'occupation', 'employer',
+    'address', 'occupation', 'employer',
     'membership_status', 'membership_type', 'membership_date',
     'membership_number', 'notes', 'profile_completed'
   ];
