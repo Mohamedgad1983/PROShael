@@ -21,6 +21,7 @@ import crisisRoutes from './src/routes/crisis.js';
 import statementRoutes from './src/routes/statementRoutes.js';
 import memberStatementRoutes from './src/routes/memberStatementRoutes.js';
 import memberMonitoringRoutes from './src/routes/memberMonitoring.js';
+import documentsRoutes from './routes/documents.js';
 
 dotenv.config();
 
@@ -127,6 +128,7 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/crisis', crisisRoutes);
 app.use('/api/statements', statementRoutes);
 app.use('/api/member-statement', memberStatementRoutes);
+app.use('/api/documents', documentsRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({

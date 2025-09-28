@@ -18,6 +18,7 @@ import {
   XMarkIcon,
   ChevronLeftIcon,
   BellIcon,
+  FolderIcon,
 } from '@heroicons/react/24/outline';
 
 // @ts-ignore
@@ -73,6 +74,8 @@ import MemberStatementSearch from './MemberStatement/MemberStatementSearch.jsx';
 // @ts-ignore
 
 import MemberMonitoringDashboard from './MemberMonitoring/MemberMonitoringDashboard.jsx';
+// @ts-ignore
+import DocumentManager from './Documents/DocumentManager.jsx';
 
 import {
   formatHijriDate,
@@ -981,6 +984,8 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
     { id: 'monitoring', label: '📊 مراقبة الأعضاء', icon: ChartBarIcon }, // Member Monitoring - SECOND
 
     { id: 'statement', label: '📋 البحث عن كشف', icon: DocumentTextIcon }, // Member statement search
+
+    { id: 'documents', label: '📁 المستندات', icon: FolderIcon }, // Document Management
 
     { id: 'members', label: 'الأعضاء', icon: UsersIcon },
 
@@ -4432,6 +4437,9 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
 
                 {/* Member Monitoring Dashboard */}
                 {activeSection === 'monitoring' && <MemberMonitoringDashboard />}
+
+                {/* Document Management */}
+                {activeSection === 'documents' && <DocumentManager />}
               </>
             )}
           </div>
