@@ -208,6 +208,29 @@ export const updateMember = async (req, res) => {
 
     if (error) {
       console.error('❌ Supabase update error:', error);
+      console.error('Error details:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        fieldsAttempted: fieldsToUpdate
+      });
+
+      // Provide more specific error messages
+      if (error.code === '23505') {
+        return res.status(409).json({
+          success: false,
+          error: 'البيانات المدخلة موجودة مسبقاً (مكررة)'
+        });
+      }
+
+      if (error.code === '22P02' || error.code === '22001') {
+        return res.status(400).json({
+          success: false,
+          error: 'البيانات المدخلة غير صحيحة أو طويلة جداً'
+        });
+      }
+
       throw new Error(`Database error: ${error.message}`);
     }
 

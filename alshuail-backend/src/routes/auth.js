@@ -10,7 +10,7 @@ if (!process.env.JWT_SECRET) {
   console.warn('⚠️  WARNING: JWT_SECRET not set in environment. Using fallback for development.');
 }
 
-const ADMIN_TOKEN_TTL = process.env.ADMIN_JWT_TTL || '12h';
+const ADMIN_TOKEN_TTL = process.env.ADMIN_JWT_TTL || '7d';  // Extended from 12h to 7 days
 const MEMBER_TOKEN_TTL = process.env.MEMBER_JWT_TTL || '30d';
 const allowTestMemberLogin = process.env.ALLOW_TEST_MEMBER_LOGINS === 'true';
 
@@ -470,20 +470,98 @@ router.post('/verify', async (req, res) => {
     if (!token) {
       return res.status(401).json({
         success: false,
-        error: '??? ??????? ?????'
+        error: 'رمز المصادقة مطلوب'
       });
     }
 
     const decoded = jwt.verify(token, JWT_SECRET);
 
+    // Check if token is about to expire (within 24 hours)
+    const now = Date.now() / 1000;
+    const timeUntilExpiry = decoded.exp - now;
+    const oneDayInSeconds = 24 * 60 * 60;
+
+    let newToken = null;
+    if (timeUntilExpiry < oneDayInSeconds) {
+      // Token expires within 24 hours, issue a new one
+      const tokenPayload = {
+        id: decoded.id,
+        email: decoded.email,
+        phone: decoded.phone,
+        role: decoded.role,
+        permissions: decoded.permissions,
+        membershipNumber: decoded.membershipNumber,
+        fullName: decoded.fullName
+      };
+
+      const ttl = decoded.role === 'member' ? MEMBER_TOKEN_TTL : ADMIN_TOKEN_TTL;
+      newToken = signToken(tokenPayload, { expiresIn: ttl });
+    }
+
     return res.json({
       success: true,
+      user: decoded,
+      newToken: newToken // Will be null if token doesn't need refresh
+    });
+  } catch (error) {
+    return res.status(401).json({
+      success: false,
+      error: 'رمز المصادقة غير صالح'
+    });
+  }
+});
+
+// Add refresh endpoint
+router.post('/refresh', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        error: 'رمز المصادقة مطلوب'
+      });
+    }
+
+    // Verify the token (even if expired, we can still decode it)
+    let decoded;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET);
+    } catch (error) {
+      // If token is expired but otherwise valid, decode without verification
+      if (error.name === 'TokenExpiredError') {
+        decoded = jwt.decode(token);
+        if (!decoded) {
+          throw new Error('Invalid token');
+        }
+      } else {
+        throw error;
+      }
+    }
+
+    // Generate new token with same payload
+    const tokenPayload = {
+      id: decoded.id,
+      email: decoded.email,
+      phone: decoded.phone,
+      role: decoded.role,
+      permissions: decoded.permissions,
+      membershipNumber: decoded.membershipNumber,
+      fullName: decoded.fullName
+    };
+
+    const ttl = decoded.role === 'member' ? MEMBER_TOKEN_TTL : ADMIN_TOKEN_TTL;
+    const newToken = signToken(tokenPayload, { expiresIn: ttl });
+
+    return res.json({
+      success: true,
+      token: newToken,
       user: decoded
     });
   } catch (error) {
     return res.status(401).json({
       success: false,
-      error: '??? ??????? ??? ????'
+      error: 'فشل تجديد رمز المصادقة'
     });
   }
 });

@@ -87,6 +87,22 @@ export const AuthProvider = ({ children }) => {
       });
 
       if (!response.ok) {
+        // Try to refresh the token before giving up
+        const refreshResponse = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${storedToken}`
+          }
+        });
+
+        if (refreshResponse.ok) {
+          const refreshData = await refreshResponse.json();
+          if (refreshData.success && refreshData.token) {
+            persistSession(refreshData.token, refreshData.user || parsedUser);
+            return;
+          }
+        }
+
         clearSession();
         return;
       }
@@ -94,7 +110,12 @@ export const AuthProvider = ({ children }) => {
       const verification = await response.json();
       const verifiedUser = verification?.user ? { ...parsedUser, ...verification.user } : parsedUser;
 
-      persistSession(storedToken, verifiedUser);
+      // If server sent a new token (auto-refresh), use it
+      if (verification.newToken) {
+        persistSession(verification.newToken, verifiedUser);
+      } else {
+        persistSession(storedToken, verifiedUser);
+      }
     } catch (error) {
       console.error('Auth status check failed:', error);
       clearSession();
@@ -105,7 +126,16 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     checkAuthStatus();
-  }, []);
+
+    // Set up periodic auth check every 30 minutes
+    const interval = setInterval(() => {
+      if (isAuthenticated) {
+        checkAuthStatus();
+      }
+    }, 30 * 60 * 1000); // 30 minutes
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
 
   const authenticate = async (endpoint, payload) => {
     setLoading(true);

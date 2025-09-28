@@ -50,12 +50,10 @@
       "Bash(tasklist:*)",
       "Bash(start http://localhost:3002/login)",
       "Bash(npm test:*)",
-      "mcp__filesystem__read_text_file",
       "Bash(git log:*)",
       "Bash(test:*)",
       "WebFetch(domain:alshuail-admin.pages.dev)",
       "Bash(npm run:*)",
-      "mcp__filesystem__edit_file",
       "Bash(set PORT=5001)",
       "Bash(set PORT=3002)",
       "WebSearch",
@@ -63,7 +61,12 @@
       "Bash(start test-member-monitoring-production.html)",
       "Bash(start https://alshuail-admin.pages.dev)",
       "Bash(gh workflow view:*)",
-      "Bash(start https://github.com/Mohamedgad1983/PROShael/actions)"
+      "Bash(start https://github.com/Mohamedgad1983/PROShael/actions)",
+      "Bash(uvx:*)",
+      "Bash(claude doctor)",
+      "Bash(npx:*)",
+      "Bash(npm:*)",
+      "Bash(git reset:*)"
     ],
     "deny": [],
     "ask": []
