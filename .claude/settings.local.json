@@ -68,7 +68,8 @@
       "Bash(npm:*)",
       "Bash(git reset:*)",
       "Bash(start https://alshuail-admin.pages.dev/login)",
-      "Bash(start https://dashboard.render.com/)"
+      "Bash(start https://dashboard.render.com/)",
+      "Bash(set REACT_APP_API_URL=https://proshael.onrender.com)"
     ],
     "deny": [],
     "ask": []

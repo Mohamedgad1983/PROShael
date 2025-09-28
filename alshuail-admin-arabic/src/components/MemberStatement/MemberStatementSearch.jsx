@@ -176,7 +176,7 @@ const MemberStatementSearch = () => {
           payments.push({
             year: 2021 + i,
             amount: 600,
-            payment_date: `2${021 + i}-06-15`,
+            payment_date: `${2021 + i}-06-15`,
             receipt_number: `RCP-${2021 + i}-${member.member_no}`,
             payment_method: 'بنك الراجحي'
           });
@@ -187,7 +187,7 @@ const MemberStatementSearch = () => {
           payments.push({
             year: 2021 + yearsWithPayment,
             amount: remainder,
-            payment_date: `2${021 + yearsWithPayment}-06-15`,
+            payment_date: `${2021 + yearsWithPayment}-06-15`,
             receipt_number: `RCP-${2021 + yearsWithPayment}-${member.member_no}`,
             payment_method: 'تحويل بنكي'
           });
