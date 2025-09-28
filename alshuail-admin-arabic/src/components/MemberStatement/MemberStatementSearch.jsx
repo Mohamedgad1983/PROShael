@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { MagnifyingGlassIcon, PhoneIcon, UserIcon, PrinterIcon, DocumentArrowDownIcon, HomeIcon, CalendarIcon, CurrencyDollarIcon, CheckCircleIcon, XCircleIcon, ClockIcon } from '@heroicons/react/24/outline';
-import { supabase } from '../../config/supabaseClient';
+// Using API instead of direct Supabase connection
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -32,34 +32,36 @@ const MemberStatementSearch = () => {
     setError('');
 
     try {
-      // Search using Supabase directly
-      const { data, error: supabaseError } = await supabase
-        .from('members')
-        .select('id, member_no, full_name, phone, tribal_section, balance')
-        .or(`member_no.ilike.%${query}%,full_name.ilike.%${query}%,phone.ilike.%${query}%`)
-        .limit(10);
-
-      if (supabaseError) {
-        console.error('Supabase search error:', supabaseError);
-        // Fallback to API if Supabase fails
-        const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
-        const response = await fetch(
-          `${API_URL}/api/member-statement/search?query=${encodeURIComponent(query)}`
-        );
-
-        if (!response.ok) {
-          throw new Error('فشل البحث');
+      // Use API for search
+      const API_URL = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
+      const token = localStorage.getItem('token');
+      const response = await fetch(
+        `${API_URL}/api/members?search=${encodeURIComponent(query)}&limit=10`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
         }
+      );
 
-        const apiData = await response.json();
-        if (apiData.success) {
-          setSearchResults(apiData.results || []);
-        } else {
-          throw new Error(apiData.message || 'حدث خطأ أثناء البحث');
-        }
-      } else {
-        setSearchResults(data || []);
+      if (!response.ok) {
+        throw new Error('فشل البحث');
       }
+
+      const apiData = await response.json();
+      const members = apiData.data || apiData.members || [];
+
+      // Transform data to expected format
+      const results = members.map(m => ({
+        id: m.id,
+        member_no: m.membership_number || m.member_no,
+        full_name: m.full_name,
+        phone: m.phone,
+        tribal_section: m.tribal_section,
+        balance: m.balance || 0
+      }));
+
+      setSearchResults(results);
       setShowAutoComplete(true);
     } catch (error) {
       console.error('Search error:', error);
@@ -119,12 +121,13 @@ const MemberStatementSearch = () => {
     setError('');
 
     try {
-      // Get payment history from payments_yearly table
-      const { data: payments, error: paymentsError } = await supabase
-        .from('payments_yearly')
-        .select('*')
-        .eq('member_id', member.id)
-        .order('year', { ascending: true });
+      // Use mock data for now - will be replaced with API call
+      const payments = [];
+      const paymentsError = null;
+
+      // TODO: Replace with API call to get payment history
+      // const API_URL = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
+      // const response = await fetch(`${API_URL}/api/payments/member/${member.id}/yearly`);
 
       if (paymentsError && paymentsError.code !== 'PGRST116') {
         console.error('Payments fetch error:', paymentsError);
