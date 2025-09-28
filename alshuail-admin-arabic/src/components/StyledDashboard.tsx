@@ -1356,10 +1356,15 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
         data: tribalData.map(t => t.members),
         backgroundColor: [
           '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
-          '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
+          '#9966FF', '#FF9F40', '#FF6B6B', '#66D9EF'
         ],
-        borderWidth: 2,
+        hoverBackgroundColor: [
+          '#FF6384CC', '#36A2EBCC', '#FFCE56CC', '#4BC0C0CC',
+          '#9966FFCC', '#FF9F40CC', '#FF6B6BCC', '#66D9EFCC'
+        ],
+        borderWidth: 3,
         borderColor: '#fff',
+        hoverBorderWidth: 4,
       }],
     };
   }, []);
