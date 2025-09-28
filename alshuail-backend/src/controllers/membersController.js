@@ -189,13 +189,21 @@ export const updateMember = async (req, res) => {
     const cleanedData = {};
     Object.keys(updateData).forEach(key => {
       const value = updateData[key];
+
+      // Handle date fields - convert empty strings to null
+      if ((key === 'date_of_birth' || key === 'membership_date') &&
+          (value === '' || value === undefined)) {
+        cleanedData[key] = null;
+      }
       // Handle special cases for gender and tribal_section
-      if (key === 'gender' && value) {
+      else if (key === 'gender' && value) {
         cleanedData[key] = value.toLowerCase().trim();
       } else if (key === 'tribal_section' && value) {
         cleanedData[key] = value.trim();
-      } else if (value !== undefined && value !== null) {
+      } else if (value !== undefined && value !== null && value !== '') {
         cleanedData[key] = typeof value === 'string' ? value.trim() : value;
+      } else {
+        cleanedData[key] = null;
       }
     });
 
