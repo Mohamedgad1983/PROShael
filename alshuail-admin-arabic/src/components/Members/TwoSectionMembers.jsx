@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { memberService } from '../../services/memberService';
 import PremiumRegistration from '../Registration/PremiumRegistration';
 import CompactAddMember from './CompactAddMember';
+import ArabicSelect from './ArabicSelect';
 import './TwoSectionMembers.css';
 import {
   MagnifyingGlassIcon,
@@ -928,35 +929,27 @@ const TwoSectionMembers = () => {
                       />
                     </div>
 
-                    <div className="form-group">
-                      <label>الفخذ</label>
-                      <select
-                        id="tribal_section"
-                        name="tribal_section"
-                        value={editingMember?.tribal_section || ''}
-                        onChange={(e) => {
-                          console.log('Tribal section changed to:', e.target.value);
-                          handleEditChange('tribal_section', e.target.value);
-                        }}
-                        className="form-input"
-                        style={{
-                          direction: 'rtl',
-                          color: editingMember?.tribal_section ? '#1f2937' : '#9ca3af',
-                          fontSize: '15px',
-                          fontFamily: 'system-ui, -apple-system, Arial, sans-serif'
-                        }}
-                      >
-                        <option value="">اختر الفخذ</option>
-                        <option value="الدغيش">الدغيش</option>
-                        <option value="الرشيد">الرشيد</option>
-                        <option value="الشبيعان">الشبيعان</option>
-                        <option value="العيد">العيد</option>
-                        <option value="المسعود">المسعود</option>
-                        <option value="رشود">رشود</option>
-                        <option value="رشيد">رشيد</option>
-                        <option value="عقاب">عقاب</option>
-                      </select>
-                    </div>
+                    <ArabicSelect
+                      label="الفخذ"
+                      id="tribal_section"
+                      name="tribal_section"
+                      value={editingMember?.tribal_section || ''}
+                      onChange={(e) => {
+                        console.log('Tribal section changed to:', e.target.value);
+                        handleEditChange('tribal_section', e.target.value);
+                      }}
+                      placeholder="اختر الفخذ"
+                      options={[
+                        { value: 'الدغيش', label: 'الدغيش' },
+                        { value: 'الرشيد', label: 'الرشيد' },
+                        { value: 'الشبيعان', label: 'الشبيعان' },
+                        { value: 'العيد', label: 'العيد' },
+                        { value: 'المسعود', label: 'المسعود' },
+                        { value: 'رشود', label: 'رشود' },
+                        { value: 'رشيد', label: 'رشيد' },
+                        { value: 'عقاب', label: 'عقاب' }
+                      ]}
+                    />
 
                     <div className="form-group">
                       <label>تاريخ الميلاد</label>
@@ -968,29 +961,21 @@ const TwoSectionMembers = () => {
                       />
                     </div>
 
-                    <div className="form-group">
-                      <label>الجنس</label>
-                      <select
-                        id="gender"
-                        name="gender"
-                        value={editingMember?.gender || ''}
-                        onChange={(e) => {
-                          console.log('Gender changed to:', e.target.value);
-                          handleEditChange('gender', e.target.value);
-                        }}
-                        className="form-input"
-                        style={{
-                          direction: 'rtl',
-                          color: editingMember?.gender ? '#1f2937' : '#9ca3af',
-                          fontSize: '15px',
-                          fontFamily: 'system-ui, -apple-system, Arial, sans-serif'
-                        }}
-                      >
-                        <option value="">اختر الجنس</option>
-                        <option value="male">ذكر</option>
-                        <option value="female">أنثى</option>
-                      </select>
-                    </div>
+                    <ArabicSelect
+                      label="الجنس"
+                      id="gender"
+                      name="gender"
+                      value={editingMember?.gender || ''}
+                      onChange={(e) => {
+                        console.log('Gender changed to:', e.target.value);
+                        handleEditChange('gender', e.target.value);
+                      }}
+                      placeholder="اختر الجنس"
+                      options={[
+                        { value: 'male', label: 'ذكر' },
+                        { value: 'female', label: 'أنثى' }
+                      ]}
+                    />
 
                     <div className="form-group">
                       <label>رقم الهوية الوطنية</label>
