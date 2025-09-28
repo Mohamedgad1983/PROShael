@@ -453,11 +453,21 @@ const TwoSectionMembers = () => {
         notes: editingMember.notes
       };
 
-      // Simple data cleaning - just ensure no undefined values
+      // Simple data cleaning - REMOVE empty date fields completely
       const cleanedData = {};
       Object.keys(updateData).forEach(key => {
         const value = updateData[key];
-        cleanedData[key] = value === undefined || value === null ? '' : value;
+
+        // For date fields, don't include them if they're empty
+        if (key === 'date_of_birth' || key === 'membership_date') {
+          if (value && value !== '') {
+            cleanedData[key] = value;
+          }
+          // Don't add the field at all if it's empty
+        } else {
+          // For other fields, convert null/undefined to empty string
+          cleanedData[key] = value === undefined || value === null ? '' : value;
+        }
       });
 
       console.log('📤 Sending data to backend:', JSON.stringify(cleanedData, null, 2));
