@@ -190,10 +190,11 @@ export const updateMember = async (req, res) => {
     Object.keys(updateData).forEach(key => {
       const value = updateData[key];
 
-      // Handle date fields - convert empty strings to null
+      // Handle date fields - REMOVE them if empty instead of setting to null
       if ((key === 'date_of_birth' || key === 'membership_date')) {
         if (value === '' || value === undefined || value === null) {
-          cleanedData[key] = null;
+          // Don't include empty date fields in the update at all
+          return;
         } else {
           cleanedData[key] = value;
         }

@@ -35,10 +35,11 @@ export const prepareUpdateData = (data) => {
     if (field in data) {
       const value = data[field];
 
-      // Special handling for date fields
+      // Special handling for date fields - SKIP empty dates entirely
       if (field === 'date_of_birth' || field === 'membership_date') {
         if (value === '' || value === undefined || value === null) {
-          result[field] = null;
+          // Don't include empty date fields in the result at all
+          return; // Use return instead of continue in forEach
         } else {
           // Keep valid date values as-is
           result[field] = value;
