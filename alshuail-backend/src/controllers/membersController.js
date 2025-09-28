@@ -191,9 +191,12 @@ export const updateMember = async (req, res) => {
       const value = updateData[key];
 
       // Handle date fields - convert empty strings to null
-      if ((key === 'date_of_birth' || key === 'membership_date') &&
-          (value === '' || value === undefined)) {
-        cleanedData[key] = null;
+      if ((key === 'date_of_birth' || key === 'membership_date')) {
+        if (value === '' || value === undefined || value === null) {
+          cleanedData[key] = null;
+        } else {
+          cleanedData[key] = value;
+        }
       }
       // Handle special cases for gender and tribal_section
       else if (key === 'gender' && value) {
@@ -223,31 +226,12 @@ export const updateMember = async (req, res) => {
     }
 
     // Try to update with error handling
-    // Use the safe update function if date fields are present
-    let updatedMember, error;
-
-    if (fieldsToUpdate.date_of_birth !== undefined || fieldsToUpdate.membership_date !== undefined) {
-      // Use the safe function for updates with date fields
-      const { data: functionResult, error: functionError } = await supabase
-        .rpc('update_member_with_safe_dates', {
-          p_id: id,
-          p_data: fieldsToUpdate
-        });
-
-      updatedMember = functionResult;
-      error = functionError;
-    } else {
-      // Regular update for non-date fields
-      const result = await supabase
-        .from('members')
-        .update(fieldsToUpdate)
-        .eq('id', id)
-        .select()
-        .single();
-
-      updatedMember = result.data;
-      error = result.error;
-    }
+    const { data: updatedMember, error } = await supabase
+      .from('members')
+      .update(fieldsToUpdate)
+      .eq('id', id)
+      .select()
+      .single();
 
     if (error) {
       console.error('❌ Supabase update error:', error);
