@@ -34,8 +34,15 @@ export const prepareUpdateData = (data) => {
     if (field in data) {
       const value = data[field];
 
-      // Handle null or undefined - convert to null for database (not empty string)
-      if (value === undefined || value === null || value === '') {
+      // Special handling for specific fields
+      if (field === 'gender' && value) {
+        // Ensure gender is lowercase
+        result[field] = value.toLowerCase().trim();
+      } else if (field === 'tribal_section' && value) {
+        // Keep tribal_section as-is but trimmed
+        result[field] = value.trim();
+      } else if (value === undefined || value === null || value === '') {
+        // Convert empty values to null
         result[field] = null;
       } else if (typeof value === 'string') {
         // Trim whitespace but preserve the actual content

@@ -42,13 +42,30 @@ class MemberService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        console.error('API Error Response:', errorData);
+
+        // Return error data instead of throwing for better handling
+        return {
+          success: false,
+          error: errorData.error || errorData.message || `HTTP error! status: ${response.status}`,
+          status: response.status
+        };
       }
 
-      return await response.json();
+      const data = await response.json();
+
+      // Ensure we have a success field
+      if (!('success' in data)) {
+        data.success = true;
+      }
+
+      return data;
     } catch (error) {
       console.error('API Error:', error);
-      throw error;
+      return {
+        success: false,
+        error: error.message || 'Network error'
+      };
     }
   }
 

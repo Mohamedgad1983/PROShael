@@ -185,8 +185,24 @@ export const updateMember = async (req, res) => {
 
     console.log('✅ Update data received:', JSON.stringify(updateData, null, 2));
 
+    // Clean and validate the data before preparing
+    const cleanedData = {};
+    Object.keys(updateData).forEach(key => {
+      const value = updateData[key];
+      // Handle special cases for gender and tribal_section
+      if (key === 'gender' && value) {
+        cleanedData[key] = value.toLowerCase().trim();
+      } else if (key === 'tribal_section' && value) {
+        cleanedData[key] = value.trim();
+      } else if (value !== undefined && value !== null) {
+        cleanedData[key] = typeof value === 'string' ? value.trim() : value;
+      }
+    });
+
+    console.log('🧹 Cleaned data:', JSON.stringify(cleanedData, null, 2));
+
     // Use our utility to prepare the update data
-    const fieldsToUpdate = prepareUpdateData(updateData);
+    const fieldsToUpdate = prepareUpdateData(cleanedData);
 
     console.log('🔄 Prepared fields to update:', JSON.stringify(fieldsToUpdate, null, 2));
 
@@ -251,9 +267,23 @@ export const updateMember = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Update failed:', error);
-    res.status(500).json({
+    console.error('Full error object:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+
+    // Send a more detailed error response for debugging
+    const errorMessage = error.message || 'فشل في تحديث بيانات العضو';
+    const statusCode = error.status || 500;
+
+    res.status(statusCode).json({
       success: false,
-      error: error.message || 'فشل في تحديث بيانات العضو'
+      error: errorMessage,
+      details: process.env.NODE_ENV === 'development' ? {
+        message: error.message,
+        stack: error.stack
+      } : undefined
     });
   }
 };
