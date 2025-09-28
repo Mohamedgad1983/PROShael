@@ -1335,21 +1335,21 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
     };
   }, [dashboardData]);
 
-  // Tribal sections data - accurately calculated from monitoring system logic
+  // REAL tribal sections data from Excel/Supabase analysis (289 actual members)
   const tribalSectionsData = useMemo(() => {
-    // Based on monitoring dashboard: 288 members distributed by i % 8
-    // Each section gets exactly 36 members (288 / 8 = 36)
-    // Balance ranges from 0-5000 SAR randomly, avg ~2500 SAR per member
+    // Data extracted from AlShuail_Members_Prefilled_Import.xlsx
+    // Total: 289 members with 397,040 SAR total balance
+    // WARNING: Highly imbalanced distribution - رشود has 59.5% of all members!
 
     const tribalData = [
-      { section: 'رشود', members: 36, balance: 108000 },      // 36 * 3000 avg (higher performers)
-      { section: 'الدغيش', members: 36, balance: 97200 },     // 36 * 2700 avg
-      { section: 'رشيد', members: 36, balance: 93600 },       // 36 * 2600 avg
-      { section: 'العيد', members: 36, balance: 90000 },       // 36 * 2500 avg (median)
-      { section: 'الرشيد', members: 36, balance: 86400 },      // 36 * 2400 avg
-      { section: 'الشبيعان', members: 36, balance: 82800 },   // 36 * 2300 avg
-      { section: 'المسعود', members: 36, balance: 79200 },    // 36 * 2200 avg
-      { section: 'عقاب', members: 36, balance: 72000 }        // 36 * 2000 avg (needs attention)
+      { section: 'رشود', members: 172, balance: 244190 },    // 59.5% of members! Dominant tribe
+      { section: 'رشيد', members: 36, balance: 48250 },      // 12.5% of members
+      { section: 'الدغيش', members: 45, balance: 47650 },    // 15.6% of members
+      { section: 'العيد', members: 14, balance: 29100 },      // 4.8% - Highest avg balance
+      { section: 'الرشيد', members: 12, balance: 18300 },     // 4.2% of members
+      { section: 'الشبيعان', members: 5, balance: 4250 },    // 1.7% - Small tribe
+      { section: 'المسعود', members: 4, balance: 3950 },     // 1.4% - Very small
+      { section: 'عقاب', members: 1, balance: 1350 }         // 0.3% - Only 1 member!
     ];
 
     // Sort by balance for color coding (highest balance gets best color)
