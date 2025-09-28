@@ -16,38 +16,52 @@ const OverviewCharts: React.FC<OverviewChartsProps> = ({ revenueData, memberDist
       <div style={{
         ...styles.chartCard,
         width: '100%',
-        maxWidth: '800px',
+        maxWidth: '600px',
         margin: '0 auto',
-        height: '450px',
-        background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(248,250,252,0.95) 100%)',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+        height: '500px',
+        background: 'linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.98) 100%)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
+        borderRadius: '20px',
+        padding: '30px',
       }}>
         <h3 style={{
-          fontSize: '22px',
-          marginBottom: '1.5rem',
+          fontSize: '24px',
+          marginBottom: '1rem',
           textAlign: 'center',
           color: '#1e293b',
-          fontWeight: '600'
+          fontWeight: '600',
+          fontFamily: 'Cairo, -apple-system, BlinkMacSystemFont, sans-serif'
         }}>
-          توزيع الأعضاء حسب الفخذ
+          توزيع الأرصدة حسب الفخذ
         </h3>
-        <div style={{ height: 'calc(100% - 60px)', position: 'relative', padding: '0 20px' }}>
+        <div style={{ height: 'calc(100% - 50px)', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Pie
             data={tribalSectionsData}
             options={{
               ...chartOptions,
-              maintainAspectRatio: true,
+              maintainAspectRatio: false,
               responsive: true,
+              layout: {
+                padding: {
+                  top: 20,
+                  bottom: 20,
+                  left: 20,
+                  right: 20
+                }
+              },
               plugins: {
                 ...chartOptions.plugins,
                 legend: {
-                  ...chartOptions.plugins?.legend,
-                  position: 'bottom',
+                  display: true,
+                  position: 'right',
+                  align: 'center',
                   labels: {
-                    padding: 15,
+                    padding: 12,
+                    usePointStyle: true,
+                    pointStyle: 'circle',
                     font: {
-                      family: 'Cairo, sans-serif',
-                      size: 14,
+                      family: '-apple-system, BlinkMacSystemFont, Cairo, sans-serif',
+                      size: 13,
                       weight: '500'
                     },
                     generateLabels: function(chart: any) {
@@ -58,11 +72,12 @@ const OverviewCharts: React.FC<OverviewChartsProps> = ({ revenueData, memberDist
                           const value = dataset.data[i];
                           const total = dataset.data.reduce((a: number, b: number) => a + b, 0);
                           const percentage = ((value / total) * 100).toFixed(1);
+                          const formattedValue = (value / 1000).toFixed(0);
                           return {
-                            text: `${label} (${value} - ${percentage}%)`,
+                            text: `${label}: ${formattedValue}k SAR`,
                             fillStyle: dataset.backgroundColor[i],
                             strokeStyle: dataset.borderColor || '#fff',
-                            lineWidth: dataset.borderWidth || 1,
+                            lineWidth: 2,
                             hidden: false,
                             index: i
                           };
@@ -73,13 +88,26 @@ const OverviewCharts: React.FC<OverviewChartsProps> = ({ revenueData, memberDist
                   }
                 },
                 tooltip: {
+                  backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                  titleFont: {
+                    family: '-apple-system, BlinkMacSystemFont, Cairo, sans-serif',
+                    size: 14,
+                    weight: 'bold'
+                  },
+                  bodyFont: {
+                    family: '-apple-system, BlinkMacSystemFont, Cairo, sans-serif',
+                    size: 13
+                  },
+                  padding: 12,
+                  cornerRadius: 8,
                   callbacks: {
                     label: function(context: any) {
                       const label = context.label || '';
                       const value = context.parsed || 0;
                       const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0);
                       const percentage = ((value / total) * 100).toFixed(1);
-                      return `${label}: ${value} عضو (${percentage}%)`;
+                      const formattedValue = value.toLocaleString('ar-SA');
+                      return [`${label}`, `الرصيد: ${formattedValue} ريال`, `النسبة: ${percentage}%`];
                     }
                   }
                 }

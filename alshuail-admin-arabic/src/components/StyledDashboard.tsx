@@ -1340,32 +1340,49 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
     // Define the 8 tribal sections with mock data (replace with real API data)
     const tribalData = [
       { section: 'الدغيش', members: 45, balance: 125000 },
-      { section: 'الرشيد', members: 38, balance: 95000 },
       { section: 'العتيق', members: 42, balance: 110000 },
-      { section: 'الظاهر', members: 35, balance: 85000 },
       { section: 'المحمد', members: 40, balance: 102000 },
-      { section: 'السالم', members: 33, balance: 78000 },
+      { section: 'الرشيد', members: 38, balance: 95000 },
       { section: 'الفهد', members: 36, balance: 92000 },
+      { section: 'الظاهر', members: 35, balance: 85000 },
+      { section: 'السالم', members: 33, balance: 78000 },
       { section: 'العبيد', members: 30, balance: 70000 }
     ];
 
+    // Sort by balance for color coding (highest balance gets best color)
+    const sortedData = [...tribalData].sort((a, b) => b.balance - a.balance);
+
+    // Apple-style gradient colors based on balance
+    const appleColors = sortedData.map((_, index) => {
+      const ratio = index / (sortedData.length - 1);
+      if (ratio < 0.25) {
+        // Highest balances - Deep green (Apple success)
+        return `rgba(52, 199, 89, ${0.9})`;  // Apple green
+      } else if (ratio < 0.5) {
+        // Medium-high - Blue (Apple blue)
+        return `rgba(0, 122, 255, ${0.9})`;  // Apple blue
+      } else if (ratio < 0.75) {
+        // Medium-low - Orange (Apple warning)
+        return `rgba(255, 149, 0, ${0.9})`;  // Apple orange
+      } else {
+        // Lowest balances - Red (Apple danger)
+        return `rgba(255, 59, 48, ${0.9})`;  // Apple red
+      }
+    });
+
     return {
-      labels: tribalData.map(t => t.section),
+      labels: sortedData.map(t => `${t.section}`),
       datasets: [{
-        label: 'توزيع الأعضاء حسب الفخذ',
-        data: tribalData.map(t => t.members),
-        backgroundColor: [
-          '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
-          '#9966FF', '#FF9F40', '#FF6B6B', '#66D9EF'
-        ],
-        hoverBackgroundColor: [
-          '#FF6384CC', '#36A2EBCC', '#FFCE56CC', '#4BC0C0CC',
-          '#9966FFCC', '#FF9F40CC', '#FF6B6BCC', '#66D9EFCC'
-        ],
-        borderWidth: 3,
-        borderColor: '#fff',
-        hoverBorderWidth: 4,
+        label: 'الأرصدة بالريال',
+        data: sortedData.map(t => t.balance),
+        backgroundColor: appleColors,
+        hoverBackgroundColor: appleColors.map(color => color.replace('0.9', '1')),
+        borderWidth: 2,
+        borderColor: '#ffffff',
+        hoverBorderWidth: 3,
+        hoverBorderColor: '#ffffff',
       }],
+      sortedData: sortedData // Keep this for tooltip
     };
   }, []);
 
