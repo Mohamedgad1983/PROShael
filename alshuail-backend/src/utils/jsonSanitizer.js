@@ -36,9 +36,13 @@ export const prepareUpdateData = (data) => {
       const value = data[field];
 
       // Special handling for date fields
-      if ((field === 'date_of_birth' || field === 'membership_date') &&
-          (value === '' || value === undefined || value === null)) {
-        result[field] = null;
+      if (field === 'date_of_birth' || field === 'membership_date') {
+        if (value === '' || value === undefined || value === null) {
+          result[field] = null;
+        } else {
+          // Keep valid date values as-is
+          result[field] = value;
+        }
       }
       // Special handling for gender field
       else if (field === 'gender' && value) {
