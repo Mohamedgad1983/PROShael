@@ -1,5 +1,10 @@
-import React, { useState, useCallback } from 'react';
-import { MagnifyingGlassIcon, PhoneIcon, UserIcon, PrinterIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import { MagnifyingGlassIcon, PhoneIcon, UserIcon, PrinterIcon, DocumentArrowDownIcon, HomeIcon, CalendarIcon, CurrencyDollarIcon, CheckCircleIcon, XCircleIcon, ClockIcon } from '@heroicons/react/24/outline';
+import { supabase } from '../../config/supabaseClient';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+import { motion, AnimatePresence } from 'framer-motion';
 import './MemberStatementSearch.css';
 
 const MemberStatementSearch = () => {
@@ -7,12 +12,19 @@ const MemberStatementSearch = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedMember, setSelectedMember] = useState(null);
+  const [memberStatement, setMemberStatement] = useState(null);
   const [error, setError] = useState('');
+  const [showAutoComplete, setShowAutoComplete] = useState(false);
 
-  // Debounced search function
+  // Yearly payment requirements
+  const YEARLY_AMOUNT = 600; // SAR per year
+  const MINIMUM_BALANCE = 3000; // SAR minimum required
+
+  // Debounced search function with Supabase integration
   const searchMembers = useCallback(async (query) => {
-    if (!query || query.length < 3) {
+    if (!query || query.length < 2) {
       setSearchResults([]);
+      setShowAutoComplete(false);
       return;
     }
 
@@ -20,98 +32,339 @@ const MemberStatementSearch = () => {
     setError('');
 
     try {
-      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
-      const response = await fetch(
-        `${API_URL}/api/member-statement/search?query=${encodeURIComponent(query)}`
-      );
+      // Search using Supabase directly
+      const { data, error: supabaseError } = await supabase
+        .from('members')
+        .select('id, member_no, full_name, phone, tribal_section, balance')
+        .or(`member_no.ilike.%${query}%,full_name.ilike.%${query}%,phone.ilike.%${query}%`)
+        .limit(10);
 
-      if (!response.ok) {
-        throw new Error('فشل البحث');
-      }
+      if (supabaseError) {
+        console.error('Supabase search error:', supabaseError);
+        // Fallback to API if Supabase fails
+        const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+        const response = await fetch(
+          `${API_URL}/api/member-statement/search?query=${encodeURIComponent(query)}`
+        );
 
-      const data = await response.json();
+        if (!response.ok) {
+          throw new Error('فشل البحث');
+        }
 
-      if (data.success) {
-        setSearchResults(data.results || []);
+        const apiData = await response.json();
+        if (apiData.success) {
+          setSearchResults(apiData.results || []);
+        } else {
+          throw new Error(apiData.message || 'حدث خطأ أثناء البحث');
+        }
       } else {
-        setError(data.message || 'حدث خطأ أثناء البحث');
+        setSearchResults(data || []);
       }
+      setShowAutoComplete(true);
     } catch (error) {
       console.error('Search error:', error);
-      setError('حدث خطأ في الاتصال بالخادم');
-
-      // Use mock data for testing
-      const mockResults = [
-        {
-          id: '1',
-          member_id: 'SH-10001',
-          name: 'أحمد محمد الشعيل',
-          phone: '0501234567',
-          payments: { 2021: 1000, 2022: 1500, 2023: 2000, 2024: 2500, 2025: 3000 },
-          total: 10000,
-          status: 'sufficient'
-        },
-        {
-          id: '2',
-          member_id: 'SH-10002',
-          name: 'ابراهيم فلاح العايد',
-          phone: '0501000000',
-          payments: { 2021: 600, 2022: 600, 2023: 300, 2024: 0, 2025: 0 },
-          total: 1500,
-          status: 'insufficient'
-        }
-      ].filter(member =>
-        member.name.includes(query) || member.phone.includes(query)
-      );
-
-      setSearchResults(mockResults);
+      setError('حدث خطأ في البحث');
     } finally {
       setLoading(false);
     }
   }, []);
 
   // Handle search input change with debouncing
-  React.useEffect(() => {
+  useEffect(() => {
     const timer = setTimeout(() => {
       searchMembers(searchQuery);
-    }, 500);
+    }, 300);
 
     return () => clearTimeout(timer);
   }, [searchQuery, searchMembers]);
 
+  // Payment status icon
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'paid':
+        return <CheckCircleIcon className="w-5 h-5 text-green-500" />;
+      case 'partial':
+        return <ClockIcon className="w-5 h-5 text-yellow-500" />;
+      default:
+        return <XCircleIcon className="w-5 h-5 text-red-500" />;
+    }
+  };
+
+  // Payment status badge
+  const getStatusBadge = (status) => {
+    const statusConfig = {
+      paid: { text: 'مدفوع', className: 'bg-green-100 text-green-800' },
+      partial: { text: 'جزئي', className: 'bg-yellow-100 text-yellow-800' },
+      pending: { text: 'معلق', className: 'bg-red-100 text-red-800' }
+    };
+
+    const config = statusConfig[status] || statusConfig.pending;
+
+    return (
+      <span className={`px-3 py-1 rounded-full text-xs font-medium ${config.className}`}>
+        {config.text}
+      </span>
+    );
+  };
+
+  // Calculate payment progress
+  const paymentProgress = useMemo(() => {
+    if (!memberStatement) return 0;
+    return Math.min(100, (memberStatement.totalPaid / memberStatement.totalRequired) * 100);
+  }, [memberStatement]);
+
+  // Load member statement with payment details
+  const loadMemberStatement = async (member) => {
+    setLoading(true);
+    setError('');
+
+    try {
+      // Get payment history from payments_yearly table
+      const { data: payments, error: paymentsError } = await supabase
+        .from('payments_yearly')
+        .select('*')
+        .eq('member_id', member.id)
+        .order('year', { ascending: true });
+
+      if (paymentsError && paymentsError.code !== 'PGRST116') {
+        console.error('Payments fetch error:', paymentsError);
+      }
+
+      // Calculate statement data
+      const years = [2021, 2022, 2023, 2024, 2025];
+      const yearlyPayments = years.map(year => {
+        const payment = payments?.find(p => p.year === year);
+        return {
+          year,
+          required: YEARLY_AMOUNT,
+          paid: payment?.amount || 0,
+          status: payment?.amount >= YEARLY_AMOUNT ? 'paid' : payment?.amount > 0 ? 'partial' : 'pending',
+          paymentDate: payment?.payment_date,
+          receiptNumber: payment?.receipt_number,
+          paymentMethod: payment?.payment_method
+        };
+      });
+
+      const totalPaid = yearlyPayments.reduce((sum, p) => sum + p.paid, 0);
+      const totalRequired = years.length * YEARLY_AMOUNT;
+      const outstandingBalance = Math.max(0, totalRequired - totalPaid);
+      const complianceStatus = totalPaid >= MINIMUM_BALANCE ? 'compliant' : 'non-compliant';
+
+      setSelectedMember(member);
+      setMemberStatement({
+        member: member,
+        yearlyPayments,
+        totalPaid,
+        totalRequired,
+        outstandingBalance,
+        complianceStatus,
+        lastPaymentDate: payments?.[0]?.payment_date
+      });
+
+      setShowAutoComplete(false);
+    } catch (err) {
+      console.error('Error loading statement:', err);
+      setError('حدث خطأ في تحميل كشف الحساب');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Handle member selection
   const handleMemberSelect = (member) => {
-    setSelectedMember(member);
+    loadMemberStatement(member);
+    setSearchQuery(member.full_name);
   };
 
   // Print statement
   const handlePrint = () => {
-    window.print();
+    const printWindow = window.open('', '_blank');
+    const printContent = document.getElementById('statement-content');
+
+    printWindow.document.write(`
+      <html dir="rtl">
+        <head>
+          <title>كشف حساب - ${selectedMember?.full_name}</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap');
+            body {
+              font-family: 'Cairo', sans-serif;
+              direction: rtl;
+              padding: 20px;
+              background: white;
+            }
+            .header {
+              text-align: center;
+              margin-bottom: 30px;
+              padding-bottom: 20px;
+              border-bottom: 2px solid #ddd;
+            }
+            .member-info {
+              margin-bottom: 30px;
+              display: grid;
+              grid-template-columns: repeat(2, 1fr);
+              gap: 15px;
+            }
+            .info-item {
+              padding: 10px;
+              background: #f8f9fa;
+              border-radius: 8px;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 20px;
+            }
+            th, td {
+              padding: 12px;
+              border: 1px solid #ddd;
+              text-align: right;
+            }
+            th {
+              background: #2980b9;
+              color: white;
+            }
+            .status-paid { color: green; }
+            .status-partial { color: orange; }
+            .status-pending { color: red; }
+            .summary {
+              margin-top: 30px;
+              padding: 20px;
+              background: #f8f9fa;
+              border-radius: 8px;
+              text-align: center;
+            }
+            @media print {
+              body { margin: 0; }
+              .no-print { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          ${printContent?.innerHTML || ''}
+        </body>
+      </html>
+    `);
+
+    printWindow.document.close();
+    setTimeout(() => {
+      printWindow.print();
+    }, 250);
   };
 
-  // Export to Excel
+  // Export to Excel with XLSX
   const handleExport = () => {
-    if (!selectedMember) return;
+    if (!memberStatement) return;
 
-    // Create CSV content
-    const headers = ['السنة', 'المبلغ'];
-    const rows = Object.entries(selectedMember.payments).map(([year, amount]) => [year, amount]);
-    rows.push(['الإجمالي', selectedMember.total]);
+    const data = memberStatement.yearlyPayments.map(payment => ({
+      'السنة': payment.year,
+      'المبلغ المطلوب': `${payment.required} ريال`,
+      'المبلغ المدفوع': `${payment.paid} ريال`,
+      'الحالة': payment.status === 'paid' ? 'مدفوع' : payment.status === 'partial' ? 'جزئي' : 'معلق',
+      'تاريخ الدفع': payment.paymentDate || '-',
+      'رقم الإيصال': payment.receiptNumber || '-'
+    }));
 
-    const csvContent = [
-      `كشف حساب العضو: ${selectedMember.name}`,
-      `رقم الهاتف: ${selectedMember.phone}`,
+    // Add summary row
+    data.push({
+      'السنة': 'الإجمالي',
+      'المبلغ المطلوب': `${memberStatement.totalRequired} ريال`,
+      'المبلغ المدفوع': `${memberStatement.totalPaid} ريال`,
+      'الحالة': memberStatement.complianceStatus === 'compliant' ? 'ملتزم' : 'غير ملتزم',
+      'تاريخ الدفع': '',
+      'رقم الإيصال': ''
+    });
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'كشف الحساب');
+
+    // Generate filename with member ID and timestamp
+    const fileName = `statement_${selectedMember.member_no}_${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+  };
+
+  // Export to PDF
+  const exportToPDF = () => {
+    if (!memberStatement) return;
+
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    });
+
+    // Set RTL
+    doc.setR2L(true);
+
+    // Header
+    doc.setFontSize(20);
+    doc.text('كشف حساب العضو', 105, 20, { align: 'center' });
+
+    // Member info
+    doc.setFontSize(12);
+    const memberInfo = [
+      `رقم العضو: ${selectedMember.member_no}`,
+      `الاسم: ${selectedMember.full_name}`,
+      `رقم الجوال: ${selectedMember.phone || '-'}`,
+      `الفخذ: ${selectedMember.tribal_section || '-'}`
+    ];
+
+    let yPosition = 40;
+    memberInfo.forEach(info => {
+      doc.text(info, 190, yPosition, { align: 'right' });
+      yPosition += 10;
+    });
+
+    // Payment table
+    const tableData = memberStatement.yearlyPayments.map(payment => [
+      payment.status === 'paid' ? '✓' : payment.status === 'partial' ? '◐' : '✗',
+      payment.paymentDate || '-',
+      `${payment.paid} ريال`,
+      `${payment.required} ريال`,
+      payment.year
+    ]);
+
+    // Add summary row
+    tableData.push([
+      memberStatement.complianceStatus === 'compliant' ? '✓' : '✗',
       '',
-      headers.join(','),
-      ...rows.map(row => row.join(','))
-    ].join('\n');
+      `${memberStatement.totalPaid} ريال`,
+      `${memberStatement.totalRequired} ريال`,
+      'الإجمالي'
+    ]);
 
-    // Download CSV
-    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `statement_${selectedMember.member_id}_${Date.now()}.csv`;
-    link.click();
+    doc.autoTable({
+      head: [['الحالة', 'تاريخ الدفع', 'المدفوع', 'المطلوب', 'السنة']],
+      body: tableData,
+      startY: yPosition + 10,
+      styles: {
+        font: 'helvetica',
+        halign: 'right',
+        fontSize: 11
+      },
+      headStyles: {
+        fillColor: [41, 128, 185],
+        textColor: 255
+      },
+      columnStyles: {
+        0: { halign: 'center', cellWidth: 20 },
+        1: { cellWidth: 40 },
+        2: { cellWidth: 35 },
+        3: { cellWidth: 35 },
+        4: { cellWidth: 25 }
+      }
+    });
+
+    // Footer with outstanding balance
+    const finalY = doc.lastAutoTable.finalY + 20;
+    doc.setFontSize(14);
+    doc.setTextColor(memberStatement.outstandingBalance > 0 ? 255 : 0, memberStatement.outstandingBalance > 0 ? 0 : 128, 0);
+    doc.text(`المبلغ المتبقي: ${memberStatement.outstandingBalance} ريال`, 105, finalY, { align: 'center' });
+
+    // Save PDF
+    const fileName = `statement_${selectedMember.member_no}_${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(fileName);
   };
 
   return (
@@ -129,7 +382,7 @@ const MemberStatementSearch = () => {
           <input
             type="text"
             className="search-input"
-            placeholder="ابحث بالاسم أو رقم الهاتف..."
+            placeholder="ابحث برقم العضو، الاسم، أو رقم الجوال..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             dir="rtl"
@@ -140,51 +393,70 @@ const MemberStatementSearch = () => {
         {error && (
           <div className="search-error">{error}</div>
         )}
+
+        {/* Auto-complete dropdown */}
+        <AnimatePresence>
+          {showAutoComplete && searchResults.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="autocomplete-dropdown"
+            >
+              {searchResults.map((member) => (
+                <div
+                  key={member.id}
+                  onClick={() => handleMemberSelect(member)}
+                  className="autocomplete-item"
+                >
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium">{member.full_name}</span>
+                    <span className="text-sm text-gray-500">{member.member_no}</span>
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {member.phone} • {member.tribal_section}
+                  </div>
+                </div>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* Search Results */}
-      {searchResults.length > 0 && !selectedMember && (
-        <div className="search-results">
-          <h3 className="results-title">نتائج البحث ({searchResults.length})</h3>
-          <div className="results-list">
-            {searchResults.map((member) => (
-              <div
-                key={member.id}
-                className="result-item"
-                onClick={() => handleMemberSelect(member)}
-              >
-                <div className="result-info">
-                  <div className="result-name">
-                    <UserIcon className="result-icon" />
-                    {member.name}
-                  </div>
-                  <div className="result-phone">
-                    <PhoneIcon className="result-icon" />
-                    {member.phone}
-                  </div>
-                </div>
-                <div className={`result-status ${member.status}`}>
-                  {member.total} ريال
-                  {member.status === 'insufficient' && (
-                    <span className="status-badge">تحت الحد الأدنى</span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Remove old search results section as we're using autocomplete */}
 
       {/* Member Statement Display */}
-      {selectedMember && (
-        <div className="statement-display">
+      {memberStatement && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="statement-display"
+          id="statement-content"
+        >
           <div className="statement-card">
             {/* Member Info Header */}
             <div className="statement-member-header">
               <div className="member-info-section">
-                <h2>{selectedMember.name}</h2>
-                <p>رقم العضوية: {selectedMember.member_id}</p>
-                <p>رقم الهاتف: {selectedMember.phone}</p>
+                <div className="member-avatar">
+                  <UserIcon className="w-12 h-12" />
+                </div>
+                <div className="member-details">
+                  <h2>{selectedMember.full_name}</h2>
+                  <div className="member-meta">
+                    <span className="meta-item">
+                      <UserIcon className="w-4 h-4" />
+                      {selectedMember.member_no}
+                    </span>
+                    <span className="meta-item">
+                      <PhoneIcon className="w-4 h-4" />
+                      {selectedMember.phone || 'غير متوفر'}
+                    </span>
+                    <span className="meta-item">
+                      <HomeIcon className="w-4 h-4" />
+                      {selectedMember.tribal_section || 'غير محدد'}
+                    </span>
+                  </div>
+                </div>
               </div>
               <div className="statement-actions">
                 <button onClick={handlePrint} className="action-btn print-btn">
@@ -193,10 +465,18 @@ const MemberStatementSearch = () => {
                 </button>
                 <button onClick={handleExport} className="action-btn export-btn">
                   <DocumentArrowDownIcon className="btn-icon" />
-                  تصدير
+                  Excel
+                </button>
+                <button onClick={exportToPDF} className="action-btn pdf-btn">
+                  <DocumentArrowDownIcon className="btn-icon" />
+                  PDF
                 </button>
                 <button
-                  onClick={() => setSelectedMember(null)}
+                  onClick={() => {
+                    setSelectedMember(null);
+                    setMemberStatement(null);
+                    setSearchQuery('');
+                  }}
                   className="action-btn back-btn"
                 >
                   رجوع للبحث
@@ -204,63 +484,138 @@ const MemberStatementSearch = () => {
               </div>
             </div>
 
+            {/* Summary Statistics */}
+            <div className="summary-stats">
+              <div className="stat-card">
+                <div className="stat-value">{memberStatement.totalPaid} ريال</div>
+                <div className="stat-label">إجمالي المدفوعات</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-value">{memberStatement.totalRequired} ريال</div>
+                <div className="stat-label">المبلغ المطلوب</div>
+              </div>
+              <div className="stat-card">
+                <div className={`stat-value ${memberStatement.outstandingBalance > 0 ? 'text-red-500' : 'text-green-500'}`}>
+                  {memberStatement.outstandingBalance} ريال
+                </div>
+                <div className="stat-label">المبلغ المتبقي</div>
+              </div>
+              <div className="stat-card">
+                <div className={`stat-badge ${memberStatement.complianceStatus === 'compliant' ? 'compliant' : 'non-compliant'}`}>
+                  {memberStatement.complianceStatus === 'compliant' ? 'ملتزم' : 'غير ملتزم'}
+                </div>
+                <div className="stat-label">حالة الالتزام</div>
+              </div>
+            </div>
+
+            {/* Payment Progress Bar */}
+            <div className="payment-progress">
+              <div className="progress-header">
+                <span>نسبة السداد</span>
+                <span>{Math.round(paymentProgress)}%</span>
+              </div>
+              <div className="progress-bar">
+                <div
+                  className="progress-fill"
+                  style={{ width: `${paymentProgress}%` }}
+                />
+              </div>
+            </div>
+
             {/* Payment Table */}
             <div className="statement-table-wrapper">
+              <h3 className="table-title">تفاصيل المدفوعات السنوية</h3>
               <table className="statement-table">
                 <thead>
                   <tr>
                     <th>السنة</th>
+                    <th>المبلغ المطلوب</th>
                     <th>المبلغ المدفوع</th>
+                    <th>الباقي</th>
                     <th>الحالة</th>
+                    <th>تاريخ الدفع</th>
+                    <th>رقم الإيصال</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {Object.entries(selectedMember.payments).map(([year, amount]) => (
-                    <tr key={year}>
-                      <td>{year}</td>
-                      <td>{amount.toLocaleString()} ريال</td>
-                      <td>
-                        <span className={`payment-status ${amount > 0 ? 'paid' : 'unpaid'}`}>
-                          {amount > 0 ? 'مدفوع' : 'غير مدفوع'}
-                        </span>
+                  {memberStatement.yearlyPayments.map((payment) => (
+                    <tr key={payment.year} className={`payment-row ${payment.status}`}>
+                      <td className="font-medium">{payment.year}</td>
+                      <td>{payment.required} ريال</td>
+                      <td className={payment.paid > 0 ? 'text-green-600' : ''}>{payment.paid} ريال</td>
+                      <td className={payment.required - payment.paid > 0 ? 'text-red-600' : ''}>
+                        {Math.max(0, payment.required - payment.paid)} ريال
                       </td>
+                      <td>
+                        <div className="flex items-center gap-2">
+                          {getStatusIcon(payment.status)}
+                          {getStatusBadge(payment.status)}
+                        </div>
+                      </td>
+                      <td>{payment.paymentDate ? new Date(payment.paymentDate).toLocaleDateString('ar-SA') : '-'}</td>
+                      <td>{payment.receiptNumber || '-'}</td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot>
                   <tr className="total-row">
-                    <td>الإجمالي</td>
-                    <td colSpan="2" className={`total-amount ${selectedMember.status}`}>
-                      {selectedMember.total.toLocaleString()} ريال
-                      {selectedMember.status === 'insufficient' && (
-                        <span className="minimum-notice">
-                          (الحد الأدنى: 3000 ريال)
-                        </span>
-                      )}
+                    <td className="font-bold">الإجمالي</td>
+                    <td className="font-bold">{memberStatement.totalRequired} ريال</td>
+                    <td className="font-bold text-green-600">{memberStatement.totalPaid} ريال</td>
+                    <td className="font-bold text-red-600">{memberStatement.outstandingBalance} ريال</td>
+                    <td colSpan="3">
+                      <div className={`summary-badge ${memberStatement.complianceStatus}`}>
+                        {memberStatement.complianceStatus === 'compliant' ?
+                          'العضو ملتزم بالحد الأدنى (3000 ريال)' :
+                          `يحتاج إلى دفع ${MINIMUM_BALANCE - memberStatement.totalPaid} ريال للوصول للحد الأدنى`}
+                      </div>
                     </td>
                   </tr>
                 </tfoot>
               </table>
             </div>
 
+            {/* Payment Chart */}
+            <div className="payment-chart-card">
+              <h4 className="text-lg font-semibold mb-4">رسم بياني للمدفوعات</h4>
+              <div className="chart-container">
+                <div className="bar-chart">
+                  {memberStatement.yearlyPayments.map((payment) => (
+                    <div key={payment.year} className="chart-bar-wrapper">
+                      <div
+                        className="chart-bar"
+                        style={{
+                          height: `${(payment.paid / payment.required) * 100}%`,
+                          backgroundColor: payment.status === 'paid' ? '#10b981' :
+                                         payment.status === 'partial' ? '#f59e0b' : '#ef4444'
+                        }}
+                      />
+                      <div className="chart-label">{payment.year}</div>
+                      <div className="chart-value">{payment.paid}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
             {/* Balance Status */}
-            <div className={`balance-status-card ${selectedMember.status}`}>
+            <div className={`balance-status-card ${memberStatement.complianceStatus}`}>
               <div className="status-content">
                 <h3>حالة الرصيد</h3>
                 <p className="status-text">
-                  {selectedMember.status === 'sufficient'
+                  {memberStatement.complianceStatus === 'compliant'
                     ? '✓ الرصيد كافي - العضو ملتزم بالحد الأدنى'
                     : '⚠️ الرصيد غير كافي - يحتاج إلى سداد المتبقي'}
                 </p>
-                {selectedMember.status === 'insufficient' && (
+                {memberStatement.complianceStatus === 'non-compliant' && (
                   <p className="remaining-amount">
-                    المبلغ المتبقي: {(3000 - selectedMember.total).toLocaleString()} ريال
+                    المبلغ المتبقي للوصول للحد الأدنى: {(MINIMUM_BALANCE - memberStatement.totalPaid).toLocaleString()} ريال
                   </p>
                 )}
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
     </div>
   );

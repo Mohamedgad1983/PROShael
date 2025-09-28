@@ -68,7 +68,7 @@ import CrisisDashboard from './Crisis/CrisisDashboard';
 
 // @ts-ignore
 
-import MemberStatementSearch from './Members/MemberStatementSearch.jsx';
+import MemberStatementSearch from './MemberStatement/MemberStatementSearch.jsx';
 
 // @ts-ignore
 
