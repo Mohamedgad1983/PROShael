@@ -66,7 +66,9 @@
       "Bash(claude doctor)",
       "Bash(npx:*)",
       "Bash(npm:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(start https://alshuail-admin.pages.dev/login)",
+      "Bash(start https://dashboard.render.com/)"
     ],
     "deny": [],
     "ask": []

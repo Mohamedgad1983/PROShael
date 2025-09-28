@@ -223,12 +223,31 @@ export const updateMember = async (req, res) => {
     }
 
     // Try to update with error handling
-    const { data: updatedMember, error } = await supabase
-      .from('members')
-      .update(fieldsToUpdate)
-      .eq('id', id)
-      .select()
-      .single();
+    // Use the safe update function if date fields are present
+    let updatedMember, error;
+
+    if (fieldsToUpdate.date_of_birth !== undefined || fieldsToUpdate.membership_date !== undefined) {
+      // Use the safe function for updates with date fields
+      const { data: functionResult, error: functionError } = await supabase
+        .rpc('update_member_with_safe_dates', {
+          p_id: id,
+          p_data: fieldsToUpdate
+        });
+
+      updatedMember = functionResult;
+      error = functionError;
+    } else {
+      // Regular update for non-date fields
+      const result = await supabase
+        .from('members')
+        .update(fieldsToUpdate)
+        .eq('id', id)
+        .select()
+        .single();
+
+      updatedMember = result.data;
+      error = result.error;
+    }
 
     if (error) {
       console.error('❌ Supabase update error:', error);
