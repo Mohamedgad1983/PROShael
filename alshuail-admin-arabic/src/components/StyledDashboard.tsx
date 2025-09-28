@@ -1352,31 +1352,25 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
     // Sort by balance for color coding (highest balance gets best color)
     const sortedData = [...tribalData].sort((a, b) => b.balance - a.balance);
 
-    // Apple-style gradient colors based on balance
-    const appleColors = sortedData.map((_, index) => {
-      const ratio = index / (sortedData.length - 1);
-      if (ratio < 0.25) {
-        // Highest balances - Deep green (Apple success)
-        return `rgba(52, 199, 89, ${0.9})`;  // Apple green
-      } else if (ratio < 0.5) {
-        // Medium-high - Blue (Apple blue)
-        return `rgba(0, 122, 255, ${0.9})`;  // Apple blue
-      } else if (ratio < 0.75) {
-        // Medium-low - Orange (Apple warning)
-        return `rgba(255, 149, 0, ${0.9})`;  // Apple orange
-      } else {
-        // Lowest balances - Red (Apple danger)
-        return `rgba(255, 59, 48, ${0.9})`;  // Apple red
-      }
-    });
+    // Power BI style gradient - 8 unique colors from green (high) to red (low)
+    const powerBIGradientColors = [
+      'rgba(0, 100, 0, 0.85)',      // Dark Green - Highest (125k)
+      'rgba(34, 139, 34, 0.85)',    // Forest Green (110k)
+      'rgba(60, 179, 113, 0.85)',   // Medium Sea Green (102k)
+      'rgba(144, 238, 144, 0.85)',  // Light Green (95k)
+      'rgba(255, 215, 0, 0.85)',    // Gold (92k)
+      'rgba(255, 165, 0, 0.85)',    // Orange (85k)
+      'rgba(255, 140, 0, 0.85)',    // Dark Orange (78k)
+      'rgba(255, 69, 0, 0.85)'      // Red Orange - Lowest (70k)
+    ];
 
     return {
       labels: sortedData.map(t => `${t.section}`),
       datasets: [{
         label: 'الأرصدة بالريال',
         data: sortedData.map(t => t.balance),
-        backgroundColor: appleColors,
-        hoverBackgroundColor: appleColors.map(color => color.replace('0.9', '1')),
+        backgroundColor: powerBIGradientColors,
+        hoverBackgroundColor: powerBIGradientColors.map(color => color.replace('0.85', '1')),
         borderWidth: 2,
         borderColor: '#ffffff',
         hoverBorderWidth: 3,
