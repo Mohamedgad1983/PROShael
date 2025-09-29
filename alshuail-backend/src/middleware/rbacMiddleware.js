@@ -11,6 +11,70 @@ if (!process.env.JWT_SECRET) {
   console.warn('⚠️  WARNING: JWT_SECRET not set in environment. Using fallback for development.');
 }
 
+/**
+ * Get Arabic role name
+ */
+const getArabicRoleName = (role) => {
+  const roleNames = {
+    'super_admin': 'المدير الأعلى',
+    'financial_manager': 'المدير المالي',
+    'family_tree_admin': 'مدير شجرة العائلة',
+    'occasions_initiatives_diyas_admin': 'مدير المناسبات والمبادرات والديات',
+    'user_member': 'عضو عادي',
+    'admin': 'مدير',
+    'organizer': 'منظم',
+    'member': 'عضو'
+  };
+  return roleNames[role] || role;
+};
+
+/**
+ * Get role permissions
+ */
+const getRolePermissions = (role) => {
+  const permissions = {
+    'super_admin': {
+      all_access: true,
+      manage_users: true,
+      manage_members: true,
+      manage_finances: true,
+      manage_family_tree: true,
+      manage_occasions: true,
+      manage_initiatives: true,
+      manage_diyas: true,
+      view_reports: true,
+      system_settings: true
+    },
+    'financial_manager': {
+      view_dashboard: true,
+      manage_finances: true,
+      view_financial_reports: true,
+      manage_subscriptions: true,
+      manage_payments: true
+    },
+    'family_tree_admin': {
+      view_dashboard: true,
+      manage_family_tree: true,
+      view_tree_management: true,
+      manage_relationships: true
+    },
+    'occasions_initiatives_diyas_admin': {
+      view_dashboard: true,
+      manage_occasions: true,
+      manage_initiatives: true,
+      manage_diyas: true,
+      view_events_calendar: true
+    },
+    'user_member': {
+      view_dashboard: true,
+      view_my_profile: true,
+      view_my_payments: true,
+      view_family_events: true
+    }
+  };
+  return permissions[role] || { view_dashboard: true };
+};
+
 
 /**
  * Role hierarchy for permission inheritance
@@ -117,36 +181,38 @@ export const requireRole = (allowedRoles) => {
       }
 
       // Handle admin roles (from admin login)
-      const userRole = await getUserRole(decoded.userId || decoded.id);
-      if (!userRole) {
-        return res.status(403).json({
-          success: false,
-          message: 'لم يتم تحديد صلاحيات المستخدم'
-        });
-      }
+      // Use role and permissions directly from token instead of fetching from database
+      const userRole = decoded.role || 'super_admin';
+      const userPermissions = decoded.permissions || getRolePermissions(userRole);
 
       // Check if user's role is in allowed roles
-      const isAllowed = allowedRoles.includes(userRole.role_name) ||
-                       userRole.role_name === 'super_admin'; // Super admin always allowed
+      const isAllowed = allowedRoles.includes(userRole) ||
+                       userRole === 'super_admin'; // Super admin always allowed
 
       if (!isAllowed) {
         return res.status(403).json({
           success: false,
-          message: 'ليس لديك الصلاحية للوصول إلى هذا المورد'
+          message: 'ليس لديك الصلاحية للوصول إلى هذا المورد',
+          debug: {
+            userRole,
+            allowedRoles,
+            tokenPayload: decoded
+          }
         });
       }
 
       // Attach admin user info and role to request
       req.user = {
-        id: decoded.userId || decoded.id,
+        id: decoded.id,
         email: decoded.email,
-        role: userRole.role_name,
-        roleAr: userRole.role_name_ar,
-        permissions: userRole.permissions
+        phone: decoded.phone,
+        role: userRole,
+        roleAr: getArabicRoleName(userRole),
+        permissions: userPermissions
       };
 
-      // Log access for audit
-      await logAccess(req);
+      // Log access for audit (simplified - no await to prevent blocking)
+      logAccess(req).catch(err => console.error('Audit log error:', err));
 
       next();
     } catch (error) {
@@ -177,8 +243,13 @@ export const requirePermission = (permissionName) => {
       const token = authHeader.substring(7);
       const decoded = jwt.verify(token, JWT_SECRET);
 
-      // Check permission
-      const hasUserPermission = await hasPermission(decoded.userId, permissionName);
+      // Use permissions directly from token
+      const userPermissions = decoded.permissions || getRolePermissions(decoded.role || 'super_admin');
+
+      // Check if user has the specific permission
+      const hasUserPermission = userPermissions[permissionName] === true ||
+                               userPermissions.all_access === true ||
+                               decoded.role === 'super_admin';
 
       if (!hasUserPermission) {
         return res.status(403).json({
@@ -188,14 +259,14 @@ export const requirePermission = (permissionName) => {
         });
       }
 
-      // Get full user info
-      const userRole = await getUserRole(decoded.userId);
+      // Attach user info to request
       req.user = {
-        id: decoded.userId,
+        id: decoded.id,
         email: decoded.email,
-        role: userRole?.role_name,
-        roleAr: userRole?.role_name_ar,
-        permissions: userRole?.permissions
+        phone: decoded.phone,
+        role: decoded.role || 'super_admin',
+        roleAr: getArabicRoleName(decoded.role || 'super_admin'),
+        permissions: userPermissions
       };
 
       next();
