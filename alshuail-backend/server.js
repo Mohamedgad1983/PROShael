@@ -1,8 +1,21 @@
+// VERY FIRST LINES of server.js
+import dotenv from 'dotenv';
+dotenv.config();
+
+// Debug log
+console.log('Environment Check on Start:', {
+  SUPABASE_URL: process.env.SUPABASE_URL ? '✓ Loaded' : '✗ Missing',
+  SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY ? '✓ Loaded' : '✗ Missing',
+  SUPABASE_SERVICE_KEY: process.env.SUPABASE_SERVICE_KEY ? '✓ Loaded' : '✗ Missing',
+  JWT_SECRET: process.env.JWT_SECRET ? '✓ Loaded' : '✗ Missing',
+  NODE_ENV: process.env.NODE_ENV,
+  RENDER: process.env.RENDER
+});
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import dotenv from 'dotenv';
 import { testConnection } from './src/config/database.js';
 import membersRoutes from './src/routes/members.js';
 import paymentsRoutes from './src/routes/payments.js';
@@ -23,8 +36,6 @@ import memberStatementRoutes from './src/routes/memberStatementRoutes.js';
 import memberMonitoringRoutes from './src/routes/memberMonitoring.js';
 import documentsRoutes from './src/routes/documents.js';
 import familyTreeRoutes from './src/routes/familyTree.js';
-
-dotenv.config();
 
 // Check JWT_SECRET but don't throw error - just warn
 if (!process.env.JWT_SECRET) {
