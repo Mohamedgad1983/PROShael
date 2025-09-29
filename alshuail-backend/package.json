@@ -6,7 +6,6 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "prestart": "node src/scripts/validate-env.js",
     "dev": "node --watch server.js",
     "test": "node --test",
     "test:ci": "node --test --reporter=spec",
