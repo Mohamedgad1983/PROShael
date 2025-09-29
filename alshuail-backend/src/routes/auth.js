@@ -16,19 +16,19 @@ const allowTestMemberLogin = process.env.ALLOW_TEST_MEMBER_LOGINS === 'true';
 
 const TEST_MEMBERS = {
   '0501234567': {
-    fullName: '???? ???? ??????',
+    fullName: 'أحمد محمد الشعيل',
     membershipNumber: 'SH001',
     balance: 2500,
     minimumBalance: 3000
   },
   '0555555555': {
-    fullName: '??? ??????',
+    fullName: 'سارة الشعيل',
     membershipNumber: 'SH002',
     balance: 3500,
     minimumBalance: 3000
   },
   '0512345678': {
-    fullName: '???? ????????',
+    fullName: 'خالد عبدالله',
     membershipNumber: 'SH003',
     balance: 1800,
     minimumBalance: 3000
@@ -172,7 +172,7 @@ async function authenticateAdmin(identifier, password, requestedRole = null) {
     return {
       ok: false,
       status: 401,
-      message: 'رقم الهاتف او كلمة المرور غير صحيحة'
+      message: 'البريد الإلكتروني أو كلمة المرور غير صحيحة'
     };
   }
 
@@ -180,7 +180,7 @@ async function authenticateAdmin(identifier, password, requestedRole = null) {
     return {
       ok: false,
       status: 403,
-      message: '??? ??????? ????? ?????? ???????'
+      message: 'رقم الهاتف وكلمة المرور مطلوبان'
     };
   }
 
@@ -188,7 +188,7 @@ async function authenticateAdmin(identifier, password, requestedRole = null) {
     return {
       ok: false,
       status: 400,
-      message: '??? ??????? ??? ?????? ??????? ????? ???????'
+      message: 'رقم الهاتف غير صحيح. الرجاء إدخال رقم صحيح'
     };
   }
 
@@ -197,7 +197,7 @@ async function authenticateAdmin(identifier, password, requestedRole = null) {
     return {
       ok: false,
       status: 401,
-      message: '??? ?????? ?? ???? ?????? ??? ?????'
+      message: 'رقم الهاتف أو كلمة المرور غير صحيحة'
     };
   }
 
@@ -283,7 +283,7 @@ async function authenticateMember(phone, password) {
     return {
       ok: false,
       status: 401,
-      message: '??? ?????? ?? ???? ?????? ??? ????'
+      message: 'رقم الهاتف أو كلمة المرور غير صحيح'
     };
   }
 
@@ -291,7 +291,7 @@ async function authenticateMember(phone, password) {
     return {
       ok: false,
       status: 403,
-      message: '??? ??????? ?? ???????? ?????? ???????'
+      message: 'رقم الهاتف في البيانات المقدمة مطلوب'
     };
   }
 
@@ -324,7 +324,7 @@ async function authenticateMember(phone, password) {
     return {
       ok: false,
       status: 401,
-      message: '??? ?????? ?? ???? ?????? ??? ????'
+      message: 'رقم الهاتف أو كلمة المرور غير صحيح'
     };
   }
 
@@ -378,7 +378,7 @@ async function handleMemberLogin(req, res) {
     if (!phone || !password) {
       return res.status(400).json({
         success: false,
-        error: '??? ?????? ????? ?????? ???????'
+        error: 'رقم الهاتف وكلمة المرور مطلوبان'
       });
     }
 
@@ -398,7 +398,7 @@ async function handleMemberLogin(req, res) {
         success: true,
         token,
         user: buildMemberResponse(testMember),
-        message: '?? ????? ?????? ?????'
+        message: 'تم تسجيل الدخول بنجاح'
       });
     }
 
@@ -420,7 +420,7 @@ async function handleMemberLogin(req, res) {
     console.error('Mobile login error:', error);
     return res.status(500).json({
       success: false,
-      error: '??? ?? ????? ??????'
+      error: 'خطأ في تسجيل الدخول'
     });
   }
 }
@@ -455,7 +455,7 @@ router.post('/login', async (req, res) => {
     console.error('Login error:', error);
     return res.status(500).json({
       success: false,
-      error: '??? ?? ????? ??????'
+      error: 'خطأ في تسجيل الدخول'
     });
   }
 });
