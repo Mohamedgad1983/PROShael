@@ -1,6 +1,9 @@
 class APIService {
   constructor() {
-    this.baseURL = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
+    // Always use production URL in production
+    this.baseURL = window.location.hostname === 'localhost'
+      ? 'http://localhost:3001'
+      : 'https://proshael.onrender.com';
   }
 
   async request(endpoint, options = {}) {
@@ -19,10 +22,21 @@ class APIService {
     }
 
     try {
+      console.log('API Request:', {
+        url,
+        method: config.method || 'GET',
+        hasToken: !!config.headers['Authorization']
+      });
+
       const response = await fetch(url, config);
       const data = await response.json();
 
       if (!response.ok) {
+        console.error('API Error Response:', {
+          status: response.status,
+          error: data.error,
+          url
+        });
         throw new Error(data.error || 'API request failed');
       }
 
