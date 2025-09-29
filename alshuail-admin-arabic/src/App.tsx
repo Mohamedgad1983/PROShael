@@ -36,7 +36,7 @@ const AdminDashboard: React.FC = () => {
     e.preventDefault();
 
     // Optimized login - instant response
-    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+    const API_URL = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
 
     try {
       const response = await fetch(`${API_URL}/api/auth/login`, {

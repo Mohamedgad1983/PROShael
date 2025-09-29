@@ -1,6 +1,6 @@
 class APIService {
   constructor() {
-    this.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+    this.baseURL = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
   }
 
   async request(endpoint, options = {}) {
