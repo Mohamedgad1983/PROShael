@@ -25,6 +25,9 @@ const FamilyTree = () => {
   const [showMemberModal, setShowMemberModal] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [highlightedNodes, setHighlightedNodes] = useState(new Set());
+  const [membersList, setMembersList] = useState([]);
+  const [selectedMemberId, setSelectedMemberId] = useState(null);
+  const [memberSearchTerm, setMemberSearchTerm] = useState('');
 
   // Refs
   const treeContainerRef = useRef(null);
@@ -50,6 +53,30 @@ const FamilyTree = () => {
     return localStorage.getItem('token') || localStorage.getItem('auth_token');
   };
 
+  // Fetch members list for selection
+  const fetchMembersList = useCallback(async () => {
+    try {
+      const token = getAuthToken();
+      if (!token) return;
+
+      const response = await fetch(`${API_URL}/api/members`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          setMembersList(data.data);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching members list:', error);
+    }
+  }, [API_URL]);
+
   // Fetch family tree data
   const fetchFamilyTree = useCallback(async (memberId = null) => {
     try {
@@ -60,10 +87,15 @@ const FamilyTree = () => {
         throw new Error('لا يوجد رمز مصادقة');
       }
 
-      // If no specific member ID, get the root member or first member
-      const endpoint = memberId
-        ? `${API_URL}/api/family-tree/tree/${memberId}`
-        : `${API_URL}/api/family-tree/tree`;
+      // If no member ID provided, show member selection interface
+      if (!memberId) {
+        setLoading(false);
+        setTreeData(null); // Show the "select member" state
+        return;
+      }
+
+      // Use the visualization endpoint for tree data
+      const endpoint = `${API_URL}/api/family-tree/visualization/${memberId}`;
 
       const response = await fetch(endpoint, {
         headers: {
@@ -335,8 +367,16 @@ const FamilyTree = () => {
 
   // Initialize component
   useEffect(() => {
-    fetchFamilyTree();
-  }, [fetchFamilyTree]);
+    fetchMembersList(); // Fetch members list on mount
+    // Don't fetch tree immediately - wait for user to select a member
+    setLoading(false);
+  }, []); // Empty dependency array for mount only
+
+  // Handle member selection
+  const handleMemberSelect = (memberId) => {
+    setSelectedMemberId(memberId);
+    fetchFamilyTree(memberId);
+  };
 
   // Render loading state
   if (loading) {
@@ -378,6 +418,26 @@ const FamilyTree = () => {
         </div>
 
         <div className="header-controls">
+          {/* Back to selection button */}
+          {treeData && (
+            <button
+              onClick={() => {
+                setTreeData(null);
+                setSelectedMemberId(null);
+                setError(null);
+              }}
+              className="control-button"
+              style={{
+                background: 'rgba(59, 130, 246, 0.2)',
+                padding: '8px 16px',
+                marginRight: '10px'
+              }}
+            >
+              <UserGroupIcon className="w-5 h-5 inline-block ml-2" />
+              اختر عضو آخر
+            </button>
+          )}
+
           {/* Search */}
           <div className="search-container">
             <MagnifyingGlassIcon className="search-icon" />
@@ -447,9 +507,86 @@ const FamilyTree = () => {
             initialDepth={2}
           />
         ) : (
-          <div className="no-data">
-            <UserGroupIcon className="w-16 h-16 text-gray-400" />
-            <p>لا توجد بيانات شجرة العائلة</p>
+          <div className="member-selection-container">
+            <div className="member-selection-card">
+              <UserGroupIcon className="w-16 h-16 text-blue-400 mb-4" />
+              <h2 className="text-xl font-bold mb-4">اختر عضو لعرض شجرة العائلة</h2>
+
+              {/* Member search */}
+              <div className="member-search-box mb-4">
+                <MagnifyingGlassIcon className="search-icon" />
+                <input
+                  type="text"
+                  placeholder="البحث عن عضو بالاسم أو رقم العضوية..."
+                  value={memberSearchTerm}
+                  onChange={(e) => setMemberSearchTerm(e.target.value)}
+                  className="search-input"
+                  style={{
+                    width: '100%',
+                    padding: '10px 40px 10px 10px',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    background: 'rgba(255,255,255,0.1)',
+                    color: 'white'
+                  }}
+                />
+              </div>
+
+              {/* Members list */}
+              <div className="members-list" style={{
+                maxHeight: '400px',
+                overflowY: 'auto',
+                padding: '10px',
+                borderRadius: '8px',
+                background: 'rgba(255,255,255,0.05)'
+              }}>
+                {membersList
+                  .filter(member => {
+                    const searchLower = memberSearchTerm.toLowerCase();
+                    return (member.full_name?.toLowerCase().includes(searchLower) ||
+                            member.member_id?.toString().includes(searchLower) ||
+                            member.phone?.includes(searchLower));
+                  })
+                  .slice(0, 20) // Show first 20 results
+                  .map(member => (
+                    <div
+                      key={member.id}
+                      className="member-item"
+                      onClick={() => handleMemberSelect(member.id)}
+                      style={{
+                        padding: '10px',
+                        margin: '5px 0',
+                        borderRadius: '6px',
+                        background: 'rgba(59, 130, 246, 0.1)',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(59, 130, 246, 0.3)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'rgba(59, 130, 246, 0.1)';
+                      }}
+                    >
+                      <div>
+                        <div className="font-bold">{member.full_name}</div>
+                        <div className="text-sm opacity-75">رقم العضوية: {member.member_id}</div>
+                      </div>
+                      <UserIcon className="w-5 h-5 text-blue-400" />
+                    </div>
+                  ))
+                }
+
+                {membersList.length === 0 && (
+                  <div className="text-center text-gray-400 py-4">
+                    جاري تحميل قائمة الأعضاء...
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>

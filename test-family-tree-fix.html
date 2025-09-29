@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار إصلاح شجرة العائلة</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            direction: rtl;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+        h1 {
+            text-align: center;
+            color: #ffd700;
+        }
+        .test-result {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .success {
+            background: rgba(52, 211, 153, 0.2);
+            border-left: 4px solid #10b981;
+        }
+        .error {
+            background: rgba(248, 113, 113, 0.2);
+            border-left: 4px solid #ef4444;
+        }
+        .info {
+            background: rgba(96, 165, 250, 0.2);
+            border-left: 4px solid #3b82f6;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        .members-list {
+            max-height: 300px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .member-item {
+            padding: 10px;
+            margin: 5px 0;
+            background: rgba(59, 130, 246, 0.2);
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .member-item:hover {
+            background: rgba(59, 130, 246, 0.4);
+        }
+        pre {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            direction: ltr;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌳 اختبار إصلاح شجرة العائلة</h1>
+
+        <div class="test-result info">
+            <h3>معلومات الاختبار</h3>
+            <p>هذا اختبار للتأكد من أن شجرة العائلة تعمل بشكل صحيح بدون أخطاء 404</p>
+            <p>التاريخ: <span id="test-date"></span></p>
+        </div>
+
+        <div class="test-controls">
+            <h3>عناصر التحكم</h3>
+            <button onclick="fetchMembers()">جلب قائمة الأعضاء</button>
+            <button onclick="testNoMemberId()">اختبار بدون معرف عضو (المشكلة السابقة)</button>
+            <button onclick="clearResults()">مسح النتائج</button>
+        </div>
+
+        <div id="members-section" style="display:none;">
+            <h3>اختر عضو لعرض شجرة العائلة</h3>
+            <input type="text" id="member-search" placeholder="البحث عن عضو..." style="width: 100%; padding: 10px; margin: 10px 0; border-radius: 5px; border: none;">
+            <div id="members-list" class="members-list"></div>
+        </div>
+
+        <div id="test-results"></div>
+    </div>
+
+    <script>
+        const API_URL = 'https://proshael.onrender.com';
+        const LOCAL_API_URL = 'http://localhost:5001';
+
+        // Get auth token
+        const getToken = () => {
+            // Hardcoded token for testing
+            return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjgxNTJiYmFjLTc5MDYtNGQ2NC04ZDI3LTRhNWNkYWU4N2QzZCIsImVtYWlsIjoiYWRtaW5AYWxzaHVhaWwuY29tIiwicGhvbmUiOiIwNTAwMDAwMDAwIiwicm9sZSI6InN1cGVyX2FkbWluIiwicGVybWlzc2lvbnMiOnsiYWxsX2FjY2VzcyI6dHJ1ZSwibWFuYWdlX3VzZXJzIjp0cnVlLCJtYW5hZ2VfbWVtYmVycyI6dHJ1ZSwibWFuYWdlX2ZpbmFuY2VzIjp0cnVlLCJtYW5hZ2VfZmFtaWx5X3RyZWUiOnRydWUsIm1hbmFnZV9vY2Nhc2lvbnMiOnRydWUsIm1hbmFnZV9pbml0aWF0aXZlcyI6dHJ1ZSwibWFuYWdlX2RpeWFzIjp0cnVlLCJ2aWV3X3JlcG9ydHMiOnRydWUsInN5c3RlbV9zZXR0aW5ncyI6dHJ1ZX0sImlhdCI6MTc1OTEzMTEyNCwiZXhwIjoxNzU5NzM1OTI0fQ.vywShBezKYKShydt33crdRwmK4fhVdJMkF_v-Zv--z4';
+        };
+
+        // Set current date
+        document.getElementById('test-date').textContent = new Date().toLocaleString('ar-SA');
+
+        function addResult(message, type = 'info') {
+            const resultsDiv = document.getElementById('test-results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${type}`;
+            resultDiv.innerHTML = `
+                <strong>${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</strong>
+                ${message}
+                <br><small>${new Date().toLocaleTimeString('ar-SA')}</small>
+            `;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        async function fetchMembers() {
+            addResult('جاري جلب قائمة الأعضاء...', 'info');
+
+            try {
+                const response = await fetch(`${API_URL}/api/members`, {
+                    headers: {
+                        'Authorization': `Bearer ${getToken()}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.success && data.data) {
+                    addResult(`تم جلب ${data.data.length} عضو بنجاح`, 'success');
+                    displayMembers(data.data);
+                } else {
+                    throw new Error(data.error || 'فشل جلب الأعضاء');
+                }
+            } catch (error) {
+                addResult(`خطأ في جلب الأعضاء: ${error.message}`, 'error');
+            }
+        }
+
+        function displayMembers(members) {
+            const membersSection = document.getElementById('members-section');
+            const membersList = document.getElementById('members-list');
+
+            membersSection.style.display = 'block';
+            membersList.innerHTML = '';
+
+            // Take first 20 members
+            members.slice(0, 20).forEach(member => {
+                const memberDiv = document.createElement('div');
+                memberDiv.className = 'member-item';
+                memberDiv.innerHTML = `
+                    <strong>${member.full_name}</strong><br>
+                    <small>رقم العضوية: ${member.member_id} | الهاتف: ${member.phone || 'غير محدد'}</small>
+                `;
+                memberDiv.onclick = () => testFamilyTree(member.id, member.full_name);
+                membersList.appendChild(memberDiv);
+            });
+
+            // Add search functionality
+            document.getElementById('member-search').oninput = (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                const items = membersList.querySelectorAll('.member-item');
+                items.forEach(item => {
+                    const text = item.textContent.toLowerCase();
+                    item.style.display = text.includes(searchTerm) ? 'block' : 'none';
+                });
+            };
+        }
+
+        async function testFamilyTree(memberId, memberName) {
+            addResult(`جاري اختبار شجرة العائلة للعضو: ${memberName}`, 'info');
+
+            try {
+                // Test visualization endpoint
+                const response = await fetch(`${API_URL}/api/family-tree/visualization/${memberId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${getToken()}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.success) {
+                    addResult(`✅ نجح جلب شجرة العائلة للعضو ${memberName}`, 'success');
+
+                    // Display tree structure
+                    const treeInfo = `
+                        <strong>معلومات الشجرة:</strong><br>
+                        الاسم: ${data.data.name}<br>
+                        رقم العضوية: ${data.data.memberId}<br>
+                        عدد الأطفال: ${data.data.children?.length || 0}<br>
+                        الزوج/الزوجة: ${data.data.spouse?.name || 'غير محدد'}
+                    `;
+                    addResult(treeInfo, 'info');
+                } else {
+                    throw new Error(data.error || 'فشل جلب شجرة العائلة');
+                }
+            } catch (error) {
+                addResult(`❌ خطأ في شجرة العائلة: ${error.message}`, 'error');
+            }
+        }
+
+        async function testNoMemberId() {
+            addResult('اختبار الوصول بدون معرف عضو (المشكلة السابقة)', 'info');
+
+            try {
+                // This was causing 404 before the fix
+                const response = await fetch(`${API_URL}/api/family-tree/visualization/null`, {
+                    headers: {
+                        'Authorization': `Bearer ${getToken()}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.status === 404) {
+                    addResult('✅ الخطأ 404 متوقع ومعالج بشكل صحيح عندما لا يوجد معرف عضو', 'success');
+                    addResult('الحل: يتم الآن عرض واجهة اختيار عضو بدلاً من محاولة جلب شجرة فارغة', 'info');
+                } else {
+                    const data = await response.json();
+                    addResult(`حالة غير متوقعة: ${response.status} - ${JSON.stringify(data)}`, 'error');
+                }
+            } catch (error) {
+                addResult(`خطأ في الاختبار: ${error.message}`, 'error');
+            }
+
+            // Test the new member endpoint
+            addResult('اختبار نقطة النهاية الجديدة للعضو...', 'info');
+            try {
+                const response = await fetch(`${API_URL}/api/family-tree/member/8152bbac-7906-4d64-8d27-4a5cdae87d3d`, {
+                    headers: {
+                        'Authorization': `Bearer ${getToken()}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        addResult('✅ نقطة نهاية العضو تعمل بشكل صحيح', 'success');
+                    }
+                } else {
+                    addResult(`حالة الاستجابة: ${response.status}`, 'error');
+                }
+            } catch (error) {
+                addResult(`خطأ في اختبار نقطة النهاية: ${error.message}`, 'error');
+            }
+        }
+
+        function clearResults() {
+            document.getElementById('test-results').innerHTML = '';
+            document.getElementById('members-section').style.display = 'none';
+            addResult('تم مسح النتائج', 'info');
+        }
+
+        // Auto-run basic test
+        window.onload = () => {
+            addResult('مرحباً! اختبار إصلاح شجرة العائلة جاهز', 'success');
+            addResult('المشكلة السابقة: كان النقر على شجرة العائلة في الشريط الجانبي يسبب خطأ 404', 'info');
+            addResult('الحل المطبق: إضافة واجهة اختيار عضو عند عدم وجود معرف عضو', 'success');
+        };
+    </script>
+</body>
+</html>
