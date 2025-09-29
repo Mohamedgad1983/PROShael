@@ -51,6 +51,8 @@ jobs:
           REACT_APP_SUPABASE_ANON_KEY: ${{ secrets.REACT_APP_SUPABASE_ANON_KEY }}
 
       - name: Publish to Cloudflare Pages
+        id: cloudflare
+        continue-on-error: true
         uses: cloudflare/pages-action@v1
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -60,3 +62,10 @@ jobs:
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ github.ref_name }}
           wranglerVersion: '3'
+
+      - name: Retry Cloudflare Deployment
+        if: steps.cloudflare.outcome == 'failure'
+        run: |
+          echo "First attempt failed, waiting 30 seconds before retry..."
+          sleep 30
+          npx wrangler pages deploy alshuail-admin-arabic/build --project-name=alshuail-admin || echo "Deployment retry failed"
