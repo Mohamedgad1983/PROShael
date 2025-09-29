@@ -1,10 +1,10 @@
 import express from 'express';
 import { getDashboardStats } from '../controllers/dashboardController.js';
-import { requireRole } from '../middleware/rbacMiddleware.js';
+import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Dashboard statistics - requires admin or financial manager access
-router.get('/stats', requireRole(['super_admin', 'financial_manager']), getDashboardStats);
+// Dashboard statistics - requires authentication only (simplified for now)
+router.get('/stats', authenticateToken, getDashboardStats);
 
 export default router;
