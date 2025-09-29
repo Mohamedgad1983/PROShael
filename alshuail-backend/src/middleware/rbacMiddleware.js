@@ -1,6 +1,7 @@
 /**
  * RBAC (Role-Based Access Control) Middleware
  * Handles role checking and permission validation
+ * FIXED: Authentication API Request Failures - Updated 2025-09-29
  */
 
 import jwt from 'jsonwebtoken';
