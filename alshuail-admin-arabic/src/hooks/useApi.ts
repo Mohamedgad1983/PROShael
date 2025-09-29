@@ -53,6 +53,8 @@ export type SubscriptionRecord = Record<string, unknown>;
 export type PaymentFilters = Record<string, string | number | boolean | undefined>;
 
 const DASHBOARD_REFRESH_INTERVAL = 300000; // 5 minutes instead of 30 seconds for stability
+const MAX_ERROR_RETRIES = 3;
+const ERROR_RETRY_DELAY = 2000; // 2 seconds
 
 const emptyDashboardData: DashboardData = {
   members: { total: 0, active: 0, inactive: 0, newThisMonth: 0 },
@@ -91,40 +93,71 @@ export const useDashboardData = (): DashboardDataHook => {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     let isMounted = true;
+    let retryTimeout: NodeJS.Timeout;
 
-    const fetchData = async () => {
+    const fetchData = async (isRetry = false) => {
       try {
-        setLoading(true);
+        if (!isRetry) {
+          setLoading(true);
+        }
+
+        console.log('📊 Fetching dashboard data...');
         const response = await typedApiService.getDashboardStats();
         const payload = extractData(response, emptyDashboardData);
+
         if (isMounted) {
           setData(payload);
           setError(null);
+          setRetryCount(0); // Reset retry count on success
+          console.log('✅ Dashboard data loaded successfully');
         }
       } catch (err) {
         if (!isMounted) {
           return;
         }
-        setError(toErrorMessage(err));
-        setData(emptyDashboardData);
+
+        const errorMessage = toErrorMessage(err);
+        console.error('❌ Dashboard data fetch failed:', errorMessage);
+
+        // Only show error and use empty data if we've exhausted retries
+        if (retryCount >= MAX_ERROR_RETRIES) {
+          setError(`فشل في تحميل البيانات: ${errorMessage}`);
+          setData(emptyDashboardData);
+        } else {
+          // Don't set error state during retry attempts
+          setRetryCount(prev => prev + 1);
+
+          // Schedule retry
+          retryTimeout = setTimeout(() => {
+            if (isMounted) {
+              console.log(`🔄 Retrying dashboard fetch (attempt ${retryCount + 1}/${MAX_ERROR_RETRIES})...`);
+              fetchData(true);
+            }
+          }, ERROR_RETRY_DELAY * (retryCount + 1));
+          return;
+        }
       } finally {
-        if (isMounted) {
+        if (isMounted && !isRetry) {
           setLoading(false);
         }
       }
     };
 
     fetchData();
-    const interval = setInterval(fetchData, DASHBOARD_REFRESH_INTERVAL);
+    const interval = setInterval(() => fetchData(), DASHBOARD_REFRESH_INTERVAL);
 
     return () => {
       isMounted = false;
       clearInterval(interval);
+      if (retryTimeout) {
+        clearTimeout(retryTimeout);
+      }
     };
-  }, []);
+  }, [retryCount]); // Add retryCount as dependency
 
   return { data, loading, error };
 };
@@ -134,17 +167,31 @@ export const useMembers = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchMembers = async () => {
+  const fetchMembers = async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) {
+        setLoading(true);
+      }
+
+      console.log('👥 Fetching members data...');
       const response = await typedApiService.getMembers();
-      setMembers(extractData(response, []));
+      const membersData = extractData(response, []);
+
+      setMembers(membersData);
       setError(null);
+      console.log(`✅ Loaded ${membersData.length} members successfully`);
     } catch (err) {
-      setError(toErrorMessage(err));
-      setMembers([]);
+      const errorMessage = toErrorMessage(err);
+      console.error('❌ Members fetch failed:', errorMessage);
+      setError(`فشل في تحميل بيانات الأعضاء: ${errorMessage}`);
+      // Don't clear members data on error, keep existing data
+      if (members.length === 0) {
+        setMembers([]);
+      }
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   };
 
@@ -152,7 +199,7 @@ export const useMembers = () => {
     fetchMembers();
   }, []);
 
-  return { members, loading, error, refetch: fetchMembers };
+  return { members, loading, error, refetch: () => fetchMembers(false) };
 };
 
 export const usePayments = (filters: PaymentFilters = {}) => {
