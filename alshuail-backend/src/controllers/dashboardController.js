@@ -86,7 +86,7 @@ async function getMembersStatistics() {
     console.log('Fetching members statistics...');
     const { data: allMembers, error } = await supabase
       .from('members')
-      .select('member_id, full_name, is_active, created_at')
+      .select('id, full_name, is_active, created_at')
       .limit(1000); // Add limit to prevent timeout
 
     if (error) {
@@ -132,7 +132,7 @@ async function getPaymentsStatistics() {
     console.log('Fetching payments statistics...');
     const { data: payments, error } = await supabase
       .from('payments')
-      .select('payment_id, amount, status, created_at')
+      .select('id, amount, status, created_at')
       .limit(1000); // Add limit to prevent timeout
 
     if (error) {
@@ -193,7 +193,7 @@ async function getSubscriptionStatistics() {
     console.log('Fetching subscription statistics...');
     const { data: subscriptions, error } = await supabase
       .from('subscriptions')
-      .select('subscription_id, amount, status')
+      .select('id, amount, status')
       .limit(1000); // Add limit to prevent timeout
 
     if (error) {
