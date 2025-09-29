@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   MagnifyingGlassIcon,
   FunnelIcon,
@@ -24,10 +24,15 @@ const MemberMonitoringDashboard = () => {
   const lastFetchTime = useRef(null);
   const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
 
-  // Filter States
+  // Filter States with debouncing
   const [searchMemberId, setSearchMemberId] = useState('');
   const [searchName, setSearchName] = useState('');
   const [searchPhone, setSearchPhone] = useState('');
+
+  // Debounced search values for performance
+  const [debouncedSearchMemberId, setDebouncedSearchMemberId] = useState('');
+  const [debouncedSearchName, setDebouncedSearchName] = useState('');
+  const [debouncedSearchPhone, setDebouncedSearchPhone] = useState('');
   const [selectedTribalSection, setSelectedTribalSection] = useState('all');
 
   // Balance Filter States
@@ -49,8 +54,8 @@ const MemberMonitoringDashboard = () => {
   const [selectedMember, setSelectedMember] = useState(null);
   const [suspendConfirmStep, setSuspendConfirmStep] = useState(1);
 
-  // API Configuration
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+  // API Configuration - Use environment variable or correct local port
+  const API_URL = process.env.REACT_APP_API_URL || window.location.hostname === 'localhost' ? 'http://localhost:5001' : 'https://proshael.onrender.com';
 
   // Tribal Sections (الفخذ)
   const tribalSections = [
@@ -65,7 +70,7 @@ const MemberMonitoringDashboard = () => {
     { value: 'عقاب', label: 'عقاب' }
   ];
 
-  // Fetch Members Data with Caching
+  // Fetch Members Data with Caching and Comprehensive Error Handling
   const fetchMembers = async (forceRefresh = false) => {
     try {
       // Check cache first
@@ -96,79 +101,104 @@ const MemberMonitoringDashboard = () => {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      // Try member-monitoring endpoint first, fallback to members endpoint for production
-      let response = await fetch(`${API_URL}/api/member-monitoring`, { headers });
-      let data;
+      // Try member-monitoring endpoint first
+      let response = await fetch(`${API_URL}/api/member-monitoring`, {
+        headers,
+        mode: 'cors',
+        credentials: 'include'
+      });
 
-      // If member-monitoring fails, try regular members endpoint (for production compatibility)
+      let data = null;
+      let membersData = [];
+
+      // If member-monitoring fails, try regular members endpoint
       if (!response.ok && response.status === 404) {
-        console.log('⚠️ Member monitoring endpoint not found, fetching all members in single request');
+        console.log('⚠️ Trying fallback members endpoint...');
+        response = await fetch(`${API_URL}/api/members?limit=500&page=1`, {
+          headers,
+          mode: 'cors',
+          credentials: 'include'
+        });
+      }
 
-        // Fetch all members in a single request with high limit
-        // Backend max is 100 per the code, but it seems to return more when asked
-        response = await fetch(`${API_URL}/api/members?limit=500&page=1`, { headers });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('❌ API Error:', response.status, errorText);
-          throw new Error(`Failed to fetch members data: ${response.status} ${response.statusText}`);
-        }
-
-        data = await response.json();
-        const memberCount = (data.data && Array.isArray(data.data)) ? data.data.length :
-                            (data.members && Array.isArray(data.members)) ? data.members.length :
-                            Array.isArray(data) ? data.length : 0;
-        console.log(`✅ Fetched ${memberCount} members in single request`);
-      } else if (!response.ok) {
+      // Check if response is ok
+      if (!response.ok) {
         const errorText = await response.text();
         console.error('❌ API Error:', response.status, errorText);
-        throw new Error(`Failed to fetch members data: ${response.status} ${response.statusText}`);
-      } else {
+        throw new Error(`API Error: ${response.status}`);
+      }
+
+      // Parse response safely
+      try {
         data = await response.json();
-        console.log('✅ API Response:', data);
+        console.log('✅ API Response received:', {
+          hasData: !!data,
+          hasDataProp: !!(data && data.data),
+          hasMembers: !!(data && data.members),
+          isArray: Array.isArray(data)
+        });
+      } catch (parseErr) {
+        console.error('❌ Failed to parse response:', parseErr);
+        throw new Error('Invalid response format from server');
       }
 
-      // Handle the response structure from the backend
-      // The member monitoring API returns: { data: { members: [...], statistics: {...}, pagination: {...} } }
-      let membersData = [];
-      if (data.data && data.data.members) {
-        // Member monitoring endpoint response
-        membersData = data.data.members;
-      } else if (data.data && Array.isArray(data.data)) {
-        // Regular members endpoint response
-        membersData = data.data;
-      } else if (data.members) {
-        // Fallback
-        membersData = data.members;
-      } else if (Array.isArray(data)) {
-        // Direct array response
-        membersData = data;
+      // Extract members data with comprehensive checks
+      if (data) {
+        if (data.success === true && data.data) {
+          // Standard successful response
+          if (data.data.members && Array.isArray(data.data.members)) {
+            membersData = data.data.members;
+            console.log('✅ Found members in data.data.members');
+          } else if (Array.isArray(data.data)) {
+            membersData = data.data;
+            console.log('✅ Found members in data.data array');
+          }
+        } else if (data.members && Array.isArray(data.members)) {
+          // Direct members property
+          membersData = data.members;
+          console.log('✅ Found members in data.members');
+        } else if (data.data && Array.isArray(data.data)) {
+          // Data array directly
+          membersData = data.data;
+          console.log('✅ Found members in data.data');
+        } else if (Array.isArray(data)) {
+          // Response is array directly
+          membersData = data;
+          console.log('✅ Found members as direct array');
+        }
       }
 
-      // Ensure membersData is an array before mapping
+      // Validate we have array data
       if (!Array.isArray(membersData)) {
-        console.error('❌ Invalid members data format:', membersData);
-        throw new Error('Invalid data format received from API');
+        console.error('❌ Members data is not an array:', typeof membersData, membersData);
+        membersData = []; // Set to empty array to prevent crash
       }
 
-      // Map the backend data to frontend format
-      const formattedMembers = membersData.map(m => ({
-        id: m.id,
-        memberId: m.membership_number || m.memberId || 'N/A',
-        name: m.full_name || m.fullName || m.name || 'غير متوفر',
-        phone: m.phone || 'غير متوفر',
-        balance: parseFloat(m.total_balance || m.balance || 0),
-        tribalSection: m.tribal_section || m.tribalSection || 'غير محدد',
-        status: (parseFloat(m.total_balance || m.balance || 0)) >= 3000 ? 'sufficient' : 'insufficient',
-        isSuspended: m.membership_status === 'suspended' || m.status === 'suspended'
-      }));
+      console.log(`📊 Processing ${membersData.length} members...`);
 
-      console.log('✅ First 3 members with balances:', formattedMembers.slice(0, 3).map(m => ({ name: m.name, balance: m.balance })));
-      console.log('📊 Total members loaded:', formattedMembers.length);
+      // Map the backend data to frontend format with safety checks
+      const formattedMembers = membersData.map(m => {
+        // Ensure m is an object
+        if (!m || typeof m !== 'object') {
+          console.warn('⚠️ Invalid member object:', m);
+          return null;
+        }
 
-      if (formattedMembers.length === 0) {
-        console.warn('⚠️ No members data received from API');
-        throw new Error('No members data available');
+        return {
+          id: m.id || `temp-${Date.now()}-${Math.random()}`,
+          memberId: m.membership_number || m.memberId || m.membershipNumber || 'N/A',
+          name: m.full_name || m.fullName || m.name || 'غير متوفر',
+          phone: m.phone || m.mobile || 'غير متوفر',
+          balance: parseFloat(m.total_balance || m.balance || m.totalBalance || 0) || 0,
+          tribalSection: m.tribal_section || m.tribalSection || 'غير محدد',
+          status: (parseFloat(m.total_balance || m.balance || m.totalBalance || 0) || 0) >= 3000 ? 'sufficient' : 'insufficient',
+          isSuspended: m.is_suspended || m.isSuspended || m.membership_status === 'suspended' || false
+        };
+      }).filter(m => m !== null); // Remove any null entries
+
+      console.log('✅ Formatted members:', formattedMembers.length);
+      if (formattedMembers.length > 0) {
+        console.log('✅ Sample member:', formattedMembers[0]);
       }
 
       // Cache the data
@@ -177,25 +207,24 @@ const MemberMonitoringDashboard = () => {
 
       setMembers(formattedMembers);
       setInitialLoadComplete(true);
-      setError(null); // Clear any previous errors
+      setError(null);
     } catch (err) {
-      console.error('❌ Error fetching members:', err);
-      console.error('❌ Error details:', {
-        message: err.message,
-        stack: err.stack,
-        apiUrl: API_URL
-      });
+      console.error('❌ Error in fetchMembers:', err);
 
-      // Only show error without mock data in production
-      setError(`حدث خطأ في تحميل بيانات الأعضاء. ${err.message}`);
+      // Set user-friendly error message
+      setError('حدث خطأ في تحميل بيانات الأعضاء. يرجى المحاولة لاحقاً.');
 
-      // Use mock data only in development
+      // Use mock data in development
       if (process.env.NODE_ENV === 'development') {
-        console.log('⚠️ Falling back to mock data (development mode)');
+        console.log('⚠️ Loading mock data for development...');
         loadMockData();
+      } else {
+        // In production, set empty members to prevent crash
+        setMembers([]);
       }
     } finally {
       setLoading(false);
+      setInitialLoadComplete(true);
     }
   };
 
@@ -233,30 +262,52 @@ const MemberMonitoringDashboard = () => {
     return mockData;
   };
 
-  // Optimized filtering with useMemo - no debouncing needed
+  // Debounce search inputs for better performance
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchMemberId(searchMemberId);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchMemberId]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchName(searchName);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchName]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchPhone(searchPhone);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchPhone]);
+
+  // Optimized filtering with useMemo and debounced values
   const filteredMembers = useMemo(() => {
     if (!members || members.length === 0) return [];
 
     let filtered = [...members];
 
-    // Filter by Member ID
-    if (searchMemberId) {
+    // Filter by Member ID (using debounced value)
+    if (debouncedSearchMemberId) {
       filtered = filtered.filter(m =>
-        m.memberId && m.memberId.toLowerCase().includes(searchMemberId.toLowerCase())
+        m.memberId && m.memberId.toLowerCase().includes(debouncedSearchMemberId.toLowerCase())
       );
     }
 
-    // Filter by Name
-    if (searchName) {
+    // Filter by Name (using debounced value)
+    if (debouncedSearchName) {
       filtered = filtered.filter(m =>
-        m.name && m.name.includes(searchName)
+        m.name && m.name.includes(debouncedSearchName)
       );
     }
 
-    // Filter by Phone
-    if (searchPhone) {
+    // Filter by Phone (using debounced value)
+    if (debouncedSearchPhone) {
       filtered = filtered.filter(m =>
-        m.phone && m.phone.includes(searchPhone)
+        m.phone && m.phone.includes(debouncedSearchPhone)
       );
     }
 
@@ -318,7 +369,7 @@ const MemberMonitoringDashboard = () => {
     }
 
     return filtered;
-  }, [members, searchMemberId, searchName, searchPhone, selectedTribalSection,
+  }, [members, debouncedSearchMemberId, debouncedSearchName, debouncedSearchPhone, selectedTribalSection,
       balanceFilterType, balanceComparison, balanceComparisonAmount,
       balanceRangeFrom, balanceRangeTo, balanceCategory]);
 
@@ -567,6 +618,9 @@ const MemberMonitoringDashboard = () => {
     setSearchMemberId('');
     setSearchName('');
     setSearchPhone('');
+    setDebouncedSearchMemberId('');
+    setDebouncedSearchName('');
+    setDebouncedSearchPhone('');
     setSelectedTribalSection('all');
     setBalanceFilterType('all');
     setBalanceComparisonAmount('');
@@ -577,7 +631,7 @@ const MemberMonitoringDashboard = () => {
 
   // Check if any filter is active
   const hasActiveFilters = () => {
-    return searchMemberId || searchName || searchPhone ||
+    return debouncedSearchMemberId || debouncedSearchName || debouncedSearchPhone ||
            selectedTribalSection !== 'all' || balanceFilterType !== 'all';
   };
 
