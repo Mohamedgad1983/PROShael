@@ -22,6 +22,7 @@ import statementRoutes from './src/routes/statementRoutes.js';
 import memberStatementRoutes from './src/routes/memberStatementRoutes.js';
 import memberMonitoringRoutes from './src/routes/memberMonitoring.js';
 import documentsRoutes from './src/routes/documents.js';
+import familyTreeRoutes from './src/routes/familyTree.js';
 
 dotenv.config();
 
@@ -129,6 +130,7 @@ app.use('/api/crisis', crisisRoutes);
 app.use('/api/statements', statementRoutes);
 app.use('/api/member-statement', memberStatementRoutes);
 app.use('/api/documents', documentsRoutes);
+app.use('/api/family-tree', familyTreeRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({

@@ -71,7 +71,10 @@
       "Bash(start https://dashboard.render.com/)",
       "Bash(set REACT_APP_API_URL=https://proshael.onrender.com)",
       "Bash(del alshuail-backendconfigpackage.json)",
-      "Bash(del alshuail-backendroutespackage.json)"
+      "Bash(del alshuail-backendroutespackage.json)",
+      "Bash(start D:PROShaeltest-family-tree-api.html)",
+      "Bash(start test-family-tree-api.html)",
+      "Bash(start http://localhost:3002/family-tree)"
     ],
     "deny": [],
     "ask": []

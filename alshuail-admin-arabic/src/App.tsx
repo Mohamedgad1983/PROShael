@@ -221,6 +221,9 @@ const App: React.FC = () => {
             <Route path="/member" element={<MemberMobileApp />} />
             <Route path="/member/*" element={<MemberMobileApp />} />
 
+            {/* Family Tree Route */}
+            <Route path="/family-tree" element={<AdminDashboard />} />
+
             {/* Admin routes */}
             <Route path="/admin/*" element={<AdminDashboard />} />
             <Route path="/login" element={<AdminDashboard />} />

@@ -1,0 +1,669 @@
+/* Import Arabic fonts */
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Tajawal:wght@300;400;500;700;900&display=swap');
+
+/* Family Tree Component Styles with Glassmorphism and RTL Support */
+.family-tree-container {
+  width: 100%;
+  height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  font-family: 'Cairo', 'Tajawal', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  direction: rtl;
+  color: white;
+}
+
+.family-tree-container.fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+}
+
+/* Header Styles */
+.family-tree-header {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+  z-index: 100;
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.header-title h1 {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin: 0;
+  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Search Styles */
+.search-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-input {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 0.75rem 1rem 0.75rem 3rem;
+  color: white;
+  font-size: 0.875rem;
+  width: 300px;
+  direction: rtl;
+  transition: all 0.3s ease;
+}
+
+.search-input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: rgba(59, 130, 246, 0.5);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.search-icon {
+  position: absolute;
+  right: 1rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  color: rgba(255, 255, 255, 0.6);
+  z-index: 1;
+}
+
+/* Control Buttons */
+.control-button {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  padding: 0.75rem;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.control-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.control-button:active {
+  transform: translateY(0);
+}
+
+/* Tree Container */
+.tree-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg,
+    rgba(30, 60, 114, 0.8) 0%,
+    rgba(42, 82, 152, 0.8) 100%);
+}
+
+.tree-container svg {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+}
+
+/* Node Styles */
+.node-circle {
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+  transition: all 0.3s ease;
+}
+
+.node-circle:hover {
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.4));
+  transform: scale(1.1);
+}
+
+.node-text {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+/* Tree Links */
+.tree-container .link {
+  stroke: rgba(255, 255, 255, 0.6);
+  stroke-width: 2;
+  fill: none;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+/* Loading State */
+.family-tree-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 1rem;
+}
+
+.loading-spinner {
+  width: 3rem;
+  height: 3rem;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top: 3px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Error State */
+.family-tree-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 1rem;
+}
+
+.retry-button {
+  background: rgba(59, 130, 246, 0.9);
+  backdrop-filter: blur(10px);
+  border: none;
+  border-radius: 12px;
+  padding: 0.75rem 1.5rem;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.retry-button:hover {
+  background: rgba(59, 130, 246, 1);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(59, 130, 246, 0.3);
+}
+
+/* No Data State */
+.no-data {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 1rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+.member-modal {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  animation: slideUp 0.3s ease;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: white;
+}
+
+.close-button {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.close-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+}
+
+.modal-content {
+  padding: 1.5rem;
+}
+
+/* Member Info */
+.member-info {
+  margin-bottom: 2rem;
+}
+
+.info-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.info-label {
+  font-weight: bold;
+  color: rgba(255, 255, 255, 0.8);
+  min-width: 100px;
+}
+
+.info-value {
+  color: white;
+  flex: 1;
+}
+
+.info-value.balance {
+  color: #10b981;
+  font-weight: bold;
+}
+
+/* Relationships */
+.relationships {
+  margin-top: 2rem;
+}
+
+.relationships h4 {
+  margin: 0 0 1rem 0;
+  font-size: 1.125rem;
+  color: #60a5fa;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 0.5rem;
+}
+
+.relationship-group {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.relationship-group h5 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+  color: #f59e0b;
+}
+
+.relationship-group ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.relationship-group li {
+  padding: 0.25rem 0;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.relationship-group p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .family-tree-header {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .header-controls {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .search-input {
+    width: 250px;
+    font-size: 0.8rem;
+  }
+
+  .header-title h1 {
+    font-size: 1.25rem;
+  }
+
+  .member-modal {
+    width: 95%;
+    margin: 1rem;
+  }
+
+  .modal-content {
+    padding: 1rem;
+  }
+
+  .info-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .info-label {
+    min-width: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .family-tree-header {
+    padding: 0.5rem;
+  }
+
+  .search-input {
+    width: 200px;
+  }
+
+  .control-button {
+    padding: 0.5rem;
+  }
+
+  .header-title {
+    gap: 0.5rem;
+  }
+
+  .header-title h1 {
+    font-size: 1rem;
+  }
+}
+
+/* Tree customizations with RTL support */
+.tree-container .rd3t-node {
+  cursor: pointer;
+}
+
+.tree-container .rd3t-leaf-node {
+  fill: #60a5fa;
+}
+
+.tree-container .rd3t-branch-node {
+  fill: #3b82f6;
+}
+
+/* RTL Tree Transformation */
+[dir="rtl"] .tree-wrapper {
+  direction: ltr; /* Keep SVG in LTR for proper rendering */
+}
+
+[dir="rtl"] .tree-wrapper svg {
+  transform: scaleX(-1); /* Mirror the entire tree horizontally */
+}
+
+[dir="rtl"] .tree-wrapper svg text {
+  transform: scaleX(-1); /* Un-mirror text to keep it readable */
+  text-anchor: middle;
+  font-family: 'Cairo', 'Tajawal', sans-serif;
+}
+
+[dir="rtl"] .tree-wrapper svg foreignObject {
+  transform: scaleX(-1); /* Un-mirror foreign objects */
+}
+
+/* Zoom controls (if needed) */
+.zoom-controls {
+  position: absolute;
+  bottom: 2rem;
+  left: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  z-index: 100;
+}
+
+.zoom-button {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.zoom-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+}
+
+/* Scrollbar customization */
+.member-modal::-webkit-scrollbar {
+  width: 6px;
+}
+
+.member-modal::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.member-modal::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+.member-modal::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Highlight effect for search results */
+.highlighted-node {
+  filter: drop-shadow(0 0 10px #ef4444) !important;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 10px #ef4444);
+  }
+  50% {
+    filter: drop-shadow(0 0 20px #ef4444);
+  }
+}
+
+/* Custom node styles for different relationship types */
+.spouse-node circle {
+  fill: rgba(255, 193, 7, 0.9) !important;
+}
+
+.child-node circle {
+  fill: rgba(34, 197, 94, 0.9) !important;
+}
+
+.parent-node circle {
+  fill: rgba(168, 85, 247, 0.9) !important;
+}
+
+/* Arabic Typography for Tree Nodes */
+.tree-node-text {
+  font-family: 'Cairo', 'Tajawal', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-weight: 600;
+  direction: rtl;
+  unicode-bidi: embed;
+}
+
+.tree-node-arabic {
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  line-height: 1.4;
+}
+
+/* Gender-specific node styles */
+.node-male rect {
+  fill: #3b82f6;
+  fill-opacity: 0.9;
+}
+
+.node-female rect {
+  fill: #ec4899;
+  fill-opacity: 0.9;
+}
+
+.node-male.node-elder rect {
+  fill: #4f46e5;
+}
+
+.node-female.node-elder rect {
+  fill: #7c3aed;
+}
+
+/* Privacy mode for female members */
+.node-private rect {
+  fill: #9ca3af;
+  fill-opacity: 0.7;
+}
+
+.node-private text {
+  opacity: 0.8;
+}
+
+/* Accessibility improvements */
+.family-tree-container:focus-within {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+}
+
+.control-button:focus,
+.search-input:focus {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+}
+
+/* Islamic/Cultural Design Elements */
+.islamic-pattern {
+  background-image:
+    repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(255,255,255,.05) 35px, rgba(255,255,255,.05) 70px),
+    repeating-linear-gradient(-45deg, transparent, transparent 35px, rgba(255,255,255,.03) 35px, rgba(255,255,255,.03) 70px);
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  opacity: 0.3;
+}
+
+/* Tribal Section Badges */
+.tribal-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  background: linear-gradient(135deg, #d4af37 0%, #f4e4bc 100%);
+  color: #1f2937;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+/* Print styles */
+@media print {
+  .family-tree-header {
+    display: none;
+  }
+
+  .family-tree-container {
+    height: auto;
+    background: white;
+    color: black;
+  }
+
+  .tree-container {
+    background: white;
+  }
+
+  .node-circle {
+    stroke: #000;
+    fill: #fff;
+  }
+
+  .node-text {
+    fill: #000;
+    text-shadow: none;
+  }
+}

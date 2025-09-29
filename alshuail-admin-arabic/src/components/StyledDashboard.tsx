@@ -19,6 +19,7 @@ import {
   ChevronLeftIcon,
   BellIcon,
   FolderIcon,
+  UserPlusIcon,
 } from '@heroicons/react/24/outline';
 
 // @ts-ignore
@@ -76,6 +77,7 @@ import MemberStatementSearch from './MemberStatement/MemberStatementSearch.jsx';
 import MemberMonitoringDashboard from './MemberMonitoring/MemberMonitoringDashboard.jsx';
 // @ts-ignore
 import DocumentManager from './Documents/DocumentManager.jsx';
+import FamilyTree from './FamilyTree/FamilyTree';
 
 import {
   formatHijriDate,
@@ -986,6 +988,8 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
     { id: 'statement', label: '📋 البحث عن كشف', icon: DocumentTextIcon }, // Member statement search
 
     { id: 'documents', label: '📁 المستندات', icon: FolderIcon }, // Document Management
+
+    { id: 'family-tree', label: '🌳 شجرة العائلة', icon: UserPlusIcon }, // Family Tree
 
     { id: 'members', label: 'الأعضاء', icon: UsersIcon },
 
@@ -4440,6 +4444,9 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
 
                 {/* Document Management */}
                 {activeSection === 'documents' && <DocumentManager />}
+
+                {/* Family Tree */}
+                {activeSection === 'family-tree' && <FamilyTree />}
               </>
             )}
           </div>
