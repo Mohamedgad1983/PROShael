@@ -308,7 +308,7 @@ app.use((err, req, res, next) => {
 });
 
 const startServer = async () => {
-  console.log('🔄 Starting Al-Shuail Backend Server...');
+  console.log('🔄 Starting Al-Shuail Backend Server v2.0 with Family Tree...');
   console.log('═══════════════════════════════════════');
 
   // Test database connection
