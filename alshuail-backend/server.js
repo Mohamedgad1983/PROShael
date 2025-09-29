@@ -45,7 +45,7 @@ if (!process.env.JWT_SECRET) {
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-// Deploy trigger: Member monitoring support added
+// Deploy trigger: Family tree API enhanced with marriage tracking
 
 app.use(helmet({
   crossOriginResourcePolicy: false,

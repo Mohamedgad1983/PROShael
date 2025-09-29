@@ -86,7 +86,13 @@
       "Bash(find:*)",
       "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjgxNTJiYmFjLTc5MDYtNGQ2NC04ZDI3LTRhNWNkYWU4N2QzZCIsImVtYWlsIjoiYWRtaW5AYWxzaHVhaWwuY29tIiwicGhvbmUiOiIwNTAwMDAwMDAwIiwicm9sZSI6InN1cGVyX2FkbWluIiwicGVybWlzc2lvbnMiOnsiYWxsX2FjY2VzcyI6dHJ1ZSwibWFuYWdlX3VzZXJzIjp0cnVlLCJtYW5hZ2VfbWVtYmVycyI6dHJ1ZSwibWFuYWdlX2ZpbmFuY2VzIjp0cnVlLCJtYW5hZ2VfZmFtaWx5X3RyZWUiOnRydWUsIm1hbmFnZV9vY2Nhc2lvbnMiOnRydWUsIm1hbmFnZV9pbml0aWF0aXZlcyI6dHJ1ZSwibWFuYWdlX2RpeWFzIjp0cnVlLCJ2aWV3X3JlcG9ydHMiOnRydWUsInN5c3RlbV9zZXR0aW5ncyI6dHJ1ZX0sImlhdCI6MTc1OTEzMTEyNCwiZXhwIjoxNzU5NzM1OTI0fQ.vywShBezKYKShydt33crdRwmK4fhVdJMkF_v-Zv--z4\")",
       "Bash(PORT=5001 npm run dev)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(start http://localhost:3002/member-monitoring)",
+      "Bash(start test-member-monitoring.html)",
+      "Bash(start D:PROShaeltest-family-tree-updated.html)",
+      "Bash(start test-family-tree-updated.html)",
+      "Bash(start test-family-tree-production.html)",
+      "WebFetch(domain:api.render.com)"
     ],
     "deny": [],
     "ask": []

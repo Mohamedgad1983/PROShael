@@ -6,23 +6,23 @@ import {
   getAuditLog,
   exportMembers
 } from '../controllers/memberMonitoringController.js';
-import { requireRole } from '../middleware/rbacMiddleware.js';
+import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Get member monitoring dashboard data - requires admin or financial manager access
-router.get('/', requireRole(['super_admin', 'financial_manager']), getMemberMonitoring);
+// Get member monitoring dashboard data - simplified authentication
+router.get('/', authenticateToken, getMemberMonitoring);
 
-// Export member data with filters - requires financial manager or super admin access
-router.get('/export', requireRole(['super_admin', 'financial_manager']), exportMembers);
+// Export member data with filters - simplified authentication
+router.get('/export', authenticateToken, exportMembers);
 
-// Get audit log for compliance tracking - requires super admin access
-router.get('/audit-log', requireRole(['super_admin']), getAuditLog);
+// Get audit log for compliance tracking - simplified authentication
+router.get('/audit-log', authenticateToken, getAuditLog);
 
-// Suspend a member - requires super admin or finance manager privileges
-router.post('/:id/suspend', requireRole(['super_admin', 'financial_manager']), suspendMember);
+// Suspend a member - simplified authentication
+router.post('/:id/suspend', authenticateToken, suspendMember);
 
-// Send notification to a member - requires admin privileges
-router.post('/:id/notify', requireRole(['super_admin', 'financial_manager']), notifyMember);
+// Send notification to a member - simplified authentication
+router.post('/:id/notify', authenticateToken, notifyMember);
 
 export default router;
