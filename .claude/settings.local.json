@@ -74,7 +74,10 @@
       "Bash(del alshuail-backendroutespackage.json)",
       "Bash(start D:PROShaeltest-family-tree-api.html)",
       "Bash(start test-family-tree-api.html)",
-      "Bash(start http://localhost:3002/family-tree)"
+      "Bash(start http://localhost:3002/family-tree)",
+      "Bash(start https://alshuail-admin.pages.dev/family-tree)",
+      "Bash(git ls-tree:*)",
+      "WebFetch(domain:api.github.com)"
     ],
     "deny": [],
     "ask": []
