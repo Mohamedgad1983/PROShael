@@ -50,7 +50,7 @@ const MemberMonitoringDashboard = () => {
   const [suspendConfirmStep, setSuspendConfirmStep] = useState(1);
 
   // API Configuration
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
   // Tribal Sections (الفخذ)
   const tribalSections = [
@@ -115,7 +115,10 @@ const MemberMonitoringDashboard = () => {
         }
 
         data = await response.json();
-        console.log(`✅ Fetched ${(data.data || data.members || []).length} members in single request`);
+        const memberCount = (data.data && Array.isArray(data.data)) ? data.data.length :
+                            (data.members && Array.isArray(data.members)) ? data.members.length :
+                            Array.isArray(data) ? data.length : 0;
+        console.log(`✅ Fetched ${memberCount} members in single request`);
       } else if (!response.ok) {
         const errorText = await response.text();
         console.error('❌ API Error:', response.status, errorText);
@@ -126,7 +129,27 @@ const MemberMonitoringDashboard = () => {
       }
 
       // Handle the response structure from the backend
-      const membersData = data.data || data.members || [];
+      // The member monitoring API returns: { data: { members: [...], statistics: {...}, pagination: {...} } }
+      let membersData = [];
+      if (data.data && data.data.members) {
+        // Member monitoring endpoint response
+        membersData = data.data.members;
+      } else if (data.data && Array.isArray(data.data)) {
+        // Regular members endpoint response
+        membersData = data.data;
+      } else if (data.members) {
+        // Fallback
+        membersData = data.members;
+      } else if (Array.isArray(data)) {
+        // Direct array response
+        membersData = data;
+      }
+
+      // Ensure membersData is an array before mapping
+      if (!Array.isArray(membersData)) {
+        console.error('❌ Invalid members data format:', membersData);
+        throw new Error('Invalid data format received from API');
+      }
 
       // Map the backend data to frontend format
       const formattedMembers = membersData.map(m => ({
