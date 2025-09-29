@@ -15,8 +15,9 @@ import { showToast } from './utils/toast';
 // Admin Dashboard Component
 const AdminDashboard: React.FC = () => {
   const [formData, setFormData] = React.useState({
-    email: '',
-    password: ''
+    phone: '',
+    password: '',
+    role: 'super_admin' // Default to super admin for admin login
   });
   // Check localStorage for existing session
   const [isLoggedIn, setIsLoggedIn] = React.useState(() => {
@@ -44,8 +45,9 @@ const AdminDashboard: React.FC = () => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          email: formData.email,
-          password: formData.password
+          phone: formData.phone,
+          password: formData.password,
+          role: formData.role
         })
       });
 
@@ -57,7 +59,7 @@ const AdminDashboard: React.FC = () => {
         localStorage.setItem('isLoggedIn', 'true');
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
-        localStorage.setItem('userEmail', formData.email);
+        localStorage.setItem('userPhone', formData.phone);
 
         // Pre-cache dashboard data
         localStorage.setItem('loginTime', Date.now().toString());
@@ -78,10 +80,10 @@ const AdminDashboard: React.FC = () => {
 
   const handleLogout = () => {
     setIsLoggedIn(false);
-    setFormData({ email: '', password: '' });
+    setFormData({ phone: '', password: '', role: 'super_admin' });
     // Clear all auth data from localStorage
     localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('userEmail');
+    localStorage.removeItem('userPhone');
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('auth_token');
@@ -130,23 +132,23 @@ const AdminDashboard: React.FC = () => {
 
             <form className="modern-login-form" onSubmit={handleSubmit} dir="rtl">
               <div className="modern-input-group">
-                <label htmlFor="email" className="modern-input-label">
-                  البريد الإلكتروني
+                <label htmlFor="phone" className="modern-input-label">
+                  رقم الهاتف
                 </label>
                 <div className="modern-input-wrapper">
                   <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={formData.email}
+                    type="tel"
+                    id="phone"
+                    name="phone"
+                    value={formData.phone}
                     onChange={handleChange}
-                    placeholder="example@alshuail.com"
+                    placeholder="+96550123456"
                     className="modern-input-field"
                     required
                     dir="ltr"
                   />
                   <svg className="modern-input-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                   </svg>
                 </div>
               </div>
