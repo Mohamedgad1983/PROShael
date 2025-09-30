@@ -1,0 +1,20 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Run security scanner on staged files
+echo "🔒 Running pre-commit security scan..."
+
+# Determine the correct path to the scanner
+if [ -f "./alshuail-backend/src/scripts/scan-secrets.js" ]; then
+  node ./alshuail-backend/src/scripts/scan-secrets.js
+elif [ -f "./src/scripts/scan-secrets.js" ]; then
+  node ./src/scripts/scan-secrets.js
+else
+  echo "⚠️  Security scanner not found, skipping..."
+fi
+
+# Optional: Run tests
+# npm test
+
+# Optional: Run linter
+# npm run lint-staged
