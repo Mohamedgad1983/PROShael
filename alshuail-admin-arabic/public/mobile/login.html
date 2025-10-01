@@ -121,6 +121,103 @@
             padding: 10px;
         }
 
+        /* S.A.F Logo Styles */
+        .saf-logo {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .logo-circle {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, #ffffff, #f0f0f0);
+            border-radius: 50%;
+            border: 4px solid #2563eb;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 32px rgba(37, 99, 235, 0.3);
+            animation: logoGlow 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes logoGlow {
+            from { box-shadow: 0 8px 32px rgba(37, 99, 235, 0.3); }
+            to { box-shadow: 0 12px 40px rgba(37, 99, 235, 0.5); }
+        }
+
+        .logo-hands {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        .hand {
+            position: absolute;
+            width: 30px;
+            height: 40px;
+            background: #2563eb;
+            border-radius: 15px 15px 8px 8px;
+            bottom: 10px;
+        }
+
+        .left-hand {
+            left: 20px;
+            transform: rotate(-15deg);
+        }
+
+        .right-hand {
+            right: 20px;
+            transform: rotate(15deg);
+        }
+
+        .logo-figures {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            top: -10px;
+        }
+
+        .figure {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #16a34a;
+            position: relative;
+        }
+
+        .figure::after {
+            content: '';
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-top: 15px solid #16a34a;
+        }
+
+        .logo-text {
+            position: absolute;
+            top: -8px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .saf-letters {
+            font-size: 16px;
+            font-weight: 900;
+            color: #2563eb;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
         .app-icon::before {
             content: '';
             position: absolute;
@@ -130,14 +227,6 @@
             height: 50%;
             background: linear-gradient(180deg, rgba(255,255,255,0.3) 0%, transparent 100%);
             z-index: 1;
-        }
-
-        .app-icon img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            position: relative;
-            z-index: 0;
         }
 
         .app-title {
@@ -342,8 +431,20 @@
     <div class="login-container">
         <!-- Logo -->
         <div class="logo-section">
-            <div class="app-icon">
-                <img src="icon-192.png" alt="صندوق عائلة شعيل العنزي">
+            <div class="saf-logo">
+                <div class="logo-circle">
+                    <div class="logo-hands">
+                        <div class="hand left-hand"></div>
+                        <div class="hand right-hand"></div>
+                    </div>
+                    <div class="logo-figures">
+                        <div class="figure figure-1"></div>
+                        <div class="figure figure-2"></div>
+                    </div>
+                    <div class="logo-text">
+                        <span class="saf-letters">S.A.F</span>
+                    </div>
+                </div>
             </div>
             <h1 class="app-title">صندوق عائلة شعيل العنزي</h1>
             <p class="app-subtitle">Shuail Al-Anzi Family Fund</p>
