@@ -101,8 +101,9 @@ const MemberMonitoringDashboard = () => {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      // Try member-monitoring endpoint first
-      let response = await fetch(`${API_URL}/api/member-monitoring`, {
+      // Try member-monitoring endpoint first with pagination
+      // Request all members at once for better client-side filtering and performance
+      let response = await fetch(`${API_URL}/api/member-monitoring?limit=500&page=1`, {
         headers,
         mode: 'cors',
         credentials: 'include'
