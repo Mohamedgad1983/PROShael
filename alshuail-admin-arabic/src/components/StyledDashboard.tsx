@@ -41,6 +41,7 @@ import AppleInitiativesManagement from './Initiatives/AppleInitiativesManagement
 // @ts-ignore
 
 import AppleDiyasManagement from './Diyas/AppleDiyasManagement.jsx';
+import DiyaDashboard from './DiyaDashboard.jsx';
 
 import { NotificationsCenter } from './Notifications';
 
@@ -4430,7 +4431,7 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
                   <AppleInitiativesManagement />
                 )}
 
-                {activeSection === 'diyas' && <AppleDiyasManagement />}
+                {activeSection === 'diyas' && <DiyaDashboard />}
 
                 {activeSection === 'notifications' && (
                   <div>

@@ -36,6 +36,7 @@ import memberStatementRoutes from './src/routes/memberStatementRoutes.js';
 import memberMonitoringRoutes from './src/routes/memberMonitoring.js';
 import documentsRoutes from './src/routes/documents.js';
 import familyTreeRoutes from './src/routes/familyTree.js';
+import diyaDashboardRoutes from './src/routes/diyaDashboard.js';
 
 // Check JWT_SECRET but don't throw error - just warn
 if (!process.env.JWT_SECRET) {
@@ -183,6 +184,7 @@ app.use('/api/statements', statementRoutes);
 app.use('/api/member-statement', memberStatementRoutes);
 app.use('/api/documents', documentsRoutes);
 app.use('/api/family-tree', familyTreeRoutes);
+app.use('/api/diya', diyaDashboardRoutes);
 
 // Enhanced health check endpoint
 app.get('/api/health', async (req, res) => {
