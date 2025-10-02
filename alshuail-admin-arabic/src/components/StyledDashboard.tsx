@@ -4431,7 +4431,7 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
                   <AppleInitiativesManagement />
                 )}
 
-                {activeSection === 'diyas' && <DiyaDashboard />}
+                {activeSection === 'diyas' && <AppleDiyasManagement />}
 
                 {activeSection === 'notifications' && (
                   <div>
