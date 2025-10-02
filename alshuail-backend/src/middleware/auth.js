@@ -10,10 +10,9 @@ export const authenticateToken = async (req, res, next) => {
 
     if (!token) {
       console.log('[Auth] No token provided');
-      // Allow access without token for member-monitoring in both dev and production
-      // This is a read-only dashboard endpoint
-      if (req.originalUrl.includes('member-monitoring')) {
-        console.log('[Auth] Allowing access without token for member-monitoring (read-only endpoint)');
+      // Allow access without token for read-only dashboard endpoints
+      if (req.originalUrl.includes('member-monitoring') || req.originalUrl.includes('dashboard/stats')) {
+        console.log('[Auth] Allowing access without token for read-only dashboard endpoint');
         req.user = { id: 'public-access', role: 'viewer' };
         return next();
       }
@@ -47,9 +46,9 @@ export const authenticateToken = async (req, res, next) => {
         }
 
         if (err.name === 'JsonWebTokenError') {
-          // Allow access even with malformed token for member-monitoring (read-only)
-          if (req.originalUrl.includes('member-monitoring')) {
-            console.log('[Auth] Allowing access with malformed token for member-monitoring (read-only)');
+          // Allow access even with malformed token for read-only dashboard endpoints
+          if (req.originalUrl.includes('member-monitoring') || req.originalUrl.includes('dashboard/stats')) {
+            console.log('[Auth] Allowing access with malformed token for read-only dashboard endpoint');
             req.user = { id: 'public-access', role: 'viewer' };
             return next();
           }

@@ -10,7 +10,8 @@ export const getDashboardStats = async (req, res) => {
       getMembersStatistics(),
       getPaymentsStatistics(),
       getSubscriptionStatistics(),
-      getRecentActivities()
+      getRecentActivities(),
+      getTribalSectionsStatistics()
     ]);
 
     // Extract results with fallback values
@@ -18,11 +19,12 @@ export const getDashboardStats = async (req, res) => {
     const paymentsStats = results[1].status === 'fulfilled' ? results[1].value : getDefaultPaymentsStats();
     const subscriptionStats = results[2].status === 'fulfilled' ? results[2].value : getDefaultSubscriptionStats();
     const recentActivities = results[3].status === 'fulfilled' ? results[3].value : [];
+    const tribalSections = results[4].status === 'fulfilled' ? results[4].value : [];
 
     // Log any failures for debugging
     results.forEach((result, index) => {
       if (result.status === 'rejected') {
-        const names = ['members', 'payments', 'subscriptions', 'activities'];
+        const names = ['members', 'payments', 'subscriptions', 'activities', 'tribalSections'];
         console.error(`Failed to get ${names[index]} stats:`, result.reason);
       }
     });
@@ -34,7 +36,8 @@ export const getDashboardStats = async (req, res) => {
         members: membersStats,
         payments: paymentsStats,
         subscriptions: subscriptionStats,
-        activities: recentActivities
+        activities: recentActivities,
+        tribalSections: tribalSections
       }
     });
   } catch (error) {
@@ -226,6 +229,50 @@ async function getSubscriptionStatistics() {
   } catch (error) {
     console.error('Error getting subscription statistics:', error.message || error);
     return getDefaultSubscriptionStats();
+  }
+}
+
+async function getTribalSectionsStatistics() {
+  try {
+    console.log('Fetching tribal sections statistics...');
+    const { data: members, error } = await supabase
+      .from('members')
+      .select('tribal_section, total_paid')
+      .limit(1000);
+
+    if (error) {
+      console.error('Supabase tribal sections error:', error);
+      throw error;
+    }
+
+    if (!members || members.length === 0) {
+      console.log('No tribal section data');
+      return [];
+    }
+
+    // Group by tribal section
+    const sections = {};
+    members.forEach(member => {
+      const section = member.tribal_section || 'Unknown';
+      if (!sections[section]) {
+        sections[section] = {
+          section: section,
+          members: 0,
+          balance: 0
+        };
+      }
+      sections[section].members++;
+      sections[section].balance += parseFloat(member.total_paid || 0);
+    });
+
+    // Convert to array and sort by member count
+    const tribalData = Object.values(sections).sort((a, b) => b.members - a.members);
+
+    console.log(`Tribal sections: ${tribalData.length} sections, ${members.length} total members`);
+    return tribalData;
+  } catch (error) {
+    console.error('Error getting tribal sections statistics:', error.message || error);
+    return [];
   }
 }
 
