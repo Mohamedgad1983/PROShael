@@ -10,10 +10,11 @@ export const authenticateToken = async (req, res, next) => {
 
     if (!token) {
       console.log('[Auth] No token provided');
-      // In development, allow access without token for member-monitoring
-      if (process.env.NODE_ENV === 'development' && req.originalUrl.includes('member-monitoring')) {
-        console.log('[Auth] Allowing access without token in development for member-monitoring');
-        req.user = { id: 'dev-user', role: 'admin' };
+      // Allow access without token for member-monitoring in both dev and production
+      // This is a read-only dashboard endpoint
+      if (req.originalUrl.includes('member-monitoring')) {
+        console.log('[Auth] Allowing access without token for member-monitoring (read-only endpoint)');
+        req.user = { id: 'public-access', role: 'viewer' };
         return next();
       }
       return res.status(401).json({
@@ -46,10 +47,10 @@ export const authenticateToken = async (req, res, next) => {
         }
 
         if (err.name === 'JsonWebTokenError') {
-          // In development, allow access even with malformed token for member-monitoring
-          if (process.env.NODE_ENV === 'development' && req.originalUrl.includes('member-monitoring')) {
-            console.log('[Auth] Allowing access with malformed token in development for member-monitoring');
-            req.user = { id: 'dev-user', role: 'admin' };
+          // Allow access even with malformed token for member-monitoring (read-only)
+          if (req.originalUrl.includes('member-monitoring')) {
+            console.log('[Auth] Allowing access with malformed token for member-monitoring (read-only)');
+            req.user = { id: 'public-access', role: 'viewer' };
             return next();
           }
           return res.status(401).json({

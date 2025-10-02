@@ -97,15 +97,9 @@ export const getMemberMonitoring = async (req, res) => {
     }
 
     // Calculate balances and prepare member data
-    const membersWithBalances = await Promise.all((allMembers || []).map(async (member) => {
-      // Get total payments for this member
-      const { data: payments } = await supabase
-        .from('payments')
-        .select('amount')
-        .eq('payer_id', member.id)
-        .in('status', ['completed', 'approved']);
-
-      const totalPaid = payments?.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0) || 0;
+    const membersWithBalances = (allMembers || []).map((member) => {
+      // Get total paid from member record (imported data stored directly in member)
+      const totalPaid = parseFloat(member.total_paid || 0);
 
       // Handle different name field variations
       let memberName = member.full_name || member.name || member.fullName ||
@@ -151,7 +145,7 @@ export const getMemberMonitoring = async (req, res) => {
         suspensionReason: member.suspension_reason,
         suspendedAt: member.suspended_at
       };
-    }));
+    });
 
     // Apply balance filters on calculated data
     let filteredMembers = membersWithBalances;
@@ -596,14 +590,9 @@ export const exportMembers = async (req, res) => {
     }
 
     // Calculate balances and prepare export data
-    const exportData = await Promise.all((allMembers || []).map(async (member) => {
-      const { data: payments } = await supabase
-        .from('payments')
-        .select('amount')
-        .eq('payer_id', member.id)
-        .in('status', ['completed', 'approved']);
-
-      const totalPaid = payments?.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0) || 0;
+    const exportData = (allMembers || []).map((member) => {
+      // Get total paid from member record (imported data stored directly in member)
+      const totalPaid = parseFloat(member.total_paid || 0);
 
       let memberName = member.full_name || member.name || member.fullName ||
                        (member.first_name ? `${member.first_name} ${member.last_name || ''}` : '') ||
@@ -638,7 +627,7 @@ export const exportMembers = async (req, res) => {
         'تاريخ الانضمام': member.joined_date || member.created_at,
         'آخر دفعة': member.updated_at
       };
-    }));
+    });
 
     // Apply balance filters on export data
     let filteredExportData = exportData;
