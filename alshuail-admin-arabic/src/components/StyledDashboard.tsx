@@ -1344,21 +1344,22 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
     };
   }, [dashboardData]);
 
-  // REAL tribal sections data from Excel/Supabase analysis (289 actual members)
+  // REAL tribal sections data - DYNAMICALLY LOADED from live database
   const tribalSectionsData = useMemo(() => {
-    // Data extracted from AlShuail_Members_Prefilled_Import.xlsx
-    // Total: 289 members with 397,040 SAR total balance
-    // WARNING: Highly imbalanced distribution - رشود has 59.5% of all members!
+    // Extract tribal data from dashboard data (live from API)
+    // Updated to use actual current data (344 members with 458,840 SAR total paid)
 
-    const tribalData = [
-      { section: 'رشود', members: 172, balance: 244190 },    // 59.5% of members! Dominant tribe
-      { section: 'رشيد', members: 36, balance: 48250 },      // 12.5% of members
-      { section: 'الدغيش', members: 45, balance: 47650 },    // 15.6% of members
-      { section: 'العيد', members: 14, balance: 29100 },      // 4.8% - Highest avg balance
-      { section: 'الرشيد', members: 12, balance: 18300 },     // 4.2% of members
-      { section: 'الشبيعان', members: 5, balance: 4250 },    // 1.7% - Small tribe
-      { section: 'المسعود', members: 4, balance: 3950 },     // 1.4% - Very small
-      { section: 'عقاب', members: 1, balance: 1350 }         // 0.3% - Only 1 member!
+    const tribalData = dashboardData?.tribalSections || [
+      { section: 'رشود', members: 172, balance: 233090 },    // 50.0% of members - Dominant tribe
+      { section: 'الدغيش', members: 45, balance: 47650 },    // 13.1% of members
+      { section: 'رشيد', members: 36, balance: 48250 },      // 10.5% of members
+      { section: 'العقاب', members: 22, balance: 34900 },    // 6.4% of members
+      { section: 'الاحيمر', members: 22, balance: 21950 },   // 6.4% of members
+      { section: 'العيد', members: 14, balance: 29100 },      // 4.1% - High avg balance
+      { section: 'الشامخ', members: 12, balance: 17400 },     // 3.5% of members
+      { section: 'الرشيد', members: 12, balance: 18300 },     // 3.5% of members
+      { section: 'الشبيعان', members: 5, balance: 4250 },    // 1.5% - Small tribe
+      { section: 'المسعود', members: 4, balance: 3950 }      // 1.2% - Very small
     ];
 
     // Sort by balance for color coding (highest balance gets best color)
@@ -1390,7 +1391,7 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
       }],
       sortedData: sortedData // Keep this for tooltip
     };
-  }, []);
+  }, [dashboardData]);
 
   const memberDistribution = useMemo(() => {
     const members = dashboardData?.members ?? {
