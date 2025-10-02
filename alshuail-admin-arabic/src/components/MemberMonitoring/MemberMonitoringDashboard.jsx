@@ -54,8 +54,8 @@ const MemberMonitoringDashboard = () => {
   const [selectedMember, setSelectedMember] = useState(null);
   const [suspendConfirmStep, setSuspendConfirmStep] = useState(1);
 
-  // API Configuration - Use environment variable or correct local port
-  const API_URL = process.env.REACT_APP_API_URL || window.location.hostname === 'localhost' ? 'http://localhost:5001' : 'https://proshael.onrender.com';
+  // API Configuration - Use environment variable or fallback to production
+  const API_URL = process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://proshael.onrender.com');
 
   // Tribal Sections (الفخذ)
   const tribalSections = [
