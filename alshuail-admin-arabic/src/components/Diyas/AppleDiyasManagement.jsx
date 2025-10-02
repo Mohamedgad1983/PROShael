@@ -30,11 +30,17 @@ import {
 const AppleDiyasManagement = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [diyas, setDiyas] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterType, setFilterType] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedDiya, setSelectedDiya] = useState(null);
+  const [contributors, setContributors] = useState([]);
+  const [showContributorsModal, setShowContributorsModal] = useState(false);
+
+  // API URL configuration
+  const API_URL = process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://proshael.onrender.com');
   const [newDiya, setNewDiya] = useState({
     title: '',
     type: 'accident',
@@ -129,8 +135,67 @@ const AppleDiyasManagement = () => {
   ];
 
   useEffect(() => {
-    setDiyas(mockDiyas);
+    fetchRealDiyaData();
   }, []);
+
+  // Fetch real diya data from API
+  const fetchRealDiyaData = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_URL}/api/diya/dashboard`);
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        // Transform API data to match component structure
+        const transformedDiyas = result.data.map(d => ({
+          id: d.activity_id,
+          title: d.title_ar || d.title_en,
+          type: 'accident', // Default type
+          amount: d.target_amount || 100000,
+          beneficiaryName: d.description_ar || 'غير محدد',
+          paidAmount: d.total_collected || 0,
+          remainingAmount: (d.target_amount || 100000) - (d.total_collected || 0),
+          contributors: d.total_contributors || 0,
+          status: d.collection_status === 'completed' ? 'completed' : 'in_progress',
+          priority: 'high',
+          collectorName: 'إدارة الصندوق',
+          tags: ['دية']
+        }));
+
+        setDiyas(transformedDiyas);
+      } else {
+        // Fallback to mock data
+        setDiyas(mockDiyas);
+      }
+    } catch (error) {
+      console.error('Error fetching diya data:', error);
+      // Fallback to mock data on error
+      setDiyas(mockDiyas);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch contributors for specific diya
+  const fetchContributors = async (diyaId) => {
+    try {
+      const response = await fetch(`${API_URL}/api/diya/${diyaId}/contributors`);
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        setContributors(result.data);
+        setShowContributorsModal(true);
+      }
+    } catch (error) {
+      console.error('Error fetching contributors:', error);
+    }
+  };
+
+  // Handle clicking on a diya card to see contributors
+  const handleViewContributors = (diya) => {
+    setSelectedDiya(diya);
+    fetchContributors(diya.id);
+  };
 
   // Helper functions
   const getTypeInfo = (type) => {
@@ -271,7 +336,7 @@ const AppleDiyasManagement = () => {
     const progressPercentage = ((diya.paidAmount / diya.amount) * 100).toFixed(0);
 
     return (
-      <div style={{ background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(249, 250, 251, 0.9))', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: '1px solid rgba(229, 231, 235, 0.5)', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', padding: '24px', transform: 'scale(1)', transition: 'all 0.3s', cursor: 'pointer' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.02)' }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)' }}>
+      <div style={{ background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(249, 250, 251, 0.9))', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', border: '1px solid rgba(229, 231, 235, 0.5)', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', padding: '24px', transform: 'scale(1)', transition: 'all 0.3s', cursor: 'pointer' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.02)' }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)' }} onClick={() => handleViewContributors(diya)}>
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
             <div
@@ -1018,6 +1083,101 @@ const AppleDiyasManagement = () => {
                 </div>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Contributors Modal */}
+      {showContributorsModal && selectedDiya && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.7)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '20px'
+        }} onClick={() => setShowContributorsModal(false)}>
+          <div style={{
+            background: 'white',
+            borderRadius: '20px',
+            maxWidth: '1200px',
+            width: '100%',
+            maxHeight: '90vh',
+            overflow: 'auto',
+            padding: '32px'
+          }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <div>
+                <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1F2937', marginBottom: '8px' }}>
+                  {selectedDiya.title} - قائمة المساهمين
+                </h2>
+                <div style={{ display: 'flex', gap: '24px', fontSize: '14px', color: '#6B7280' }}>
+                  <span>إجمالي المساهمين: <strong>{contributors.length}</strong></span>
+                  <span>المبلغ الإجمالي: <strong>{selectedDiya.paidAmount.toLocaleString('ar-SA')} ر.س</strong></span>
+                  <span>متوسط المساهمة: <strong>{contributors.length > 0 ? (selectedDiya.paidAmount / contributors.length).toFixed(0) : 0} ر.س</strong></span>
+                </div>
+              </div>
+              <button onClick={() => setShowContributorsModal(false)} style={{
+                padding: '8px',
+                background: '#F3F4F6',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer'
+              }}>
+                <XMarkIcon style={{ width: '24px', height: '24px', color: '#6B7280' }} />
+              </button>
+            </div>
+
+            <div style={{ background: '#F9FAFB', borderRadius: '12px', padding: '16px', marginBottom: '16px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ background: '#1F2937', color: 'white' }}>
+                    <th style={{ padding: '12px', textAlign: 'right', borderRadius: '8px 0 0 0' }}>رقم العضوية</th>
+                    <th style={{ padding: '12px', textAlign: 'right' }}>الاسم</th>
+                    <th style={{ padding: '12px', textAlign: 'right' }}>الفخذ</th>
+                    <th style={{ padding: '12px', textAlign: 'right' }}>المبلغ</th>
+                    <th style={{ padding: '12px', textAlign: 'right', borderRadius: '0 8px 0 0' }}>التاريخ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {contributors.length > 0 ? (
+                    contributors.map((contributor, index) => (
+                      <tr key={index} style={{ borderBottom: '1px solid #E5E7EB' }}>
+                        <td style={{ padding: '12px', textAlign: 'right' }}>{contributor.membership_number}</td>
+                        <td style={{ padding: '12px', textAlign: 'right', fontWeight: '500' }}>{contributor.member_name}</td>
+                        <td style={{ padding: '12px', textAlign: 'right' }}>{contributor.tribal_section || '-'}</td>
+                        <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold', color: '#10B981' }}>{contributor.amount.toLocaleString('ar-SA')} ر.س</td>
+                        <td style={{ padding: '12px', textAlign: 'right' }}>{new Date(contributor.contribution_date).toLocaleDateString('ar-SA')}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="5" style={{ padding: '32px', textAlign: 'center', color: '#9CA3AF' }}>
+                        لا توجد مساهمات حالياً
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button onClick={() => setShowContributorsModal(false)} style={{
+                padding: '10px 20px',
+                background: '#F3F4F6',
+                border: 'none',
+                borderRadius: '8px',
+                fontWeight: '600',
+                cursor: 'pointer'
+              }}>
+                إغلاق
+              </button>
+            </div>
           </div>
         </div>
       )}
