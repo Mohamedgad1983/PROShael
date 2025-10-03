@@ -33,7 +33,9 @@
       "Bash(awk:*)",
       "mcp__playwright__browser_handle_dialog",
       "mcp__playwright__browser_snapshot",
-      "mcp__playwright__browser_close"
+      "mcp__playwright__browser_close",
+      "Bash(wrangler pages deploy:*)",
+      "mcp__playwright__browser_tabs"
     ],
     "deny": [],
     "ask": []

@@ -41,24 +41,48 @@
   padding: 24px 20px;
 }
 
-.header-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.greeting-section h2 {
+.greeting-text {
   font-size: 18px;
-  color: rgba(255, 255, 255, 0.9);
-  margin: 0;
+  color: rgba(255, 255, 255, 0.95);
+  margin-bottom: 8px;
+  opacity: 0.95;
 }
 
-.greeting-section h3 {
+.member-name {
   font-size: 24px;
+  font-weight: bold;
   color: white;
-  margin: 5px 0 0 0;
+  margin-bottom: 16px;
+}
+
+/* Hijri Date Card - Glassmorphism */
+.hijri-date-card {
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10px);
+  padding: 16px;
+  border-radius: 16px;
+  margin-top: 16px;
+}
+
+.hijri-date-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 16px;
   font-weight: 600;
+  margin-bottom: 8px;
+  color: white;
+}
+
+.hijri-icon {
+  font-size: 28px;
+}
+
+.gregorian-date-sub {
+  font-size: 14px;
+  opacity: 0.9;
+  padding-right: 40px;
+  color: white;
 }
 
 .notification-btn {
@@ -99,18 +123,48 @@
   border: 2px solid white;
 }
 
-/* Hijri Date Card - Glassmorphism effect */
-.hijri-date {
-  background: rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(10px);
-  padding: 16px;
-  border-radius: 16px;
-  margin-top: 16px;
-  color: white;
+/* Balance Amounts - Split Layout from HTML */
+.balance-amounts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.balance-item {
   text-align: center;
-  font-size: 16px;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 12px;
+}
+
+.amount-label {
+  font-size: 14px;
+  color: #64748b;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.amount-value {
+  font-size: 22px;
+  font-weight: bold;
+  color: #1e293b;
+}
+
+.target-value {
+  color: #667eea;
+}
+
+/* Remaining Alert */
+.remaining-alert {
+  background: #fef3c7;
+  border: 2px solid #fbbf24;
+  color: #92400e;
+  padding: 12px;
+  border-radius: 12px;
+  text-align: center;
   font-weight: 600;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  font-size: 15px;
 }
 
 /* Balance Card - Matches HTML */
@@ -126,26 +180,43 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
-  color: #333;
-  font-size: 14px;
+  margin-bottom: 20px;
 }
 
-.balance-status {
-  font-weight: 600;
-  padding: 4px 12px;
+.balance-header h3 {
+  font-size: 20px;
+  color: #1e293b;
+  margin: 0;
+}
+
+.status-badge {
+  padding: 6px 16px;
   border-radius: 20px;
-  font-size: 12px;
+  font-size: 14px;
+  font-weight: 600;
 }
 
-.balance-card.compliant .balance-status {
+.status-badge.compliant {
   background: #dcfce7;
   color: #166534;
 }
 
-.balance-card.non-compliant .balance-status {
+.status-badge.insufficient {
   background: #fee2e2;
   color: #991b1b;
+}
+
+/* Progress Container */
+.progress-container {
+  margin-bottom: 20px;
+}
+
+.progress-text {
+  text-align: center;
+  font-size: 18px;
+  font-weight: bold;
+  color: #64748b;
+  margin-top: 8px;
 }
 
 .balance-amount {
@@ -243,20 +314,26 @@
 }
 
 /* First action button (primary) has gradient */
-.action-btn:first-child {
+.action-btn.primary {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
 }
 
-.action-icon {
+.button-icon {
   font-size: 32px;
-  width: 32px;
-  height: 32px;
 }
 
-.action-btn span {
+.button-text {
   font-size: 15px;
   font-weight: 600;
+}
+
+.action-btn.primary .button-text {
+  color: white;
+}
+
+.action-btn:not(.primary) .button-text {
+  color: #1e293b;
 }
 
 /* Notifications Preview - White card like HTML */

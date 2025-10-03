@@ -60,12 +60,9 @@ const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showPayments, setShowPayments] = useState(false);
 
-  // Get time-based greeting
+  // Fixed greeting to match HTML demo
   const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'صباح الخير';
-    if (hour < 18) return 'مساء الخير';
-    return 'مساء الخير';
+    return 'السلام عليكم ورحمة الله';
   };
 
   useEffect(() => {
@@ -131,31 +128,27 @@ const Dashboard: React.FC = () => {
   const quickActions = [
     {
       id: 'payment',
-      title: 'دفع جديد',
-      icon: CreditCardIcon,
-      color: '#667eea',
+      title: 'دفع اشتراك',
+      emoji: '💵',
       route: '/mobile/payment'
     },
     {
       id: 'history',
       title: 'سجل المدفوعات',
-      icon: ClockIcon,
-      color: '#764ba2',
+      emoji: '📊',
       route: '/mobile/payment-history'
     },
     {
-      id: 'statement',
-      title: 'كشف الحساب',
-      icon: DocumentTextIcon,
-      color: '#f093fb',
-      route: '/mobile/statement'
+      id: 'profile',
+      title: 'ملفي الشخصي',
+      emoji: '👤',
+      route: '/mobile/profile'
     },
     {
-      id: 'profile',
-      title: 'الملف الشخصي',
-      icon: UserIcon,
-      color: '#4facfe',
-      route: '/mobile/profile'
+      id: 'contact',
+      title: 'تواصل معنا',
+      emoji: '📱',
+      route: '/mobile/contact'
     },
   ];
 
@@ -180,62 +173,61 @@ const Dashboard: React.FC = () => {
     <div className="mobile-dashboard">
       {/* Header */}
       <div className="dashboard-header">
-        <div className="header-top">
-          <div className="greeting-section">
-            <h2>{getGreeting()}</h2>
-            <h3>{member?.full_name || 'عضو الشعيل'}</h3>
+        <div className="greeting-text">{getGreeting()}</div>
+        <div className="member-name">{member?.full_name || 'أحمد محمد الشعيل'}</div>
+
+        {/* Glassmorphism Hijri Date Card */}
+        <div className="hijri-date-card">
+          <div className="hijri-date-main">
+            <span className="hijri-icon">🌙</span>
+            <span>{getHijriDate()}</span>
           </div>
-          <button
-            className="notification-btn"
-            onClick={() => navigate('/mobile/notifications')}
-          >
-            <BellIcon className="icon" />
-            {notifications.filter(n => !n.is_read).length > 0 && (
-              <span className="notification-badge">
-                {notifications.filter(n => !n.is_read).length}
-              </span>
-            )}
-          </button>
+          <div className="gregorian-date-sub">
+            {new Date().toLocaleDateString('ar-SA')}
+          </div>
         </div>
-        <div className="hijri-date">{getHijriDate()}</div>
       </div>
 
-      {/* Balance Card */}
+      {/* Balance Card - Matches HTML Demo */}
       <motion.div
-        className={`balance-card ${balance.is_compliant ? 'compliant' : 'non-compliant'}`}
+        className="balance-card"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
       >
         <div className="balance-header">
-          <span>الرصيد الحالي</span>
-          <span className="balance-status">
-            {balance.is_compliant ? '✓ ملتزم' : '⚠ غير ملتزم'}
+          <h3>💰 الرصيد الحالي</h3>
+          <span className={`status-badge ${balance.is_compliant ? 'compliant' : 'insufficient'}`}>
+            {balance.is_compliant ? '🟢 ملتزم' : '⚠ غير ملتزم'}
           </span>
         </div>
-        <div className="balance-amount">
-          <span className="currency">ريال</span>
-          <span className="amount">{balance.current.toLocaleString()}</span>
-        </div>
-        <div className="balance-progress">
+
+        {/* Progress Bar */}
+        <div className="progress-container">
           <div className="progress-bar">
             <div
-              className="progress-fill"
-              style={{
-                width: `${Math.min(balance.percentage, 100)}%`,
-                backgroundColor: balance.is_compliant ? '#34C759' : '#FF3B30'
-              }}
+              className={`progress-fill ${!balance.is_compliant ? 'insufficient' : ''}`}
+              style={{ width: `${Math.min(balance.percentage, 100)}%` }}
             />
           </div>
-          <div className="progress-labels">
-            <span>0</span>
-            <span>الحد المطلوب: {balance.target.toLocaleString()} ريال</span>
-            <span>{balance.percentage}%</span>
+          <div className="progress-text">{balance.percentage}%</div>
+        </div>
+
+        {/* Balance Amounts - Split Layout */}
+        <div className="balance-amounts">
+          <div className="balance-item">
+            <span className="amount-label">الرصيد الحالي</span>
+            <span className="amount-value">{balance.current.toLocaleString('ar-SA')} ريال</span>
+          </div>
+          <div className="balance-item">
+            <span className="amount-label">المطلوب</span>
+            <span className="amount-value target-value">{balance.target.toLocaleString('ar-SA')} ريال</span>
           </div>
         </div>
+
         {!balance.is_compliant && (
-          <div className="balance-warning">
-            المبلغ المتبقي للوصول للحد المطلوب: {(balance.target - balance.current).toLocaleString()} ريال
+          <div className="remaining-alert">
+            المبلغ المتبقي: {(balance.target - balance.current).toLocaleString('ar-SA')} ريال
           </div>
         )}
       </motion.div>
@@ -247,14 +239,14 @@ const Dashboard: React.FC = () => {
           {quickActions.map((action, index) => (
             <motion.button
               key={action.id}
-              className="action-btn"
+              className={`action-btn ${index === 0 ? 'primary' : ''}`}
               onClick={() => navigate(action.route)}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.2 + index * 0.05 }}
             >
-              <action.icon className="action-icon" />
-              <span>{action.title}</span>
+              <span className="button-icon">{action.emoji}</span>
+              <span className="button-text">{action.title}</span>
             </motion.button>
           ))}
         </div>
