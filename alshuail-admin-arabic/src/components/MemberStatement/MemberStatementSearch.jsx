@@ -493,7 +493,132 @@ const MemberStatementSearch = () => {
         </AnimatePresence>
       </div>
 
-      {/* Remove old search results section as we're using autocomplete */}
+      {/* Members Table View - Show when no member is selected */}
+      {!memberStatement && searchResults.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="members-table-section"
+        >
+          <div className="table-header">
+            <h2 className="table-title">
+              الأعضاء ({searchResults.length})
+            </h2>
+            <p className="table-subtitle">
+              اضغط على العضو لعرض كشف الحساب التفصيلي
+            </p>
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="members-table-container desktop-view">
+            <table className="members-table">
+              <thead>
+                <tr>
+                  <th>رقم العضوية</th>
+                  <th>الاسم الكامل</th>
+                  <th>رقم الجوال</th>
+                  <th>الفخذ</th>
+                  <th>الرصيد</th>
+                  <th>الحالة</th>
+                  <th>الإجراءات</th>
+                </tr>
+              </thead>
+              <tbody>
+                {searchResults.map((member) => (
+                  <tr
+                    key={member.id}
+                    className="member-row"
+                    onClick={() => handleMemberSelect(member)}
+                  >
+                    <td className="member-no">{member.member_no}</td>
+                    <td className="member-name">
+                      <div className="name-cell">
+                        <UserIcon className="name-icon" />
+                        {member.full_name}
+                      </div>
+                    </td>
+                    <td className="member-phone">{member.phone || 'غير متوفر'}</td>
+                    <td className="member-section">{member.tribal_section || 'غير محدد'}</td>
+                    <td className={`member-balance ${member.balance >= MINIMUM_BALANCE ? 'balance-good' : 'balance-low'}`}>
+                      {new Intl.NumberFormat('ar-SA').format(member.balance || 0)} ر.س
+                    </td>
+                    <td className="member-status">
+                      {member.balance >= MINIMUM_BALANCE ? (
+                        <span className="status-badge status-good">
+                          <CheckCircleIcon className="status-icon" />
+                          مكتمل
+                        </span>
+                      ) : (
+                        <span className="status-badge status-warning">
+                          <XCircleIcon className="status-icon" />
+                          غير مكتمل
+                        </span>
+                      )}
+                    </td>
+                    <td className="member-actions" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={() => handleMemberSelect(member)}
+                        className="view-btn"
+                      >
+                        <MagnifyingGlassIcon className="btn-icon" />
+                        عرض الكشف
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="members-cards-container mobile-view">
+            {searchResults.map((member) => (
+              <motion.div
+                key={member.id}
+                className="member-card"
+                onClick={() => handleMemberSelect(member)}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <div className="card-header">
+                  <div className="card-member-info">
+                    <UserIcon className="card-icon" />
+                    <div>
+                      <div className="card-name">{member.full_name}</div>
+                      <div className="card-member-no">{member.member_no}</div>
+                    </div>
+                  </div>
+                  {member.balance >= MINIMUM_BALANCE ? (
+                    <CheckCircleIcon className="card-status-icon status-good" />
+                  ) : (
+                    <XCircleIcon className="card-status-icon status-warning" />
+                  )}
+                </div>
+                <div className="card-details">
+                  <div className="card-detail-item">
+                    <PhoneIcon className="detail-icon" />
+                    <span>{member.phone || 'غير متوفر'}</span>
+                  </div>
+                  <div className="card-detail-item">
+                    <HomeIcon className="detail-icon" />
+                    <span>{member.tribal_section || 'غير محدد'}</span>
+                  </div>
+                  <div className="card-detail-item">
+                    <CurrencyDollarIcon className="detail-icon" />
+                    <span className={member.balance >= MINIMUM_BALANCE ? 'balance-good' : 'balance-low'}>
+                      {new Intl.NumberFormat('ar-SA').format(member.balance || 0)} ر.س
+                    </span>
+                  </div>
+                </div>
+                <button className="card-view-btn">
+                  <MagnifyingGlassIcon className="btn-icon" />
+                  عرض كشف الحساب
+                </button>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+      )}
 
       {/* Member Statement Display */}
       {memberStatement && (
