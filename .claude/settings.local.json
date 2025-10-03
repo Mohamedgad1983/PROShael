@@ -15,7 +15,12 @@
       "Bash(git commit:*)",
       "Bash(git push:*)",
       "Bash(npm run build:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(git log:*)",
+      "Bash(gh run list:*)",
+      "Bash(clip.exe)",
+      "Bash(grep:*)",
+      "Bash(tee:*)"
     ],
     "deny": [],
     "ask": []
