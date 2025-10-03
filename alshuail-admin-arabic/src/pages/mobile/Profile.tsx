@@ -2,18 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
-  FaUserCircle,
-  FaPhone,
-  FaIdCard,
-  FaUsers,
-  FaCalendar,
-  FaSignOutAlt,
-  FaCog,
-  FaLock,
-  FaWallet,
-  FaCheckCircle,
-  FaExclamationTriangle
-} from 'react-icons/fa';
+  UserCircleIcon,
+  PhoneIcon,
+  IdentificationIcon,
+  UserGroupIcon,
+  CalendarIcon,
+  ArrowRightOnRectangleIcon,
+  Cog6ToothIcon,
+  LockClosedIcon,
+  WalletIcon,
+  CheckCircleIcon,
+  ExclamationTriangleIcon
+} from '@heroicons/react/24/outline';
 import BottomNav from '../../components/mobile/BottomNav';
 import '../../styles/mobile/Profile.css';
 
@@ -127,7 +127,7 @@ const Profile: React.FC = () => {
       >
         <div className="profile-photo-section">
           <div className="profile-photo">
-            <FaUserCircle />
+            <UserCircleIcon className="icon" />
           </div>
           <h2>{profile.full_name}</h2>
           <p className="member-number">عضو رقم: {profile.membership_number}</p>
@@ -136,7 +136,7 @@ const Profile: React.FC = () => {
         {/* Balance Summary */}
         <div className={`balance-summary ${profile.is_compliant ? 'compliant' : 'non-compliant'}`}>
           <div className="balance-icon">
-            <FaWallet />
+            <WalletIcon className="icon" />
           </div>
           <div className="balance-info">
             <span className="balance-label">الرصيد الحالي</span>
@@ -145,12 +145,12 @@ const Profile: React.FC = () => {
           <div className="compliance-status">
             {profile.is_compliant ? (
               <>
-                <FaCheckCircle className="status-icon success" />
+                <CheckCircleIcon className="status-icon success" />
                 <span>ملتزم</span>
               </>
             ) : (
               <>
-                <FaExclamationTriangle className="status-icon warning" />
+                <ExclamationTriangleIcon className="status-icon warning" />
                 <span>غير ملتزم</span>
               </>
             )}
@@ -169,7 +169,7 @@ const Profile: React.FC = () => {
 
         <div className="info-item">
           <div className="info-icon">
-            <FaPhone />
+            <PhoneIcon className="icon" />
           </div>
           <div className="info-content">
             <span className="info-label">رقم الجوال</span>
@@ -179,7 +179,7 @@ const Profile: React.FC = () => {
 
         <div className="info-item">
           <div className="info-icon">
-            <FaIdCard />
+            <IdentificationIcon className="icon" />
           </div>
           <div className="info-content">
             <span className="info-label">رقم العضوية</span>
@@ -189,7 +189,7 @@ const Profile: React.FC = () => {
 
         <div className="info-item">
           <div className="info-icon">
-            <FaUsers />
+            <UserGroupIcon className="icon" />
           </div>
           <div className="info-content">
             <span className="info-label">القسم القبلي</span>
@@ -200,7 +200,7 @@ const Profile: React.FC = () => {
         {profile.family_branch && (
           <div className="info-item">
             <div className="info-icon">
-              <FaUsers />
+              <UserGroupIcon className="icon" />
             </div>
             <div className="info-content">
               <span className="info-label">الفرع العائلي</span>
@@ -211,7 +211,7 @@ const Profile: React.FC = () => {
 
         <div className="info-item">
           <div className="info-icon">
-            <FaCalendar />
+            <CalendarIcon className="icon" />
           </div>
           <div className="info-content">
             <span className="info-label">تاريخ الانضمام</span>
@@ -231,7 +231,7 @@ const Profile: React.FC = () => {
           className="action-button"
           onClick={() => navigate('/mobile/change-password')}
         >
-          <FaLock />
+          <LockClosedIcon className="icon" />
           <span>تغيير كلمة المرور</span>
         </button>
 
@@ -239,7 +239,7 @@ const Profile: React.FC = () => {
           className="action-button"
           onClick={() => navigate('/mobile/settings')}
         >
-          <FaCog />
+          <Cog6ToothIcon className="icon" />
           <span>الإعدادات</span>
         </button>
 
@@ -247,7 +247,7 @@ const Profile: React.FC = () => {
           className="action-button logout"
           onClick={handleLogout}
         >
-          <FaSignOutAlt />
+          <ArrowRightOnRectangleIcon className="icon" />
           <span>تسجيل الخروج</span>
         </button>
       </motion.div>

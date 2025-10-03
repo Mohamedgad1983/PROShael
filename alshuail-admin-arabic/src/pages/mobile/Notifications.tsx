@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  FaBell,
-  FaNewspaper,
-  FaGift,
-  FaHandHoldingUsd,
-  FaLightbulb,
-  FaHeartBroken,
-  FaClock,
-  FaCheckDouble
-} from 'react-icons/fa';
+  BellIcon,
+  NewspaperIcon,
+  GiftIcon,
+  CurrencyDollarIcon,
+  LightBulbIcon,
+  HeartIcon,
+  ClockIcon,
+  CheckIcon
+} from '@heroicons/react/24/outline';
 import BottomNav from '../../components/mobile/BottomNav';
 import '../../styles/mobile/Notifications.css';
 
@@ -36,31 +36,31 @@ const Notifications: React.FC = () => {
   const typeConfig = {
     news: {
       label: 'أخبار',
-      icon: FaNewspaper,
+      icon: NewspaperIcon,
       color: '#007AFF',
       bgColor: '#007AFF10'
     },
     occasions: {
       label: 'مناسبات',
-      icon: FaGift,
+      icon: GiftIcon,
       color: '#FF9500',
       bgColor: '#FF950010'
     },
     diyas: {
       label: 'ديات',
-      icon: FaHandHoldingUsd,
+      icon: CurrencyDollarIcon,
       color: '#FF3B30',
       bgColor: '#FF3B3010'
     },
     initiatives: {
       label: 'مبادرات',
-      icon: FaLightbulb,
+      icon: LightBulbIcon,
       color: '#34C759',
       bgColor: '#34C75910'
     },
     condolences: {
       label: 'تعازي',
-      icon: FaHeartBroken,
+      icon: HeartIcon,
       color: '#8E8E93',
       bgColor: '#8E8E9310'
     }
@@ -201,7 +201,7 @@ const Notifications: React.FC = () => {
         <h1>الإشعارات</h1>
         {unreadCount > 0 && (
           <button className="mark-all-btn" onClick={markAllAsRead}>
-            <FaCheckDouble />
+            <CheckIcon className="icon" />
             قراءة الكل
           </button>
         )}
@@ -210,7 +210,7 @@ const Notifications: React.FC = () => {
       {/* Unread Count */}
       {unreadCount > 0 && (
         <div className="unread-banner">
-          <FaBell />
+          <BellIcon className="icon" />
           <span>لديك {unreadCount} إشعارات غير مقروءة</span>
         </div>
       )}
@@ -257,7 +257,7 @@ const Notifications: React.FC = () => {
                     color: config.color
                   }}
                 >
-                  <Icon />
+                  <Icon className="icon" />
                 </div>
                 <div className="notification-content">
                   <div className="notification-header">
@@ -268,7 +268,7 @@ const Notifications: React.FC = () => {
                       {config.label}
                     </span>
                     <span className="notification-time">
-                      <FaClock />
+                      <ClockIcon className="icon" />
                       {formatDate(notification.date)}
                     </span>
                   </div>
@@ -283,7 +283,7 @@ const Notifications: React.FC = () => {
           })
         ) : (
           <div className="empty-state">
-            <FaBell />
+            <BellIcon className="icon" />
             <p>لا توجد إشعارات</p>
           </div>
         )}

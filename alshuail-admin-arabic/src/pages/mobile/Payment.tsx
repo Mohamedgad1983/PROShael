@@ -2,15 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  FaCreditCard,
-  FaUser,
-  FaCamera,
-  FaImage,
-  FaCheckCircle,
-  FaSearch,
-  FaTimes,
-  FaMoneyBillWave
-} from 'react-icons/fa';
+  CreditCardIcon,
+  UserIcon,
+  CameraIcon,
+  PhotoIcon,
+  CheckCircleIcon,
+  MagnifyingGlassIcon,
+  XMarkIcon,
+  BanknotesIcon
+} from '@heroicons/react/24/outline';
 import BottomNav from '../../components/mobile/BottomNav';
 import ReceiptUpload from './ReceiptUpload';
 import '../../styles/mobile/Payment.css';
@@ -175,14 +175,14 @@ const Payment: React.FC = () => {
             setSearchQuery('');
           }}
         >
-          <FaUser />
+          <UserIcon className="icon" />
           <span>دفع لنفسي</span>
         </button>
         <button
           className={`mode-btn ${paymentMode === 'behalf' ? 'active' : ''}`}
           onClick={() => setPaymentMode('behalf')}
         >
-          <FaCreditCard />
+          <CreditCardIcon className="icon" />
           <span>دفع عن شخص آخر</span>
         </button>
       </div>
@@ -213,7 +213,7 @@ const Payment: React.FC = () => {
                     setSelectedMember(null);
                   }}
                 >
-                  <FaTimes />
+                  <XMarkIcon className="icon" />
                 </button>
               )}
             </div>
@@ -245,7 +245,7 @@ const Payment: React.FC = () => {
             {/* Selected Member */}
             {selectedMember && (
               <div className="selected-member">
-                <FaCheckCircle className="check-icon" />
+                <CheckCircleIcon className="check-icon" />
                 <div className="member-info">
                   <div className="name">{selectedMember.full_name}</div>
                   <div className="details">
@@ -269,7 +269,7 @@ const Payment: React.FC = () => {
         {/* Amount Input */}
         <div className="form-group">
           <label>
-            <FaMoneyBillWave />
+            <BanknotesIcon className="icon" />
             المبلغ (ريال سعودي)
           </label>
           <div className="amount-input-wrapper">
@@ -305,12 +305,12 @@ const Payment: React.FC = () => {
                 className="upload-btn"
                 onClick={() => setShowReceiptUpload(true)}
               >
-                <FaCamera />
+                <CameraIcon className="icon" />
                 <span>رفع الإيصال</span>
               </button>
             ) : (
               <div className="receipt-uploaded">
-                <FaCheckCircle className="success-icon" />
+                <CheckCircleIcon className="success-icon" />
                 <span>تم رفع الإيصال بنجاح</span>
                 <button
                   className="change-receipt"
@@ -336,7 +336,7 @@ const Payment: React.FC = () => {
             </>
           ) : (
             <>
-              <FaCreditCard />
+              <CreditCardIcon className="icon" />
               <span>إرسال الدفعة</span>
             </>
           )}
@@ -351,7 +351,7 @@ const Payment: React.FC = () => {
               className="modal-close"
               onClick={() => setShowReceiptUpload(false)}
             >
-              <FaTimes />
+              <XMarkIcon className="icon" />
             </button>
             <ReceiptUpload onUploadComplete={handleReceiptUpload} />
           </div>
@@ -374,7 +374,7 @@ const Payment: React.FC = () => {
               exit={{ scale: 0.5, opacity: 0 }}
             >
               <div className="success-icon">
-                <FaCheckCircle />
+                <CheckCircleIcon className="icon" />
               </div>
               <h2>تم إرسال الدفعة بنجاح</h2>
               <p>سيتم مراجعة الدفعة واعتمادها قريباً</p>

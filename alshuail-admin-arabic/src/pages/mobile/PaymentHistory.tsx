@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  FaFilter,
-  FaCalendarAlt,
-  FaCheckCircle,
-  FaClock,
-  FaTimesCircle,
-  FaReceipt,
-  FaEye,
-  FaDownload
-} from 'react-icons/fa';
+  FunnelIcon,
+  CalendarIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  XCircleIcon,
+  DocumentTextIcon,
+  EyeIcon,
+  ArrowDownTrayIcon
+} from '@heroicons/react/24/outline';
 import BottomNav from '../../components/mobile/BottomNav';
 import '../../styles/mobile/PaymentHistory.css';
 
@@ -44,19 +44,19 @@ const PaymentHistory: React.FC = () => {
       label: 'معتمد',
       color: '#34C759',
       bgColor: '#34C75910',
-      icon: FaCheckCircle
+      icon: CheckCircleIcon
     },
     pending: {
       label: 'قيد المراجعة',
       color: '#FF9500',
       bgColor: '#FF950010',
-      icon: FaClock
+      icon: ClockIcon
     },
     rejected: {
       label: 'مرفوض',
       color: '#FF3B30',
       bgColor: '#FF3B3010',
-      icon: FaTimesCircle
+      icon: XCircleIcon
     }
   };
 
@@ -176,7 +176,7 @@ const PaymentHistory: React.FC = () => {
           className="filter-toggle"
           onClick={() => setShowFilters(!showFilters)}
         >
-          <FaFilter />
+          <FunnelIcon className="icon" />
         </button>
       </div>
 
@@ -292,13 +292,13 @@ const PaymentHistory: React.FC = () => {
                       backgroundColor: statusConfig[payment.status].bgColor
                     }}
                   >
-                    <StatusIcon />
+                    <StatusIcon className="icon" />
                     <span>{statusConfig[payment.status].label}</span>
                   </div>
                 </div>
                 <div className="payment-details">
                   <div className="payment-date">
-                    <FaCalendarAlt />
+                    <CalendarIcon className="icon" />
                     <span>{formatDate(payment.date)}</span>
                   </div>
                   {payment.hijri_date && (
@@ -312,7 +312,7 @@ const PaymentHistory: React.FC = () => {
                 </div>
                 {payment.receipt_url && (
                   <div className="receipt-indicator">
-                    <FaReceipt />
+                    <DocumentTextIcon className="icon" />
                   </div>
                 )}
               </motion.div>
@@ -388,11 +388,11 @@ const PaymentHistory: React.FC = () => {
             {selectedPayment.receipt_url && (
               <div className="receipt-actions">
                 <button className="view-receipt">
-                  <FaEye />
+                  <EyeIcon className="icon" />
                   عرض الإيصال
                 </button>
                 <button className="download-receipt">
-                  <FaDownload />
+                  <ArrowDownTrayIcon className="icon" />
                   تحميل
                 </button>
               </div>

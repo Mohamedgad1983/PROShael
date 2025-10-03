@@ -1,15 +1,14 @@
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import {
-  FaCamera,
-  FaImage,
-  FaUpload,
-  FaTimes,
-  FaCheckCircle,
-  FaFileImage,
-  FaSpinner,
-  FaRedo
-} from 'react-icons/fa';
+  CameraIcon,
+  PhotoIcon,
+  ArrowUpTrayIcon,
+  XMarkIcon,
+  CheckCircleIcon,
+  DocumentIcon,
+  ArrowPathIcon
+} from '@heroicons/react/24/outline';
 import '../../styles/mobile/ReceiptUpload.css';
 
 interface ReceiptUploadProps {
@@ -156,14 +155,14 @@ const ReceiptUpload: React.FC<ReceiptUploadProps> = ({ onUploadComplete }) => {
               className="upload-option camera"
               onClick={() => cameraInputRef.current?.click()}
             >
-              <FaCamera />
+              <CameraIcon className="icon" />
               <span>التقاط صورة</span>
             </button>
             <button
               className="upload-option gallery"
               onClick={() => fileInputRef.current?.click()}
             >
-              <FaImage />
+              <PhotoIcon className="icon" />
               <span>اختيار من المعرض</span>
             </button>
           </div>
@@ -196,7 +195,7 @@ const ReceiptUpload: React.FC<ReceiptUploadProps> = ({ onUploadComplete }) => {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <FaTimes />
+              <XMarkIcon className="icon" />
               <span>{error}</span>
             </motion.div>
           )}
@@ -209,7 +208,7 @@ const ReceiptUpload: React.FC<ReceiptUploadProps> = ({ onUploadComplete }) => {
               <img src={preview} alt="Receipt preview" />
             ) : (
               <div className="pdf-preview">
-                <FaFileImage />
+                <DocumentIcon className="icon" />
                 <span>ملف PDF</span>
               </div>
             )}
@@ -241,7 +240,7 @@ const ReceiptUpload: React.FC<ReceiptUploadProps> = ({ onUploadComplete }) => {
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
             >
-              <FaCheckCircle />
+              <CheckCircleIcon className="icon" />
               <span>تم رفع الإيصال بنجاح</span>
             </motion.div>
           )}
@@ -253,7 +252,7 @@ const ReceiptUpload: React.FC<ReceiptUploadProps> = ({ onUploadComplete }) => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
             >
-              <FaTimes />
+              <XMarkIcon className="icon" />
               <span>{error}</span>
             </motion.div>
           )}
@@ -266,14 +265,14 @@ const ReceiptUpload: React.FC<ReceiptUploadProps> = ({ onUploadComplete }) => {
                   className="upload-btn primary"
                   onClick={handleUpload}
                 >
-                  <FaUpload />
+                  <ArrowUpTrayIcon className="icon" />
                   <span>رفع الإيصال</span>
                 </button>
                 <button
                   className="upload-btn secondary"
                   onClick={handleReset}
                 >
-                  <FaTimes />
+                  <XMarkIcon className="icon" />
                   <span>إلغاء</span>
                 </button>
               </>
@@ -281,7 +280,7 @@ const ReceiptUpload: React.FC<ReceiptUploadProps> = ({ onUploadComplete }) => {
 
             {uploading && (
               <button className="upload-btn loading" disabled>
-                <FaSpinner className="spinner" />
+                <ArrowPathIcon className="spinner icon" />
                 <span>جاري الرفع...</span>
               </button>
             )}
@@ -292,14 +291,14 @@ const ReceiptUpload: React.FC<ReceiptUploadProps> = ({ onUploadComplete }) => {
                   className="upload-btn primary"
                   onClick={handleRetry}
                 >
-                  <FaRedo />
+                  <ArrowPathIcon className="icon" />
                   <span>إعادة المحاولة</span>
                 </button>
                 <button
                   className="upload-btn secondary"
                   onClick={handleReset}
                 >
-                  <FaTimes />
+                  <XMarkIcon className="icon" />
                   <span>اختيار ملف آخر</span>
                 </button>
               </>

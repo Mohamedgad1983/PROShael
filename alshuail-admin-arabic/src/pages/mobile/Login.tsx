@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { PhoneIcon, LockClosedIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
-import { isBiometricAvailable, authenticateBiometric, getBiometricType } from '../../utils/biometricAuth';
-import '../../../styles/mobile/Login.css';
+import { isBiometricAvailable, authenticateBiometric, getBiometricType } from '../../utils/biometricAuth.jsx';
+import '../../styles/mobile/Login.css';
 
 const MobileLogin = () => {
   const [phone, setPhone] = useState('');

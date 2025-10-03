@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FaCreditCard, FaHistory, FaFileInvoice, FaUser, FaBell, FaArrowUp } from 'react-icons/fa';
+import { CreditCardIcon, ClockIcon, DocumentTextIcon, UserIcon, BellIcon, ArrowUpIcon } from '@heroicons/react/24/outline';
 import BottomNav from '../../components/mobile/BottomNav';
 import '../../styles/mobile/Dashboard.css';
 
@@ -132,28 +132,28 @@ const Dashboard: React.FC = () => {
     {
       id: 'payment',
       title: 'دفع جديد',
-      icon: FaCreditCard,
+      icon: CreditCardIcon,
       color: '#667eea',
       route: '/mobile/payment'
     },
     {
       id: 'history',
       title: 'سجل المدفوعات',
-      icon: FaHistory,
+      icon: ClockIcon,
       color: '#764ba2',
       route: '/mobile/payment-history'
     },
     {
       id: 'statement',
       title: 'كشف الحساب',
-      icon: FaFileInvoice,
+      icon: DocumentTextIcon,
       color: '#f093fb',
       route: '/mobile/statement'
     },
     {
       id: 'profile',
       title: 'الملف الشخصي',
-      icon: FaUser,
+      icon: UserIcon,
       color: '#4facfe',
       route: '/mobile/profile'
     },
@@ -189,7 +189,7 @@ const Dashboard: React.FC = () => {
             className="notification-btn"
             onClick={() => navigate('/mobile/notifications')}
           >
-            <FaBell />
+            <BellIcon className="icon" />
             {notifications.filter(n => !n.is_read).length > 0 && (
               <span className="notification-badge">
                 {notifications.filter(n => !n.is_read).length}
@@ -313,7 +313,7 @@ const Dashboard: React.FC = () => {
             className="toggle-btn"
             onClick={() => setShowPayments(!showPayments)}
           >
-            <FaArrowUp className={`arrow-icon ${showPayments ? 'rotated' : ''}`} />
+            <ArrowUpIcon className={`arrow-icon ${showPayments ? 'rotated' : ''}`} />
           </button>
         </div>
         {showPayments && (
