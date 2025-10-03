@@ -1,0 +1,6 @@
+{
+  "build": {
+    "command": "echo 'Using pre-built files'",
+    "output": "build"
+  }
+}
