@@ -12,6 +12,14 @@ import { AuthProvider } from './contexts/AuthContext';
 import logo from './assets/logo.svg';
 import { showToast } from './utils/toast';
 
+// Mobile Pages
+import ChangePassword from './pages/mobile/ChangePassword';
+import MobileDashboard from './pages/mobile/Dashboard';
+import MobileProfile from './pages/mobile/Profile';
+import MobilePayment from './pages/mobile/Payment';
+import MobilePaymentHistory from './pages/mobile/PaymentHistory';
+import MobileNotifications from './pages/mobile/Notifications';
+
 // Admin Dashboard Component
 const AdminDashboard: React.FC = () => {
   const [formData, setFormData] = React.useState({
@@ -219,7 +227,15 @@ const App: React.FC = () => {
             {/* Premium registration form - New Route */}
             <Route path="/premium-register" element={<PremiumRegistration />} />
 
-            {/* Member Mobile App - For normal users */}
+            {/* Mobile PWA Routes - New Member Interface */}
+            <Route path="/mobile/change-password" element={<ChangePassword />} />
+            <Route path="/mobile/dashboard" element={<MobileDashboard />} />
+            <Route path="/mobile/profile" element={<MobileProfile />} />
+            <Route path="/mobile/payment" element={<MobilePayment />} />
+            <Route path="/mobile/payment-history" element={<MobilePaymentHistory />} />
+            <Route path="/mobile/notifications" element={<MobileNotifications />} />
+
+            {/* Member Mobile App - For normal users (Legacy) */}
             <Route path="/member" element={<MemberMobileApp />} />
             <Route path="/member/*" element={<MemberMobileApp />} />
 
