@@ -6,7 +6,6 @@ import StyledDashboard from './components/StyledDashboard';
 import MemberRegistration from './components/Members/MemberRegistration';
 import AppleRegistrationForm from './components/Members/AppleRegistrationForm';
 import PremiumRegistration from './components/Registration/PremiumRegistration';
-import MemberMobileApp from './components/MemberMobile/MemberMobileApp';
 import { RoleProvider } from './contexts/RoleContext';
 import { AuthProvider } from './contexts/AuthContext';
 import logo from './assets/logo.svg';
@@ -228,7 +227,7 @@ const App: React.FC = () => {
             {/* Premium registration form - New Route */}
             <Route path="/premium-register" element={<PremiumRegistration />} />
 
-            {/* Mobile PWA Routes - New Member Interface */}
+            {/* Mobile PWA Routes - Member Interface */}
             <Route path="/mobile/login" element={<MobileLogin />} />
             <Route path="/mobile/change-password" element={<ChangePassword />} />
             <Route path="/mobile/dashboard" element={<MobileDashboard />} />
@@ -237,9 +236,9 @@ const App: React.FC = () => {
             <Route path="/mobile/payment-history" element={<MobilePaymentHistory />} />
             <Route path="/mobile/notifications" element={<MobileNotifications />} />
 
-            {/* Member Mobile App - For normal users (Legacy) */}
-            <Route path="/member" element={<MemberMobileApp />} />
-            <Route path="/member/*" element={<MemberMobileApp />} />
+            {/* Redirect old /member routes to new /mobile routes */}
+            <Route path="/member" element={<Navigate to="/mobile/dashboard" replace />} />
+            <Route path="/member/*" element={<Navigate to="/mobile/dashboard" replace />} />
 
             {/* Family Tree Route */}
             <Route path="/family-tree" element={<AdminDashboard />} />

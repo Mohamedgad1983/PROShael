@@ -20,7 +20,20 @@
       "Bash(gh run list:*)",
       "Bash(clip.exe)",
       "Bash(grep:*)",
-      "Bash(tee:*)"
+      "Bash(tee:*)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__playwright__browser_evaluate",
+      "Bash(git ls-tree:*)",
+      "Bash(git diff-tree:*)",
+      "Bash(tr:*)",
+      "Bash(npm start)",
+      "Bash(taskkill:*)",
+      "Bash(netstat:*)",
+      "Bash(awk:*)",
+      "mcp__playwright__browser_handle_dialog",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_close"
     ],
     "deny": [],
     "ask": []
