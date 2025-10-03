@@ -101,7 +101,7 @@ const MemberStatementSearch = () => {
           }));
 
           setSearchResults(results);
-          setShowAutoComplete(true);
+          setShowAutoComplete(false); // Don't show autocomplete on initial load
         }
       } catch (error) {
         console.error('Error loading initial members:', error);
