@@ -1,4 +1,5 @@
 // VERY FIRST LINES of server.js
+// Updated: 2025-10-03 - Diya Dashboard System included
 import dotenv from 'dotenv';
 dotenv.config();
 
