@@ -228,7 +228,7 @@ SELECT
 
 SELECT
     membership_number as "Membership #",
-    full_name_ar as "Name (Arabic)",
+    full_name as "Name (Arabic)",
     phone as "Phone",
     CASE
         WHEN password_hash IS NOT NULL THEN '✅ Set'
@@ -261,7 +261,7 @@ SELECT
     '========================================' as separator;
 
 SELECT
-    full_name_ar as "Name (Arabic)",
+    full_name as "Name (Arabic)",
     phone as "Phone",
     role as "Role",
     CASE
@@ -366,7 +366,7 @@ DECLARE
     member_data RECORD;
 BEGIN
     SELECT
-        full_name_ar,
+        full_name,
         phone,
         membership_number,
         LEFT(password_hash, 30) as hash_preview,
@@ -381,7 +381,7 @@ BEGIN
         RAISE NOTICE '========================================';
         RAISE NOTICE 'TEST MEMBER DATA';
         RAISE NOTICE '========================================';
-        RAISE NOTICE 'Name: %', member_data.full_name_ar;
+        RAISE NOTICE 'Name: %', member_data.full_name;
         RAISE NOTICE 'Phone: %', member_data.phone;
         RAISE NOTICE 'Membership #: %', member_data.membership_number;
         RAISE NOTICE 'Password Hash: %...', member_data.hash_preview;
