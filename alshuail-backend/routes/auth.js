@@ -6,7 +6,8 @@ const {
     getProfile,
     logout,
     verifyToken,
-    getTableStructure
+    getTableStructure,
+    changePassword
 } = require('../controllers/authController');
 
 // Authentication routes
@@ -14,6 +15,9 @@ router.post('/login', login);
 router.post('/logout', logout);
 router.get('/profile', authenticate, getProfile);
 router.get('/verify', authenticate, verifyToken);
+
+// Password management
+router.post('/change-password', authenticate, changePassword);
 
 // Development only - get table structure
 router.get('/table-structure', getTableStructure);

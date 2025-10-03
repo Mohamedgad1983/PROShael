@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import './LoginPage.css';
 import logo from '../../assets/logo.svg';
 
 const LoginPage = ({ onLogin = () => {} }) => {
   const { login } = useAuth();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     phone: '',
     password: '',
@@ -31,11 +33,26 @@ const LoginPage = ({ onLogin = () => {} }) => {
       const result = await login(formData.phone.trim(), formData.password.trim(), formData.role);
 
       if (result.success) {
+        // Check if password change is required
+        if (result.requires_password_change || result.is_first_login) {
+          navigate('/mobile/change-password', {
+            state: { isFirstLogin: result.is_first_login }
+          });
+          return;
+        }
+
         // Call parent onLogin function if provided
         if (onLogin) {
           onLogin(result.user, result.token);
         }
-        // The AuthContext will handle the state updates and redirect
+
+        // Redirect based on role
+        if (result.user.role === 'member' || result.user.role === 'user_member' || !result.user.role) {
+          navigate('/mobile/dashboard');
+        } else {
+          // Admin users go to admin dashboard
+          navigate('/admin/dashboard');
+        }
       } else {
         setError(result.error || 'خطأ في تسجيل الدخول');
       }

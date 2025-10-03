@@ -156,7 +156,13 @@ export const AuthProvider = ({ children }) => {
 
         if (sessionToken && sessionUser) {
           persistSession(sessionToken, sessionUser);
-          return { success: true, user: sessionUser, token: sessionToken };
+          return {
+            success: true,
+            user: sessionUser,
+            token: sessionToken,
+            requires_password_change: data.requires_password_change || false,
+            is_first_login: data.is_first_login || false
+          };
         }
       }
 

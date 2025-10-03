@@ -33,7 +33,7 @@ const login = async (req, res) => {
 
         // Get user from database using Supabase
         const { data: user, error } = await supabase
-            .from('temp_members')
+            .from('members')
             .select('*')
             .eq('phone', phone)
             .eq('is_active', true)
@@ -56,39 +56,44 @@ const login = async (req, res) => {
             });
         }
 
-        // For development, if no password hash exists, create one
-        let passwordMatch = false;
-
+        // Verify password
         if (!user.password_hash) {
-            // For development - set default password "123456"
-            if (password === '123456' || password === 'admin') {
-                passwordMatch = true;
-
-                // Hash and update password in database for future use
-                const saltRounds = 10;
-                const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-                const { error: updateError } = await supabase
-                    .from('temp_members')
-                    .update({ password_hash: hashedPassword })
-                    .eq('id', user.id);
-
-                if (updateError) {
-                    console.error('Error updating password hash:', updateError);
-                }
-            }
-        } else {
-            // Compare with stored hash
-            passwordMatch = await bcrypt.compare(password, user.password_hash);
+            return res.status(401).json({
+                status: 'error',
+                message_ar: 'الرجاء التواصل مع الإدارة لتفعيل حسابك',
+                message_en: 'Please contact admin to activate your account'
+            });
         }
 
+        // Compare with stored hash
+        const passwordMatch = await bcrypt.compare(password, user.password_hash);
+
         if (!passwordMatch) {
+            // Increment login attempts
+            await supabase
+                .from('members')
+                .update({
+                    login_attempts: (user.login_attempts || 0) + 1,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', user.id);
+
             return res.status(401).json({
                 status: 'error',
                 message_ar: 'رقم الهاتف أو كلمة المرور غير صحيحة',
                 message_en: 'Invalid phone or password'
             });
         }
+
+        // Reset login attempts on successful login
+        await supabase
+            .from('members')
+            .update({
+                login_attempts: 0,
+                last_login: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', user.id);
 
         // Generate JWT token
         const token = generateToken(user);
@@ -113,7 +118,9 @@ const login = async (req, res) => {
                 token,
                 user: userData,
                 expires_in: process.env.JWT_EXPIRES_IN || '24h'
-            }
+            },
+            requires_password_change: user.requires_password_change || false,
+            is_first_login: user.is_first_login || false
         });
 
     } catch (error) {
@@ -225,10 +232,101 @@ const getTableStructure = async (req, res) => {
     }
 };
 
+// Change password controller
+const changePassword = async (req, res) => {
+    try {
+        const { current_password, new_password } = req.body;
+        const userId = req.user.id;
+
+        // Validate input
+        if (!new_password) {
+            return res.status(400).json({
+                status: 'error',
+                message_ar: 'كلمة المرور الجديدة مطلوبة',
+                message_en: 'New password is required'
+            });
+        }
+
+        // Password validation
+        if (new_password.length < 8) {
+            return res.status(400).json({
+                status: 'error',
+                message_ar: 'كلمة المرور يجب أن تكون 8 أحرف على الأقل',
+                message_en: 'Password must be at least 8 characters'
+            });
+        }
+
+        // Get member
+        const { data: member, error: fetchError } = await supabase
+            .from('members')
+            .select('*')
+            .eq('id', userId)
+            .single();
+
+        if (fetchError || !member) {
+            return res.status(404).json({
+                status: 'error',
+                message_ar: 'العضو غير موجود',
+                message_en: 'Member not found'
+            });
+        }
+
+        // Verify current password (skip on first login)
+        if (!member.is_first_login && current_password) {
+            const isValidPassword = await bcrypt.compare(current_password, member.password_hash);
+            if (!isValidPassword) {
+                return res.status(401).json({
+                    status: 'error',
+                    message_ar: 'كلمة المرور الحالية غير صحيحة',
+                    message_en: 'Current password is incorrect'
+                });
+            }
+        }
+
+        // Hash new password
+        const saltRounds = 10;
+        const newPasswordHash = await bcrypt.hash(new_password, saltRounds);
+
+        // Update password
+        const { error: updateError } = await supabase
+            .from('members')
+            .update({
+                password_hash: newPasswordHash,
+                is_first_login: false,
+                requires_password_change: false,
+                password_changed_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', userId);
+
+        if (updateError) {
+            throw updateError;
+        }
+
+        console.log(`Password changed successfully for member: ${member.full_name}`);
+
+        res.json({
+            status: 'success',
+            message_ar: 'تم تغيير كلمة المرور بنجاح',
+            message_en: 'Password changed successfully'
+        });
+
+    } catch (error) {
+        console.error('Change password error:', error);
+        res.status(500).json({
+            status: 'error',
+            message_ar: 'حدث خطأ في تغيير كلمة المرور',
+            message_en: 'Error changing password',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+};
+
 module.exports = {
     login,
     getProfile,
     logout,
     verifyToken,
-    getTableStructure
+    getTableStructure,
+    changePassword
 };
