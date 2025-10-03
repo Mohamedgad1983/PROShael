@@ -1,6 +1,6 @@
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
-const { supabase } = require('../config/database');
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
+import { supabase } from '../config/database.js';
 
 // Generate JWT token
 const generateToken = (user) => {
@@ -202,11 +202,9 @@ const verifyToken = async (req, res) => {
 // Get table structure for development
 const getTableStructure = async (req, res) => {
     try {
-        const { supabase } = require('../config/database');
-
         // Try to get a sample record to see the structure
         const { data, error } = await supabase
-            .from('temp_members')
+            .from('members')
             .select('*')
             .limit(1);
 
@@ -322,7 +320,7 @@ const changePassword = async (req, res) => {
     }
 };
 
-module.exports = {
+export {
     login,
     getProfile,
     logout,

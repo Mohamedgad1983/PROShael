@@ -1,14 +1,15 @@
-const express = require('express');
-const router = express.Router();
-const { authenticate, optionalAuth } = require('../middleware/auth');
-const {
+import express from 'express';
+import { authenticate, optionalAuth } from '../middleware/auth.js';
+import {
     login,
     getProfile,
     logout,
     verifyToken,
     getTableStructure,
     changePassword
-} = require('../controllers/authController');
+} from '../controllers/authController.js';
+
+const router = express.Router();
 
 // Authentication routes
 router.post('/login', login);
@@ -22,4 +23,4 @@ router.post('/change-password', authenticate, changePassword);
 // Development only - get table structure
 router.get('/table-structure', getTableStructure);
 
-module.exports = router;
+export default router;

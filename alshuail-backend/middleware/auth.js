@@ -1,5 +1,5 @@
-const jwt = require('jsonwebtoken');
-const { supabase } = require('../config/database');
+import jwt from 'jsonwebtoken';
+import { supabase } from '../config/database.js';
 
 // Authentication middleware
 const authenticate = async (req, res, next) => {
@@ -112,8 +112,8 @@ const optionalAuth = async (req, res, next) => {
     }
 };
 
-module.exports = { 
-    authenticate, 
-    authorize, 
-    optionalAuth 
+export {
+    authenticate,
+    authorize,
+    optionalAuth
 };
