@@ -13,6 +13,7 @@ import logo from './assets/logo.svg';
 import { showToast } from './utils/toast';
 
 // Mobile Pages
+import MobileLogin from './pages/mobile/Login';
 import ChangePassword from './pages/mobile/ChangePassword';
 import MobileDashboard from './pages/mobile/Dashboard';
 import MobileProfile from './pages/mobile/Profile';
@@ -228,6 +229,7 @@ const App: React.FC = () => {
             <Route path="/premium-register" element={<PremiumRegistration />} />
 
             {/* Mobile PWA Routes - New Member Interface */}
+            <Route path="/mobile/login" element={<MobileLogin />} />
             <Route path="/mobile/change-password" element={<ChangePassword />} />
             <Route path="/mobile/dashboard" element={<MobileDashboard />} />
             <Route path="/mobile/profile" element={<MobileProfile />} />
