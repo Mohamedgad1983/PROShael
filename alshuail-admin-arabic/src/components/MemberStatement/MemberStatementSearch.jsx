@@ -79,7 +79,7 @@ const MemberStatementSearch = () => {
         const API_URL = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
         const token = localStorage.getItem('token');
         const response = await fetch(
-          `${API_URL}/api/members?limit=20`,
+          `${API_URL}/api/members`,
           {
             headers: {
               'Authorization': `Bearer ${token}`
@@ -502,10 +502,20 @@ const MemberStatementSearch = () => {
         >
           <div className="table-header">
             <h2 className="table-title">
-              الأعضاء ({searchResults.length})
+              إجمالي الأعضاء: {searchResults.length} عضو
             </h2>
+            <div className="table-stats">
+              <div className="stat-item stat-good">
+                <CheckCircleIcon className="stat-icon" />
+                <span>مكتمل: {searchResults.filter(m => m.balance >= MINIMUM_BALANCE).length}</span>
+              </div>
+              <div className="stat-item stat-warning">
+                <XCircleIcon className="stat-icon" />
+                <span>غير مكتمل: {searchResults.filter(m => m.balance < MINIMUM_BALANCE).length}</span>
+              </div>
+            </div>
             <p className="table-subtitle">
-              اضغط على العضو لعرض كشف الحساب التفصيلي
+              اضغط على أي عضو لعرض كشف الحساب التفصيلي
             </p>
           </div>
 

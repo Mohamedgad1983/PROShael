@@ -137,14 +137,51 @@
   font-size: 24px;
   font-weight: 700;
   color: #1a1a1a;
-  margin-bottom: 8px;
+  margin-bottom: 16px;
   font-family: 'Cairo', 'Tajawal', sans-serif;
+}
+
+.table-stats {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.stat-item.stat-good {
+  background: rgba(52, 199, 89, 0.1);
+  color: #34C759;
+  border: 2px solid rgba(52, 199, 89, 0.2);
+}
+
+.stat-item.stat-warning {
+  background: rgba(255, 59, 48, 0.1);
+  color: #FF3B30;
+  border: 2px solid rgba(255, 59, 48, 0.2);
+}
+
+.stat-icon {
+  width: 20px;
+  height: 20px;
 }
 
 .table-subtitle {
   font-size: 14px;
   color: #666;
   font-weight: 400;
+  margin-top: 8px;
 }
 
 /* Desktop Table View */
