@@ -129,10 +129,12 @@
 .table-header {
   text-align: center;
   margin-bottom: 24px;
-  padding-bottom: 20px;
+  padding-bottom: 0px !important;
   /* Removed border-bottom to prevent duplicate header appearance */
-  background: transparent;
-  min-height: auto;
+  background: transparent !important;
+  min-height: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .table-title {
@@ -192,6 +194,8 @@
 /* Desktop Table View */
 .desktop-view {
   display: block !important;
+  margin-top: 0 !important;
+  padding-top: 0 !important;
 }
 
 .mobile-view {
@@ -203,6 +207,15 @@
   display: none;
 }
 
+/* Remove any gap between table-header and table container */
+.table-header + .members-table-container {
+  margin-top: 0 !important;
+}
+
+.table-header + * {
+  margin-top: 0 !important;
+}
+
 .members-table-container {
   overflow-x: auto;
   border-radius: 12px;
@@ -211,6 +224,9 @@
   /* Ensure smooth scrolling and proper RTL behavior */
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
+  background: white !important;
+  padding: 0 !important;
+  margin: 0 !important;
 }
 
 .members-table {
@@ -223,6 +239,10 @@
 
 .members-table thead {
   color: white;
+  background: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
 }
 
 .members-table th {
