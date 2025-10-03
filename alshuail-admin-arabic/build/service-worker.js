@@ -3,8 +3,8 @@
 // Enables offline functionality and caching
 // ========================================
 
-const CACHE_NAME = 'alshuail-v1.0.0';
-const RUNTIME_CACHE = 'alshuail-runtime';
+const CACHE_NAME = 'alshuail-v1.0.1-purple-dashboard';
+const RUNTIME_CACHE = 'alshuail-runtime-v1.0.1';
 
 // Files to cache on install
 const PRECACHE_URLS = [
