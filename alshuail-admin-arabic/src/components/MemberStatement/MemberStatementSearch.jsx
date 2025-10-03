@@ -520,8 +520,8 @@ const MemberStatementSearch = () => {
           </div>
 
           {/* Desktop Table View */}
-          <div className="members-table-container desktop-view">
-            <table className="members-table">
+          <div className="members-table-container desktop-view" dir="rtl">
+            <table className="members-table" dir="rtl">
               <thead>
                 <tr>
                   <th>رقم العضوية</th>
@@ -728,9 +728,9 @@ const MemberStatementSearch = () => {
             </div>
 
             {/* Payment Table */}
-            <div className="statement-table-wrapper">
+            <div className="statement-table-wrapper" dir="rtl">
               <h3 className="table-title">تفاصيل المدفوعات السنوية</h3>
-              <table className="statement-table">
+              <table className="statement-table" dir="rtl">
                 <thead>
                   <tr>
                     <th>السنة</th>

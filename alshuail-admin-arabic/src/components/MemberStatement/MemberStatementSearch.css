@@ -202,6 +202,10 @@
   overflow-x: auto;
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  direction: rtl;
+  /* Ensure smooth scrolling and proper RTL behavior */
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
 }
 
 .members-table {
@@ -209,6 +213,7 @@
   border-collapse: collapse;
   background: white;
   font-family: 'Cairo', 'Tajawal', sans-serif;
+  direction: rtl;
 }
 
 .members-table thead {
@@ -223,6 +228,10 @@
   font-weight: 600;
   border-bottom: none;
   white-space: nowrap;
+  vertical-align: middle;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .members-table tbody tr {
@@ -248,6 +257,9 @@
   font-weight: 600;
   color: #007AFF;
   font-size: 13px;
+  direction: ltr;
+  text-align: right;
+  unicode-bidi: embed;
 }
 
 .name-cell {
@@ -271,6 +283,7 @@
   color: #666;
   direction: ltr;
   text-align: right;
+  unicode-bidi: embed;
 }
 
 .member-section {
@@ -321,6 +334,8 @@
 
 .member-actions {
   text-align: center;
+  direction: ltr;
+  /* Actions column appears on the left in RTL layout */
 }
 
 .view-btn {
@@ -467,6 +482,19 @@
   height: 18px;
 }
 
+/* RTL Table Loading State - Prevent Layout Shift */
+.members-table-container.loading .members-table,
+.statement-table-wrapper.loading .statement-table {
+  min-height: 200px;
+}
+
+.members-table-container.loading .members-table th,
+.statement-table-wrapper.loading .statement-table th {
+  position: sticky;
+  top: 0;
+  background: linear-gradient(135deg, #007AFF 0%, #5856D6 100%);
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .desktop-view {
@@ -487,6 +515,12 @@
 
   .members-table-section {
     padding: 20px 16px;
+  }
+
+  /* Maintain RTL on mobile */
+  .members-table-container,
+  .statement-table-wrapper {
+    direction: rtl;
   }
 }
 
@@ -727,11 +761,16 @@
 .statement-table-wrapper {
   overflow-x: auto;
   margin-bottom: 20px;
+  direction: rtl;
+  /* Ensure smooth scrolling and proper RTL behavior */
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
 }
 
 .statement-table {
   width: 100%;
   border-collapse: collapse;
+  direction: rtl;
 }
 
 .statement-table th {
@@ -742,6 +781,11 @@
   color: #333;
   font-size: 14px;
   border-bottom: 2px solid #dee2e6;
+  white-space: nowrap;
+  vertical-align: middle;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .statement-table td {
