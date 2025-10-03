@@ -1,0 +1,30 @@
+/* GLOBAL OVERRIDE - FORCE ALL TEXT TO NORMAL WEIGHT */
+* {
+  font-weight: 400 !important;
+  font-weight: normal !important;
+}
+
+html *, body *, #root * {
+  font-weight: 400 !important;
+}
+
+h1, h2, h3, h4, h5, h6,
+b, strong, th, dt, legend,
+label, button, .btn,
+.title, .heading,
+.font-bold, .font-semibold, .font-medium,
+.fw-bold, .fw-semibold, .fw-medium {
+  font-weight: 400 !important;
+}
+
+/* Override inline styles */
+[style*="font-weight"] {
+  font-weight: 400 !important;
+}
+
+/* Remove text shadows */
+* {
+  text-shadow: none !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+}
