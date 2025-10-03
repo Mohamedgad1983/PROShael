@@ -98,6 +98,8 @@
   max-height: 300px;
   overflow-y: auto;
   z-index: 1000;
+  direction: rtl;
+  text-align: right;
 }
 
 .autocomplete-item {
@@ -109,7 +111,8 @@
 
 .autocomplete-item:hover {
   background: rgba(0, 122, 255, 0.08);
-  transform: translateX(-2px);
+  transform: translateX(2px);
+  /* RTL: Move right on hover */
 }
 
 .autocomplete-item:last-child {
@@ -124,6 +127,8 @@
   border-radius: 20px;
   padding: 28px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+  direction: rtl;
+  text-align: right;
 }
 
 .table-header {
@@ -165,6 +170,9 @@
   font-size: 15px;
   font-weight: 600;
   transition: all 0.2s ease;
+  direction: rtl;
+  flex-direction: row-reverse;
+  /* RTL: Icon on right, text on left */
 }
 
 .stat-item.stat-good {
@@ -236,6 +244,8 @@
   background: white;
   font-family: 'Cairo', 'Tajawal', sans-serif;
   direction: rtl;
+  table-layout: fixed;
+  /* Fixed layout ensures headers align perfectly with columns */
 }
 
 .members-table thead {
@@ -259,6 +269,50 @@
   z-index: 10;
   background: linear-gradient(135deg, #007AFF 0%, #5856D6 100%);
   color: white;
+  direction: rtl;
+}
+
+/* Column-specific widths for perfect alignment */
+.members-table th:nth-child(1),
+.members-table td:nth-child(1) {
+  width: 10%;
+  /* رقم العضوية */
+}
+
+.members-table th:nth-child(2),
+.members-table td:nth-child(2) {
+  width: 20%;
+  /* الاسم الكامل */
+}
+
+.members-table th:nth-child(3),
+.members-table td:nth-child(3) {
+  width: 12%;
+  /* رقم الجوال */
+}
+
+.members-table th:nth-child(4),
+.members-table td:nth-child(4) {
+  width: 15%;
+  /* الفخذ */
+}
+
+.members-table th:nth-child(5),
+.members-table td:nth-child(5) {
+  width: 12%;
+  /* الرصيد */
+}
+
+.members-table th:nth-child(6),
+.members-table td:nth-child(6) {
+  width: 13%;
+  /* الحالة */
+}
+
+.members-table th:nth-child(7),
+.members-table td:nth-child(7) {
+  width: 18%;
+  /* الإجراءات */
 }
 
 .members-table tbody tr {
@@ -269,7 +323,8 @@
 
 .members-table tbody tr:hover {
   background: linear-gradient(90deg, rgba(0, 122, 255, 0.03) 0%, rgba(88, 86, 214, 0.03) 100%);
-  transform: translateX(-2px);
+  transform: translateX(2px);
+  /* RTL: Move right on hover (positive value) */
   box-shadow: 0 2px 8px rgba(0, 122, 255, 0.1);
 }
 
@@ -293,6 +348,9 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  direction: rtl;
+  flex-direction: row-reverse;
+  /* RTL: Icon on the right, name on the left */
 }
 
 .name-icon {
@@ -342,6 +400,9 @@
   border-radius: 20px;
   font-size: 12px;
   font-weight: 600;
+  direction: rtl;
+  flex-direction: row-reverse;
+  /* RTL: Icon on right, text on left */
 }
 
 .status-badge.status-good {
@@ -378,6 +439,9 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
+  direction: rtl;
+  flex-direction: row-reverse;
+  /* RTL: Icon on right, text on left */
 }
 
 .view-btn:hover {
@@ -497,6 +561,9 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  direction: rtl;
+  flex-direction: row-reverse;
+  /* RTL: Icon on right, text on left */
 }
 
 .card-view-btn:hover {
