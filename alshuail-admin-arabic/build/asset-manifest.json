@@ -1,6 +1,6 @@
 {
   "files": {
-    "main.css": "/static/css/main.c15735d8.css",
+    "main.css": "/static/css/main.2c26b22c.css",
     "main.js": "/static/js/main.a4a89a73.js",
     "vendor.js": "/static/js/vendor.95e2e214.js",
     "index.html": "/index.html",
@@ -8,7 +8,7 @@
   },
   "entrypoints": [
     "static/js/vendor.95e2e214.js",
-    "static/css/main.c15735d8.css",
+    "static/css/main.2c26b22c.css",
     "static/js/main.a4a89a73.js"
   ]
 }
