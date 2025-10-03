@@ -186,10 +186,15 @@
 
 /* Desktop Table View */
 .desktop-view {
-  display: block;
+  display: block !important;
 }
 
 .mobile-view {
+  display: none !important;
+}
+
+/* Ensure cards container is also hidden on desktop */
+.members-cards-container {
   display: none;
 }
 
@@ -465,11 +470,15 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .desktop-view {
-    display: none;
+    display: none !important;
   }
 
   .mobile-view {
-    display: block;
+    display: block !important;
+  }
+
+  .members-cards-container {
+    display: grid !important;
   }
 
   .table-title {
