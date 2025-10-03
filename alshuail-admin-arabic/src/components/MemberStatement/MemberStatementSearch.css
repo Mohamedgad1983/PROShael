@@ -217,7 +217,6 @@
 }
 
 .members-table thead {
-  background: linear-gradient(135deg, #007AFF 0%, #5856D6 100%);
   color: white;
 }
 
@@ -232,6 +231,8 @@
   position: sticky;
   top: 0;
   z-index: 10;
+  background: linear-gradient(135deg, #007AFF 0%, #5856D6 100%);
+  color: white;
 }
 
 .members-table tbody tr {
