@@ -278,12 +278,14 @@ WHERE role IN ('admin', 'super_admin', 'financial_manager')
 ORDER BY role;
 
 -- ============================================
--- STEP 6: Create Audit Log Entry (if table exists)
+-- STEP 6: Create Audit Log Entry (OPTIONAL - skip if table doesn't exist)
 -- ============================================
 
 DO $$
 DECLARE
     member_count INTEGER;
+    table_exists BOOLEAN;
+    column_exists BOOLEAN;
 BEGIN
     -- Count affected members
     SELECT COUNT(*) INTO member_count
@@ -292,29 +294,49 @@ BEGIN
         AND password_hash IS NOT NULL;
 
     -- Check if audit_logs table exists
-    IF EXISTS (
+    SELECT EXISTS (
         SELECT 1 FROM information_schema.tables
         WHERE table_name = 'audit_logs'
-    ) THEN
-        INSERT INTO audit_logs (
-            action,
-            description,
-            affected_count,
-            performed_by,
-            created_at
-        )
-        VALUES (
-            'PASSWORD_RESET_BULK',
-            'Default passwords set for all regular members (123456)',
-            member_count,
-            'SYSTEM',
-            NOW()
-        );
+    ) INTO table_exists;
 
-        RAISE NOTICE '✅ Audit log entry created';
+    IF table_exists THEN
+        -- Check if required columns exist
+        SELECT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'audit_logs'
+            AND column_name = 'action'
+        ) INTO column_exists;
+
+        IF column_exists THEN
+            BEGIN
+                INSERT INTO audit_logs (
+                    action,
+                    description,
+                    affected_count,
+                    performed_by,
+                    created_at
+                )
+                VALUES (
+                    'PASSWORD_RESET_BULK',
+                    'Default passwords set for all regular members (123456)',
+                    member_count,
+                    'SYSTEM',
+                    NOW()
+                );
+                RAISE NOTICE '✅ Audit log entry created';
+            EXCEPTION
+                WHEN OTHERS THEN
+                    RAISE NOTICE '⚠️  Could not create audit log (non-critical): %', SQLERRM;
+            END;
+        ELSE
+            RAISE NOTICE '⚠️  audit_logs table exists but has different schema - skipping';
+        END IF;
     ELSE
         RAISE NOTICE '⚠️  audit_logs table does not exist - skipping audit log';
     END IF;
+
+    RAISE NOTICE '';
+    RAISE NOTICE '✅ Step 6 completed (audit log is optional)';
 END $$;
 
 -- ============================================
