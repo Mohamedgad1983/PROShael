@@ -762,21 +762,6 @@ const MemberStatementSearch = () => {
                     </tr>
                   ))}
                 </tbody>
-                <tfoot>
-                  <tr className="total-row">
-                    <td className="font-bold">الإجمالي</td>
-                    <td className="font-bold">{memberStatement.totalRequired} ريال</td>
-                    <td className="font-bold text-green-600">{memberStatement.totalPaid} ريال</td>
-                    <td className="font-bold text-red-600">{memberStatement.outstandingBalance} ريال</td>
-                    <td colSpan="3">
-                      <div className={`summary-badge ${memberStatement.complianceStatus}`}>
-                        {memberStatement.complianceStatus === 'compliant' ?
-                          'العضو ملتزم بالحد الأدنى (3000 ريال)' :
-                          `يحتاج إلى دفع ${MINIMUM_BALANCE - memberStatement.totalPaid} ريال للوصول للحد الأدنى`}
-                      </div>
-                    </td>
-                  </tr>
-                </tfoot>
               </table>
             </div>
 
@@ -800,23 +785,6 @@ const MemberStatementSearch = () => {
                     </div>
                   ))}
                 </div>
-              </div>
-            </div>
-
-            {/* Balance Status */}
-            <div className={`balance-status-card ${memberStatement.complianceStatus}`}>
-              <div className="status-content">
-                <h3>حالة الرصيد</h3>
-                <p className="status-text">
-                  {memberStatement.complianceStatus === 'compliant'
-                    ? '✓ الرصيد كافي - العضو ملتزم بالحد الأدنى'
-                    : '⚠️ الرصيد غير كافي - يحتاج إلى سداد المتبقي'}
-                </p>
-                {memberStatement.complianceStatus === 'non-compliant' && (
-                  <p className="remaining-amount">
-                    المبلغ المتبقي للوصول للحد الأدنى: {(MINIMUM_BALANCE - memberStatement.totalPaid).toLocaleString()} ريال
-                  </p>
-                )}
               </div>
             </div>
           </div>
