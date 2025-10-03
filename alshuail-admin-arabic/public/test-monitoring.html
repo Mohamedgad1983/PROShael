@@ -1,190 +1,0 @@
-<!DOCTYPE html>
-<html dir="rtl" lang="ar">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة مراقبة الأعضاء - اختبار</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Cairo', 'Tajawal', sans-serif;
-            background: #f9fafb;
-            margin: 0;
-            padding: 20px;
-            direction: rtl;
-            text-align: right;
-        }
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-        h1 {
-            text-align: center;
-            color: #111827;
-            margin-bottom: 40px;
-            font-size: 2.5rem;
-            font-weight: 800;
-        }
-        .info-card {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-        .info-card h2 {
-            color: #2563eb;
-            margin-top: 0;
-        }
-        .info-card ul {
-            line-height: 2;
-        }
-        .feature-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-top: 30px;
-        }
-        .feature-card {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            border-top: 4px solid #2563eb;
-        }
-        .feature-card h3 {
-            color: #111827;
-            margin-top: 0;
-        }
-        .feature-card p {
-            color: #6b7280;
-            line-height: 1.6;
-        }
-        .status-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-weight: 600;
-            font-size: 0.875rem;
-        }
-        .status-success {
-            background: #d1fae5;
-            color: #059669;
-        }
-        .status-warning {
-            background: #fee2e2;
-            color: #dc2626;
-        }
-        .test-link {
-            display: inline-block;
-            padding: 12px 24px;
-            background: #2563eb;
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
-            margin-top: 20px;
-            font-weight: 600;
-            transition: background 0.2s;
-        }
-        .test-link:hover {
-            background: #1d4ed8;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>🎯 لوحة مراقبة الأعضاء - نظام متقدم</h1>
-
-        <div class="info-card">
-            <h2>✅ تم بناء اللوحة بنجاح!</h2>
-            <p>تم إنشاء لوحة مراقبة الأعضاء المتقدمة مع جميع المزايا المطلوبة:</p>
-            <ul>
-                <li>✨ <strong>إحصائيات ملخصة:</strong> إجمالي 299 عضو، 28 ملتزم، 271 غير ملتزم</li>
-                <li>🔍 <strong>فلاتر متقدمة:</strong> البحث بالرقم، الاسم، الهاتف، الفخذ</li>
-                <li>💰 <strong>فلاتر الرصيد:</strong> مقارنة، نطاق، فئات محددة</li>
-                <li>📊 <strong>جدول بيانات محسّن:</strong> مع ترميز لوني للأرصدة</li>
-                <li>🔒 <strong>صلاحيات الإجراءات:</strong> إيقاف وإشعار للمديرين فقط</li>
-                <li>📤 <strong>تصدير Excel:</strong> تصدير البيانات المفلترة</li>
-                <li>📱 <strong>تصميم متجاوب:</strong> يعمل على جميع الأجهزة</li>
-            </ul>
-        </div>
-
-        <div class="feature-grid">
-            <div class="feature-card">
-                <h3>🎨 التصميم العربي الأصيل</h3>
-                <p>خطوط Cairo و Tajawal مع دعم كامل RTL وتحسينات التيبوغرافيا العربية</p>
-                <span class="status-badge status-success">مُفعّل</span>
-            </div>
-
-            <div class="feature-card">
-                <h3>🔍 الفلاتر المتقدمة</h3>
-                <p>3 صفوف من الفلاتر: نصية، مالية، وأزرار الإجراءات</p>
-                <span class="status-badge status-success">مُفعّل</span>
-            </div>
-
-            <div class="feature-card">
-                <h3>📊 جدول البيانات التفاعلي</h3>
-                <p>ترتيب، ترقيم صفحات، وإحصائيات ملخصة</p>
-                <span class="status-badge status-success">مُفعّل</span>
-            </div>
-
-            <div class="feature-card">
-                <h3>🚨 إجراءات الأعضاء</h3>
-                <p>إيقاف العضوية وإرسال إشعارات متعددة القنوات</p>
-                <span class="status-badge status-success">مُفعّل</span>
-            </div>
-
-            <div class="feature-card">
-                <h3>🏷️ دعم الفخوذ</h3>
-                <p>8 فخوذ: رشود، الدغيش، رشيد، العيد، الرشيد، الشبيعان، المسعود، عقاب</p>
-                <span class="status-badge status-success">مُفعّل</span>
-            </div>
-
-            <div class="feature-card">
-                <h3>📱 قنوات الإشعارات</h3>
-                <p>التطبيق، واتساب، البريد الإلكتروني، رسائل SMS</p>
-                <span class="status-badge status-success">مُفعّل</span>
-            </div>
-        </div>
-
-        <div class="info-card">
-            <h2>🚀 الملفات المُنشأة:</h2>
-            <ul>
-                <li><code>MemberMonitoringDashboard.jsx</code> - المكون الرئيسي</li>
-                <li><code>AdvancedFilterBar.jsx</code> - شريط الفلاتر المتقدم</li>
-                <li><code>MemberTable.jsx</code> - جدول الأعضاء مع الترتيب</li>
-                <li><code>ActionButtons.jsx</code> - أزرار الإجراءات بالصلاحيات</li>
-                <li><code>MemberMonitoring.css</code> - التنسيقات العربية المميزة</li>
-                <li><code>index.jsx</code> - ملف التصدير</li>
-            </ul>
-        </div>
-
-        <div class="info-card">
-            <h2>📝 كيفية الاستخدام:</h2>
-            <ol>
-                <li>اللوحة جاهزة للاستخدام في <code>StyledDashboard.tsx</code></li>
-                <li>يمكن الوصول إليها من قائمة التنقل: "مراقبة الأعضاء"</li>
-                <li>تحتاج إلى صلاحيات <strong>super_admin</strong> أو <strong>finance_manager</strong> للإجراءات</li>
-                <li>البيانات تُحمّل تلقائياً من API أو بيانات تجريبية</li>
-            </ol>
-        </div>
-
-        <div class="info-card" style="background: #f0fdf4; border: 2px solid #10b981;">
-            <h2 style="color: #059669;">✨ المهمة مكتملة بنجاح!</h2>
-            <p>تم بناء لوحة مراقبة الأعضاء بجميع المواصفات المطلوبة:</p>
-            <ul>
-                <li>✅ التصميم العربي الأصيل مع خطوط Cairo</li>
-                <li>✅ دعم كامل لـ RTL والتيبوغرافيا العربية</li>
-                <li>✅ فلاتر متقدمة متعددة المستويات</li>
-                <li>✅ جدول بيانات تفاعلي مع ترميز لوني</li>
-                <li>✅ نظام صلاحيات للإجراءات الحساسة</li>
-                <li>✅ تصدير Excel للبيانات المفلترة</li>
-                <li>✅ تصميم متجاوب لجميع الأجهزة</li>
-                <li>✅ 299 عضو مع بيانات تجريبية كاملة</li>
-            </ul>
-        </div>
-
-        <a href="/admin" class="test-link">العودة إلى لوحة التحكم الرئيسية →</a>
-    </div>
-</body>
-</html>
