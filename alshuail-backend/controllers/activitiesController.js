@@ -1,4 +1,4 @@
-const { supabase } = require('../config/database');
+import { supabase } from '../config/database.js';
 
 // Get all activities
 const getAllActivities = async (req, res) => {
@@ -334,7 +334,7 @@ const getActivityStatistics = async (req, res) => {
     }
 };
 
-module.exports = {
+export {
     getAllActivities,
     getActivityById,
     createActivity,

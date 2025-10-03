@@ -1,4 +1,4 @@
-const { supabase } = require('../config/database');
+import { supabase } from '../config/database.js';
 
 // Get all family members
 const getAllMembers = async (req, res) => {
@@ -347,7 +347,7 @@ const getRoles = async (req, res) => {
   }
 };
 
-module.exports = {
+export {
   getAllMembers,
   createMember,
   updateMember,

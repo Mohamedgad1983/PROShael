@@ -1,10 +1,11 @@
-const express = require('express');
-const router = express.Router();
-const {
+import express from 'express';
+import {
   getAllExpenses,
   createExpense,
   updateExpenseApproval
-} = require('../controllers/expensesController');
+} from '../controllers/expensesController.js';
+
+const router = express.Router();
 
 // Get all expenses
 router.get('/', getAllExpenses);
@@ -16,4 +17,4 @@ router.post('/', createExpense);
 router.put('/:id/approval', updateExpenseApproval);
 router.patch('/:id/approval', updateExpenseApproval);
 
-module.exports = router;
+export default router;

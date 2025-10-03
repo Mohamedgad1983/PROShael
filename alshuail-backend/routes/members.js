@@ -1,14 +1,15 @@
-const express = require('express');
-const router = express.Router();
-const { authenticate } = require('../middleware/auth');
-const {
+import express from 'express';
+import { authenticate } from '../middleware/auth.js';
+import {
   getAllMembers,
   createMember,
   updateMember,
   updateMemberRole,
   softDeleteMember,
   getRoles
-} = require('../controllers/membersController');
+} from '../controllers/membersController.js';
+
+const router = express.Router();
 
 // ============================================================
 // Protected Routes (Authentication required for all member operations)
@@ -35,4 +36,4 @@ router.put('/:id/role', updateMemberRole);
 // Deactivate member (admin/super_admin only)
 router.delete('/:id', softDeleteMember);
 
-module.exports = router;
+export default router;

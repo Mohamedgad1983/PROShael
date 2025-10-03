@@ -1,14 +1,15 @@
-const express = require('express');
-const router = express.Router();
-const {
+import express from 'express';
+import {
     getAllActivities,
     getActivityById,
     createActivity,
     updateActivity,
     deleteActivity,
     getActivityStatistics
-} = require('../controllers/activitiesController');
-const { authenticate } = require('../middleware/auth');
+} from '../controllers/activitiesController.js';
+import { authenticate } from '../middleware/auth.js';
+
+const router = express.Router();
 
 // ============================================================
 // Public Routes (No authentication required)
@@ -36,4 +37,4 @@ router.put('/:id', authenticate, updateActivity);
 // Delete activity (Authenticated users)
 router.delete('/:id', authenticate, deleteActivity);
 
-module.exports = router;
+export default router;

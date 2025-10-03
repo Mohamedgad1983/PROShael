@@ -1,7 +1,6 @@
-const express = require('express');
-const router = express.Router();
-const { authenticate } = require('../middleware/auth');
-const {
+import express from 'express';
+import { authenticate } from '../middleware/auth.js';
+import {
   getMemberProfile,
   getMemberBalance,
   getMemberPayments,
@@ -11,10 +10,12 @@ const {
   markNotificationAsRead,
   markAllNotificationsAsRead,
   uploadReceipt
-} = require('../controllers/memberController');
+} from '../controllers/memberController.js';
 
 // Multer for file upload
-const multer = require('multer');
+import multer from 'multer';
+
+const router = express.Router();
 const storage = multer.memoryStorage();
 const upload = multer({
   storage: storage,
@@ -50,4 +51,4 @@ router.post('/notifications/read-all', authenticate, markAllNotificationsAsRead)
 // Receipt Upload Route
 router.post('/receipts/upload', authenticate, upload.single('receipt'), uploadReceipt);
 
-module.exports = router;
+export default router;

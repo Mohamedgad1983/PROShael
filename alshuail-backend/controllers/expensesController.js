@@ -1,5 +1,5 @@
 // Expenses Controller
-const { supabase } = require('../config/database');
+import { supabase } from '../config/database.js';
 
 // Mock data for expenses
 const mockExpenses = [
@@ -156,7 +156,7 @@ const updateExpenseApproval = async (req, res) => {
   }
 };
 
-module.exports = {
+export {
   getAllExpenses,
   createExpense,
   updateExpenseApproval
