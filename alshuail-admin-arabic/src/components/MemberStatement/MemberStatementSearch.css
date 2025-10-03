@@ -131,6 +131,8 @@
   margin-bottom: 24px;
   padding-bottom: 20px;
   /* Removed border-bottom to prevent duplicate header appearance */
+  background: transparent;
+  min-height: auto;
 }
 
 .table-title {
@@ -139,6 +141,9 @@
   color: #1a1a1a;
   margin-bottom: 16px;
   font-family: 'Cairo', 'Tajawal', sans-serif;
+  line-height: 1.4;
+  min-height: auto;
+  background: transparent !important;
 }
 
 .table-stats {
@@ -925,12 +930,14 @@
   transition: width 0.5s ease;
 }
 
-/* Table Title */
-.table-title {
+/* Payment Details Table Title */
+.statement-table-wrapper .table-title {
   font-size: 18px;
   font-weight: 600;
   margin-bottom: 20px;
   color: #1a1a1a;
+  line-height: 1.4;
+  background: transparent !important;
 }
 
 /* Payment Chart */
