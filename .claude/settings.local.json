@@ -48,7 +48,8 @@
       "Bash(python3:*)",
       "Bash(cmd //c:*)",
       "Bash(npm run db:query:*)",
-      "mcp__playwright__browser_click"
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_console_messages"
     ],
     "deny": [],
     "ask": []

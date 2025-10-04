@@ -69,7 +69,7 @@ const MobileDashboard = () => {
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
-      // Sample data already loaded, no need to set again
+      // Keep sample data visible on error
     } finally {
       setLoading(false);
     }
@@ -110,8 +110,8 @@ const MobileDashboard = () => {
     setNotifications(organized);
   };
 
-  // Get all notifications for dropdown
-  const getAllNotifications = () => {
+  // Get all notifications for dropdown - use useMemo for reactivity
+  const allNotifications = React.useMemo(() => {
     const allNotifs: any[] = [];
 
     // Add all notifications from all categories
@@ -121,9 +121,11 @@ const MobileDashboard = () => {
     notifications.occasions.forEach(n => allNotifs.push(n));
     notifications.statements.forEach(n => allNotifs.push(n));
 
+    console.log('📋 All notifications for dropdown:', allNotifs.length);
+
     // Return latest 5 notifications
     return allNotifs.slice(0, 5);
-  };
+  }, [notifications]);
 
   const setSampleData = () => {
     // Sample notifications data
@@ -293,8 +295,8 @@ const MobileDashboard = () => {
             </div>
 
             <div className="notification-dropdown-list">
-              {getAllNotifications().length > 0 ? (
-                getAllNotifications().map((notif) => (
+              {allNotifications.length > 0 ? (
+                allNotifications.map((notif) => (
                   <div
                     key={notif.id}
                     className={`notification-dropdown-item ${notif.priority === 'high' ? 'priority-high' : ''}`}
