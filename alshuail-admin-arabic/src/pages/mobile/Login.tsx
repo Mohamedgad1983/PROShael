@@ -36,7 +36,7 @@ const MobileLogin = () => {
     try {
       const API_URL = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
 
-      const response = await fetch(`${API_URL}/api/auth/login`, {
+      const response = await fetch(`${API_URL}/api/auth/member-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone, password })
