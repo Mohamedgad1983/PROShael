@@ -42,7 +42,8 @@ const MobileDashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      setLoading(true);
+      // Don't show loading spinner, sample data is already showing
+      // setLoading(true); // Removed to keep sample data visible
 
       // Get user data from localStorage first
       const userData = localStorage.getItem('user');
@@ -68,7 +69,7 @@ const MobileDashboard = () => {
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
-      setSampleData();
+      // Sample data already loaded, no need to set again
     } finally {
       setLoading(false);
     }
