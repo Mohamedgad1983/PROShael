@@ -74,14 +74,17 @@ const MobileLogin = () => {
 
       // Small delay to ensure localStorage is set
       setTimeout(() => {
-        // Check if password change required
-        if (data.requires_password_change || data.is_first_login) {
-          navigate('/mobile/change-password', {
-            state: { isFirstLogin: data.is_first_login }
-          });
-        } else {
-          navigate('/mobile/dashboard');
-        }
+        // Skip password change for now - go straight to dashboard
+        navigate('/mobile/dashboard');
+
+        // Original code (commented out to bypass password change):
+        // if (data.requires_password_change || data.is_first_login) {
+        //   navigate('/mobile/change-password', {
+        //     state: { isFirstLogin: data.is_first_login }
+        //   });
+        // } else {
+        //   navigate('/mobile/dashboard');
+        // }
       }, 100);
 
     } catch (err: any) {

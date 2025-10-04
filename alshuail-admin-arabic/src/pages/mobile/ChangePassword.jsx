@@ -270,7 +270,7 @@ const ChangePassword = () => {
           <button
             type="submit"
             className="submit-button"
-            disabled={loading || passwordStrength < 100}
+            disabled={loading || passwordStrength < 50}
           >
             {loading ? (
               <>
