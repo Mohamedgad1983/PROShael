@@ -295,7 +295,7 @@ async function authenticateMember(phone, password) {
   for (const phoneVariant of phoneVariants) {
     const { data, error: queryError } = await supabase
       .from('members')
-      .select('id, full_name, phone, membership_number, membership_status, password_hash, temp_password, balance')
+      .select('id, full_name, phone, membership_number, membership_status, password_hash, temp_password, balance, requires_password_change, is_first_login')
       .eq('phone', phoneVariant)
       .single();
 
