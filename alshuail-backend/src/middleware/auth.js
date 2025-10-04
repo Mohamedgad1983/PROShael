@@ -81,13 +81,22 @@ export const authenticate = async (req, res, next) => {
 
         if (memberError || !member) {
           console.log(`[Auth] Member not found in database: ${decoded.id}`);
-          // Still allow the request but with limited data
-          req.user = decoded;
+          // Still allow the request with token data
+          req.user = {
+            id: decoded.id,
+            role: decoded.role,
+            phone: decoded.phone,
+            fullName: decoded.fullName || decoded.full_name,
+            full_name: decoded.fullName || decoded.full_name,
+            membershipNumber: decoded.membershipNumber,
+            membership_number: decoded.membershipNumber
+          };
         } else {
           req.user = {
             ...member,
             ...decoded,  // Keep token data like role
-            id: member.id
+            id: member.id,
+            role: 'member'
           };
         }
       } else {
