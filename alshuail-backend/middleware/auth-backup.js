@@ -1,11 +1,11 @@
 import jwt from 'jsonwebtoken';
 import { supabase } from '../config/database.js';
 
-// Authentication middleware - FIXED VERSION
+// Authentication middleware
 const authenticate = async (req, res, next) => {
     try {
         const authHeader = req.header('Authorization');
-
+        
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
             return res.status(401).json({
                 success: false,
@@ -16,28 +16,14 @@ const authenticate = async (req, res, next) => {
 
         const token = authHeader.replace('Bearer ', '');
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-        // Check if it's a member or admin based on the role in token
-        let user;
-        let error;
-
-        if (decoded.role === 'member') {
-            // For members, check in members table
-            ({ data: user, error } = await supabase
-                .from('members')
-                .select('*')
-                .eq('id', decoded.id)
-                .eq('is_active', true)
-                .single());
-        } else {
-            // For admins/other roles, check in users table
-            ({ data: user, error } = await supabase
-                .from('users')
-                .select('*')
-                .eq('id', decoded.id)
-                .eq('is_active', true)
-                .single());
-        }
+        
+        // Get user from database using Supabase
+        const { data: user, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', decoded.id)
+            .eq('is_active', true)
+            .single();
 
         if (error || !user) {
             return res.status(401).json({
@@ -63,7 +49,7 @@ const authenticate = async (req, res, next) => {
                 message_en: 'Access token expired'
             });
         }
-
+        
         console.error('Auth error:', error);
         res.status(500).json({
             success: false,
@@ -102,35 +88,23 @@ const authorize = (roles = []) => {
 const optionalAuth = async (req, res, next) => {
     try {
         const authHeader = req.header('Authorization');
-
+        
         if (authHeader && authHeader.startsWith('Bearer ')) {
             const token = authHeader.replace('Bearer ', '');
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-            let user;
-            let error;
-
-            if (decoded.role === 'member') {
-                ({ data: user, error } = await supabase
-                    .from('members')
-                    .select('*')
-                    .eq('id', decoded.id)
-                    .eq('is_active', true)
-                    .single());
-            } else {
-                ({ data: user, error } = await supabase
-                    .from('users')
-                    .select('*')
-                    .eq('id', decoded.id)
-                    .eq('is_active', true)
-                    .single());
-            }
+            
+            const { data: user, error } = await supabase
+                .from('users')
+                .select('*')
+                .eq('id', decoded.id)
+                .eq('is_active', true)
+                .single();
 
             if (!error && user) {
                 req.user = user;
             }
         }
-
+        
         next();
     } catch (error) {
         // Ignore auth errors in optional auth
