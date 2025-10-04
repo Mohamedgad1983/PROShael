@@ -37,7 +37,9 @@
       "Bash(wrangler pages deploy:*)",
       "mcp__playwright__browser_tabs",
       "Bash(gh workflow run:*)",
-      "mcp__playwright__browser_type"
+      "mcp__playwright__browser_type",
+      "Bash(npx wrangler pages deploy:*)",
+      "mcp__playwright__browser_wait_for"
     ],
     "deny": [],
     "ask": []
