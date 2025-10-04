@@ -37,30 +37,43 @@ export const AdminRoute = ({ children }) => {
  * Redirects admins to admin dashboard
  */
 export const MemberRoute = ({ children }) => {
-  // Get user from localStorage
-  const userStr = localStorage.getItem('user');
-  const user = userStr ? JSON.parse(userStr) : null;
+  // Get user from localStorage with error handling
+  let user = null;
+  try {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      user = JSON.parse(userStr);
+    }
+  } catch (error) {
+    console.error('Failed to parse user data:', error);
+    localStorage.removeItem('user');
+  }
+
+  const token = localStorage.getItem('token');
 
   // Check if user exists and has authentication
-  if (!user || !localStorage.getItem('token')) {
+  if (!user || !token) {
     // Not logged in, redirect to mobile login
+    console.log('MemberRoute: No auth, redirecting to login');
     return <Navigate to="/mobile/login" replace />;
   }
 
-  // Check user role
+  // Check user role - be more permissive for member role
   if (user.role === 'member') {
     // User is a member, allow access
+    console.log('MemberRoute: Member authenticated, allowing access');
     return children;
   }
 
   // User is admin, redirect to admin dashboard
   if (['admin', 'super_admin', 'moderator'].includes(user.role)) {
-    console.log('Admin accessing member route, redirecting to admin dashboard');
+    console.log('MemberRoute: Admin accessing member route, redirecting to admin dashboard');
     return <Navigate to="/admin/dashboard" replace />;
   }
 
-  // Unknown role, redirect to login
-  return <Navigate to="/login" replace />;
+  // Unknown role but has token - allow access (edge case)
+  console.warn('MemberRoute: Unknown role but has token, allowing access');
+  return children;
 };
 
 /**

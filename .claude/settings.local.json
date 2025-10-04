@@ -45,7 +45,8 @@
       "Bash(npm run dev:*)",
       "Bash(findstr:*)",
       "Bash(set PORT=5001)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(cmd //c:*)"
     ],
     "deny": [],
     "ask": []
