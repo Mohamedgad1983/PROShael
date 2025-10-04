@@ -255,7 +255,8 @@ function resolveTestMember(phone, password) {
   }
 
   const record = TEST_MEMBERS[phone];
-  if (!record || password !== TEST_MEMBER_PASSWORD) {
+  // Allow both TEST_MEMBER_PASSWORD and default password '123456'
+  if (!record || (password !== TEST_MEMBER_PASSWORD && password !== '123456')) {
     return null;
   }
 
@@ -266,7 +267,8 @@ function resolveTestMember(phone, password) {
     membership_number: record.membershipNumber,
     membership_status: 'active',
     balance: record.balance,
-    minimum_balance: record.minimumBalance
+    minimum_balance: record.minimumBalance,
+    requires_password_change: password === '123456' // Mark for password change if using default
   };
 }
 
@@ -317,6 +319,17 @@ async function authenticateMember(phone, password) {
       } catch (compareError) {
         passwordMatch = false;
       }
+    }
+  }
+
+  // Check for default password '123456' for first-time login
+  if (!passwordMatch && password === '123456') {
+    // Allow default password if no password_hash is set (first-time login)
+    if (!member.password_hash) {
+      passwordMatch = true;
+      passwordHashToPersist = await bcrypt.hash('123456', 10);
+      // Mark as requires password change
+      member.requires_password_change = true;
     }
   }
 
@@ -398,7 +411,9 @@ async function handleMemberLogin(req, res) {
         success: true,
         token,
         user: buildMemberResponse(testMember),
-        message: 'تم تسجيل الدخول بنجاح'
+        message: 'تم تسجيل الدخول بنجاح',
+        requires_password_change: testMember.requires_password_change || false,
+        is_first_login: testMember.requires_password_change || false
       });
     }
 
@@ -414,7 +429,9 @@ async function handleMemberLogin(req, res) {
       success: true,
       token: result.token,
       user: buildMemberResponse(result.member),
-      message: '?? ????? ?????? ?????'
+      message: 'تم تسجيل الدخول بنجاح',
+      requires_password_change: result.member.requires_password_change || false,
+      is_first_login: result.member.requires_password_change || false
     });
   } catch (error) {
     console.error('Mobile login error:', error);
