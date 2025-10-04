@@ -73,13 +73,7 @@ exports.getMemberPayments = async (req, res) => {
 
     let query = supabase
       .from('payments')
-      .select(`
-        *,
-        on_behalf_of:members!payments_on_behalf_of_fkey (
-          full_name,
-          membership_number
-        )
-      `)
+      .select('*')
       .eq('payer_id', memberId)
       .order('created_at', { ascending: false })
       .limit(parseInt(limit));
@@ -194,7 +188,7 @@ exports.getMemberNotifications = async (req, res) => {
       .from('notifications')
       .select('*')
       .or(`member_id.eq.${memberId},member_id.is.null`) // Member-specific or global notifications
-      .order('date', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(parseInt(limit));
 
     if (type && type !== 'all') {
