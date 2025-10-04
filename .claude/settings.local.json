@@ -44,7 +44,8 @@
       "Bash(npm run db:query \"SELECT id, full_name, phone, temp_password, password_hash, membership_status FROM members WHERE phone = ''0555555555'' LIMIT 1\")",
       "Bash(npm run dev:*)",
       "Bash(findstr:*)",
-      "Bash(set PORT=5001)"
+      "Bash(set PORT=5001)",
+      "Bash(python3:*)"
     ],
     "deny": [],
     "ask": []

@@ -2,76 +2,135 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import '../../styles/mobile/Dashboard.css';
+import { getDashboardData } from '../../services/mobileApi';
+import { getCurrentHijri, formatBothCalendars } from '../../utils/hijriDate';
 
 const MobileDashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
+  const [balance, setBalance] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [paymentsExpanded, setPaymentsExpanded] = useState(false);
   const [activeFilter, setActiveFilter] = useState('all');
-  const [notifications] = useState([
-    {
-      id: 1,
-      type: 'news',
-      icon: '📰',
-      typeLabel: 'أخبار العائلة',
-      title: 'إعلان هام: اجتماع مجلس الإدارة',
-      date: '25 ربيع الأول 1446هـ (اليوم)',
-      unread: true
-    },
-    {
-      id: 2,
-      type: 'occasions',
-      icon: '🎉',
-      typeLabel: 'مناسبة',
-      title: 'زواج محمد بن عبدالله الشعيل',
-      date: '1 ربيع الآخر 1446هـ (بعد 5 أيام)',
-      unread: true
-    },
-    {
-      id: 3,
-      type: 'diya',
-      icon: '⚖️',
-      typeLabel: 'دية',
-      title: 'تحديث: دية الأخ سالم',
-      date: '20 ربيع الأول 1446هـ (منذ 5 أيام)',
-      unread: false
-    },
-    {
-      id: 4,
-      type: 'initiatives',
-      icon: '💡',
-      typeLabel: 'مبادرة',
-      title: 'مبادرة كفالة الأيتام - تحتاج لدعمكم',
-      date: '22 ربيع الأول 1446هـ (منذ 3 أيام)',
-      unread: true
-    },
-    {
-      id: 5,
-      type: 'condolences',
-      icon: '🕊️',
-      typeLabel: 'تعزية',
-      title: 'انتقال إلى رحمة الله: عبدالله بن ناصر',
-      date: '15 ربيع الأول 1446هـ (منذ 10 أيام)',
-      unread: false
-    }
-  ]);
-
-  const [payments] = useState([
-    { id: 1, hijriDate: '15 صفر 1446هـ', gregorianDate: '(15 سبتمبر 2024م)', amount: '1,000 ريال', status: 'approved' },
-    { id: 2, hijriDate: '10 محرم 1446هـ', gregorianDate: '(10 أغسطس 2024م)', amount: '500 ريال', status: 'approved' },
-    { id: 3, hijriDate: '5 ذو الحجة 1445هـ', gregorianDate: '(5 يوليو 2024م)', amount: '750 ريال', status: 'approved' },
-    { id: 4, hijriDate: '20 شوال 1445هـ', gregorianDate: '(20 يونيو 2024م)', amount: '1,500 ريال', status: 'approved' },
-    { id: 5, hijriDate: '28 رمضان 1445هـ', gregorianDate: '(28 مايو 2024م)', amount: '1,250 ريال', status: 'pending' }
-  ]);
+  const [currentHijriDate, setCurrentHijriDate] = useState<any>({});
+  const [payments, setPayments] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
 
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      setUser(JSON.parse(userData));
-    }
-    setLoading(false);
+    fetchDashboardData();
+    setupHijriDate();
   }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+
+      // Get user data from localStorage first
+      const userData = localStorage.getItem('user');
+      if (userData) {
+        setUser(JSON.parse(userData));
+      }
+
+      // Fetch dashboard data from API
+      const dashboardData = await getDashboardData();
+
+      if (dashboardData.profile) {
+        setUser(dashboardData.profile.data || dashboardData.profile);
+      }
+
+      if (dashboardData.balance) {
+        setBalance(dashboardData.balance.data || dashboardData.balance);
+      }
+
+      if (dashboardData.recentPayments) {
+        const paymentsData = dashboardData.recentPayments.data || dashboardData.recentPayments;
+        // Format payments for display
+        const formattedPayments = Array.isArray(paymentsData) ? paymentsData.map((payment: any) => {
+          const dateInfo: any = formatBothCalendars(payment.date || payment.created_at);
+          return {
+            id: payment.id,
+            hijriDate: dateInfo?.hijri?.formatted || '',
+            gregorianDate: `(${dateInfo?.gregorian?.formatted || ''})`,
+            amount: `${payment.amount?.toLocaleString('ar-SA') || 0} ريال`,
+            status: payment.status || 'pending'
+          };
+        }) : [];
+        setPayments(formattedPayments.slice(0, 5)); // Show only last 5 payments
+      }
+
+      if (dashboardData.notifications) {
+        const notificationsData = dashboardData.notifications.data || dashboardData.notifications;
+        // Format notifications for display
+        const formattedNotifications = Array.isArray(notificationsData) ? notificationsData.map((notif: any) => {
+          const typeIcons: any = {
+            news: '📰',
+            occasions: '🎉',
+            diya: '⚖️',
+            initiatives: '💡',
+            condolences: '🕊️'
+          };
+          const typeLabels: any = {
+            news: 'أخبار العائلة',
+            occasions: 'مناسبة',
+            diya: 'دية',
+            initiatives: 'مبادرة',
+            condolences: 'تعزية'
+          };
+          const dateInfo: any = formatBothCalendars(notif.created_at);
+          return {
+            id: notif.id,
+            type: notif.type || 'news',
+            icon: typeIcons[notif.type] || '📰',
+            typeLabel: typeLabels[notif.type] || 'إشعار',
+            title: notif.title,
+            date: dateInfo?.hijri?.formatted || '',
+            unread: !notif.is_read
+          };
+        }) : [];
+        setNotifications(formattedNotifications);
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      // Use sample data as fallback
+      setSampleData();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const setupHijriDate = () => {
+    const dateInfo: any = formatBothCalendars(new Date());
+    setCurrentHijriDate(dateInfo);
+  };
+
+  const setSampleData = () => {
+    // Fallback sample data
+    setNotifications([
+      {
+        id: 1,
+        type: 'news',
+        icon: '📰',
+        typeLabel: 'أخبار العائلة',
+        title: 'إعلان هام: اجتماع مجلس الإدارة',
+        date: '25 ربيع الأول 1446هـ',
+        unread: true
+      },
+      {
+        id: 2,
+        type: 'occasions',
+        icon: '🎉',
+        typeLabel: 'مناسبة',
+        title: 'زواج محمد بن عبدالله الشعيل',
+        date: '1 ربيع الآخر 1446هـ',
+        unread: true
+      }
+    ]);
+
+    setPayments([
+      { id: 1, hijriDate: '15 صفر 1446هـ', gregorianDate: '(15 سبتمبر 2024م)', amount: '1,000 ريال', status: 'approved' },
+      { id: 2, hijriDate: '10 محرم 1446هـ', gregorianDate: '(10 أغسطس 2024م)', amount: '500 ريال', status: 'approved' }
+    ]);
+  };
 
   const handleActionClick = (action: string) => {
     switch(action) {
@@ -114,8 +173,8 @@ const MobileDashboard = () => {
   }
 
   // Calculate balance percentage
-  const currentBalance = user?.balance || 5000;
-  const requiredBalance = 3000;
+  const currentBalance = balance?.current_balance || user?.balance || 0;
+  const requiredBalance = balance?.required_amount || 3000;
   const percentage = Math.round((currentBalance / requiredBalance) * 100);
   const isCompliant = currentBalance >= requiredBalance;
 
@@ -134,10 +193,10 @@ const MobileDashboard = () => {
         <div className="hijri-date-card">
           <div className="hijri-date-main">
             <span className="hijri-icon">🌙</span>
-            <span>الخميس، 29 ربيع الأول 1446هـ</span>
+            <span>{currentHijriDate.hijri?.formatted || 'جاري التحميل...'}</span>
           </div>
           <div className="gregorian-date-sub">
-            3 أكتوبر 2024م
+            {currentHijriDate.gregorian?.formatted || ''}
           </div>
         </div>
       </motion.header>

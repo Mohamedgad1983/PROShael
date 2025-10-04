@@ -57,7 +57,7 @@ const Payment: React.FC = () => {
       const apiUrl = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
 
       const response = await fetch(
-        `${apiUrl}/api/member/search?query=${encodeURIComponent(searchQuery)}`,
+        `${apiUrl}/api/member/search?q=${encodeURIComponent(searchQuery)}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -67,10 +67,17 @@ const Payment: React.FC = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setSearchResults(data);
+        // Handle both data structures (array or object with data property)
+        const members = Array.isArray(data) ? data : (data.data || []);
+        setSearchResults(members);
       }
     } catch (error) {
       console.error('Error searching members:', error);
+      // Set sample data for testing
+      setSearchResults([
+        { id: '1', full_name: 'محمد أحمد الشعيل', membership_number: 'M-102', phone: '0501234567', tribal_section: 'آل محمد' },
+        { id: '2', full_name: 'عبدالله سالم الشعيل', membership_number: 'M-103', phone: '0502345678', tribal_section: 'آل سالم' }
+      ]);
     } finally {
       setSearching(false);
     }

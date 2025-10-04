@@ -1,7 +1,8 @@
 import jwt from 'jsonwebtoken';
 import { supabase } from '../config/database.js';
 
-export const authenticateToken = async (req, res, next) => {
+// Export both names for compatibility
+export const authenticate = async (req, res, next) => {
   try {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
@@ -68,8 +69,30 @@ export const authenticateToken = async (req, res, next) => {
       }
 
       // Successfully decoded
-      console.log(`[Auth] Token valid for user: ${decoded.id || decoded.user_id || 'unknown'}`);
-      req.user = decoded;
+      console.log(`[Auth] Token valid for user: ${decoded.id || decoded.user_id || 'unknown'}, role: ${decoded.role}`);
+
+      // If it's a member, get their data from members table
+      if (decoded.role === 'member') {
+        const { data: member, error: memberError } = await supabase
+          .from('members')
+          .select('*')
+          .eq('id', decoded.id)
+          .single();
+
+        if (memberError || !member) {
+          console.log(`[Auth] Member not found in database: ${decoded.id}`);
+          // Still allow the request but with limited data
+          req.user = decoded;
+        } else {
+          req.user = {
+            ...member,
+            ...decoded,  // Keep token data like role
+            id: member.id
+          };
+        }
+      } else {
+        req.user = decoded;
+      }
 
       // Ensure user object has expected structure
       if (!req.user.id && req.user.user_id) {
@@ -151,6 +174,9 @@ export const requireAdmin = async (req, res, next) => {
     });
   }
 };
+
+// Export authenticateToken as alias for compatibility
+export const authenticateToken = authenticate;
 
 export const requireSuperAdmin = async (req, res, next) => {
   try {
