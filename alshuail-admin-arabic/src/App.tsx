@@ -8,6 +8,7 @@ import AppleRegistrationForm from './components/Members/AppleRegistrationForm';
 import PremiumRegistration from './components/Registration/PremiumRegistration';
 import { RoleProvider } from './contexts/RoleContext';
 import { AuthProvider } from './contexts/AuthContext';
+import { AdminRoute, MemberRoute, PublicRoute } from './utils/RouteGuard';
 import logo from './assets/logo.svg';
 import { showToast } from './utils/toast';
 
@@ -230,22 +231,22 @@ const App: React.FC = () => {
             {/* Mobile PWA Routes - Member Interface */}
             <Route path="/mobile" element={<Navigate to="/mobile/login" replace />} />
             <Route path="/mobile/login" element={<MobileLogin />} />
-            <Route path="/mobile/change-password" element={<ChangePassword />} />
-            <Route path="/mobile/dashboard" element={<MobileDashboard />} />
-            <Route path="/mobile/profile" element={<MobileProfile />} />
-            <Route path="/mobile/payment" element={<MobilePayment />} />
-            <Route path="/mobile/payment-history" element={<MobilePaymentHistory />} />
-            <Route path="/mobile/notifications" element={<MobileNotifications />} />
+            <Route path="/mobile/change-password" element={<MemberRoute><ChangePassword /></MemberRoute>} />
+            <Route path="/mobile/dashboard" element={<MemberRoute><MobileDashboard /></MemberRoute>} />
+            <Route path="/mobile/profile" element={<MemberRoute><MobileProfile /></MemberRoute>} />
+            <Route path="/mobile/payment" element={<MemberRoute><MobilePayment /></MemberRoute>} />
+            <Route path="/mobile/payment-history" element={<MemberRoute><MobilePaymentHistory /></MemberRoute>} />
+            <Route path="/mobile/notifications" element={<MemberRoute><MobileNotifications /></MemberRoute>} />
 
             {/* Redirect old /member routes to new /mobile routes */}
             <Route path="/member" element={<Navigate to="/mobile/login" replace />} />
             <Route path="/member/*" element={<Navigate to="/mobile/login" replace />} />
 
             {/* Family Tree Route */}
-            <Route path="/family-tree" element={<AdminDashboard />} />
+            <Route path="/family-tree" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
 
             {/* Admin routes */}
-            <Route path="/admin/*" element={<AdminDashboard />} />
+            <Route path="/admin/*" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
             <Route path="/login" element={<AdminDashboard />} />
 
             {/* Default route redirects to login */}
