@@ -10,6 +10,7 @@ const MobileDashboard = () => {
   const [balance, setBalance] = useState<any>(null);
   const [loading, setLoading] = useState(false); // Start false to show sample data immediately
   const [profileCompletion, setProfileCompletion] = useState(65);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState({
     news: [] as any[],
     initiatives: [] as any[],
@@ -23,7 +24,21 @@ const MobileDashboard = () => {
     setSampleData();
     // Then fetch real data to override
     fetchDashboardData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Close notification dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (showNotifications && !target.closest('.notification-dropdown') && !target.closest('.header-button')) {
+        setShowNotifications(false);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [showNotifications]);
 
   const fetchDashboardData = async () => {
     try {
@@ -92,6 +107,21 @@ const MobileDashboard = () => {
     });
 
     setNotifications(organized);
+  };
+
+  // Get all notifications for dropdown
+  const getAllNotifications = () => {
+    const allNotifs: any[] = [];
+
+    // Add all notifications from all categories
+    notifications.news.forEach(n => allNotifs.push(n));
+    notifications.initiatives.forEach(n => allNotifs.push(n));
+    notifications.diyas.forEach(n => allNotifs.push(n));
+    notifications.occasions.forEach(n => allNotifs.push(n));
+    notifications.statements.forEach(n => allNotifs.push(n));
+
+    // Return latest 5 notifications
+    return allNotifs.slice(0, 5);
   };
 
   const setSampleData = () => {
@@ -238,12 +268,66 @@ const MobileDashboard = () => {
           </div>
         </div>
         <div className="header-actions">
-          <button className="header-button" onClick={() => navigate('/mobile/notifications')}>
+          <button
+            className="header-button"
+            onClick={() => setShowNotifications(!showNotifications)}
+          >
             🔔
             {unreadCount > 0 && <span className="notification-badge">{unreadCount}</span>}
           </button>
           <button className="header-button" onClick={() => navigate('/mobile/profile')}>⚙️</button>
         </div>
+
+        {/* Notification Dropdown */}
+        {showNotifications && (
+          <motion.div
+            className="notification-dropdown"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+          >
+            <div className="notification-dropdown-header">
+              <h3>الإشعارات</h3>
+              <button onClick={() => setShowNotifications(false)}>✕</button>
+            </div>
+
+            <div className="notification-dropdown-list">
+              {getAllNotifications().length > 0 ? (
+                getAllNotifications().map((notif) => (
+                  <div
+                    key={notif.id}
+                    className={`notification-dropdown-item ${notif.priority === 'high' ? 'priority-high' : ''}`}
+                  >
+                    <div className="notification-dropdown-icon">{notif.icon}</div>
+                    <div className="notification-dropdown-content">
+                      <div className="notification-dropdown-title">{notif.title}</div>
+                      <div className="notification-dropdown-body">{notif.body}</div>
+                      <div className="notification-dropdown-meta">
+                        <span>{notif.time}</span>
+                        <span>•</span>
+                        <span>{notif.category}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="notification-dropdown-empty">
+                  <span>📭</span>
+                  <p>لا توجد إشعارات جديدة</p>
+                </div>
+              )}
+            </div>
+
+            <div className="notification-dropdown-footer">
+              <button onClick={() => {
+                setShowNotifications(false);
+                navigate('/mobile/notifications');
+              }}>
+                عرض جميع الإشعارات
+              </button>
+            </div>
+          </motion.div>
+        )}
       </header>
 
       {/* Main Content */}
