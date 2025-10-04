@@ -3,22 +3,23 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import '../../styles/mobile/Dashboard.css';
 import { getDashboardData } from '../../services/mobileApi';
-import { getCurrentHijri, formatBothCalendars } from '../../utils/hijriDate';
 
 const MobileDashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [balance, setBalance] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [paymentsExpanded, setPaymentsExpanded] = useState(false);
-  const [activeFilter, setActiveFilter] = useState('all');
-  const [currentHijriDate, setCurrentHijriDate] = useState<any>({});
-  const [payments, setPayments] = useState<any[]>([]);
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [profileCompletion, setProfileCompletion] = useState(65);
+  const [notifications, setNotifications] = useState({
+    news: [] as any[],
+    initiatives: [] as any[],
+    diyas: [] as any[],
+    occasions: [] as any[],
+    statements: [] as any[]
+  });
 
   useEffect(() => {
     fetchDashboardData();
-    setupHijriDate();
   }, []);
 
   const fetchDashboardData = async () => {
@@ -35,133 +36,161 @@ const MobileDashboard = () => {
       const dashboardData = await getDashboardData();
 
       if (dashboardData.profile) {
-        setUser(dashboardData.profile.data || dashboardData.profile);
+        const profileData = dashboardData.profile.data || dashboardData.profile;
+        setUser(profileData);
+        calculateProfileCompletion(profileData);
       }
 
       if (dashboardData.balance) {
         setBalance(dashboardData.balance.data || dashboardData.balance);
       }
 
-      if (dashboardData.recentPayments) {
-        const paymentsData = dashboardData.recentPayments.data || dashboardData.recentPayments;
-        // Format payments for display
-        const formattedPayments = Array.isArray(paymentsData) ? paymentsData.map((payment: any) => {
-          const dateInfo: any = formatBothCalendars(payment.date || payment.created_at);
-          return {
-            id: payment.id,
-            hijriDate: dateInfo?.hijri?.formatted || '',
-            gregorianDate: `(${dateInfo?.gregorian?.formatted || ''})`,
-            amount: `${payment.amount?.toLocaleString('ar-SA') || 0} ريال`,
-            status: payment.status || 'pending'
-          };
-        }) : [];
-        setPayments(formattedPayments.slice(0, 5)); // Show only last 5 payments
-      }
-
       if (dashboardData.notifications) {
-        const notificationsData = dashboardData.notifications.data || dashboardData.notifications;
-        // Format notifications for display
-        const formattedNotifications = Array.isArray(notificationsData) ? notificationsData.map((notif: any) => {
-          const typeIcons: any = {
-            news: '📰',
-            occasions: '🎉',
-            diya: '⚖️',
-            initiatives: '💡',
-            condolences: '🕊️'
-          };
-          const typeLabels: any = {
-            news: 'أخبار العائلة',
-            occasions: 'مناسبة',
-            diya: 'دية',
-            initiatives: 'مبادرة',
-            condolences: 'تعزية'
-          };
-          const dateInfo: any = formatBothCalendars(notif.created_at);
-          return {
-            id: notif.id,
-            type: notif.type || 'news',
-            icon: typeIcons[notif.type] || '📰',
-            typeLabel: typeLabels[notif.type] || 'إشعار',
-            title: notif.title,
-            date: dateInfo?.hijri?.formatted || '',
-            unread: !notif.is_read
-          };
-        }) : [];
-        setNotifications(formattedNotifications);
+        organizeNotifications(dashboardData.notifications.data || dashboardData.notifications);
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
-      // Use sample data as fallback
       setSampleData();
     } finally {
       setLoading(false);
     }
   };
 
-  const setupHijriDate = () => {
-    const dateInfo: any = formatBothCalendars(new Date());
-    setCurrentHijriDate(dateInfo);
+  const calculateProfileCompletion = (profile: any) => {
+    const fields = [
+      profile?.full_name,
+      profile?.phone,
+      profile?.email,
+      profile?.photo,
+      profile?.birthdate,
+      profile?.address
+    ];
+    const completed = fields.filter(field => field && field !== '').length;
+    const percentage = Math.round((completed / fields.length) * 100);
+    setProfileCompletion(percentage);
+  };
+
+  const organizeNotifications = (notifs: any[]) => {
+    const organized = {
+      news: [] as any[],
+      initiatives: [] as any[],
+      diyas: [] as any[],
+      occasions: [] as any[],
+      statements: [] as any[]
+    };
+
+    notifs.forEach((notif: any) => {
+      const type = notif.type || 'news';
+      if (type === 'news') organized.news.push(notif);
+      else if (type === 'initiatives') organized.initiatives.push(notif);
+      else if (type === 'diya') organized.diyas.push(notif);
+      else if (type === 'occasions') organized.occasions.push(notif);
+      else if (type === 'statement') organized.statements.push(notif);
+    });
+
+    setNotifications(organized);
   };
 
   const setSampleData = () => {
-    // Fallback sample data
-    setNotifications([
-      {
-        id: 1,
-        type: 'news',
-        icon: '📰',
-        typeLabel: 'أخبار العائلة',
-        title: 'إعلان هام: اجتماع مجلس الإدارة',
-        date: '25 ربيع الأول 1446هـ',
-        unread: true
-      },
-      {
-        id: 2,
-        type: 'occasions',
-        icon: '🎉',
-        typeLabel: 'مناسبة',
-        title: 'زواج محمد بن عبدالله الشعيل',
-        date: '1 ربيع الآخر 1446هـ',
-        unread: true
-      }
-    ]);
-
-    setPayments([
-      { id: 1, hijriDate: '15 صفر 1446هـ', gregorianDate: '(15 سبتمبر 2024م)', amount: '1,000 ريال', status: 'approved' },
-      { id: 2, hijriDate: '10 محرم 1446هـ', gregorianDate: '(10 أغسطس 2024م)', amount: '500 ريال', status: 'approved' }
-    ]);
+    // Sample notifications data
+    setNotifications({
+      news: [
+        {
+          id: 1,
+          title: 'إعلان هام - اجتماع الجمعية العمومية',
+          body: 'يسرنا دعوتكم لحضور الاجتماع السنوي للجمعية العمومية يوم الجمعة القادم في مقر العائلة الساعة 5 مساءً.',
+          time: 'منذ ساعة',
+          category: 'إعلانات رسمية',
+          priority: 'high',
+          icon: '📢'
+        },
+        {
+          id: 2,
+          title: 'تهنئة - مولود جديد في العائلة',
+          body: 'نبارك لأخينا خالد الشعيل قدوم المولود الجديد، نسأل الله أن يجعله من الصالحين.',
+          time: 'منذ 3 ساعات',
+          category: 'أخبار العائلة',
+          priority: 'normal',
+          icon: '🎊'
+        }
+      ],
+      initiatives: [
+        {
+          id: 3,
+          title: 'مبادرة دعم الطلاب المتفوقين',
+          body: 'مبادرة لدعم أبناء العائلة المتفوقين دراسياً. المبلغ المستهدف: 50,000 ریال. تم جمع 35,000 ریال حتى الآن.',
+          time: 'منذ يومين',
+          category: 'التعليم',
+          progress: 70,
+          priority: 'medium',
+          icon: '💡'
+        },
+        {
+          id: 4,
+          title: 'مبادرة الدعم الصحي',
+          body: 'مبادرة لدعم أفراد العائلة المحتاجين للرعاية الصحية. يمكنكم المساهمة من خلال التطبيق.',
+          time: 'منذ 3 أيام',
+          category: 'صحة',
+          progress: 45,
+          priority: 'normal',
+          icon: '🏥'
+        }
+      ],
+      diyas: [
+        {
+          id: 5,
+          title: 'دية الأخ نادر الشعيل',
+          body: 'تم فتح باب المساهمة في دية الأخ نادر. المبلغ المطلوب: 400,000 ریال. تم جمع 350,000 ریال.',
+          time: 'منذ 5 أيام',
+          category: 'حالة عاجلة',
+          progress: 87.5,
+          priority: 'high',
+          icon: '⚖️'
+        }
+      ],
+      occasions: [
+        {
+          id: 6,
+          title: 'حفل زفاف محمد الشعيل',
+          body: 'يسرنا دعوتكم لحضور حفل زفاف ابننا محمد يوم الخميس القادم. الموقع: قاعة النخيل - 7 مساءً.',
+          time: 'بعد 5 أيام',
+          category: 'زفاف',
+          priority: 'normal',
+          icon: '🎂'
+        },
+        {
+          id: 7,
+          title: 'صلاة العيد - عيد الفطر',
+          body: 'صلاة العيد ستقام في مسجد العائلة الساعة 6 صباحاً. يليها إفطار جماعي للعائلة.',
+          time: 'بعد أسبوعين',
+          category: 'مناسبة دينية',
+          priority: 'normal',
+          icon: '🕌'
+        }
+      ],
+      statements: [
+        {
+          id: 8,
+          title: 'كشف حساب شهر سبتمبر 2025',
+          body: 'تم إصدار كشف الحساب الشهري. إجمالي المدفوعات: 2,500 ریال. الرصيد المتبقي: 500 ریال.',
+          time: 'منذ أسبوع',
+          category: 'مالية',
+          action: '📥 تحميل PDF',
+          priority: 'normal',
+          icon: '📄'
+        },
+        {
+          id: 9,
+          title: 'تأكيد استلام الدفعة',
+          body: 'تم استلام دفعتك بمبلغ 1,500 ریال لاشتراك 2025. شكراً لالتزامك.',
+          time: 'منذ أسبوعين',
+          category: 'مدفوعات',
+          priority: 'normal',
+          icon: '💰'
+        }
+      ]
+    });
   };
-
-  const handleActionClick = (action: string) => {
-    switch(action) {
-      case 'payment':
-        navigate('/mobile/payment');
-        break;
-      case 'history':
-        navigate('/mobile/payment-history');
-        break;
-      case 'profile':
-        navigate('/mobile/profile');
-        break;
-      case 'contact':
-        // Navigate to dashboard temporarily until Contact page is created
-        navigate('/mobile/dashboard');
-        break;
-      default:
-        break;
-    }
-  };
-
-  const filterNotifications = (filter: string) => {
-    setActiveFilter(filter);
-  };
-
-  const getFilteredNotifications = () => {
-    if (activeFilter === 'all') return notifications;
-    return notifications.filter(n => n.type === activeFilter);
-  };
-
-  const unreadCount = notifications.filter(n => n.unread).length;
 
   if (loading) {
     return (
@@ -172,240 +201,309 @@ const MobileDashboard = () => {
     );
   }
 
-  // Calculate balance percentage
-  const currentBalance = balance?.current_balance || user?.balance || 0;
-  const requiredBalance = balance?.required_amount || 3000;
-  const percentage = Math.round((currentBalance / requiredBalance) * 100);
+  // Calculate balance data
+  const currentBalance = balance?.current || balance?.current_balance || user?.balance || 5000;
+  const requiredBalance = balance?.target || balance?.required_amount || 3000;
   const isCompliant = currentBalance >= requiredBalance;
+  const paid2025 = balance?.paid_2025 || 2500;
+  const paidPrevious = balance?.paid_previous || 2500;
+  const extraBalance = currentBalance - requiredBalance;
+
+  // Profile completion fields
+  const profileFields = [
+    { name: 'البيانات الأساسية', completed: !!user?.full_name },
+    { name: 'رقم الجوال', completed: !!user?.phone },
+    { name: 'البريد الإلكتروني', completed: !!user?.email },
+    { name: 'الصورة الشخصية', completed: !!user?.photo },
+    { name: 'تاريخ الميلاد', completed: !!user?.birthdate },
+    { name: 'العنوان', completed: !!user?.address }
+  ];
+
+  const unreadCount = 8; // Calculate from notifications
 
   return (
     <div className="mobile-container">
-      {/* Header */}
-      <motion.header
-        className="header"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <div className="greeting">السلام عليكم ورحمة الله</div>
-        <div className="member-name">{user?.name || 'أحمد محمد الشعيل'}</div>
-
-        {/* Hijri Date Card */}
-        <div className="hijri-date-card">
-          <div className="hijri-date-main">
-            <span className="hijri-icon">🌙</span>
-            <span>{currentHijriDate.hijri?.formatted || 'جاري التحميل...'}</span>
+      {/* Fixed Header */}
+      <header className="mobile-header">
+        <div className="user-section">
+          <div className="avatar">
+            {user?.full_name ? user.full_name.charAt(0) : 'أ'}
           </div>
-          <div className="gregorian-date-sub">
-            {currentHijriDate.gregorian?.formatted || ''}
+          <div className="user-info">
+            <div className="user-name">{user?.full_name || 'أحمد محمد الشعيل'}</div>
+            <div className="membership-number">#{user?.membership_number || 'SH-10001'}</div>
           </div>
         </div>
-      </motion.header>
+        <div className="header-actions">
+          <button className="header-button" onClick={() => navigate('/mobile/notifications')}>
+            🔔
+            {unreadCount > 0 && <span className="notification-badge">{unreadCount}</span>}
+          </button>
+          <button className="header-button" onClick={() => navigate('/mobile/profile')}>⚙️</button>
+        </div>
+      </header>
 
       {/* Main Content */}
-      <div className="main-content">
+      <div className="mobile-content">
 
-        {/* Balance Card */}
+        {/* 1. PROFILE COMPLETION KPI (FIRST) */}
         <motion.div
-          className="balance-card"
+          className="profile-completion-card"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <div className="balance-header">
-            <h3>💰 الرصيد الحالي</h3>
-            <span className={`status-badge ${isCompliant ? 'compliant' : 'insufficient'}`}>
-              {isCompliant ? '🟢 ملتزم' : '⚠ غير ملتزم'}
-            </span>
+          <div className="completion-header">
+            <div className="completion-title">
+              👤 إكمال الملف الشخصي
+            </div>
+            <div className="completion-percentage">{profileCompletion}%</div>
           </div>
 
-          {/* Progress Bar */}
-          <div className="progress-container">
-            <div className="progress-bar">
-              <div
-                className={`progress-fill ${!isCompliant ? 'insufficient' : ''}`}
-                style={{ width: `${Math.min(percentage, 100)}%` }}
-              />
-            </div>
-            <div className="progress-text">{percentage}%</div>
+          <div className="progress-bar-container">
+            <div className="progress-bar-fill" style={{ width: `${profileCompletion}%` }} />
           </div>
 
-          {/* Balance Amounts */}
-          <div className="balance-amounts">
-            <div className="balance-item">
-              <span className="amount-label">الرصيد الحالي</span>
-              <span className="amount-value">{currentBalance.toLocaleString('ar-SA')} ريال</span>
-            </div>
-            <div className="balance-item">
-              <span className="amount-label">المطلوب</span>
-              <span className="amount-value target-value">{requiredBalance.toLocaleString('ar-SA')} ريال</span>
-            </div>
+          <div className="completion-items">
+            {profileFields.map((field, index) => (
+              <div key={index} className={`completion-item ${field.completed ? 'completed' : 'incomplete'}`}>
+                {field.completed ? '✅' : '❌'} {field.name}
+              </div>
+            ))}
           </div>
 
-          {!isCompliant && (
-            <div className="remaining-alert">
-              المبلغ المتبقي: {(requiredBalance - currentBalance).toLocaleString('ar-SA')} ريال
-            </div>
-          )}
+          <button className="complete-profile-btn" onClick={() => navigate('/mobile/profile')}>
+            📝 أكمل ملفك الشخصي
+          </button>
         </motion.div>
 
-        {/* Quick Actions */}
+        {/* 2. BALANCE CARD (SECOND) */}
         <motion.div
-          className="quick-actions"
+          className="balance-card"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <button className="action-button primary" onClick={() => handleActionClick('payment')}>
-            <span className="button-icon">💵</span>
-            <span className="button-text">دفع اشتراك</span>
-          </button>
-
-          <button className="action-button" onClick={() => handleActionClick('history')}>
-            <span className="button-icon">📊</span>
-            <span className="button-text">سجل المدفوعات</span>
-          </button>
-
-          <button className="action-button" onClick={() => handleActionClick('profile')}>
-            <span className="button-icon">👤</span>
-            <span className="button-text">ملفي الشخصي</span>
-          </button>
-
-          <button className="action-button" onClick={() => handleActionClick('contact')}>
-            <span className="button-icon">📱</span>
-            <span className="button-text">تواصل معنا</span>
-          </button>
-        </motion.div>
-
-        {/* Notifications Section */}
-        <motion.div
-          className="notifications-section"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <div className="notifications-header">
-            <h3>🔔 الإشعارات</h3>
-            {unreadCount > 0 && <span className="notification-badge">{unreadCount}</span>}
+          <div className="card-header">
+            <span className="card-icon">💰</span>
+            <span className="card-title">الرصيد الحالي</span>
           </div>
 
-          {/* Notification Filters */}
-          <div className="notification-types">
-            <button
-              className={`notification-filter ${activeFilter === 'all' ? 'active' : ''}`}
-              onClick={() => filterNotifications('all')}
-            >
-              الكل
-            </button>
-            <button
-              className={`notification-filter ${activeFilter === 'news' ? 'active' : ''}`}
-              onClick={() => filterNotifications('news')}
-            >
-              📰 أخبار العائلة
-            </button>
-            <button
-              className={`notification-filter ${activeFilter === 'occasions' ? 'active' : ''}`}
-              onClick={() => filterNotifications('occasions')}
-            >
-              🎉 المناسبات
-            </button>
-            <button
-              className={`notification-filter ${activeFilter === 'diya' ? 'active' : ''}`}
-              onClick={() => filterNotifications('diya')}
-            >
-              ⚖️ الديات
-            </button>
-            <button
-              className={`notification-filter ${activeFilter === 'initiatives' ? 'active' : ''}`}
-              onClick={() => filterNotifications('initiatives')}
-            >
-              💡 المبادرات
-            </button>
-            <button
-              className={`notification-filter ${activeFilter === 'condolences' ? 'active' : ''}`}
-              onClick={() => filterNotifications('condolences')}
-            >
-              🕊️ التعازي
-            </button>
+          <div className="balance-display">
+            <div className="balance-amount">{currentBalance.toLocaleString('ar-SA')} ريال</div>
+            <div className="balance-label">من أصل {requiredBalance.toLocaleString('ar-SA')} ریال مطلوب</div>
+            <div className={`status-indicator ${isCompliant ? 'good' : 'insufficient'}`}>
+              {isCompliant ? '🟢 ملتزم بالاشتراك' : '🔴 رصيد غير كافٍ'}
+            </div>
           </div>
 
-          {/* Notification Items */}
-          <div className="notifications-list">
-            {getFilteredNotifications().map(notification => (
-              <div
-                key={notification.id}
-                className={`notification-item ${notification.unread ? 'unread' : ''}`}
-              >
-                <div className="notification-icon">{notification.icon}</div>
-                <div className="notification-content">
-                  <div className="notification-type">{notification.typeLabel}</div>
-                  <div className="notification-title">{notification.title}</div>
-                  <div className="notification-date">{notification.date}</div>
-                </div>
-              </div>
-            ))}
+          <div className="balance-breakdown">
+            <div className="breakdown-row">
+              <span className="breakdown-label">المدفوع 2025</span>
+              <span className="breakdown-value">{paid2025.toLocaleString('ar-SA')} ریال</span>
+            </div>
+            <div className="breakdown-row">
+              <span className="breakdown-label">المدفوع السابق</span>
+              <span className="breakdown-value">{paidPrevious.toLocaleString('ar-SA')} ریال</span>
+            </div>
+            <div className="breakdown-row">
+              <span className="breakdown-label">
+                {isCompliant ? 'الرصيد الإضافي' : 'المبلغ المتبقي'}
+              </span>
+              <span className={`breakdown-value ${isCompliant ? 'positive' : 'negative'}`}>
+                {isCompliant ? '+' : '-'}{Math.abs(extraBalance).toLocaleString('ar-SA')} ریال
+              </span>
+            </div>
+          </div>
+
+          <div className="action-buttons">
+            <button className="primary-button" onClick={() => navigate('/mobile/payment')}>
+              💳 دفع اشتراك
+            </button>
+            <button className="secondary-button" onClick={() => navigate('/mobile/payment-history')}>
+              📊 سجل المدفوعات
+            </button>
           </div>
         </motion.div>
 
-        {/* Recent Payments (Collapsible) */}
-        <motion.div
-          className="recent-payments"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-        >
-          <div
-            className="payments-header"
-            onClick={() => setPaymentsExpanded(!paymentsExpanded)}
-            style={{ cursor: 'pointer' }}
+        {/* 3. NEWS SECTION (الأخبار) */}
+        {notifications.news.length > 0 && (
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
           >
-            <h3>📋 آخر المدفوعات</h3>
-            <span className={`collapse-icon ${paymentsExpanded ? 'expanded' : ''}`}>
-              ▼
-            </span>
-          </div>
+            <div className="section-header">
+              <div className="section-title">📰 الأخبار</div>
+              <div className="view-all" onClick={() => navigate('/mobile/notifications')}>عرض الكل ←</div>
+            </div>
 
-          <div className={`payments-list ${paymentsExpanded ? 'expanded' : ''}`}>
-            {payments.map(payment => (
-              <div key={payment.id} className="payment-item">
-                <div className="payment-date">
-                  <span className="hijri-date">{payment.hijriDate}</span>
-                  <span className="gregorian-date">{payment.gregorianDate}</span>
-                </div>
-                <div className="payment-amount">{payment.amount}</div>
-                <div className={`payment-status ${payment.status}`}>
-                  {payment.status === 'approved' ? '✓ معتمد' : '⏳ قيد المراجعة'}
+            {notifications.news.map((notif) => (
+              <div key={notif.id} className={`notification-card ${notif.priority === 'high' ? 'priority-high' : ''}`}>
+                <div className="notification-icon">{notif.icon}</div>
+                <div className="notification-content">
+                  <div className="notification-title">{notif.title}</div>
+                  <div className="notification-body">{notif.body}</div>
+                  <div className="notification-meta">
+                    <span>{notif.time}</span>
+                    <span>•</span>
+                    <span>{notif.category}</span>
+                  </div>
                 </div>
               </div>
             ))}
-          </div>
-        </motion.div>
+          </motion.section>
+        )}
 
-        {/* Footer */}
-        <div className="footer">
-          <div className="hijri-year-info">
-            العام الهجري: 1446هـ
-          </div>
-        </div>
+        {/* 4. INITIATIVES SECTION (المبادرات) */}
+        {notifications.initiatives.length > 0 && (
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+          >
+            <div className="section-header">
+              <div className="section-title">🤝 المبادرات</div>
+              <div className="view-all" onClick={() => navigate('/mobile/notifications')}>عرض الكل ←</div>
+            </div>
+
+            {notifications.initiatives.map((notif) => (
+              <div key={notif.id} className={`notification-card ${notif.priority === 'medium' ? 'priority-medium' : ''}`}>
+                <div className="notification-icon">{notif.icon}</div>
+                <div className="notification-content">
+                  <div className="notification-title">{notif.title}</div>
+                  <div className="notification-body">{notif.body}</div>
+                  <div className="notification-meta">
+                    <span>{notif.time}</span>
+                    <span>•</span>
+                    <span>{notif.category}</span>
+                    <span>•</span>
+                    <span>{notif.progress}% مكتمل</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </motion.section>
+        )}
+
+        {/* 5. DIYA SECTION (الديات) */}
+        {notifications.diyas.length > 0 && (
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+          >
+            <div className="section-header">
+              <div className="section-title">⚖️ الديات</div>
+              <div className="view-all" onClick={() => navigate('/mobile/notifications')}>عرض الكل ←</div>
+            </div>
+
+            {notifications.diyas.map((notif) => (
+              <div key={notif.id} className="notification-card priority-high">
+                <div className="notification-icon">{notif.icon}</div>
+                <div className="notification-content">
+                  <div className="notification-title">{notif.title}</div>
+                  <div className="notification-body">{notif.body}</div>
+                  <div className="notification-meta">
+                    <span>{notif.time}</span>
+                    <span>•</span>
+                    <span>{notif.category}</span>
+                    <span>•</span>
+                    <span>{notif.progress}% مكتمل</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </motion.section>
+        )}
+
+        {/* 6. OCCASIONS SECTION (المناسبات) */}
+        {notifications.occasions.length > 0 && (
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+          >
+            <div className="section-header">
+              <div className="section-title">🎉 المناسبات</div>
+              <div className="view-all" onClick={() => navigate('/mobile/notifications')}>عرض الكل ←</div>
+            </div>
+
+            {notifications.occasions.map((notif) => (
+              <div key={notif.id} className="notification-card">
+                <div className="notification-icon">{notif.icon}</div>
+                <div className="notification-content">
+                  <div className="notification-title">{notif.title}</div>
+                  <div className="notification-body">{notif.body}</div>
+                  <div className="notification-meta">
+                    <span>{notif.time}</span>
+                    <span>•</span>
+                    <span>{notif.category}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </motion.section>
+        )}
+
+        {/* 7. MEMBER STATEMENT SECTION (كشف الحساب) */}
+        {notifications.statements.length > 0 && (
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.7 }}
+          >
+            <div className="section-header">
+              <div className="section-title">📊 كشف الحساب</div>
+              <div className="view-all" onClick={() => navigate('/mobile/notifications')}>عرض الكل ←</div>
+            </div>
+
+            {notifications.statements.map((notif) => (
+              <div key={notif.id} className="notification-card">
+                <div className="notification-icon">{notif.icon}</div>
+                <div className="notification-content">
+                  <div className="notification-title">{notif.title}</div>
+                  <div className="notification-body">{notif.body}</div>
+                  <div className="notification-meta">
+                    <span>{notif.time}</span>
+                    <span>•</span>
+                    <span>{notif.category}</span>
+                    {notif.action && (
+                      <>
+                        <span>•</span>
+                        <span>{notif.action}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </motion.section>
+        )}
+
+        {/* Spacer for bottom nav */}
+        <div style={{ height: '20px' }} />
+
       </div>
 
       {/* Bottom Navigation */}
       <nav className="bottom-nav">
-        <a href="#" className="nav-item active" onClick={(e) => { e.preventDefault(); navigate('/mobile/dashboard'); }}>
+        <button className="nav-item active" onClick={() => navigate('/mobile/dashboard')}>
           <span className="nav-icon">🏠</span>
-          <span className="nav-text">الرئيسية</span>
-        </a>
-        <a href="#" className="nav-item" onClick={(e) => { e.preventDefault(); navigate('/mobile/payment'); }}>
-          <span className="nav-icon">💰</span>
-          <span className="nav-text">الدفع</span>
-        </a>
-        <a href="#" className="nav-item" onClick={(e) => { e.preventDefault(); navigate('/mobile/notifications'); }}>
+          <span className="nav-label">الرئيسية</span>
+        </button>
+        <button className="nav-item" onClick={() => navigate('/mobile/profile')}>
+          <span className="nav-icon">👤</span>
+          <span className="nav-label">حسابي</span>
+        </button>
+        <button className="nav-item" onClick={() => navigate('/mobile/notifications')}>
           <span className="nav-icon">🔔</span>
-          <span className="nav-text">الإشعارات</span>
-        </a>
-        <a href="#" className="nav-item" onClick={(e) => { e.preventDefault(); navigate('/mobile/profile'); }}>
-          <span className="nav-icon">⚙️</span>
-          <span className="nav-text">الإعدادات</span>
-        </a>
+          <span className="nav-label">الإشعارات</span>
+        </button>
+        <button className="nav-item">
+          <span className="nav-icon">☰</span>
+          <span className="nav-label">المزيد</span>
+        </button>
       </nav>
     </div>
   );

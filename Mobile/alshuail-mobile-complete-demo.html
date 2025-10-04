@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <title>الشعيل - التطبيق المحسّن</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Cairo', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding-top: 70px;
+            padding-bottom: 80px;
+            direction: rtl;
+            overflow-x: hidden; /* Prevent horizontal scroll */
+        }
+
+        /* Header - Responsive */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+            min-height: 60px;
+        }
+
+        .user-section {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            min-width: 0; /* Allow text truncation */
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            min-width: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            flex: 1;
+        }
+
+        .user-name {
+            font-size: clamp(13px, 3.5vw, 16px); /* Responsive font */
+            font-weight: 700;
+            color: #333;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .membership-number {
+            font-size: clamp(10px, 2.5vw, 12px);
+            color: #999;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .header-button {
+            width: 36px;
+            height: 36px;
+            min-width: 36px;
+            border-radius: 50%;
+            background: #f5f5f5;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            background: #f44336;
+            color: white;
+            border-radius: 10px;
+            padding: 2px 5px;
+            font-size: 9px;
+            font-weight: 700;
+            min-width: 16px;
+            text-align: center;
+        }
+
+        /* Main Content - Responsive */
+        .container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 12px;
+        }
+
+        /* Profile Completion KPI - NEW */
+        .profile-completion-card {
+            background: white;
+            border-radius: 20px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .completion-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .completion-title {
+            font-size: clamp(14px, 3.5vw, 16px);
+            font-weight: 700;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .completion-percentage {
+            font-size: clamp(18px, 5vw, 24px);
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 12px;
+            background: #f0f0f0;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.5s ease;
+            border-radius: 6px;
+        }
+
+        .completion-items {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 8px;
+        }
+
+        .completion-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: clamp(11px, 2.8vw, 13px);
+            color: #666;
+        }
+
+        .completion-item.completed {
+            color: #2e7d32;
+        }
+
+        .completion-item.incomplete {
+            color: #c62828;
+        }
+
+        .complete-profile-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px;
+            border-radius: 12px;
+            font-size: clamp(13px, 3.5vw, 15px);
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            margin-top: 12px;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        /* Balance Card - Responsive */
+        .balance-card {
+            background: white;
+            border-radius: 20px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .card-icon {
+            font-size: clamp(20px, 5vw, 24px);
+        }
+
+        .card-title {
+            font-size: clamp(15px, 4vw, 18px);
+            font-weight: 700;
+            color: #333;
+        }
+
+        .balance-display {
+            text-align: center;
+            padding: 12px 0;
+        }
+
+        .balance-amount {
+            font-size: clamp(32px, 10vw, 48px);
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 6px;
+            line-height: 1.2;
+        }
+
+        .balance-label {
+            font-size: clamp(12px, 3vw, 14px);
+            color: #666;
+            margin-bottom: 12px;
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: clamp(13px, 3.5vw, 16px);
+            font-weight: 600;
+        }
+
+        .status-indicator.good {
+            background: rgba(76, 175, 80, 0.1);
+            color: #2e7d32;
+            border: 2px solid rgba(76, 175, 80, 0.3);
+        }
+
+        .status-indicator.insufficient {
+            background: rgba(244, 67, 54, 0.1);
+            color: #c62828;
+            border: 2px solid rgba(244, 67, 54, 0.3);
+        }
+
+        .balance-breakdown {
+            margin: 16px 0;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 12px;
+        }
+
+        .breakdown-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .breakdown-row:last-child {
+            border-bottom: none;
+        }
+
+        .breakdown-label {
+            font-size: clamp(12px, 3vw, 14px);
+            color: #666;
+        }
+
+        .breakdown-value {
+            font-size: clamp(12px, 3vw, 14px);
+            font-weight: 600;
+            color: #333;
+        }
+
+        .breakdown-value.positive {
+            color: #2e7d32;
+        }
+
+        .breakdown-value.negative {
+            color: #c62828;
+        }
+
+        /* Action Buttons - Responsive */
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .primary-button {
+            flex: 1;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 8px;
+            border-radius: 12px;
+            font-size: clamp(13px, 3.5vw, 15px);
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            transition: transform 0.2s;
+            white-space: nowrap;
+        }
+
+        .primary-button:active {
+            transform: scale(0.98);
+        }
+
+        .secondary-button {
+            flex: 1;
+            background: #f5f5f5;
+            color: #667eea;
+            padding: 12px 8px;
+            border-radius: 12px;
+            font-size: clamp(13px, 3.5vw, 15px);
+            font-weight: 600;
+            border: 2px solid #e0e0e0;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .secondary-button:active {
+            transform: scale(0.98);
+        }
+
+        /* Section Headers - Responsive */
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 20px 0 12px;
+            padding: 0 4px;
+        }
+
+        .section-title {
+            font-size: clamp(16px, 4vw, 18px);
+            font-weight: 700;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .view-all {
+            font-size: clamp(12px, 3vw, 14px);
+            color: white;
+            opacity: 0.8;
+            cursor: pointer;
+        }
+
+        /* Notification Card - Responsive */
+        .notification-card {
+            background: white;
+            border-radius: 16px;
+            padding: 12px;
+            margin-bottom: 10px;
+            display: flex;
+            gap: 10px;
+            border-right: 4px solid transparent;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .notification-card.priority-high {
+            border-right-color: #f44336;
+        }
+
+        .notification-card.priority-medium {
+            border-right-color: #ff9800;
+        }
+
+        .notification-icon {
+            width: 44px;
+            height: 44px;
+            min-width: 44px;
+            border-radius: 12px;
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            flex-shrink: 0;
+        }
+
+        .notification-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .notification-title {
+            font-size: clamp(13px, 3.5vw, 14px);
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 4px;
+            line-height: 1.3;
+        }
+
+        .notification-body {
+            font-size: clamp(12px, 3vw, 13px);
+            color: #666;
+            line-height: 1.5;
+            margin-bottom: 6px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .notification-meta {
+            display: flex;
+            gap: 8px;
+            font-size: clamp(10px, 2.5vw, 11px);
+            color: #999;
+            flex-wrap: wrap;
+        }
+
+        /* Empty State */
+        .empty-state {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            color: #666;
+            font-size: clamp(13px, 3.5vw, 14px);
+        }
+
+        .empty-state-icon {
+            font-size: clamp(40px, 10vw, 48px);
+            margin-bottom: 12px;
+        }
+
+        /* Bottom Navigation - Responsive */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-around;
+            padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
+            z-index: 100;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            padding: 6px 4px;
+            cursor: pointer;
+            position: relative;
+            border: none;
+            background: transparent;
+            min-width: 0;
+        }
+
+        .nav-item.active::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 20%;
+            right: 20%;
+            height: 3px;
+            background: #667eea;
+            border-radius: 0 0 3px 3px;
+        }
+
+        .nav-icon {
+            font-size: clamp(20px, 5vw, 24px);
+            filter: grayscale(100%);
+            transition: filter 0.3s;
+        }
+
+        .nav-item.active .nav-icon {
+            filter: grayscale(0%);
+        }
+
+        .nav-label {
+            font-size: clamp(10px, 2.5vw, 12px);
+            font-weight: 600;
+            color: #999;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+        }
+
+        .nav-item.active .nav-label {
+            color: #667eea;
+        }
+
+        /* Responsive - Small phones */
+        @media (max-width: 360px) {
+            .container {
+                padding: 8px;
+            }
+            
+            .balance-card,
+            .profile-completion-card,
+            .notification-card {
+                padding: 12px;
+            }
+            
+            .header {
+                padding: 6px 8px;
+            }
+        }
+
+        /* Responsive - Tablets */
+        @media (min-width: 768px) {
+            .container {
+                max-width: 800px;
+                padding: 20px;
+            }
+            
+            body {
+                padding-top: 80px;
+            }
+            
+            .header {
+                padding: 16px 24px;
+            }
+        }
+
+        /* Landscape mode */
+        @media (orientation: landscape) and (max-height: 500px) {
+            .balance-amount {
+                font-size: 32px;
+            }
+            
+            .balance-display {
+                padding: 8px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="user-section">
+            <div class="avatar">أ</div>
+            <div class="user-info">
+                <div class="user-name">أحمد محمد الشعيل</div>
+                <div class="membership-number">#SH-10001</div>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button class="header-button">
+                🔔
+                <span class="notification-badge">8</span>
+            </button>
+            <button class="header-button">⚙️</button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="container">
+        
+        <!-- 1. PROFILE COMPLETION KPI (NEW - FIRST) -->
+        <div class="profile-completion-card">
+            <div class="completion-header">
+                <div class="completion-title">
+                    👤 إكمال الملف الشخصي
+                </div>
+                <div class="completion-percentage">65%</div>
+            </div>
+            
+            <div class="progress-bar-container">
+                <div class="progress-bar-fill" style="width: 65%"></div>
+            </div>
+            
+            <div class="completion-items">
+                <div class="completion-item completed">
+                    ✅ البيانات الأساسية
+                </div>
+                <div class="completion-item completed">
+                    ✅ رقم الجوال
+                </div>
+                <div class="completion-item completed">
+                    ✅ البريد الإلكتروني
+                </div>
+                <div class="completion-item incomplete">
+                    ❌ الصورة الشخصية
+                </div>
+                <div class="completion-item incomplete">
+                    ✅ تاريخ الميلاد
+                </div>
+                <div class="completion-item incomplete">
+                    ❌ العنوان
+                </div>
+            </div>
+            
+            <button class="complete-profile-btn">
+                📝 أكمل ملفك الشخصي
+            </button>
+        </div>
+
+        <!-- 2. BALANCE CARD (SECOND) -->
+        <div class="balance-card">
+            <div class="card-header">
+                <span class="card-icon">💰</span>
+                <span class="card-title">الرصيد الحالي</span>
+            </div>
+
+            <div class="balance-display">
+                <div class="balance-amount">5,000 ريال</div>
+                <div class="balance-label">من أصل 3,000 ريال مطلوب</div>
+                <div class="status-indicator good">
+                    🟢 ملتزم بالاشتراك
+                </div>
+            </div>
+
+            <div class="balance-breakdown">
+                <div class="breakdown-row">
+                    <span class="breakdown-label">المدفوع 2025</span>
+                    <span class="breakdown-value">2,500 ريال</span>
+                </div>
+                <div class="breakdown-row">
+                    <span class="breakdown-label">المدفوع السابق</span>
+                    <span class="breakdown-value">2,500 ريال</span>
+                </div>
+                <div class="breakdown-row">
+                    <span class="breakdown-label">الرصيد الإضافي</span>
+                    <span class="breakdown-value positive">+2,000 ريال</span>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="primary-button">💳 دفع اشتراك</button>
+                <button class="secondary-button">📊 سجل المدفوعات</button>
+            </div>
+        </div>
+
+        <!-- 3. NEWS SECTION (الأخبار) -->
+        <div class="section-header">
+            <div class="section-title">
+                📰 الأخبار
+            </div>
+            <div class="view-all">عرض الكل ←</div>
+        </div>
+
+        <div class="notification-card priority-high">
+            <div class="notification-icon">📢</div>
+            <div class="notification-content">
+                <div class="notification-title">إعلان هام - اجتماع الجمعية العمومية</div>
+                <div class="notification-body">
+                    يسرنا دعوتكم لحضور الاجتماع السنوي للجمعية العمومية يوم الجمعة القادم في مقر العائلة الساعة 5 مساءً.
+                </div>
+                <div class="notification-meta">
+                    <span>منذ ساعة</span>
+                    <span>•</span>
+                    <span>إعلانات رسمية</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="notification-card">
+            <div class="notification-icon">🎊</div>
+            <div class="notification-content">
+                <div class="notification-title">تهنئة - مولود جديد في العائلة</div>
+                <div class="notification-body">
+                    نبارك لأخينا خالد الشعيل قدوم المولود الجديد، نسأل الله أن يجعله من الصالحين.
+                </div>
+                <div class="notification-meta">
+                    <span>منذ 3 ساعات</span>
+                    <span>•</span>
+                    <span>أخبار العائلة</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. INITIATIVES SECTION (المبادرات) -->
+        <div class="section-header">
+            <div class="section-title">
+                🤝 المبادرات
+            </div>
+            <div class="view-all">عرض الكل ←</div>
+        </div>
+
+        <div class="notification-card priority-medium">
+            <div class="notification-icon">💡</div>
+            <div class="notification-content">
+                <div class="notification-title">مبادرة دعم الطلاب المتفوقين</div>
+                <div class="notification-body">
+                    مبادرة لدعم أبناء العائلة المتفوقين دراسياً. المبلغ المستهدف: 50,000 ریال. تم جمع 35,000 ریال حتى الآن.
+                </div>
+                <div class="notification-meta">
+                    <span>منذ يومين</span>
+                    <span>•</span>
+                    <span>التعليم</span>
+                    <span>•</span>
+                    <span>70% مكتمل</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="notification-card">
+            <div class="notification-icon">🏥</div>
+            <div class="notification-content">
+                <div class="notification-title">مبادرة الدعم الصحي</div>
+                <div class="notification-body">
+                    مبادرة لدعم أفراد العائلة المحتاجين للرعاية الصحية. يمكنكم المساهمة من خلال التطبيق.
+                </div>
+                <div class="notification-meta">
+                    <span>منذ 3 أيام</span>
+                    <span>•</span>
+                    <span>صحة</span>
+                    <span>•</span>
+                    <span>45% مكتمل</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. DIYA SECTION (الديات) -->
+        <div class="section-header">
+            <div class="section-title">
+                ⚖️ الديات
+            </div>
+            <div class="view-all">عرض الكل ←</div>
+        </div>
+
+        <div class="notification-card priority-high">
+            <div class="notification-icon">⚖️</div>
+            <div class="notification-content">
+                <div class="notification-title">دية الأخ نادر الشعيل</div>
+                <div class="notification-body">
+                    تم فتح باب المساهمة في دية الأخ نادر. المبلغ المطلوب: 400,000 ریال. تم جمع 350,000 ریال.
+                </div>
+                <div class="notification-meta">
+                    <span>منذ 5 أيام</span>
+                    <span>•</span>
+                    <span>حالة عاجلة</span>
+                    <span>•</span>
+                    <span>87.5% مكتمل</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. OCCASIONS SECTION (المناسبات) -->
+        <div class="section-header">
+            <div class="section-title">
+                🎉 المناسبات
+            </div>
+            <div class="view-all">عرض الكل ←</div>
+        </div>
+
+        <div class="notification-card">
+            <div class="notification-icon">🎂</div>
+            <div class="notification-content">
+                <div class="notification-title">حفل زفاف محمد الشعيل</div>
+                <div class="notification-body">
+                    يسرنا دعوتكم لحضور حفل زفاف ابننا محمد يوم الخميس القادم. الموقع: قاعة النخيل - 7 مساءً.
+                </div>
+                <div class="notification-meta">
+                    <span>بعد 5 أيام</span>
+                    <span>•</span>
+                    <span>زفاف</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="notification-card">
+            <div class="notification-icon">🕌</div>
+            <div class="notification-content">
+                <div class="notification-title">صلاة العيد - عيد الفطر</div>
+                <div class="notification-body">
+                    صلاة العيد ستقام في مسجد العائلة الساعة 6 صباحاً. يليها إفطار جماعي للعائلة.
+                </div>
+                <div class="notification-meta">
+                    <span>بعد أسبوعين</span>
+                    <span>•</span>
+                    <span>مناسبة دينية</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7. MEMBER STATEMENT SECTION (كشف حساب الأعضاء) -->
+        <div class="section-header">
+            <div class="section-title">
+                📊 كشف الحساب
+            </div>
+            <div class="view-all">عرض الكل ←</div>
+        </div>
+
+        <div class="notification-card">
+            <div class="notification-icon">📄</div>
+            <div class="notification-content">
+                <div class="notification-title">كشف حساب شهر سبتمبر 2025</div>
+                <div class="notification-body">
+                    تم إصدار كشف الحساب الشهري. إجمالي المدفوعات: 2,500 ریال. الرصيد المتبقي: 500 ریال.
+                </div>
+                <div class="notification-meta">
+                    <span>منذ أسبوع</span>
+                    <span>•</span>
+                    <span>مالية</span>
+                    <span>•</span>
+                    <span>📥 تحميل PDF</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="notification-card">
+            <div class="notification-icon">💰</div>
+            <div class="notification-content">
+                <div class="notification-title">تأكيد استلام الدفعة</div>
+                <div class="notification-body">
+                    تم استلام دفعتك بمبلغ 1,500 ریال لاشتراك 2025. شكراً لالتزامك.
+                </div>
+                <div class="notification-meta">
+                    <span>منذ أسبوعين</span>
+                    <span>•</span>
+                    <span>مدفوعات</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Spacer for bottom nav -->
+        <div style="height: 20px;"></div>
+
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <button class="nav-item active">
+            <span class="nav-icon">🏠</span>
+            <span class="nav-label">الرئيسية</span>
+        </button>
+        <button class="nav-item">
+            <span class="nav-icon">👤</span>
+            <span class="nav-label">حسابي</span>
+        </button>
+        <button class="nav-item">
+            <span class="nav-icon">🌳</span>
+            <span class="nav-label">العائلة</span>
+        </button>
+        <button class="nav-item">
+            <span class="nav-icon">☰</span>
+            <span class="nav-label">المزيد</span>
+        </button>
+    </nav>
+
+</body>
+</html>
