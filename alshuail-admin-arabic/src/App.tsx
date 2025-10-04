@@ -228,6 +228,7 @@ const App: React.FC = () => {
             <Route path="/premium-register" element={<PremiumRegistration />} />
 
             {/* Mobile PWA Routes - Member Interface */}
+            <Route path="/mobile" element={<Navigate to="/mobile/login" replace />} />
             <Route path="/mobile/login" element={<MobileLogin />} />
             <Route path="/mobile/change-password" element={<ChangePassword />} />
             <Route path="/mobile/dashboard" element={<MobileDashboard />} />
@@ -237,8 +238,8 @@ const App: React.FC = () => {
             <Route path="/mobile/notifications" element={<MobileNotifications />} />
 
             {/* Redirect old /member routes to new /mobile routes */}
-            <Route path="/member" element={<Navigate to="/mobile/dashboard" replace />} />
-            <Route path="/member/*" element={<Navigate to="/mobile/dashboard" replace />} />
+            <Route path="/member" element={<Navigate to="/mobile/login" replace />} />
+            <Route path="/member/*" element={<Navigate to="/mobile/login" replace />} />
 
             {/* Family Tree Route */}
             <Route path="/family-tree" element={<AdminDashboard />} />
