@@ -51,19 +51,31 @@ apiClient.interceptors.response.use(
         return Promise.reject(error);
       }
 
-      // For profile endpoint, don't auto-logout immediately
-      // This could be a backend issue, not expired token
-      if (error.config?.url?.includes('/member/profile')) {
-        console.error('Profile endpoint failed, but keeping user logged in');
+      // For member endpoints, don't auto-logout immediately
+      // This could be a backend configuration issue, not expired token
+      const memberEndpoints = ['/member/profile', '/member/balance', '/member/payments', '/member/notifications'];
+      const isMemberEndpoint = memberEndpoints.some(endpoint => error.config?.url?.includes(endpoint));
+
+      if (isMemberEndpoint) {
+        console.error('Member endpoint failed with 401, but keeping user logged in for now');
+        // Don't logout, let the component handle the error
         return Promise.reject(error);
       }
 
-      // For other endpoints, if we get 401 with a token, it's likely expired
-      console.error('Token appears to be expired, redirecting to login');
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      localStorage.removeItem('memberData');
-      window.location.href = '/mobile/login';
+      // Check if the error message indicates token issues
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || '';
+      const isTokenError = errorMessage.includes('token') || errorMessage.includes('expired') || errorMessage.includes('invalid');
+
+      // Only logout if it's clearly a token issue
+      if (isTokenError) {
+        console.error('Token error detected, redirecting to login:', errorMessage);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('memberData');
+        window.location.href = '/mobile/login';
+      } else {
+        console.error('401 error but not clearly token-related, keeping user logged in');
+      }
     }
     return Promise.reject(error);
   }

@@ -24,8 +24,8 @@ export const authenticate = async (req, res, next) => {
       });
     }
 
-    // Ensure JWT_SECRET is set with fallback
-    const jwtSecret = process.env.JWT_SECRET || 'alshuail-super-secure-jwt-secret-key-2024-production-ready-32chars';
+    // CRITICAL: Use consistent JWT_SECRET across all files
+    const jwtSecret = process.env.JWT_SECRET || 'alshuail-universal-jwt-secret-2024-production-32chars';
 
     if (!process.env.JWT_SECRET) {
       console.warn('⚠️ JWT_SECRET not set, using fallback');

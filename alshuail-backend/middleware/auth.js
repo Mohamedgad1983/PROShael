@@ -15,20 +15,27 @@ const authenticate = async (req, res, next) => {
         }
 
         const token = authHeader.replace('Bearer ', '');
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        // CRITICAL: Use consistent JWT_SECRET with fallback
+        const jwtSecret = process.env.JWT_SECRET || 'alshuail-universal-jwt-secret-2024-production-32chars';
+        const decoded = jwt.verify(token, jwtSecret);
 
         // Check if it's a member or admin based on the role in token
         let user;
         let error;
 
         if (decoded.role === 'member') {
-            // For members, check in members table
+            // For members, check in members table (without is_active check as it might not exist)
             ({ data: user, error } = await supabase
                 .from('members')
                 .select('*')
                 .eq('id', decoded.id)
-                .eq('is_active', true)
                 .single());
+
+            // Check membership_status instead of is_active for members
+            if (user && user.membership_status && user.membership_status !== 'active') {
+                error = new Error('Member is not active');
+                user = null;
+            }
         } else {
             // For admins/other roles, check in users table
             ({ data: user, error } = await supabase
@@ -105,7 +112,9 @@ const optionalAuth = async (req, res, next) => {
 
         if (authHeader && authHeader.startsWith('Bearer ')) {
             const token = authHeader.replace('Bearer ', '');
-            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            // CRITICAL: Use consistent JWT_SECRET with fallback
+            const jwtSecret = process.env.JWT_SECRET || 'alshuail-universal-jwt-secret-2024-production-32chars';
+            const decoded = jwt.verify(token, jwtSecret);
 
             let user;
             let error;
@@ -115,8 +124,12 @@ const optionalAuth = async (req, res, next) => {
                     .from('members')
                     .select('*')
                     .eq('id', decoded.id)
-                    .eq('is_active', true)
                     .single());
+
+                // Check membership_status instead of is_active for members
+                if (user && user.membership_status && user.membership_status !== 'active') {
+                    user = null;
+                }
             } else {
                 ({ data: user, error } = await supabase
                     .from('users')

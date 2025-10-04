@@ -5,9 +5,12 @@ import { supabase } from '../config/database.js';
 
 const router = express.Router();
 
-const JWT_SECRET = process.env.JWT_SECRET || 'alshuail-dev-secret-2024-very-long-and-secure';
+// CRITICAL: Use consistent JWT_SECRET across all files
+const JWT_SECRET = process.env.JWT_SECRET || 'alshuail-universal-jwt-secret-2024-production-32chars';
 if (!process.env.JWT_SECRET) {
-  console.warn('⚠️  WARNING: JWT_SECRET not set in environment. Using fallback for development.');
+  console.warn('⚠️  WARNING: JWT_SECRET not set in environment. Using fallback secret.');
+  // Set it in process.env for consistency
+  process.env.JWT_SECRET = JWT_SECRET;
 }
 
 const ADMIN_TOKEN_TTL = process.env.ADMIN_JWT_TTL || '7d';  // Extended from 12h to 7 days
