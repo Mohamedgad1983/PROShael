@@ -50,18 +50,39 @@ const MobileLogin = () => {
         throw new Error(data.message_ar || data.error || 'فشل تسجيل الدخول');
       }
 
-      // Store token
-      localStorage.setItem('token', data.data?.token || data.token);
-      localStorage.setItem('user', JSON.stringify(data.data?.user || data.user));
-
-      // Check if password change required
-      if (data.requires_password_change || data.is_first_login) {
-        navigate('/mobile/change-password', {
-          state: { isFirstLogin: data.is_first_login }
-        });
-      } else {
-        navigate('/mobile/dashboard');
+      // Check if login was successful
+      if (!data.success) {
+        throw new Error(data.message || 'فشل تسجيل الدخول');
       }
+
+      // Store token and user data correctly
+      const token = data.token;
+      const user = data.user;
+
+      if (!token || !user) {
+        throw new Error('بيانات تسجيل الدخول غير صحيحة');
+      }
+
+      // Store in localStorage
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+
+      // Also store memberData for backward compatibility
+      localStorage.setItem('memberData', JSON.stringify(user));
+
+      console.log('Login successful, user role:', user.role);
+
+      // Small delay to ensure localStorage is set
+      setTimeout(() => {
+        // Check if password change required
+        if (data.requires_password_change || data.is_first_login) {
+          navigate('/mobile/change-password', {
+            state: { isFirstLogin: data.is_first_login }
+          });
+        } else {
+          navigate('/mobile/dashboard');
+        }
+      }, 100);
 
     } catch (err: any) {
       setError(err.message);
