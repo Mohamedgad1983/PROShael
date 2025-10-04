@@ -39,9 +39,30 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid
+      // Check if we're already on login page to avoid redirect loop
+      if (window.location.pathname.includes('/mobile/login')) {
+        return Promise.reject(error);
+      }
+
+      // Check if token exists - if not, user needs to login
+      const token = localStorage.getItem('token');
+      if (!token) {
+        window.location.href = '/mobile/login';
+        return Promise.reject(error);
+      }
+
+      // For profile endpoint, don't auto-logout immediately
+      // This could be a backend issue, not expired token
+      if (error.config?.url?.includes('/member/profile')) {
+        console.error('Profile endpoint failed, but keeping user logged in');
+        return Promise.reject(error);
+      }
+
+      // For other endpoints, if we get 401 with a token, it's likely expired
+      console.error('Token appears to be expired, redirecting to login');
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      localStorage.removeItem('memberData');
       window.location.href = '/mobile/login';
     }
     return Promise.reject(error);
@@ -191,30 +212,53 @@ export const getMemberIdCard = async () => {
 
 // Get all dashboard data in one call
 export const getDashboardData = async () => {
-  try {
-    const [profile, balance, payments, notifications] = await Promise.all([
-      getMemberProfile(),
-      getMemberBalance(),
-      getMemberPayments({ limit: 5 }),
-      getMemberNotifications({ unread: true, limit: 5 })
-    ]);
+  // Fetch each piece of data independently so one failure doesn't break all
+  let profile = null;
+  let balance = null;
+  let payments = [];
+  let notifications = [];
 
-    return {
-      profile,
-      balance,
-      recentPayments: payments,
-      notifications
-    };
+  // Try to get profile (might fail due to auth issue)
+  try {
+    profile = await getMemberProfile();
   } catch (error) {
-    console.error('Error fetching dashboard data:', error);
-    // Return partial data if some calls succeed
-    return {
-      profile: null,
-      balance: null,
-      recentPayments: [],
-      notifications: []
-    };
+    console.error('Failed to fetch profile, using localStorage:', error);
+    // Fallback to localStorage data
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      profile = { data: JSON.parse(userData) };
+    }
   }
+
+  // Try to get balance
+  try {
+    balance = await getMemberBalance();
+  } catch (error) {
+    console.error('Failed to fetch balance:', error);
+    // Use default balance
+    balance = { data: { current_balance: 0, total_paid: 0 } };
+  }
+
+  // Try to get recent payments
+  try {
+    payments = await getMemberPayments({ limit: 5 });
+  } catch (error) {
+    console.error('Failed to fetch payments:', error);
+  }
+
+  // Try to get notifications
+  try {
+    notifications = await getMemberNotifications({ unread: true, limit: 5 });
+  } catch (error) {
+    console.error('Failed to fetch notifications:', error);
+  }
+
+  return {
+    profile,
+    balance,
+    recentPayments: payments,
+    notifications
+  };
 };
 
 export default {

@@ -33,7 +33,7 @@ export const authenticate = async (req, res, next) => {
     }
 
     // Verify JWT token with better error handling
-    jwt.verify(token, jwtSecret, (err, decoded) => {
+    jwt.verify(token, jwtSecret, async (err, decoded) => {
       if (err) {
         console.error('[Auth] Token verification failed:', err.message);
 
