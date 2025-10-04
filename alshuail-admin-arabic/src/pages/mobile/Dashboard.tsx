@@ -8,7 +8,7 @@ const MobileDashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [balance, setBalance] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Start false to show sample data immediately
   const [profileCompletion, setProfileCompletion] = useState(65);
   const [notifications, setNotifications] = useState({
     news: [] as any[],
@@ -19,6 +19,9 @@ const MobileDashboard = () => {
   });
 
   useEffect(() => {
+    // Always load sample data first for immediate display
+    setSampleData();
+    // Then fetch real data to override
     fetchDashboardData();
   }, []);
 
