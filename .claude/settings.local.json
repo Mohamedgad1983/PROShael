@@ -46,7 +46,9 @@
       "Bash(findstr:*)",
       "Bash(set PORT=5001)",
       "Bash(python3:*)",
-      "Bash(cmd //c:*)"
+      "Bash(cmd //c:*)",
+      "Bash(npm run db:query:*)",
+      "mcp__playwright__browser_click"
     ],
     "deny": [],
     "ask": []

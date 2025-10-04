@@ -214,11 +214,26 @@ const AdminDashboard: React.FC = () => {
 };
 
 const App: React.FC = () => {
+  // Debug current path
+  React.useEffect(() => {
+    console.log('🚀 App rendered, current path:', window.location.pathname);
+  }, []);
+
   return (
     <AuthProvider>
       <RoleProvider>
         <Router>
           <Routes>
+            {/* Mobile PWA Routes - Member Interface (Prioritized) */}
+            <Route path="/mobile/login" element={<MobileLogin />} />
+            <Route path="/mobile/change-password" element={<MemberRoute><ChangePassword /></MemberRoute>} />
+            <Route path="/mobile/dashboard" element={<MemberRoute><MobileDashboard /></MemberRoute>} />
+            <Route path="/mobile/profile" element={<MemberRoute><MobileProfile /></MemberRoute>} />
+            <Route path="/mobile/payment" element={<MemberRoute><MobilePayment /></MemberRoute>} />
+            <Route path="/mobile/payment-history" element={<MemberRoute><MobilePaymentHistory /></MemberRoute>} />
+            <Route path="/mobile/notifications" element={<MemberRoute><MobileNotifications /></MemberRoute>} />
+            <Route path="/mobile" element={<Navigate to="/mobile/login" replace />} />
+
             {/* Public member registration route */}
             <Route path="/register/:token" element={<MemberRegistration />} />
 
@@ -227,16 +242,6 @@ const App: React.FC = () => {
 
             {/* Premium registration form - New Route */}
             <Route path="/premium-register" element={<PremiumRegistration />} />
-
-            {/* Mobile PWA Routes - Member Interface */}
-            <Route path="/mobile" element={<Navigate to="/mobile/login" replace />} />
-            <Route path="/mobile/login" element={<MobileLogin />} />
-            <Route path="/mobile/change-password" element={<MemberRoute><ChangePassword /></MemberRoute>} />
-            <Route path="/mobile/dashboard" element={<MemberRoute><MobileDashboard /></MemberRoute>} />
-            <Route path="/mobile/profile" element={<MemberRoute><MobileProfile /></MemberRoute>} />
-            <Route path="/mobile/payment" element={<MemberRoute><MobilePayment /></MemberRoute>} />
-            <Route path="/mobile/payment-history" element={<MemberRoute><MobilePaymentHistory /></MemberRoute>} />
-            <Route path="/mobile/notifications" element={<MemberRoute><MobileNotifications /></MemberRoute>} />
 
             {/* Redirect old /member routes to new /mobile routes */}
             <Route path="/member" element={<Navigate to="/mobile/login" replace />} />
@@ -252,7 +257,7 @@ const App: React.FC = () => {
             {/* Default route redirects to login */}
             <Route path="/" element={<Navigate to="/login" replace />} />
 
-            {/* Catch all route redirects to login */}
+            {/* Catch all route - do not redirect mobile routes */}
             <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
         </Router>

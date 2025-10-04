@@ -194,8 +194,16 @@ class APIService {
 
   redirectToLogin() {
     localStorage.removeItem('token');
-    if (window.location.pathname !== '/login') {
-      window.location.href = '/login';
+    const currentPath = window.location.pathname;
+
+    // Don't redirect if already on a login page (admin or mobile)
+    if (currentPath !== '/login' && !currentPath.startsWith('/mobile/login')) {
+      // Redirect to appropriate login based on current path
+      if (currentPath.startsWith('/mobile/')) {
+        window.location.href = '/mobile/login';
+      } else {
+        window.location.href = '/login';
+      }
     }
   }
 

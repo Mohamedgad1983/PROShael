@@ -32,8 +32,13 @@ export const getValidToken = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
 
-    // Redirect to login
-    window.location.href = '/login';
+    // Redirect to appropriate login page
+    const currentPath = window.location.pathname;
+    if (currentPath.startsWith('/mobile/')) {
+      window.location.href = '/mobile/login';
+    } else {
+      window.location.href = '/login';
+    }
     return null;
   }
 
@@ -114,8 +119,13 @@ export const authenticatedFetch = async (url, options = {}) => {
         },
       });
     } else {
-      // Redirect to login
-      window.location.href = '/login';
+      // Redirect to appropriate login page
+      const currentPath = window.location.pathname;
+      if (currentPath.startsWith('/mobile/')) {
+        window.location.href = '/mobile/login';
+      } else {
+        window.location.href = '/login';
+      }
       return null;
     }
   }

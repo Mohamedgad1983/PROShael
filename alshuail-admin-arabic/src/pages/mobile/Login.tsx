@@ -6,6 +6,8 @@ import { isBiometricAvailable, authenticateBiometric, getBiometricType } from '.
 import '../../styles/mobile/Login.css';
 
 const MobileLogin = () => {
+  console.log('🔴 MobileLogin component is rendering!');
+
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
