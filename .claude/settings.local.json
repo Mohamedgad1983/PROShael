@@ -39,7 +39,12 @@
       "Bash(gh workflow run:*)",
       "mcp__playwright__browser_type",
       "Bash(npx wrangler pages deploy:*)",
-      "mcp__playwright__browser_wait_for"
+      "mcp__playwright__browser_wait_for",
+      "WebFetch(domain:dashboard.render.com)",
+      "Bash(npm run db:query \"SELECT id, full_name, phone, temp_password, password_hash, membership_status FROM members WHERE phone = ''0555555555'' LIMIT 1\")",
+      "Bash(npm run dev:*)",
+      "Bash(findstr:*)",
+      "Bash(set PORT=5001)"
     ],
     "deny": [],
     "ask": []

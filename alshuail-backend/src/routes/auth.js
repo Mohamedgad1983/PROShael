@@ -275,11 +275,34 @@ function resolveTestMember(phone, password) {
 async function authenticateMember(phone, password) {
   const cleanPhone = normalizePhone(phone);
 
-  const { data: member, error } = await supabase
-    .from('members')
-    .select('id, full_name, phone, membership_number, membership_status, password_hash, temp_password, balance, minimum_balance')
-    .eq('phone', cleanPhone)
-    .single();
+  // Handle both formats: local (05xxx) and international (+9665xxx)
+  let phoneVariants = [cleanPhone];
+  if (cleanPhone.startsWith('0')) {
+    // Convert local format to international
+    phoneVariants.push('+966' + cleanPhone.substring(1));
+  } else if (cleanPhone.startsWith('+966')) {
+    // Also try local format
+    phoneVariants.push('0' + cleanPhone.substring(4));
+  }
+
+  // Try to find member with any phone format
+  let member = null;
+  let error = null;
+
+  for (const phoneVariant of phoneVariants) {
+    const { data, error: queryError } = await supabase
+      .from('members')
+      .select('id, full_name, phone, membership_number, membership_status, password_hash, temp_password, balance')
+      .eq('phone', phoneVariant)
+      .single();
+
+    if (data && !queryError) {
+      member = data;
+      error = null;
+      break;
+    }
+    error = queryError;
+  }
 
   if (error || !member) {
     return {
@@ -381,7 +404,7 @@ const buildMemberResponse = (member) => ({
   avatar: null,
   role: 'member',
   balance: member.balance || 0,
-  minimumBalance: member.minimum_balance || 3000
+  minimumBalance: 3000  // Default minimum balance for all members
 });
 
 async function handleMemberLogin(req, res) {
