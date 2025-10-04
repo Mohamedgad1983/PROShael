@@ -1,11 +1,11 @@
-const { supabase } = require('../config/supabase');
+const { supabaseAdminAdmin } = require('../config/supabaseAdmin');
 
 // Get member profile
 exports.getMemberProfile = async (req, res) => {
   try {
     const memberId = req.user.id;
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdminAdmin
       .from('members')
       .select('*')
       .eq('id', memberId)
@@ -33,7 +33,7 @@ exports.getMemberBalance = async (req, res) => {
     const memberId = req.user.id;
 
     // Get member's current balance
-    const { data: member, error } = await supabase
+    const { data: member, error } = await supabaseAdmin
       .from('members')
       .select('balance')
       .eq('id', memberId)
@@ -71,7 +71,7 @@ exports.getMemberPayments = async (req, res) => {
     const memberId = req.user.id;
     const { year, month, status, limit = 50 } = req.query;
 
-    let query = supabase
+    let query = supabaseAdmin
       .from('payments')
       .select('*')
       .eq('payer_id', memberId)
@@ -127,7 +127,7 @@ exports.createPayment = async (req, res) => {
       category: 'subscription'
     };
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('payments')
       .insert([paymentData])
       .select()
@@ -159,7 +159,7 @@ exports.searchMembers = async (req, res) => {
     }
 
     // Search by name, phone, or membership number
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('members')
       .select('id, full_name, membership_number, phone, tribal_section')
       .neq('id', currentUserId) // Exclude current user
@@ -184,7 +184,7 @@ exports.getMemberNotifications = async (req, res) => {
     const memberId = req.user.id;
     const { type, limit = 50 } = req.query;
 
-    let query = supabase
+    let query = supabaseAdmin
       .from('notifications')
       .select('*')
       .or(`member_id.eq.${memberId},member_id.is.null`) // Member-specific or global notifications
@@ -203,7 +203,7 @@ exports.getMemberNotifications = async (req, res) => {
     }
 
     // Check which notifications are read by this member
-    const { data: readNotifications } = await supabase
+    const { data: readNotifications } = await supabaseAdmin
       .from('notification_reads')
       .select('notification_id')
       .eq('member_id', memberId);
@@ -229,7 +229,7 @@ exports.markNotificationAsRead = async (req, res) => {
     const { id: notificationId } = req.params;
 
     // Check if already marked as read
-    const { data: existing } = await supabase
+    const { data: existing } = await supabaseAdmin
       .from('notification_reads')
       .select('id')
       .eq('member_id', memberId)
@@ -238,7 +238,7 @@ exports.markNotificationAsRead = async (req, res) => {
 
     if (!existing) {
       // Create read record
-      await supabase
+      await supabaseAdmin
         .from('notification_reads')
         .insert([{
           member_id: memberId,
@@ -260,7 +260,7 @@ exports.markAllNotificationsAsRead = async (req, res) => {
     const memberId = req.user.id;
 
     // Get all unread notifications
-    const { data: notifications } = await supabase
+    const { data: notifications } = await supabaseAdmin
       .from('notifications')
       .select('id')
       .or(`member_id.eq.${memberId},member_id.is.null`);
@@ -270,7 +270,7 @@ exports.markAllNotificationsAsRead = async (req, res) => {
     }
 
     // Get already read notifications
-    const { data: alreadyRead } = await supabase
+    const { data: alreadyRead } = await supabaseAdmin
       .from('notification_reads')
       .select('notification_id')
       .eq('member_id', memberId);
@@ -288,7 +288,7 @@ exports.markAllNotificationsAsRead = async (req, res) => {
         read_at: new Date().toISOString()
       }));
 
-      await supabase
+      await supabaseAdmin
         .from('notification_reads')
         .insert(readRecords);
     }
@@ -312,7 +312,7 @@ exports.uploadReceipt = async (req, res) => {
     const fileName = `receipts/${memberId}/${Date.now()}-${file.originalname}`;
 
     // Upload to Supabase Storage
-    const { data, error } = await supabase.storage
+    const { data, error } = await supabaseAdmin.storage
       .from('receipts')
       .upload(fileName, file.buffer, {
         contentType: file.mimetype,
@@ -325,7 +325,7 @@ exports.uploadReceipt = async (req, res) => {
     }
 
     // Get public URL
-    const { data: { publicUrl } } = supabase.storage
+    const { data: { publicUrl } } = supabaseAdmin.storage
       .from('receipts')
       .getPublicUrl(fileName);
 
