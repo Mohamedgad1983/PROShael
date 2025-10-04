@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Login - AL-SHUAIL</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f7;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 6px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .loading {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        button {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            margin: 10px 0;
+        }
+        button:hover {
+            background: #0051D5;
+        }
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 تشخيص مشكلة تسجيل الدخول</h1>
+
+        <div class="test-section">
+            <h3>معلومات الاختبار:</h3>
+            <p>رقم الجوال: 0555555555</p>
+            <p>كلمة المرور: 123456</p>
+        </div>
+
+        <button onclick="testBackendHealth()">1. فحص حالة الخادم</button>
+        <button onclick="testDirectLogin()">2. اختبار تسجيل الدخول المباشر</button>
+        <button onclick="testFrontendAPI()">3. فحص API من Frontend</button>
+        <button onclick="checkLocalStorage()">4. فحص البيانات المحلية</button>
+        <button onclick="clearAndRetry()">5. مسح البيانات وإعادة المحاولة</button>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const API_URL = 'https://proshael.onrender.com';
+        const FRONTEND_URL = 'https://alshuail-admin.pages.dev';
+
+        function addResult(message, type = 'loading') {
+            const resultsDiv = document.getElementById('results');
+            const statusDiv = document.createElement('div');
+            statusDiv.className = `status ${type}`;
+            statusDiv.innerHTML = `<strong>${new Date().toLocaleTimeString('ar-SA')}:</strong> ${message}`;
+            resultsDiv.insertBefore(statusDiv, resultsDiv.firstChild);
+        }
+
+        async function testBackendHealth() {
+            addResult('جاري فحص حالة الخادم...', 'loading');
+
+            try {
+                const response = await fetch(`${API_URL}/api/health`, {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult(`✅ الخادم يعمل بشكل صحيح! Status: ${data.status || 'OK'}`, 'success');
+                } else {
+                    addResult(`⚠️ الخادم يستجيب ولكن بحالة: ${response.status} ${response.statusText}`, 'warning');
+                }
+            } catch (error) {
+                addResult(`❌ لا يمكن الوصول للخادم: ${error.message}`, 'error');
+                addResult('🔄 الخادم قد يكون في وضع إعادة التشغيل. انتظر 2-3 دقائق.', 'warning');
+            }
+        }
+
+        async function testDirectLogin() {
+            addResult('جاري محاولة تسجيل الدخول...', 'loading');
+
+            try {
+                const response = await fetch(`${API_URL}/api/auth/mobile-login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    mode: 'cors',
+                    body: JSON.stringify({
+                        phone: '0555555555',
+                        password: '123456'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.token) {
+                    addResult(`✅ تسجيل الدخول نجح! المستخدم: ${data.user?.name}`, 'success');
+                    addResult(`Token: ${data.token.substring(0, 20)}...`, 'success');
+
+                    // Save to localStorage
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    addResult('✅ تم حفظ البيانات في المتصفح', 'success');
+                } else {
+                    addResult(`❌ فشل تسجيل الدخول: ${data.message || 'Unknown error'}`, 'error');
+                }
+            } catch (error) {
+                addResult(`❌ خطأ في الاتصال: ${error.message}`, 'error');
+
+                // Try alternative endpoints
+                addResult('جاري تجربة نقاط وصول بديلة...', 'loading');
+
+                try {
+                    const altResponse = await fetch(`${API_URL}/api/auth/login`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ phone: '0555555555', password: '123456' })
+                    });
+
+                    if (altResponse.ok) {
+                        addResult('✅ وجدت نقطة وصول بديلة تعمل!', 'success');
+                    }
+                } catch (altError) {
+                    addResult('❌ النقاط البديلة لا تعمل أيضاً', 'error');
+                }
+            }
+        }
+
+        async function testFrontendAPI() {
+            addResult('جاري فحص إعدادات Frontend...', 'loading');
+
+            try {
+                // Check if frontend is accessible
+                const frontendResponse = await fetch(`${FRONTEND_URL}/mobile/login`, {
+                    method: 'GET',
+                    mode: 'no-cors'
+                });
+
+                addResult('✅ الواجهة الأمامية متاحة', 'success');
+
+                // Check localStorage for API URL
+                const apiUrl = localStorage.getItem('API_URL') || 'Not set';
+                addResult(`API URL في المتصفح: ${apiUrl}`, 'warning');
+
+            } catch (error) {
+                addResult(`⚠️ مشكلة في الوصول للواجهة: ${error.message}`, 'warning');
+            }
+        }
+
+        function checkLocalStorage() {
+            addResult('جاري فحص البيانات المحلية...', 'loading');
+
+            const token = localStorage.getItem('token');
+            const user = localStorage.getItem('user');
+            const memberData = localStorage.getItem('memberData');
+
+            if (token) {
+                addResult(`✅ يوجد Token محفوظ: ${token.substring(0, 20)}...`, 'success');
+
+                // Decode token to check expiry
+                try {
+                    const payload = JSON.parse(atob(token.split('.')[1]));
+                    const expiry = new Date(payload.exp * 1000);
+                    const now = new Date();
+
+                    if (expiry > now) {
+                        addResult(`✅ Token صالح حتى: ${expiry.toLocaleString('ar-SA')}`, 'success');
+                    } else {
+                        addResult('❌ Token منتهي الصلاحية', 'error');
+                    }
+                } catch (e) {
+                    addResult('⚠️ لا يمكن فحص صلاحية Token', 'warning');
+                }
+            } else {
+                addResult('❌ لا يوجد Token محفوظ', 'error');
+            }
+
+            if (user) {
+                const userData = JSON.parse(user);
+                addResult(`✅ بيانات المستخدم: ${userData.name || userData.full_name}`, 'success');
+            } else {
+                addResult('❌ لا توجد بيانات مستخدم', 'error');
+            }
+
+            if (memberData) {
+                addResult('✅ يوجد بيانات عضو محفوظة', 'success');
+            }
+        }
+
+        function clearAndRetry() {
+            addResult('جاري مسح البيانات المحلية...', 'loading');
+
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            localStorage.removeItem('memberData');
+
+            addResult('✅ تم مسح جميع البيانات', 'success');
+            addResult('🔄 يمكنك الآن المحاولة مرة أخرى من الصفحة الرئيسية', 'warning');
+
+            setTimeout(() => {
+                if (confirm('هل تريد الذهاب لصفحة تسجيل الدخول الآن؟')) {
+                    window.location.href = `${FRONTEND_URL}/mobile/login`;
+                }
+            }, 2000);
+        }
+
+        // Auto-run health check on load
+        window.onload = () => {
+            addResult('🚀 بدء التشخيص التلقائي...', 'loading');
+            testBackendHealth();
+        };
+    </script>
+</body>
+</html>

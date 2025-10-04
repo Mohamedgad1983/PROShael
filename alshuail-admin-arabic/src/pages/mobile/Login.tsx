@@ -36,10 +36,12 @@ const MobileLogin = () => {
     try {
       const API_URL = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
 
-      const response = await fetch(`${API_URL}/api/auth/member-login`, {
+      const response = await fetch(`${API_URL}/api/auth/mobile-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone, password })
+      }).catch(error => {
+        throw new Error('لا يمكن الاتصال بالخادم. الرجاء المحاولة بعد قليل.');
       });
 
       const data = await response.json();
