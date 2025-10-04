@@ -24,37 +24,52 @@ const authenticate = async (req, res, next) => {
         let error;
 
         if (decoded.role === 'member') {
-            // For members, check in members table (without is_active check as it might not exist)
-            ({ data: user, error } = await supabase
+            // For members, check in members table
+            const { data: member, error: memberError } = await supabase
                 .from('members')
                 .select('*')
                 .eq('id', decoded.id)
-                .single());
+                .single();
 
-            // Check membership_status instead of is_active for members
-            if (user && user.membership_status && user.membership_status !== 'active') {
-                error = new Error('Member is not active');
-                user = null;
+            if (memberError || !member) {
+                console.log(`[Auth] Member not found in database: ${decoded.id}`);
+                // Still allow the request with token data for backward compatibility
+                req.user = {
+                    id: decoded.id,
+                    role: decoded.role,
+                    phone: decoded.phone,
+                    fullName: decoded.fullName,
+                    membershipNumber: decoded.membershipNumber
+                };
+            } else {
+                // Check membership_status
+                if (member.membership_status && member.membership_status !== 'active') {
+                    console.log(`[Auth] Member is not active: ${member.membership_status}`);
+                }
+                req.user = {
+                    ...member,
+                    role: 'member',
+                    id: member.id
+                };
             }
         } else {
             // For admins/other roles, check in users table
-            ({ data: user, error } = await supabase
+            const { data: adminUser, error: adminError } = await supabase
                 .from('users')
                 .select('*')
                 .eq('id', decoded.id)
                 .eq('is_active', true)
-                .single());
-        }
+                .single();
 
-        if (error || !user) {
-            return res.status(401).json({
-                success: false,
-                message: 'المستخدم غير موجود أو غير نشط',
-                message_en: 'User not found or inactive'
-            });
+            if (adminError || !adminUser) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'المستخدم غير موجود أو غير نشط',
+                    message_en: 'User not found or inactive'
+                });
+            }
+            req.user = adminUser;
         }
-
-        req.user = user;
         next();
     } catch (error) {
         if (error.name === 'JsonWebTokenError') {
