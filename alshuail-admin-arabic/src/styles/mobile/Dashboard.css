@@ -5,6 +5,7 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -13,6 +14,10 @@ body {
     min-height: 100vh;
     direction: rtl;
     overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
 }
 
 /* ========== MOBILE CONTAINER ========== */
@@ -92,18 +97,26 @@ body {
 }
 
 .header-button {
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
+    width: clamp(40px, 10vw, 44px);
+    height: clamp(40px, 10vw, 44px);
+    min-width: 40px;
+    min-height: 40px;
     border-radius: 50%;
     background: #f5f5f5;
     border: none;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
+    font-size: clamp(16px, 4vw, 20px);
     cursor: pointer;
     position: relative;
+    flex-shrink: 0;
+    transition: transform 0.2s, background 0.2s;
+}
+
+.header-button:active {
+    transform: scale(0.95);
+    background: #e8e8e8;
 }
 
 .notification-badge {
@@ -262,12 +275,21 @@ body {
     width: 100%;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    padding: 10px;
-    border-radius: 8px;
-    font-size: clamp(13px, 3.5vw, 14px);
+    padding: clamp(10px, 2.5vh, 14px);
+    border-radius: clamp(8px, 2vw, 12px);
+    font-size: clamp(13px, 3.5vw, 16px);
     font-weight: 600;
     border: none;
     cursor: pointer;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s;
+}
+
+.notification-dropdown-footer button:active {
+    transform: scale(0.98);
 }
 
 /* ========== MAIN CONTENT ========== */
@@ -275,7 +297,9 @@ body {
     width: 100%;
     max-width: 600px;
     margin: 0 auto;
-    padding: 12px;
+    padding: clamp(10px, 3vw, 16px);
+    max-width: 100vw;
+    overflow-x: hidden;
 }
 
 /* ========== PROFILE COMPLETION CARD ========== */
@@ -352,13 +376,23 @@ body {
     width: 100%;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    padding: 12px;
-    border-radius: 12px;
-    font-size: clamp(13px, 3.5vw, 15px);
+    padding: clamp(10px, 2.5vh, 14px);
+    border-radius: clamp(10px, 2.5vw, 14px);
+    font-size: clamp(13px, 3.5vw, 16px);
     font-weight: 600;
     border: none;
     cursor: pointer;
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: transform 0.2s;
+}
+
+.complete-profile-btn:active {
+    transform: scale(0.98);
 }
 
 /* ========== BALANCE CARD ========== */
@@ -479,15 +513,20 @@ body {
     flex: 1;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    padding: 12px 8px;
-    border-radius: 12px;
-    font-size: clamp(13px, 3.5vw, 15px);
+    padding: clamp(10px, 2.5vh, 14px) clamp(8px, 2vw, 12px);
+    border-radius: clamp(10px, 2.5vw, 14px);
+    font-size: clamp(13px, 3.5vw, 16px);
     font-weight: 600;
     border: none;
     cursor: pointer;
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
     transition: transform 0.2s;
     white-space: nowrap;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
 }
 
 .primary-button:active {
@@ -498,14 +537,19 @@ body {
     flex: 1;
     background: #f5f5f5;
     color: #667eea;
-    padding: 12px 8px;
-    border-radius: 12px;
-    font-size: clamp(13px, 3.5vw, 15px);
+    padding: clamp(10px, 2.5vh, 14px) clamp(8px, 2vw, 12px);
+    border-radius: clamp(10px, 2.5vw, 14px);
+    font-size: clamp(13px, 3.5vw, 16px);
     font-weight: 600;
     border: 2px solid #e0e0e0;
     cursor: pointer;
     transition: all 0.2s;
     white-space: nowrap;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
 }
 
 .secondary-button:active {
@@ -622,13 +666,19 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
-    padding: 6px 4px;
+    gap: clamp(2px, 0.5vh, 4px);
+    padding: clamp(6px, 1.5vh, 10px) clamp(4px, 1vw, 8px);
     cursor: pointer;
     position: relative;
     border: none;
     background: transparent;
     min-width: 0;
+    min-height: 56px;
+    transition: background 0.2s;
+}
+
+.nav-item:active {
+    background: rgba(102, 126, 234, 0.05);
 }
 
 .nav-item.active::before {
@@ -744,12 +794,70 @@ body {
 
 /* Landscape mode */
 @media (orientation: landscape) and (max-height: 500px) {
+    .mobile-header {
+        min-height: 48px;
+        padding: 6px 12px;
+    }
+
+    .mobile-container {
+        padding-top: 52px;
+    }
+
     .balance-amount {
-        font-size: 32px;
+        font-size: 32px !important;
     }
 
     .balance-display {
         padding: 8px 0;
+    }
+
+    .profile-completion-card,
+    .balance-card,
+    .notification-card {
+        padding: 10px;
+        margin-bottom: 8px;
+    }
+
+    .bottom-nav {
+        padding: 4px 0 calc(4px + env(safe-area-inset-bottom));
+    }
+}
+
+/* Extra Small Phones - iPhone SE, Galaxy S10e (320px-360px) */
+@media (max-width: 360px) {
+    .completion-items {
+        grid-template-columns: 1fr;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .action-buttons > * {
+        width: 100%;
+    }
+}
+
+/* Medium Phones - iPhone 12/13 (375px-390px) */
+@media (min-width: 375px) and (max-width: 390px) {
+    .mobile-content {
+        padding: 12px;
+    }
+}
+
+/* Large Phones - iPhone 14 Pro (391px-414px) */
+@media (min-width: 391px) and (max-width: 414px) {
+    .mobile-content {
+        padding: 14px;
+    }
+}
+
+/* Extra Large Phones - iPhone 14 Pro Max (415px+) */
+@media (min-width: 415px) {
+    .mobile-content {
+        max-width: 500px;
+        padding: 16px;
     }
 }
 
