@@ -8,12 +8,20 @@
     -webkit-tap-highlight-color: transparent;
 }
 
+html {
+    height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
 body {
     font-family: 'Cairo', -apple-system, BlinkMacSystemFont, sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     min-height: 100vh;
     direction: rtl;
     overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     padding-top: env(safe-area-inset-top);
@@ -29,6 +37,9 @@ body {
     padding-bottom: 80px;
     direction: rtl;
     overflow-x: hidden;
+    overflow-y: visible;
+    width: 100%;
+    position: relative;
 }
 
 /* ========== FIXED HEADER ========== */
