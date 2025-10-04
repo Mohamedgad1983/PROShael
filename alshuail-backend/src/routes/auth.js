@@ -423,8 +423,24 @@ async function handleMemberLogin(req, res) {
 
     const cleanPhone = normalizePhone(phone);
 
+    // Check test member but prefer real database member
     const testMember = resolveTestMember(cleanPhone, password);
-    if (testMember) {
+
+    // First try to authenticate from real database
+    const result = await authenticateMember(cleanPhone, password);
+    if (result.ok) {
+      return res.json({
+        success: true,
+        token: result.token,
+        user: buildMemberResponse(result.member),
+        message: 'تم تسجيل الدخول بنجاح',
+        requires_password_change: result.member.requires_password_change || false,
+        is_first_login: result.member.is_first_login || false
+      });
+    }
+
+    // Fall back to test member if database authentication failed
+    if (testMember && !result.ok) {
       const token = signToken({
         id: testMember.id,
         phone: testMember.phone,
@@ -443,22 +459,12 @@ async function handleMemberLogin(req, res) {
       });
     }
 
-    const result = await authenticateMember(cleanPhone, password);
     if (!result.ok) {
       return res.status(result.status).json({
         success: false,
         error: result.message
       });
     }
-
-    return res.json({
-      success: true,
-      token: result.token,
-      user: buildMemberResponse(result.member),
-      message: 'تم تسجيل الدخول بنجاح',
-      requires_password_change: result.member.requires_password_change || false,
-      is_first_login: result.member.requires_password_change || false
-    });
   } catch (error) {
     console.error('Mobile login error:', error);
     return res.status(500).json({
