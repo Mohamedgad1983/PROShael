@@ -85,7 +85,8 @@ const MobileDashboard = () => {
         navigate('/mobile/profile');
         break;
       case 'contact':
-        navigate('/mobile/contact');
+        // Navigate to dashboard temporarily until Contact page is created
+        navigate('/mobile/dashboard');
         break;
       default:
         break;
@@ -338,11 +339,11 @@ const MobileDashboard = () => {
           <span className="nav-icon">💰</span>
           <span className="nav-text">الدفع</span>
         </a>
-        <a href="#" className="nav-item" onClick={(e) => { e.preventDefault(); navigate('/mobile/family'); }}>
-          <span className="nav-icon">👥</span>
-          <span className="nav-text">العائلة</span>
+        <a href="#" className="nav-item" onClick={(e) => { e.preventDefault(); navigate('/mobile/notifications'); }}>
+          <span className="nav-icon">🔔</span>
+          <span className="nav-text">الإشعارات</span>
         </a>
-        <a href="#" className="nav-item" onClick={(e) => { e.preventDefault(); navigate('/mobile/settings'); }}>
+        <a href="#" className="nav-item" onClick={(e) => { e.preventDefault(); navigate('/mobile/profile'); }}>
           <span className="nav-icon">⚙️</span>
           <span className="nav-text">الإعدادات</span>
         </a>
