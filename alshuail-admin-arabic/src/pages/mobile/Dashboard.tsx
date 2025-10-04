@@ -64,8 +64,12 @@ const MobileDashboard = () => {
         setBalance(dashboardData.balance.data || dashboardData.balance);
       }
 
-      if (dashboardData.notifications) {
-        organizeNotifications(dashboardData.notifications.data || dashboardData.notifications);
+      if (dashboardData.notifications && Array.isArray(dashboardData.notifications.data || dashboardData.notifications)) {
+        const notifData = dashboardData.notifications.data || dashboardData.notifications;
+        if (notifData.length > 0) {
+          organizeNotifications(notifData);
+        }
+        // If empty array, keep existing sample data
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
