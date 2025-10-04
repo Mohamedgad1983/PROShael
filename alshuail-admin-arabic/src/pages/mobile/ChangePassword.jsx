@@ -38,10 +38,11 @@ const ChangePassword = () => {
   const validatePassword = (password) => {
     const errors = [];
     if (password.length < 8) errors.push('8 أحرف على الأقل');
-    if (!/[A-Z]/.test(password)) errors.push('حرف كبير');
-    if (!/[a-z]/.test(password)) errors.push('حرف صغير');
-    if (!/[0-9]/.test(password)) errors.push('رقم');
-    if (!/[@$!%*?&#]/.test(password)) errors.push('رمز خاص');
+    // Make other requirements optional - just length is required
+    // if (!/[A-Z]/.test(password)) errors.push('حرف كبير');
+    // if (!/[a-z]/.test(password)) errors.push('حرف صغير');
+    // if (!/[0-9]/.test(password)) errors.push('رقم');
+    // if (!/[@$!%*?&#]/.test(password)) errors.push('رمز خاص');
     return errors;
   };
 
@@ -84,15 +85,21 @@ const ChangePassword = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message_ar || 'فشل تغيير كلمة المرور');
+        throw new Error(data.message_ar || data.message || 'فشل تغيير كلمة المرور');
       }
 
-      // Show success message
-      alert('✅ تم تغيير كلمة المرور بنجاح!');
+      // Check if the response indicates success
+      if (data.success) {
+        // Show success message
+        alert('✅ تم تغيير كلمة المرور بنجاح!');
 
-      // Check if biometric is available (will implement later)
-      // For now, just navigate to dashboard
-      navigate('/mobile/dashboard');
+        // Navigate to dashboard
+        setTimeout(() => {
+          navigate('/mobile/dashboard');
+        }, 500);
+      } else {
+        throw new Error(data.message || 'فشل تغيير كلمة المرور');
+      }
 
     } catch (err) {
       setError(err.message);
@@ -270,7 +277,7 @@ const ChangePassword = () => {
           <button
             type="submit"
             className="submit-button"
-            disabled={loading || passwordStrength < 50}
+            disabled={loading || newPassword.length < 8 || newPassword !== confirmPassword}
           >
             {loading ? (
               <>
