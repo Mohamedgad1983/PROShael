@@ -80,8 +80,8 @@ exports.getMemberPayments = async (req, res) => {
           membership_number
         )
       `)
-      .eq('member_id', memberId)
-      .order('date', { ascending: false })
+      .eq('payer_id', memberId)
+      .order('created_at', { ascending: false })
       .limit(parseInt(limit));
 
     // Apply filters
@@ -95,8 +95,8 @@ exports.getMemberPayments = async (req, res) => {
         ? new Date(year, parseInt(month) + 1, 0)
         : new Date(year, 11, 31);
 
-      query = query.gte('date', startDate.toISOString())
-                   .lte('date', endDate.toISOString());
+      query = query.gte('created_at', startDate.toISOString())
+                   .lte('created_at', endDate.toISOString());
     }
 
     const { data, error } = await query;
@@ -126,13 +126,11 @@ exports.createPayment = async (req, res) => {
 
     // Create payment record
     const paymentData = {
-      member_id: memberId,
+      payer_id: memberId,
       amount: parseFloat(amount),
       notes: notes || null,
-      receipt_url: receipt_url || null,
       status: 'pending',
-      date: new Date().toISOString(),
-      on_behalf_of: on_behalf_of || null
+      category: 'subscription'
     };
 
     const { data, error } = await supabase
