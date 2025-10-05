@@ -1,0 +1,871 @@
+/* 
+ * AL-SHUAIL MOBILE - RESPONSIVE FIX FOR ALL PHONES
+ * Works on: iPhone SE (320px) to iPhone 14 Pro Max (428px) and all Android
+ */
+
+/* ========================================
+   1. RESET & BASE STYLES
+   ======================================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html {
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Cairo', sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    direction: rtl;
+}
+
+/* ========================================
+   2. RESPONSIVE CONTAINER
+   ======================================== */
+
+.container,
+.page-container,
+.main-content {
+    width: 100%;
+    max-width: 100vw;
+    padding: 0 clamp(12px, 3vw, 20px);
+    margin: 0 auto;
+    overflow-x: hidden;
+}
+
+/* ========================================
+   3. HEADER - FIXED & RESPONSIVE
+   ======================================== */
+
+.header,
+.app-header,
+header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    padding: clamp(8px, 2vh, 12px) clamp(12px, 3vw, 16px);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    min-height: clamp(56px, 12vh, 70px);
+}
+
+.header-title,
+.page-title {
+    font-size: clamp(16px, 4vw, 20px);
+    font-weight: 700;
+    color: #333;
+    margin: 0;
+    padding: 0;
+}
+
+.header-button,
+.icon-button {
+    width: clamp(36px, 9vw, 44px);
+    height: clamp(36px, 9vw, 44px);
+    min-width: 36px;
+    min-height: 36px;
+    border-radius: 50%;
+    background: #f5f5f5;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(16px, 4vw, 20px);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+/* User Section in Header */
+.user-section {
+    display: flex;
+    align-items: center;
+    gap: clamp(8px, 2vw, 12px);
+    flex: 1;
+    min-width: 0;
+}
+
+.avatar,
+.user-avatar {
+    width: clamp(36px, 9vw, 44px);
+    height: clamp(36px, 9vw, 44px);
+    min-width: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: clamp(14px, 3.5vw, 18px);
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+}
+
+.user-name {
+    font-size: clamp(13px, 3.5vw, 16px);
+    font-weight: 700;
+    color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+}
+
+.membership-number,
+.user-id {
+    font-size: clamp(10px, 2.5vw, 12px);
+    color: #999;
+    line-height: 1.2;
+}
+
+/* ========================================
+   4. CONTENT SPACING (for fixed header/footer)
+   ======================================== */
+
+.page-content,
+.dashboard-content,
+.main-wrapper {
+    padding-top: clamp(60px, 13vh, 80px);
+    padding-bottom: clamp(70px, 15vh, 90px);
+    min-height: 100vh;
+}
+
+/* ========================================
+   5. CARDS - FULLY RESPONSIVE
+   ======================================== */
+
+.card,
+.profile-card,
+.balance-card,
+.info-card,
+.notification-card {
+    background: white;
+    border-radius: clamp(16px, 4vw, 24px);
+    padding: clamp(12px, 3vw, 20px);
+    margin-bottom: clamp(10px, 2.5vh, 16px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    width: 100%;
+    overflow: hidden;
+}
+
+/* Profile Completion Card */
+.profile-completion-card {
+    background: white;
+    border-radius: clamp(16px, 4vw, 24px);
+    padding: clamp(14px, 3.5vw, 20px);
+    margin-bottom: clamp(10px, 2.5vh, 16px);
+}
+
+.completion-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: clamp(10px, 2.5vh, 14px);
+    gap: 8px;
+}
+
+.completion-title {
+    font-size: clamp(14px, 3.5vw, 17px);
+    font-weight: 700;
+    color: #333;
+    flex: 1;
+    min-width: 0;
+}
+
+.completion-percentage {
+    font-size: clamp(20px, 5vw, 28px);
+    font-weight: 700;
+    color: #667eea;
+    flex-shrink: 0;
+}
+
+/* Progress Bar */
+.progress-bar-container,
+.progress-bar {
+    width: 100%;
+    height: clamp(8px, 2vh, 12px);
+    background: #f0f0f0;
+    border-radius: clamp(4px, 1vw, 6px);
+    overflow: hidden;
+    margin-bottom: clamp(10px, 2.5vh, 14px);
+}
+
+.progress-bar-fill,
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    transition: width 0.5s ease;
+    border-radius: clamp(4px, 1vw, 6px);
+}
+
+/* Completion Items Grid */
+.completion-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: clamp(6px, 1.5vw, 10px);
+    margin-bottom: clamp(10px, 2.5vh, 14px);
+}
+
+@media (max-width: 360px) {
+    .completion-items {
+        grid-template-columns: 1fr;
+    }
+}
+
+.completion-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: clamp(11px, 2.8vw, 14px);
+    color: #666;
+    line-height: 1.3;
+}
+
+.completion-item.completed {
+    color: #2e7d32;
+}
+
+.completion-item.incomplete {
+    color: #c62828;
+}
+
+/* ========================================
+   6. BALANCE CARD
+   ======================================== */
+
+.balance-display {
+    text-align: center;
+    padding: clamp(10px, 2.5vh, 16px) 0;
+}
+
+.balance-amount,
+.amount-display {
+    font-size: clamp(28px, 8vw, 48px);
+    font-weight: 700;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: clamp(6px, 1.5vh, 10px);
+    line-height: 1.2;
+    word-break: break-word;
+}
+
+.balance-label {
+    font-size: clamp(12px, 3vw, 15px);
+    color: #666;
+    margin-bottom: clamp(10px, 2.5vh, 14px);
+    line-height: 1.4;
+}
+
+/* Status Indicators */
+.status-indicator,
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: clamp(4px, 1vw, 8px);
+    padding: clamp(6px, 1.5vw, 10px) clamp(12px, 3vw, 16px);
+    border-radius: 20px;
+    font-size: clamp(12px, 3vw, 16px);
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.status-indicator.good {
+    background: rgba(76, 175, 80, 0.1);
+    color: #2e7d32;
+    border: 2px solid rgba(76, 175, 80, 0.3);
+}
+
+.status-indicator.insufficient {
+    background: rgba(244, 67, 54, 0.1);
+    color: #c62828;
+    border: 2px solid rgba(244, 67, 54, 0.3);
+}
+
+/* Balance Breakdown */
+.balance-breakdown {
+    margin: clamp(12px, 3vh, 18px) 0;
+    padding: clamp(10px, 2.5vw, 16px);
+    background: #f8f9fa;
+    border-radius: clamp(10px, 2.5vw, 14px);
+}
+
+.breakdown-row {
+    display: flex;
+    justify-content: space-between;
+    padding: clamp(6px, 1.5vh, 10px) 0;
+    border-bottom: 1px solid #e0e0e0;
+    gap: 8px;
+}
+
+.breakdown-row:last-child {
+    border-bottom: none;
+}
+
+.breakdown-label {
+    font-size: clamp(12px, 3vw, 14px);
+    color: #666;
+    flex: 1;
+}
+
+.breakdown-value {
+    font-size: clamp(12px, 3vw, 14px);
+    font-weight: 600;
+    color: #333;
+    text-align: left;
+}
+
+/* ========================================
+   7. BUTTONS - RESPONSIVE & TOUCH-FRIENDLY
+   ======================================== */
+
+.button,
+.btn,
+button {
+    padding: clamp(10px, 2.5vh, 14px) clamp(16px, 4vw, 24px);
+    border-radius: clamp(10px, 2.5vw, 14px);
+    font-size: clamp(13px, 3.5vw, 16px);
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.2s;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.button:active,
+.btn:active {
+    transform: scale(0.98);
+}
+
+.primary-button,
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.secondary-button,
+.btn-secondary {
+    background: #f5f5f5;
+    color: #667eea;
+    border: 2px solid #e0e0e0;
+}
+
+/* Action Buttons Row */
+.action-buttons,
+.button-group {
+    display: flex;
+    gap: clamp(8px, 2vw, 12px);
+    margin-top: clamp(10px, 2.5vh, 14px);
+}
+
+.action-buttons > * {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Full Width Button */
+.complete-profile-btn,
+.btn-block,
+.full-width-btn {
+    width: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: clamp(12px, 3vh, 16px);
+    border-radius: clamp(10px, 2.5vw, 14px);
+    font-size: clamp(13px, 3.5vw, 16px);
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    margin-top: clamp(10px, 2.5vh, 14px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    min-height: 48px;
+}
+
+/* ========================================
+   8. FORM INPUTS - RESPONSIVE
+   ======================================== */
+
+input[type="text"],
+input[type="number"],
+input[type="tel"],
+input[type="email"],
+textarea,
+select {
+    width: 100%;
+    padding: clamp(10px, 2.5vh, 14px) clamp(12px, 3vw, 16px);
+    border: 2px solid #e0e0e0;
+    border-radius: clamp(10px, 2.5vw, 14px);
+    font-size: clamp(14px, 3.5vw, 16px);
+    font-family: inherit;
+    background: white;
+    min-height: 48px;
+    box-sizing: border-box;
+}
+
+textarea {
+    min-height: clamp(80px, 20vh, 120px);
+    resize: vertical;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+/* Input Labels */
+.form-label,
+label {
+    display: block;
+    font-size: clamp(13px, 3.5vw, 15px);
+    font-weight: 600;
+    color: #333;
+    margin-bottom: clamp(6px, 1.5vh, 10px);
+    text-align: right;
+}
+
+.form-group,
+.input-group {
+    margin-bottom: clamp(14px, 3.5vh, 20px);
+}
+
+/* ========================================
+   9. TABS / FILTER CHIPS
+   ======================================== */
+
+.tabs,
+.filter-chips,
+.chip-group {
+    display: flex;
+    gap: clamp(6px, 1.5vw, 10px);
+    overflow-x: auto;
+    padding: clamp(8px, 2vh, 12px) 0;
+    margin-bottom: clamp(10px, 2.5vh, 14px);
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+}
+
+.tabs::-webkit-scrollbar,
+.filter-chips::-webkit-scrollbar {
+    display: none;
+}
+
+.tab,
+.chip,
+.filter-chip {
+    padding: clamp(8px, 2vh, 12px) clamp(14px, 3.5vw, 20px);
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.3);
+    border: 2px solid transparent;
+    font-size: clamp(12px, 3vw, 15px);
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.3s;
+    color: white;
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+}
+
+.tab.active,
+.chip.active,
+.filter-chip.active {
+    background: white;
+    color: #667eea;
+    border-color: white;
+}
+
+/* ========================================
+   10. NOTIFICATION CARDS
+   ======================================== */
+
+.notification-card,
+.notification-item {
+    background: white;
+    border-radius: clamp(14px, 3.5vw, 18px);
+    padding: clamp(10px, 2.5vw, 14px);
+    margin-bottom: clamp(8px, 2vh, 12px);
+    display: flex;
+    gap: clamp(8px, 2vw, 12px);
+    border-right: 4px solid transparent;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.notification-card.priority-high {
+    border-right-color: #f44336;
+}
+
+.notification-card.priority-medium {
+    border-right-color: #ff9800;
+}
+
+.notification-icon {
+    width: clamp(40px, 10vw, 48px);
+    height: clamp(40px, 10vw, 48px);
+    min-width: 40px;
+    border-radius: clamp(10px, 2.5vw, 12px);
+    background: #f5f5f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(20px, 5vw, 24px);
+    flex-shrink: 0;
+}
+
+.notification-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.notification-title {
+    font-size: clamp(13px, 3.5vw, 15px);
+    font-weight: 700;
+    color: #333;
+    margin-bottom: clamp(4px, 1vh, 6px);
+    line-height: 1.3;
+}
+
+.notification-body {
+    font-size: clamp(12px, 3vw, 14px);
+    color: #666;
+    line-height: 1.5;
+    margin-bottom: clamp(4px, 1vh, 6px);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.notification-meta {
+    display: flex;
+    gap: clamp(6px, 1.5vw, 10px);
+    font-size: clamp(10px, 2.5vw, 12px);
+    color: #999;
+    flex-wrap: wrap;
+}
+
+/* ========================================
+   11. SECTION HEADERS
+   ======================================== */
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: clamp(16px, 4vh, 24px) 0 clamp(10px, 2.5vh, 14px);
+    padding: 0 clamp(4px, 1vw, 8px);
+}
+
+.section-title {
+    font-size: clamp(16px, 4vw, 20px);
+    font-weight: 700;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: clamp(6px, 1.5vw, 10px);
+}
+
+.view-all {
+    font-size: clamp(12px, 3vw, 14px);
+    color: white;
+    opacity: 0.8;
+    cursor: pointer;
+}
+
+/* ========================================
+   12. BOTTOM NAVIGATION - FIXED & SAFE AREA
+   ======================================== */
+
+.bottom-nav,
+.navigation-bar,
+.tab-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    border-top: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: space-around;
+    padding: clamp(6px, 1.5vh, 10px) 0;
+    padding-bottom: calc(clamp(6px, 1.5vh, 10px) + env(safe-area-inset-bottom));
+    z-index: 1000;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.nav-item,
+.tab-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(2px, 0.5vh, 4px);
+    padding: clamp(6px, 1.5vh, 10px) clamp(4px, 1vw, 8px);
+    cursor: pointer;
+    position: relative;
+    border: none;
+    background: transparent;
+    min-width: 0;
+    min-height: 56px;
+}
+
+.nav-item.active::before,
+.tab-item.active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 20%;
+    right: 20%;
+    height: 3px;
+    background: #667eea;
+    border-radius: 0 0 3px 3px;
+}
+
+.nav-icon,
+.tab-icon {
+    font-size: clamp(20px, 5vw, 24px);
+    filter: grayscale(100%);
+    transition: filter 0.3s;
+}
+
+.nav-item.active .nav-icon,
+.tab-item.active .tab-icon {
+    filter: grayscale(0%);
+}
+
+.nav-label,
+.tab-label {
+    font-size: clamp(10px, 2.5vw, 12px);
+    font-weight: 600;
+    color: #999;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    line-height: 1.2;
+}
+
+.nav-item.active .nav-label,
+.tab-item.active .tab-label {
+    color: #667eea;
+}
+
+/* ========================================
+   13. EMPTY STATES
+   ======================================== */
+
+.empty-state {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: clamp(14px, 3.5vw, 20px);
+    padding: clamp(20px, 5vh, 32px);
+    text-align: center;
+    color: #666;
+    font-size: clamp(13px, 3.5vw, 15px);
+}
+
+.empty-state-icon {
+    font-size: clamp(40px, 10vw, 56px);
+    margin-bottom: clamp(10px, 2.5vh, 16px);
+    opacity: 0.5;
+}
+
+/* ========================================
+   14. MEDIA QUERIES - SPECIFIC BREAKPOINTS
+   ======================================== */
+
+/* Extra Small Phones (iPhone SE, Galaxy S10e) */
+@media (max-width: 360px) {
+    body {
+        font-size: 14px;
+    }
+    
+    .container {
+        padding: 0 10px;
+    }
+    
+    .card {
+        padding: 10px;
+    }
+}
+
+/* Small Phones */
+@media (min-width: 361px) and (max-width: 375px) {
+    body {
+        font-size: 15px;
+    }
+}
+
+/* Medium Phones (iPhone 12/13) */
+@media (min-width: 376px) and (max-width: 390px) {
+    body {
+        font-size: 16px;
+    }
+}
+
+/* Large Phones (iPhone 14 Pro) */
+@media (min-width: 391px) and (max-width: 414px) {
+    body {
+        font-size: 16px;
+    }
+}
+
+/* Extra Large Phones (iPhone 14 Pro Max) */
+@media (min-width: 415px) {
+    body {
+        font-size: 17px;
+    }
+    
+    .container {
+        max-width: 500px;
+    }
+}
+
+/* Landscape Mode Adjustments */
+@media (orientation: landscape) and (max-height: 500px) {
+    .header {
+        min-height: 48px;
+        padding: 6px 12px;
+    }
+    
+    .page-content {
+        padding-top: 52px;
+    }
+    
+    .balance-amount {
+        font-size: 32px !important;
+    }
+    
+    .balance-display {
+        padding: 8px 0;
+    }
+}
+
+/* ========================================
+   15. UTILITY CLASSES
+   ======================================== */
+
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+
+.mt-1 { margin-top: 8px; }
+.mt-2 { margin-top: 16px; }
+.mt-3 { margin-top: 24px; }
+
+.mb-1 { margin-bottom: 8px; }
+.mb-2 { margin-bottom: 16px; }
+.mb-3 { margin-bottom: 24px; }
+
+.p-1 { padding: 8px; }
+.p-2 { padding: 16px; }
+.p-3 { padding: 24px; }
+
+.w-100 { width: 100%; }
+.h-100 { height: 100%; }
+
+.d-none { display: none; }
+.d-block { display: block; }
+.d-flex { display: flex; }
+
+.flex-column { flex-direction: column; }
+.flex-row { flex-direction: row; }
+.align-center { align-items: center; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+
+.gap-1 { gap: 8px; }
+.gap-2 { gap: 16px; }
+.gap-3 { gap: 24px; }
+
+/* ========================================
+   16. LOADING & ANIMATIONS
+   ======================================== */
+
+.loading-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* ========================================
+   17. SAFE AREA SUPPORT (iPhone X+)
+   ======================================== */
+
+@supports (padding: max(0px)) {
+    body {
+        padding-left: max(0px, env(safe-area-inset-left));
+        padding-right: max(0px, env(safe-area-inset-right));
+    }
+    
+    .header {
+        padding-top: max(8px, env(safe-area-inset-top));
+    }
+    
+    .bottom-nav {
+        padding-bottom: max(6px, env(safe-area-inset-bottom));
+    }
+}
+
+/* ========================================
+   END OF RESPONSIVE CSS
+   ======================================== */

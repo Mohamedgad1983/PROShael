@@ -5,11 +5,17 @@ import {
   getMemberBalance,
   getMemberPayments,
   createPayment,
-  searchMembers,
-  getMemberNotifications,
-  markNotificationAsRead,
-  markAllNotificationsAsRead
+  searchMembers
 } from '../controllers/memberController.js';
+
+// Import enhanced notification functions from the new notificationController
+import {
+  getMemberNotifications,
+  getNotificationSummary,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+  deleteNotification
+} from '../controllers/notificationController.js';
 
 const router = express.Router();
 
@@ -24,9 +30,11 @@ router.post('/payments', authenticate, createPayment);
 // Member Search (for payment on behalf)
 router.get('/search', authenticate, searchMembers);
 
-// Notification Routes
+// Enhanced Notification Routes (using new notificationController)
 router.get('/notifications', authenticate, getMemberNotifications);
-router.post('/notifications/:id/read', authenticate, markNotificationAsRead);
-router.post('/notifications/read-all', authenticate, markAllNotificationsAsRead);
+router.get('/notifications/summary', authenticate, getNotificationSummary);
+router.put('/notifications/:id/read', authenticate, markNotificationAsRead);
+router.put('/notifications/read-all', authenticate, markAllNotificationsAsRead);
+router.delete('/notifications/:id', authenticate, deleteNotification);
 
 export default router;

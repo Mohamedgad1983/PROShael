@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import axios from 'axios';
 import '../../styles/mobile/Dashboard.css';
 import { getDashboardData } from '../../services/mobileApi';
+
+// API Configuration
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
 
 const MobileDashboard = () => {
   const navigate = useNavigate();
@@ -18,12 +22,25 @@ const MobileDashboard = () => {
     occasions: [] as any[],
     statements: [] as any[]
   });
+  const [notificationLoading, setNotificationLoading] = useState(false);
+  const [notificationError, setNotificationError] = useState<string | null>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     // Always load sample data first for immediate display
     setSampleData();
     // Then fetch real data to override
     fetchDashboardData();
+
+    // Fetch notifications when component mounts
+    fetchNotifications();
+
+    // Optional: Refresh notifications every 2 minutes
+    const intervalId = setInterval(() => {
+      fetchNotifications();
+    }, 120000); // 2 minutes
+
+    return () => clearInterval(intervalId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -112,6 +129,114 @@ const MobileDashboard = () => {
     });
 
     setNotifications(organized);
+  };
+
+  // Fetch notifications from API
+  const fetchNotifications = async () => {
+    try {
+      setNotificationLoading(true);
+      setNotificationError(null);
+
+      const token = localStorage.getItem('token');
+
+      if (!token) {
+        console.log('[Notifications] No token found, using sample data');
+        loadSampleNotifications();
+        return;
+      }
+
+      const response = await axios.get(
+        `${API_BASE_URL}/api/member/notifications`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      if (response.data.success) {
+        const { notifications: notifData, unreadCount: count } = response.data.data;
+
+        console.log('[Notifications] Fetched:', notifData);
+        console.log('[Notifications] Unread count:', count);
+
+        // Update state with real data
+        setNotifications(notifData);
+        setUnreadCount(count);
+      } else {
+        throw new Error('Failed to fetch notifications');
+      }
+
+    } catch (error: any) {
+      console.error('[Notifications] Fetch error:', error);
+      setNotificationError(error.message);
+
+      // Fallback to sample data on error
+      loadSampleNotifications();
+    } finally {
+      setNotificationLoading(false);
+    }
+  };
+
+  // Load sample notifications (fallback)
+  const loadSampleNotifications = () => {
+    setSampleData();
+  };
+
+  // Mark notification as read
+  const markNotificationAsRead = async (notificationId: string) => {
+    try {
+      const token = localStorage.getItem('token');
+
+      if (!token) return;
+
+      await axios.put(
+        `${API_BASE_URL}/api/member/notifications/${notificationId}/read`,
+        {},
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      // Update local state
+      setUnreadCount(prev => Math.max(0, prev - 1));
+
+      // Optionally refresh notifications
+      fetchNotifications();
+
+    } catch (error) {
+      console.error('[Notifications] Mark read error:', error);
+    }
+  };
+
+  // Mark all notifications as read
+  const markAllNotificationsAsRead = async () => {
+    try {
+      const token = localStorage.getItem('token');
+
+      if (!token) return;
+
+      await axios.put(
+        `${API_BASE_URL}/api/member/notifications/read-all`,
+        {},
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      // Update local state
+      setUnreadCount(0);
+
+      // Refresh notifications
+      fetchNotifications();
+
+    } catch (error) {
+      console.error('[Notifications] Mark all read error:', error);
+    }
   };
 
   // Get all notifications for dropdown - use useMemo for reactivity
@@ -259,8 +384,6 @@ const MobileDashboard = () => {
     { name: 'العنوان', completed: !!user?.address }
   ];
 
-  const unreadCount = 8; // Calculate from notifications
-
   return (
     <div className="mobile-container">
       {/* Fixed Header */}
@@ -298,34 +421,79 @@ const MobileDashboard = () => {
               <button onClick={() => setShowNotifications(false)}>✕</button>
             </div>
 
-            <div className="notification-dropdown-list">
-              {allNotifications.length > 0 ? (
-                allNotifications.map((notif) => (
-                  <div
-                    key={notif.id}
-                    className={`notification-dropdown-item ${notif.priority === 'high' ? 'priority-high' : ''}`}
-                  >
-                    <div className="notification-dropdown-icon">{notif.icon}</div>
-                    <div className="notification-dropdown-content">
-                      <div className="notification-dropdown-title">{notif.title}</div>
-                      <div className="notification-dropdown-body">{notif.body}</div>
-                      <div className="notification-dropdown-meta">
-                        <span>{notif.time}</span>
-                        <span>•</span>
-                        <span>{notif.category}</span>
+            {notificationLoading && (
+              <div className="notification-loading">
+                <div className="spinner"></div>
+                <p>جاري تحميل الإشعارات...</p>
+              </div>
+            )}
+
+            {notificationError && (
+              <div className="notification-error">
+                <p>⚠️ فشل في تحميل الإشعارات</p>
+                <button onClick={() => fetchNotifications()}>إعادة المحاولة</button>
+              </div>
+            )}
+
+            {!notificationLoading && !notificationError && (
+              <div className="notification-dropdown-list">
+                {allNotifications.length > 0 ? (
+                  allNotifications.map((notif) => (
+                    <div
+                      key={notif.id}
+                      className={`notification-dropdown-item ${notif.priority === 'high' ? 'priority-high' : ''}`}
+                      onClick={() => {
+                        // Mark as read when clicked
+                        if (!notif.isRead) {
+                          markNotificationAsRead(notif.id);
+                        }
+
+                        // Navigate if action URL exists
+                        if (notif.actionUrl) {
+                          navigate(notif.actionUrl);
+                        }
+
+                        // Close dropdown
+                        setShowNotifications(false);
+                      }}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <div className="notification-dropdown-icon">{notif.icon}</div>
+                      <div className="notification-dropdown-content">
+                        <div className="notification-dropdown-title">
+                          {notif.title}
+                          {!notif.isRead && <span className="unread-indicator">●</span>}
+                        </div>
+                        <div className="notification-dropdown-body">{notif.body}</div>
+                        <div className="notification-dropdown-meta">
+                          <span>{notif.time}</span>
+                          <span>•</span>
+                          <span>{notif.category}</span>
+                        </div>
                       </div>
                     </div>
+                  ))
+                ) : (
+                  <div className="notification-dropdown-empty">
+                    <span>📭</span>
+                    <p>لا توجد إشعارات جديدة</p>
                   </div>
-                ))
-              ) : (
-                <div className="notification-dropdown-empty">
-                  <span>📭</span>
-                  <p>لا توجد إشعارات جديدة</p>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
 
             <div className="notification-dropdown-footer">
+              {unreadCount > 0 && (
+                <button
+                  className="mark-all-read-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    markAllNotificationsAsRead();
+                  }}
+                >
+                  تحديد الكل كمقروء ({unreadCount})
+                </button>
+              )}
               <button onClick={() => {
                 setShowNotifications(false);
                 navigate('/mobile/notifications');

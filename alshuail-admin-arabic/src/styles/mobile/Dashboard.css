@@ -900,3 +900,146 @@ body {
         padding-right: max(12px, env(safe-area-inset-right));
     }
 }
+
+/* ========== NEW NOTIFICATION FEATURES ========== */
+
+/* Unread Indicator */
+.unread-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: #007AFF;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+/* Mark All as Read Button */
+.mark-all-read-btn {
+    width: 100%;
+    padding: 10px;
+    background: #f0f0f0;
+    border: none;
+    border-radius: 8px;
+    color: #007AFF;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-bottom: 8px;
+    transition: background 0.2s;
+}
+
+.mark-all-read-btn:hover {
+    background: #e0e0e0;
+}
+
+.mark-all-read-btn:active {
+    background: #d0d0d0;
+    transform: scale(0.98);
+}
+
+/* Notification Loading State */
+.notification-loading {
+    text-align: center;
+    padding: 30px;
+    color: #666;
+}
+
+.notification-loading .spinner {
+    width: 30px;
+    height: 30px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #007AFF;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 10px;
+}
+
+/* Notification Error State */
+.notification-error {
+    text-align: center;
+    padding: 20px;
+    color: #ff3b30;
+}
+
+.notification-error p {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.notification-error button {
+    margin-top: 10px;
+    padding: 8px 16px;
+    background: #007AFF;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+
+.notification-error button:hover {
+    background: #0051D5;
+}
+
+.notification-error button:active {
+    background: #004FC1;
+    transform: scale(0.98);
+}
+
+/* Enhanced Notification Card Interactions */
+.notification-card {
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+}
+
+.notification-card:hover {
+    background: #f9f9f9;
+}
+
+.notification-card:active {
+    background: #f0f0f0;
+    transform: scale(0.99);
+}
+
+/* Enhanced Notification Dropdown Item Interactions */
+.notification-dropdown-item {
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+}
+
+.notification-dropdown-item:hover {
+    background: #f8f9fa;
+}
+
+.notification-dropdown-item:active {
+    background: #f0f0f0;
+    transform: scale(0.99);
+}
+
+/* Responsive adjustments for new elements */
+@media (max-width: 360px) {
+    .mark-all-read-btn {
+        font-size: 12px;
+        padding: 8px;
+    }
+
+    .unread-indicator {
+        width: 6px;
+        height: 6px;
+        margin-right: 4px;
+    }
+
+    .notification-loading {
+        padding: 20px;
+    }
+
+    .notification-loading .spinner {
+        width: 24px;
+        height: 24px;
+        border-width: 2px;
+    }
+}
