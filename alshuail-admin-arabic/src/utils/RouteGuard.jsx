@@ -58,22 +58,21 @@ export const MemberRoute = ({ children }) => {
     return <Navigate to="/mobile/login" replace />;
   }
 
-  // Check user role - be more permissive for member role
+  // Allow members to access
   if (user.role === 'member') {
-    // User is a member, allow access
     console.log('MemberRoute: Member authenticated, allowing access');
     return children;
   }
 
-  // User is admin, redirect to admin dashboard
+  // Allow admins to view member pages (for testing/support)
   if (['admin', 'super_admin', 'moderator', 'financial_manager'].includes(user.role)) {
-    console.log('MemberRoute: Admin accessing member route, redirecting to admin dashboard');
-    return <Navigate to="/admin/dashboard" replace />;
+    console.log('MemberRoute: Admin accessing member route for testing/support, allowing access');
+    return children;
   }
 
-  // Unknown role but has token - allow access (edge case)
-  console.warn('MemberRoute: Unknown role but has token, allowing access');
-  return children;
+  // Unknown role but has token - redirect to login
+  console.warn('MemberRoute: Unknown role, redirecting to login');
+  return <Navigate to="/mobile/login" replace />;
 };
 
 /**
