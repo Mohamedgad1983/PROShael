@@ -237,6 +237,7 @@ const App: React.FC = () => {
             <Route path="/mobile/payment-history" element={<MemberRoute><MobilePaymentHistory /></MemberRoute>} />
             <Route path="/mobile/notifications" element={<MemberRoute><MobileNotifications /></MemberRoute>} />
             <Route path="/mobile/subscription" element={<MemberRoute><MemberSubscriptionView /></MemberRoute>} />
+            <Route path="/mobile/subscriptions" element={<Navigate to="/mobile/subscription" replace />} />
             <Route path="/mobile" element={<Navigate to="/mobile/login" replace />} />
 
             {/* Public member registration route */}
