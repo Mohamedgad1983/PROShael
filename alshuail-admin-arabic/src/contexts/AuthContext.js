@@ -326,7 +326,7 @@ export const AuthProvider = ({ children }) => {
     // Module access configuration
     const moduleAccess = {
       'members': ['super_admin'],
-      'financial': ['super_admin', 'financial_manager'],
+      'financial': ['super_admin', 'financial_manager', 'admin', 'moderator'],
       'family_tree': ['super_admin', 'family_tree_admin'],
       'occasions': ['super_admin', 'occasions_initiatives_diyas_admin'],
       'initiatives': ['super_admin', 'occasions_initiatives_diyas_admin'],
