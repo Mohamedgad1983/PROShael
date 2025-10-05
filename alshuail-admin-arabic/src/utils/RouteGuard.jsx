@@ -19,8 +19,8 @@ export const AdminRoute = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
 
-  // Check user role
-  const adminRoles = ['admin', 'super_admin', 'moderator'];
+  // Check user role - Include financial_manager for subscription access
+  const adminRoles = ['admin', 'super_admin', 'moderator', 'financial_manager'];
 
   if (!adminRoles.includes(user.role)) {
     // User is a member, redirect to mobile dashboard
@@ -66,7 +66,7 @@ export const MemberRoute = ({ children }) => {
   }
 
   // User is admin, redirect to admin dashboard
-  if (['admin', 'super_admin', 'moderator'].includes(user.role)) {
+  if (['admin', 'super_admin', 'moderator', 'financial_manager'].includes(user.role)) {
     console.log('MemberRoute: Admin accessing member route, redirecting to admin dashboard');
     return <Navigate to="/admin/dashboard" replace />;
   }
@@ -89,7 +89,7 @@ export const PublicRoute = ({ children }) => {
   if (user && token) {
     if (user.role === 'member') {
       return <Navigate to="/mobile/dashboard" replace />;
-    } else if (['admin', 'super_admin', 'moderator'].includes(user.role)) {
+    } else if (['admin', 'super_admin', 'moderator', 'financial_manager'].includes(user.role)) {
       return <Navigate to="/admin/dashboard" replace />;
     }
   }
@@ -146,6 +146,7 @@ export const RoleBasedRedirect = () => {
     case 'admin':
     case 'super_admin':
     case 'moderator':
+    case 'financial_manager':
       return <Navigate to="/admin/dashboard" replace />;
     default:
       console.error('Unknown user role:', user.role);
@@ -174,6 +175,13 @@ export const PermissionRoute = ({ children, permission }) => {
       'manage_payments',
       'manage_notifications',
       'view_reports'
+    ],
+    financial_manager: [
+      'view_dashboard',
+      'manage_payments',
+      'manage_subscriptions',
+      'view_reports',
+      'send_payment_reminders'
     ],
     moderator: [
       'view_dashboard',
