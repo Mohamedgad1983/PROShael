@@ -20,6 +20,10 @@ import MobileProfile from './pages/mobile/Profile';
 import MobilePayment from './pages/mobile/Payment';
 import MobilePaymentHistory from './pages/mobile/PaymentHistory';
 import MobileNotifications from './pages/mobile/Notifications';
+import MemberSubscriptionView from './pages/mobile/MemberSubscriptionView';
+
+// Admin Pages
+import SubscriptionDashboard from './pages/admin/SubscriptionDashboard';
 
 // Admin Dashboard Component
 const AdminDashboard: React.FC = () => {
@@ -232,6 +236,7 @@ const App: React.FC = () => {
             <Route path="/mobile/payment" element={<MemberRoute><MobilePayment /></MemberRoute>} />
             <Route path="/mobile/payment-history" element={<MemberRoute><MobilePaymentHistory /></MemberRoute>} />
             <Route path="/mobile/notifications" element={<MemberRoute><MobileNotifications /></MemberRoute>} />
+            <Route path="/mobile/subscription" element={<MemberRoute><MemberSubscriptionView /></MemberRoute>} />
             <Route path="/mobile" element={<Navigate to="/mobile/login" replace />} />
 
             {/* Public member registration route */}
@@ -249,6 +254,10 @@ const App: React.FC = () => {
 
             {/* Family Tree Route */}
             <Route path="/family-tree" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+
+            {/* Subscription Management Routes */}
+            <Route path="/admin/subscriptions" element={<AdminRoute><SubscriptionDashboard /></AdminRoute>} />
+            <Route path="/subscriptions" element={<AdminRoute><SubscriptionDashboard /></AdminRoute>} />
 
             {/* Admin routes */}
             <Route path="/admin/*" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
