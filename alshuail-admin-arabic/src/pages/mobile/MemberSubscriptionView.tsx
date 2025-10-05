@@ -75,11 +75,46 @@ const MemberSubscriptionView: React.FC = () => {
   }
 
   if (!subscription) {
+    // Check if user is admin testing the page
+    const userStr = localStorage.getItem('user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const isAdmin = user && ['admin', 'super_admin', 'moderator', 'financial_manager'].includes(user.role);
+
     return (
       <div className="error-screen">
         <div className="error-icon">⚠️</div>
         <h2>لم يتم العثور على اشتراك</h2>
-        <p>يرجى التواصل مع الإدارة</p>
+        {isAdmin ? (
+          <div style={{ maxWidth: '500px', margin: '0 auto' }}>
+            <p style={{ marginBottom: '1rem' }}>
+              أنت مسجل دخول كمسؤول ولا يوجد اشتراك مرتبط بحسابك.
+            </p>
+            <p style={{ marginBottom: '1rem', fontSize: '0.9rem', color: 'rgba(255,255,255,0.7)' }}>
+              لعرض بيانات اشتراك عضو حقيقي:
+            </p>
+            <ul style={{ textAlign: 'right', fontSize: '0.9rem', color: 'rgba(255,255,255,0.7)', marginBottom: '1.5rem' }}>
+              <li>قم بتسجيل الخروج</li>
+              <li>سجل دخول كعضو: 0555555555 / 123456</li>
+              <li>أو استخدم لوحة تحكم المسؤول لعرض جميع الاشتراكات</li>
+            </ul>
+            <button
+              onClick={() => window.location.href = '/admin/subscriptions'}
+              style={{
+                padding: '0.75rem 1.5rem',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                border: 'none',
+                borderRadius: '0.5rem',
+                color: 'white',
+                cursor: 'pointer',
+                fontSize: '1rem'
+              }}
+            >
+              📊 انتقل إلى لوحة تحكم الاشتراكات
+            </button>
+          </div>
+        ) : (
+          <p>يرجى التواصل مع الإدارة</p>
+        )}
       </div>
     );
   }
