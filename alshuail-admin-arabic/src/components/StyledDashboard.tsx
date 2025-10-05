@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import {
   HomeIcon,
@@ -767,6 +768,7 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
   );
 
   const contentRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   const {
     data: dashboardData,
@@ -866,6 +868,13 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
   // Handle section change with animation
 
   const handleSectionChange = (sectionId: string) => {
+    // Navigate to new subscription dashboard instead of old component
+    if (sectionId === 'subscriptions') {
+      navigate('/admin/subscriptions');
+      setSidebarOpen(false);
+      return;
+    }
+
     if (sectionId === activeSection) return;
 
     setIsLoading(true);
@@ -4419,9 +4428,7 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
                   </div>
                 )}
 
-                {activeSection === 'subscriptions' && (
-                  <SubscriptionsManagement />
-                )}
+                {/* Subscriptions now handled by route /admin/subscriptions */}
 
                 {activeSection === 'payments' && <PaymentsTracking />}
 
