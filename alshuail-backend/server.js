@@ -20,7 +20,7 @@ import rateLimit from 'express-rate-limit';
 import { testConnection } from './src/config/database.js';
 import membersRoutes from './src/routes/members.js';
 import paymentsRoutes from './src/routes/payments.js';
-import subscriptionsRoutes from './src/routes/subscriptions.js';
+import subscriptionsRoutes from './src/routes/subscriptionRoutes.js';
 import dashboardRoutes from './src/routes/dashboard.js';
 import authRoutes from './src/routes/auth.js';
 import occasionsRoutes from './src/routes/occasions.js';
