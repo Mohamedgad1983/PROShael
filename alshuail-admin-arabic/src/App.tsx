@@ -35,7 +35,14 @@ const AdminDashboard: React.FC = () => {
   // Check localStorage for existing session
   const [isLoggedIn, setIsLoggedIn] = React.useState(() => {
     const savedSession = localStorage.getItem('isLoggedIn');
-    return savedSession === 'true';
+    const isLogged = savedSession === 'true';
+
+    // If already logged in, redirect to dashboard
+    if (isLogged && window.location.pathname === '/login') {
+      window.location.href = '/admin/dashboard';
+    }
+
+    return isLogged;
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -68,7 +75,6 @@ const AdminDashboard: React.FC = () => {
 
       if (data.success) {
         // Save login state and user data instantly
-        setIsLoggedIn(true);
         localStorage.setItem('isLoggedIn', 'true');
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
@@ -76,6 +82,9 @@ const AdminDashboard: React.FC = () => {
 
         // Pre-cache dashboard data
         localStorage.setItem('loginTime', Date.now().toString());
+
+        // Navigate to admin dashboard instead of just setting state
+        window.location.href = '/admin/dashboard';
       } else {
         showToast({
           message: data.error || 'فشل تسجيل الدخول',
@@ -101,11 +110,15 @@ const AdminDashboard: React.FC = () => {
     localStorage.removeItem('user');
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user_data');
+
+    // Redirect to login page
+    window.location.href = '/login';
   };
 
-  if (isLoggedIn) {
-    return <StyledDashboard onLogout={handleLogout} />;
-  }
+  // Don't show dashboard here - let routes handle it
+  // if (isLoggedIn) {
+  //   return <StyledDashboard onLogout={handleLogout} />;
+  // }
 
   return (
     <div className="modern-login-container" dir="rtl">
@@ -254,7 +267,10 @@ const App: React.FC = () => {
             <Route path="/member/*" element={<Navigate to="/mobile/login" replace />} />
 
             {/* Family Tree Route */}
-            <Route path="/family-tree" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+            <Route path="/family-tree" element={<AdminRoute><StyledDashboard onLogout={() => {
+              localStorage.clear();
+              window.location.href = '/login';
+            }} /></AdminRoute>} />
 
             {/* Admin Dashboard Route */}
             <Route path="/admin/dashboard" element={<AdminRoute><StyledDashboard onLogout={() => {
