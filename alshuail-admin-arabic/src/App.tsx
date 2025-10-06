@@ -256,12 +256,23 @@ const App: React.FC = () => {
             {/* Family Tree Route */}
             <Route path="/family-tree" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
 
+            {/* Admin Dashboard Route */}
+            <Route path="/admin/dashboard" element={<AdminRoute><StyledDashboard onLogout={() => {
+              localStorage.removeItem('token');
+              localStorage.removeItem('user');
+              window.location.href = '/login';
+            }} /></AdminRoute>} />
+
             {/* Subscription Management Routes */}
             <Route path="/admin/subscriptions" element={<AdminRoute><SubscriptionDashboard /></AdminRoute>} />
             <Route path="/subscriptions" element={<AdminRoute><SubscriptionDashboard /></AdminRoute>} />
 
-            {/* Admin routes */}
-            <Route path="/admin/*" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+            {/* Admin routes catch-all */}
+            <Route path="/admin/*" element={<AdminRoute><StyledDashboard onLogout={() => {
+              localStorage.removeItem('token');
+              localStorage.removeItem('user');
+              window.location.href = '/login';
+            }} /></AdminRoute>} />
             <Route path="/login" element={<AdminDashboard />} />
 
             {/* Default route redirects to login */}
