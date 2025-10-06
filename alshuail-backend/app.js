@@ -10,6 +10,7 @@ const activitiesRoutes = require('./routes/activities');
 const authRoutes = require('./routes/auth');
 const membersRoutes = require('./routes/members');
 const expensesRoutes = require('./routes/expenses');
+const subscriptionRoutes = require('./src/routes/subscriptionRoutes');
 
 const app = express();
 
@@ -47,6 +48,7 @@ app.use('/api/activities', activitiesRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/members', membersRoutes);
 app.use('/api/expenses', expensesRoutes);
+app.use('/api/subscriptions', subscriptionRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -71,6 +73,7 @@ app.get('/api', (req, res) => {
             activities: '/api/activities',
             auth: '/api/auth',
             members: '/api/members',
+            subscriptions: '/api/subscriptions',
             health: '/health'
         },
         documentation: 'Built with Day 6 components'
