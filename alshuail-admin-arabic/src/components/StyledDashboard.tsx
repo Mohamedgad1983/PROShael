@@ -755,7 +755,19 @@ interface StyledDashboardProps {
 }
 
 const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
-  const [activeSection, setActiveSection] = useState('monitoring');
+  const navigate = useNavigate();
+
+  // Initialize activeSection from URL path
+  const getInitialSection = () => {
+    const path = window.location.pathname;
+    if (path.startsWith('/admin/')) {
+      const section = path.replace('/admin/', '');
+      return section || 'dashboard';
+    }
+    return 'dashboard';
+  };
+
+  const [activeSection, setActiveSection] = useState(getInitialSection());
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -768,7 +780,6 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
   );
 
   const contentRef = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate();
 
   const {
     data: dashboardData,
@@ -886,6 +897,9 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
 
       contentRef.current.style.transform = 'translateX(-20px)';
     }
+
+    // Update URL to match section
+    navigate(`/admin/${sectionId}`);
 
     setTimeout(() => {
       setActiveSection(sectionId);
