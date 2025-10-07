@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { formatHijri, formatBothCalendars } from '../../utils/hijriDate.js';
+import { formatHijri } from '../../utils/hijriDate.js';
+import SimpleHijriDatePicker from '../../components/Common/SimpleHijriDatePicker';
 
 interface NewsItem {
     id: number;
@@ -47,6 +48,7 @@ const NewsManagement = () => {
         priority: string;
         is_published: boolean;
         images: File[];
+        publish_date: string;
     }>({
         title_ar: '',
         title_en: '',
@@ -55,7 +57,8 @@ const NewsManagement = () => {
         category: 'general',
         priority: 'normal',
         is_published: false,
-        images: []
+        images: [],
+        publish_date: ''
     });
 
     const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
@@ -161,7 +164,8 @@ const NewsManagement = () => {
             category: 'general',
             priority: 'normal',
             is_published: false,
-            images: []
+            images: [],
+            publish_date: ''
         });
     };
 
@@ -577,6 +581,16 @@ const NewsManagement = () => {
                                 </div>
                             </div>
 
+                            {/* Hijri Date Picker */}
+                            <div className="mb-6">
+                                <SimpleHijriDatePicker
+                                    label="تاريخ النشر / الحدث"
+                                    value={formData.publish_date}
+                                    onChange={(date: string) => setFormData({ ...formData, publish_date: date })}
+                                    required={false}
+                                />
+                            </div>
+
                             {/* Image Upload */}
                             <div className="mb-6">
                                 <label className="block text-sm font-bold text-gray-700 mb-2">
@@ -751,10 +765,7 @@ const NewsManagement = () => {
                                 <div className="mt-4 p-3 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg">
                                     <p className="text-sm text-green-800 font-medium flex items-center justify-center gap-2">
                                         <span>📅</span>
-                                        <span>تاريخ النشر (هجري): {formatHijri(previewNews.created_at)}</span>
-                                    </p>
-                                    <p className="text-xs text-gray-600 text-center mt-1">
-                                        {new Date(previewNews.created_at).toLocaleDateString('ar-SA')} (ميلادي)
+                                        <span>تاريخ النشر: {formatHijri(previewNews.created_at)}</span>
                                     </p>
                                 </div>
                             )}
