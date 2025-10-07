@@ -8,7 +8,7 @@
  * ============================================
  */
 
-import HijriDate from 'hijri-converter';
+import * as hijriConverter from 'hijri-converter';
 
 /**
  * Arabic month names (Hijri calendar)
@@ -72,7 +72,7 @@ export const toHijri = (date = new Date()) => {
   const day = gregorianDate.getDate();
 
   try {
-    const hijriDate = new HijriDate(year, month, day);
+    const hijriDate = hijriConverter.toHijri(year, month, day);
 
     return {
       day: hijriDate.hd,
