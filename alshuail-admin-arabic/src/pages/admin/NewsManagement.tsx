@@ -494,12 +494,13 @@ const NewsManagement = () => {
                                         value={formData.category}
                                         onChange={(e) => handleInputChange('category', e.target.value)}
                                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        style={{ fontSize: '16px', fontFamily: 'Arial, sans-serif' }}
                                         required
                                     >
-                                        <option value="general">📰 عام</option>
-                                        <option value="announcement">📢 إعلان</option>
-                                        <option value="urgent">🔴 عاجل</option>
-                                        <option value="event">🎉 حدث</option>
+                                        <option value="general">عام</option>
+                                        <option value="announcement">إعلان</option>
+                                        <option value="urgent">عاجل</option>
+                                        <option value="event">حدث</option>
                                     </select>
                                 </div>
                                 <div>
@@ -510,6 +511,7 @@ const NewsManagement = () => {
                                         value={formData.priority}
                                         onChange={(e) => handleInputChange('priority', e.target.value)}
                                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        style={{ fontSize: '16px', fontFamily: 'Arial, sans-serif' }}
                                         required
                                     >
                                         <option value="low">منخفضة</option>
