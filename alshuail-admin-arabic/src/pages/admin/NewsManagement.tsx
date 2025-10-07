@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { formatHijri, formatBothCalendars } from '../../utils/hijriDate';
+import { formatHijri, formatBothCalendars } from '../../utils/hijriDate.js';
 
 interface NewsItem {
     id: number;

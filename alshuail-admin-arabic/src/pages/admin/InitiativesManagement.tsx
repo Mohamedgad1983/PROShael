@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { formatHijri, toHijri } from '../../utils/hijriDate';
+import { formatHijri, toHijri } from '../../utils/hijriDate.js';
 
 interface Initiative {
     id: number;
