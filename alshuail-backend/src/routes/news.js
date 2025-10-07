@@ -81,6 +81,7 @@ router.post('/', authenticateToken, adminOnly, upload.array('media', 10), async 
     try {
         const {
             category,
+            priority,
             title_ar,
             title_en,
             content_ar,
@@ -106,6 +107,7 @@ router.post('/', authenticateToken, adminOnly, upload.array('media', 10), async 
             .from('news_announcements')
             .insert([{
                 category: category || 'general',
+                priority: priority || 'normal',
                 title_ar,
                 title_en,
                 content_ar,
