@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { formatHijri, toHijri } from '../../utils/hijriDate';
 
 interface Initiative {
     id: number;
@@ -397,7 +398,7 @@ const InitiativesManagement = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        تاريخ البداية
+                                        تاريخ البداية (ميلادي)
                                     </label>
                                     <input
                                         type="date"
@@ -405,10 +406,17 @@ const InitiativesManagement = () => {
                                         onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
                                         className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     />
+                                    {formData.start_date && (
+                                        <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+                                            <p className="text-sm text-green-800 font-medium">
+                                                📅 التاريخ الهجري: {formatHijri(formData.start_date)}
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        تاريخ النهاية
+                                        تاريخ النهاية (ميلادي)
                                     </label>
                                     <input
                                         type="date"
@@ -416,6 +424,13 @@ const InitiativesManagement = () => {
                                         onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
                                         className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                     />
+                                    {formData.end_date && (
+                                        <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+                                            <p className="text-sm text-green-800 font-medium">
+                                                📅 التاريخ الهجري: {formatHijri(formData.end_date)}
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 

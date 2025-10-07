@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import { formatHijri, formatBothCalendars } from '../../utils/hijriDate';
 
 interface NewsItem {
     id: number;
@@ -345,6 +346,16 @@ const NewsManagement = () => {
                                     </div>
                                 </div>
 
+                                {/* Hijri Date */}
+                                {item.created_at && (
+                                    <div className="mb-4 p-2 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg">
+                                        <p className="text-xs text-green-800 font-medium flex items-center gap-2">
+                                            <span>📅</span>
+                                            <span>{formatHijri(item.created_at)}</span>
+                                        </p>
+                                    </div>
+                                )}
+
                                 {/* Actions */}
                                 <div className="space-y-2">
                                     <div className="flex gap-2">
@@ -648,12 +659,22 @@ const NewsManagement = () => {
                                 </p>
                             </div>
 
-                            <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                            <div className="bg-gray-50 rounded-lg p-4 mb-4">
                                 <p className="font-bold text-gray-700 mb-2">معاينة الإشعار:</p>
                                 <p className="text-gray-600 line-clamp-2">
                                     {previewNews.title_ar || previewNews.title_en}
                                 </p>
                             </div>
+
+                            {/* Hijri Date */}
+                            {previewNews.created_at && (
+                                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-3 mb-6">
+                                    <p className="text-sm text-green-800 font-medium text-center flex items-center justify-center gap-2">
+                                        <span>📅</span>
+                                        <span>التاريخ الهجري: {formatHijri(previewNews.created_at)}</span>
+                                    </p>
+                                </div>
+                            )}
 
                             <div className="flex gap-3">
                                 <button
@@ -719,6 +740,19 @@ const NewsManagement = () => {
                                 <div>القراءات: {previewNews.reads_count || 0}</div>
                                 <div>التفاعلات: {previewNews.reactions_count || 0}</div>
                             </div>
+
+                            {/* Hijri Date */}
+                            {previewNews.created_at && (
+                                <div className="mt-4 p-3 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg">
+                                    <p className="text-sm text-green-800 font-medium flex items-center justify-center gap-2">
+                                        <span>📅</span>
+                                        <span>تاريخ النشر (هجري): {formatHijri(previewNews.created_at)}</span>
+                                    </p>
+                                    <p className="text-xs text-gray-600 text-center mt-1">
+                                        {new Date(previewNews.created_at).toLocaleDateString('ar-SA')} (ميلادي)
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
