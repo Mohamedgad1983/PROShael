@@ -54,8 +54,8 @@ const NewsManagement = () => {
         title_en: '',
         content_ar: '',
         content_en: '',
-        category: 'general',
-        priority: 'normal',
+        category: '',
+        priority: '',
         is_published: false,
         images: [],
         publish_date: ''
@@ -86,6 +86,17 @@ const NewsManagement = () => {
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Validate required fields
+        if (!formData.category) {
+            alert('الرجاء اختيار التصنيف');
+            return;
+        }
+        if (!formData.priority) {
+            alert('الرجاء اختيار الأولوية');
+            return;
+        }
+
         try {
             const token = localStorage.getItem('token');
             const formDataToSend = new FormData();
@@ -161,8 +172,8 @@ const NewsManagement = () => {
             title_en: '',
             content_ar: '',
             content_en: '',
-            category: 'general',
-            priority: 'normal',
+            category: '',
+            priority: '',
             is_published: false,
             images: [],
             publish_date: ''
@@ -542,9 +553,14 @@ const NewsManagement = () => {
                                     </label>
                                     <select
                                         value={formData.category}
-                                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                                        onChange={(e) => {
+                                            console.log('Category selected:', e.target.value);
+                                            setFormData({ ...formData, category: e.target.value });
+                                        }}
                                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        required
                                     >
+                                        <option value="">-- اختر التصنيف --</option>
                                         <option value="general">عام</option>
                                         <option value="announcement">إعلان</option>
                                         <option value="urgent">عاجل</option>
@@ -557,9 +573,14 @@ const NewsManagement = () => {
                                     </label>
                                     <select
                                         value={formData.priority}
-                                        onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                                        onChange={(e) => {
+                                            console.log('Priority selected:', e.target.value);
+                                            setFormData({ ...formData, priority: e.target.value });
+                                        }}
                                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        required
                                     >
+                                        <option value="">-- اختر الأولوية --</option>
                                         <option value="low">منخفضة</option>
                                         <option value="normal">عادية</option>
                                         <option value="high">عالية</option>
