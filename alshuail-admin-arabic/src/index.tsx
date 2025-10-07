@@ -8,13 +8,15 @@ import { registerServiceWorker, initPerformanceMonitoring } from './utils/perfor
 // Initialize performance monitoring
 initPerformanceMonitoring();
 
-// FORCE UNREGISTER ALL SERVICE WORKERS - FIXES CACHING BUG
-if ('serviceWorker' in navigator) {
+// FORCE UNREGISTER ALL SERVICE WORKERS - FIXES CACHING BUG (RUNS ONCE)
+if ('serviceWorker' in navigator && !sessionStorage.getItem('sw_cleaned')) {
   navigator.serviceWorker.getRegistrations().then(function(registrations) {
     for(let registration of registrations) {
       registration.unregister();
       console.log('🗑️ Service worker unregistered to clear cache');
     }
+    // Mark as cleaned for this session
+    sessionStorage.setItem('sw_cleaned', 'true');
   });
 }
 
