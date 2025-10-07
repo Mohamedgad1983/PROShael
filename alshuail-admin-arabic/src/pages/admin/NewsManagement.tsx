@@ -19,6 +19,11 @@ interface NewsItem {
     created_at?: string;
 }
 
+// Force component to be included in bundle
+if (process.env.NODE_ENV !== 'test') {
+  console.log('[NewsManagement] Component loaded');
+}
+
 const NewsManagement = () => {
     const [news, setNews] = useState<NewsItem[]>([]);
     const [loading, setLoading] = useState(true);

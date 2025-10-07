@@ -15,6 +15,11 @@ interface Initiative {
     max_contribution?: number;
 }
 
+// Force component to be included in bundle
+if (process.env.NODE_ENV !== 'test') {
+  console.log('[InitiativesManagement] Component loaded');
+}
+
 const InitiativesManagement = () => {
     const [initiatives, setInitiatives] = useState<Initiative[]>([]);
     const [loading, setLoading] = useState(true);
