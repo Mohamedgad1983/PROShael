@@ -73,3 +73,5 @@ supabase/.temp
 
 # Debug
 debug.log.playwright-mcp/*.exe
+*.exe
+.playwright-mcp/
