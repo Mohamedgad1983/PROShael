@@ -554,8 +554,14 @@ const NewsManagement = () => {
                                     <select
                                         value={formData.category}
                                         onChange={(e) => {
-                                            console.log('Category selected:', e.target.value);
-                                            setFormData({ ...formData, category: e.target.value });
+                                            const value = e.target.value;
+                                            console.log('Category selected:', value);
+                                            console.log('Before update:', formData);
+                                            setFormData(prev => {
+                                                const updated = { ...prev, category: value };
+                                                console.log('After update:', updated);
+                                                return updated;
+                                            });
                                         }}
                                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         required
@@ -574,8 +580,14 @@ const NewsManagement = () => {
                                     <select
                                         value={formData.priority}
                                         onChange={(e) => {
-                                            console.log('Priority selected:', e.target.value);
-                                            setFormData({ ...formData, priority: e.target.value });
+                                            const value = e.target.value;
+                                            console.log('Priority selected:', value);
+                                            console.log('Before update:', formData);
+                                            setFormData(prev => {
+                                                const updated = { ...prev, priority: value };
+                                                console.log('After update:', updated);
+                                                return updated;
+                                            });
                                         }}
                                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         required
@@ -594,7 +606,10 @@ const NewsManagement = () => {
                                         <input
                                             type="checkbox"
                                             checked={formData.is_published}
-                                            onChange={(e) => setFormData({ ...formData, is_published: e.target.checked })}
+                                            onChange={(e) => {
+                                                const checked = e.target.checked;
+                                                setFormData(prev => ({ ...prev, is_published: checked }));
+                                            }}
                                             className="w-5 h-5 text-blue-600"
                                         />
                                         <span className="font-medium">نشر مباشرة</span>
