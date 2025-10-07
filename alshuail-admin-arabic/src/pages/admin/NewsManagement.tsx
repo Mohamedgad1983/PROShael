@@ -67,6 +67,14 @@ const NewsManagement = () => {
         fetchNews();
     }, [selectedCategory]);
 
+    // Debug: Log formData changes
+    useEffect(() => {
+        console.log('📊 formData changed:', {
+            category: formData.category,
+            priority: formData.priority
+        });
+    }, [formData.category, formData.priority]);
+
     const fetchNews = async () => {
         try {
             const token = localStorage.getItem('token');
@@ -542,8 +550,20 @@ const NewsManagement = () => {
                                         التصنيف
                                     </label>
                                     <select
+                                        name="category"
                                         value={formData.category}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                                        onChange={(e) => {
+                                            console.log('🔥 Category onChange triggered');
+                                            console.log('  Selected value:', e.target.value);
+                                            console.log('  Current formData.category:', formData.category);
+                                            const newValue = e.target.value;
+                                            setFormData(prev => {
+                                                console.log('  Previous state:', prev.category);
+                                                const updated = { ...prev, category: newValue };
+                                                console.log('  New state:', updated.category);
+                                                return updated;
+                                            });
+                                        }}
                                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         required
                                     >
@@ -558,8 +578,20 @@ const NewsManagement = () => {
                                         الأولوية
                                     </label>
                                     <select
+                                        name="priority"
                                         value={formData.priority}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, priority: e.target.value }))}
+                                        onChange={(e) => {
+                                            console.log('🔥 Priority onChange triggered');
+                                            console.log('  Selected value:', e.target.value);
+                                            console.log('  Current formData.priority:', formData.priority);
+                                            const newValue = e.target.value;
+                                            setFormData(prev => {
+                                                console.log('  Previous state:', prev.priority);
+                                                const updated = { ...prev, priority: newValue };
+                                                console.log('  New state:', updated.priority);
+                                                return updated;
+                                            });
+                                        }}
                                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         required
                                     >
