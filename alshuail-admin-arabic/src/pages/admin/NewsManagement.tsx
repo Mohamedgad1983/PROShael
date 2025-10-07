@@ -553,24 +553,17 @@ const NewsManagement = () => {
                                         name="category"
                                         value={formData.category}
                                         onChange={(e) => {
-                                            console.log('🔥 Category onChange triggered');
-                                            console.log('  Selected value:', e.target.value);
-                                            console.log('  Current formData.category:', formData.category);
                                             const newValue = e.target.value;
-                                            setFormData(prev => {
-                                                console.log('  Previous state:', prev.category);
-                                                const updated = { ...prev, category: newValue };
-                                                console.log('  New state:', updated.category);
-                                                return updated;
-                                            });
+                                            setFormData(prev => ({ ...prev, category: newValue }));
                                         }}
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white"
+                                        style={{ color: '#111827', backgroundColor: 'white' }}
                                         required
                                     >
-                                        <option value="general">عام</option>
-                                        <option value="announcement">إعلان</option>
-                                        <option value="urgent">عاجل</option>
-                                        <option value="event">حدث</option>
+                                        <option value="general" style={{ color: '#111827', backgroundColor: 'white' }}>عام</option>
+                                        <option value="announcement" style={{ color: '#111827', backgroundColor: 'white' }}>إعلان</option>
+                                        <option value="urgent" style={{ color: '#111827', backgroundColor: 'white' }}>عاجل</option>
+                                        <option value="event" style={{ color: '#111827', backgroundColor: 'white' }}>حدث</option>
                                     </select>
                                 </div>
                                 <div>
@@ -581,23 +574,16 @@ const NewsManagement = () => {
                                         name="priority"
                                         value={formData.priority}
                                         onChange={(e) => {
-                                            console.log('🔥 Priority onChange triggered');
-                                            console.log('  Selected value:', e.target.value);
-                                            console.log('  Current formData.priority:', formData.priority);
                                             const newValue = e.target.value;
-                                            setFormData(prev => {
-                                                console.log('  Previous state:', prev.priority);
-                                                const updated = { ...prev, priority: newValue };
-                                                console.log('  New state:', updated.priority);
-                                                return updated;
-                                            });
+                                            setFormData(prev => ({ ...prev, priority: newValue }));
                                         }}
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white"
+                                        style={{ color: '#111827', backgroundColor: 'white' }}
                                         required
                                     >
-                                        <option value="low">منخفضة</option>
-                                        <option value="normal">عادية</option>
-                                        <option value="high">عالية</option>
+                                        <option value="low" style={{ color: '#111827', backgroundColor: 'white' }}>منخفضة</option>
+                                        <option value="normal" style={{ color: '#111827', backgroundColor: 'white' }}>عادية</option>
+                                        <option value="high" style={{ color: '#111827', backgroundColor: 'white' }}>عالية</option>
                                     </select>
                                 </div>
                                 <div>
