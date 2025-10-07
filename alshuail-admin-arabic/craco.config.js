@@ -33,6 +33,11 @@ module.exports = {
 
       // Optimize for production
       if (process.env.NODE_ENV === 'production') {
+        // Disable ALL optimizations that might remove code
+        webpackConfig.optimization.usedExports = false;
+        webpackConfig.optimization.sideEffects = false;
+        webpackConfig.optimization.minimize = false; // Disable minification entirely
+
         // Enable code splitting
         webpackConfig.optimization.splitChunks = {
           chunks: 'all',
