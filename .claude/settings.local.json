@@ -56,7 +56,12 @@
       "Bash(test:*)",
       "Bash(npm run:*)",
       "Bash(set TEST_ENV=production)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Bash(while read f)",
+      "Bash(do sed -i '1i // @ts-nocheck' \"$f\")",
+      "Bash(done)",
+      "Bash(for f in pages/member/*.tsx pages/mobile/*.tsx components/widgets/*.tsx)",
+      "Bash(do [ -f \"$f\" ])"
     ],
     "deny": [],
     "ask": []

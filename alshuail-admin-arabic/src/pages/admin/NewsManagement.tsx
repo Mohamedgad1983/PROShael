@@ -1,21 +1,47 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 
+interface NewsItem {
+    id: number;
+    title_ar?: string;
+    title_en?: string;
+    content_ar?: string;
+    content_en?: string;
+    category: string;
+    priority?: string;
+    is_published?: boolean;
+    views_count?: number;
+    reads_count?: number;
+    reactions_count?: number;
+    image_url?: string;
+    video_url?: string;
+    created_at?: string;
+}
+
 const NewsManagement = () => {
-    const [news, setNews] = useState([]);
+    const [news, setNews] = useState<NewsItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showPreviewModal, setShowPreviewModal] = useState(false);
-    const [previewNews, setPreviewNews] = useState(null);
+    const [previewNews, setPreviewNews] = useState<NewsItem | null>(null);
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState('ar'); // ar or en
     const [showPushModal, setShowPushModal] = useState(false);
-    const [pushingNewsId, setPushingNewsId] = useState(null);
-    const fileInputRef = useRef(null);
+    const [pushingNewsId, setPushingNewsId] = useState<number | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Form state
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<{
+        title_ar: string;
+        title_en: string;
+        content_ar: string;
+        content_en: string;
+        category: string;
+        priority: string;
+        is_published: boolean;
+        images: File[];
+    }>({
         title_ar: '',
         title_en: '',
         content_ar: '',
@@ -49,16 +75,19 @@ const NewsManagement = () => {
         }
     };
 
-    const handleCreate = async (e) => {
+    const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
             const token = localStorage.getItem('token');
             const formDataToSend = new FormData();
 
             // Append text fields
-            Object.keys(formData).forEach(key => {
+            Object.keys(formData).forEach((key) => {
                 if (key !== 'images') {
-                    formDataToSend.append(key, formData[key]);
+                    const value = formData[key as keyof typeof formData];
+                    if (typeof value === 'string' || typeof value === 'boolean') {
+                        formDataToSend.append(key, String(value));
+                    }
                 }
             });
 
@@ -80,12 +109,12 @@ const NewsManagement = () => {
             setShowCreateModal(false);
             fetchNews();
             resetForm();
-        } catch (error) {
+        } catch (error: any) {
             alert('خطأ: ' + (error.response?.data?.error || error.message));
         }
     };
 
-    const handlePushNotification = async (newsId) => {
+    const handlePushNotification = async (newsId: number) => {
         try {
             const token = localStorage.getItem('token');
             await axios.post(
@@ -102,17 +131,17 @@ const NewsManagement = () => {
             }, 2000);
 
             setShowPushModal(false);
-        } catch (error) {
+        } catch (error: any) {
             alert('خطأ في إرسال الإشعار: ' + (error.response?.data?.error || error.message));
         }
     };
 
-    const handleImageUpload = (e) => {
-        const files = Array.from(e.target.files);
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []);
         setFormData({ ...formData, images: [...formData.images, ...files] });
     };
 
-    const removeImage = (index) => {
+    const removeImage = (index: number) => {
         const newImages = formData.images.filter((_, i) => i !== index);
         setFormData({ ...formData, images: newImages });
     };
@@ -130,8 +159,8 @@ const NewsManagement = () => {
         });
     };
 
-    const getCategoryText = (category) => {
-        const texts = {
+    const getCategoryText = (category: string) => {
+        const texts: Record<string, string> = {
             announcement: 'إعلان',
             urgent: 'عاجل',
             event: 'حدث',
@@ -140,8 +169,8 @@ const NewsManagement = () => {
         return texts[category] || category;
     };
 
-    const getCategoryColor = (category) => {
-        const colors = {
+    const getCategoryColor = (category: string) => {
+        const colors: Record<string, string> = {
             announcement: 'bg-blue-500',
             urgent: 'bg-red-500',
             event: 'bg-purple-500',
@@ -150,8 +179,8 @@ const NewsManagement = () => {
         return colors[category] || 'bg-gray-500';
     };
 
-    const getPriorityColor = (priority) => {
-        const colors = {
+    const getPriorityColor = (priority: string) => {
+        const colors: Record<string, string> = {
             high: 'text-red-600',
             normal: 'text-gray-600',
             low: 'text-gray-400'
@@ -447,7 +476,7 @@ const NewsManagement = () => {
                                             value={formData.content_ar}
                                             onChange={(e) => setFormData({ ...formData, content_ar: e.target.value })}
                                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                            rows="8"
+                                            rows={8}
                                             required
                                             dir="rtl"
                                         />
@@ -478,7 +507,7 @@ const NewsManagement = () => {
                                             value={formData.content_en}
                                             onChange={(e) => setFormData({ ...formData, content_en: e.target.value })}
                                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                            rows="8"
+                                            rows={8}
                                             dir="ltr"
                                         />
                                     </div>

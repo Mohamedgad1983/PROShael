@@ -1,8 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
+interface Initiative {
+    id: number;
+    title_ar?: string;
+    title_en?: string;
+    beneficiary_name_ar?: string;
+    beneficiary_name_en?: string;
+    target_amount: number;
+    current_amount: number;
+    status: string;
+    min_contribution?: number;
+    max_contribution?: number;
+}
+
 const InitiativesManagement = () => {
-    const [initiatives, setInitiatives] = useState([]);
+    const [initiatives, setInitiatives] = useState<Initiative[]>([]);
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [selectedStatus, setSelectedStatus] = useState('all');
@@ -36,7 +49,7 @@ const InitiativesManagement = () => {
         }
     };
 
-    const handleCreate = async (e) => {
+    const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
             const token = localStorage.getItem('token');
@@ -55,12 +68,12 @@ const InitiativesManagement = () => {
                 target_amount: '', min_contribution: '', max_contribution: '',
                 start_date: '', end_date: '', status: 'draft'
             });
-        } catch (error) {
+        } catch (error: any) {
             alert('خطأ: ' + (error.response?.data?.error || error.message));
         }
     };
 
-    const handleStatusChange = async (initiativeId, newStatus) => {
+    const handleStatusChange = async (initiativeId: number, newStatus: string) => {
         try {
             const token = localStorage.getItem('token');
             await axios.patch(
@@ -75,8 +88,8 @@ const InitiativesManagement = () => {
         }
     };
 
-    const getStatusColor = (status) => {
-        const colors = {
+    const getStatusColor = (status: string) => {
+        const colors: Record<string, string> = {
             draft: 'bg-gray-500',
             active: 'bg-green-500',
             completed: 'bg-blue-500',
@@ -85,8 +98,8 @@ const InitiativesManagement = () => {
         return colors[status] || 'bg-gray-500';
     };
 
-    const getStatusText = (status) => {
-        const texts = {
+    const getStatusText = (status: string) => {
+        const texts: Record<string, string> = {
             draft: 'مسودة',
             active: 'نشط',
             completed: 'مكتمل',
@@ -146,13 +159,13 @@ const InitiativesManagement = () => {
                 <div className="bg-white p-4 rounded-lg shadow">
                     <div className="text-gray-600 text-sm">المبلغ المستهدف الإجمالي</div>
                     <div className="text-2xl font-bold">
-                        {initiatives.reduce((sum, i) => sum + (parseFloat(i.target_amount) || 0), 0).toLocaleString()} ر.س
+                        {initiatives.reduce((sum, i) => sum + (i.target_amount || 0), 0).toLocaleString()} ر.س
                     </div>
                 </div>
                 <div className="bg-white p-4 rounded-lg shadow">
                     <div className="text-gray-600 text-sm">المبلغ المحصل</div>
                     <div className="text-2xl font-bold text-blue-600">
-                        {initiatives.reduce((sum, i) => sum + (parseFloat(i.current_amount) || 0), 0).toLocaleString()} ر.س
+                        {initiatives.reduce((sum, i) => sum + (i.current_amount || 0), 0).toLocaleString()} ر.س
                     </div>
                 </div>
             </div>
@@ -188,10 +201,10 @@ const InitiativesManagement = () => {
                                 </div>
                                 <div className="flex justify-between text-sm mt-2">
                                     <span className="text-gray-600">
-                                        {parseFloat(init.current_amount || 0).toLocaleString()} ر.س
+                                        {(init.current_amount || 0).toLocaleString()} ر.س
                                     </span>
                                     <span className="font-bold">
-                                        {parseFloat(init.target_amount || 0).toLocaleString()} ر.س
+                                        {(init.target_amount || 0).toLocaleString()} ر.س
                                     </span>
                                 </div>
                             </div>
@@ -322,7 +335,7 @@ const InitiativesManagement = () => {
                                     value={formData.description_ar}
                                     onChange={(e) => setFormData({ ...formData, description_ar: e.target.value })}
                                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    rows="3"
+                                    rows={3}
                                 />
                             </div>
 
@@ -334,7 +347,7 @@ const InitiativesManagement = () => {
                                     value={formData.description_en}
                                     onChange={(e) => setFormData({ ...formData, description_en: e.target.value })}
                                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                    rows="3"
+                                    rows={3}
                                 />
                             </div>
 
