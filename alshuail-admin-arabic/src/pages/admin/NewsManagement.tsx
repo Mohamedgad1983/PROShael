@@ -33,7 +33,6 @@ const NewsManagement = () => {
     const [previewNews, setPreviewNews] = useState<NewsItem | null>(null);
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
-    const [activeTab, setActiveTab] = useState('ar'); // ar or en
     const [showPushModal, setShowPushModal] = useState(false);
     const [pushingNewsId, setPushingNewsId] = useState<number | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -41,9 +40,7 @@ const NewsManagement = () => {
     // Form state
     const [formData, setFormData] = useState<{
         title_ar: string;
-        title_en: string;
         content_ar: string;
-        content_en: string;
         category: string;
         priority: string;
         is_published: boolean;
@@ -51,9 +48,7 @@ const NewsManagement = () => {
         publish_date: string;
     }>({
         title_ar: '',
-        title_en: '',
         content_ar: '',
-        content_en: '',
         category: 'general',
         priority: 'normal',
         is_published: false,
@@ -164,12 +159,14 @@ const NewsManagement = () => {
         setFormData({ ...formData, images: newImages });
     };
 
+    const handleInputChange = (field: string, value: any) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
+    };
+
     const resetForm = () => {
         setFormData({
             title_ar: '',
-            title_en: '',
             content_ar: '',
-            content_en: '',
             category: 'general',
             priority: 'normal',
             is_published: false,
@@ -455,93 +452,37 @@ const NewsManagement = () => {
                         </div>
 
                         <form onSubmit={handleCreate} className="p-6">
-                            {/* Language Tabs */}
-                            <div className="flex gap-2 mb-6">
-                                <button
-                                    type="button"
-                                    onClick={() => setActiveTab('ar')}
-                                    className={`flex-1 py-3 rounded-lg font-bold transition-all ${
-                                        activeTab === 'ar'
-                                            ? 'bg-blue-600 text-white shadow-lg'
-                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                    }`}
-                                >
-                                    العربية
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setActiveTab('en')}
-                                    className={`flex-1 py-3 rounded-lg font-bold transition-all ${
-                                        activeTab === 'en'
-                                            ? 'bg-blue-600 text-white shadow-lg'
-                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                    }`}
-                                >
-                                    English
-                                </button>
+                            {/* Content */}
+                            <div className="space-y-4 mb-6">
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                                        العنوان *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={formData.title_ar}
+                                        onChange={(e) => handleInputChange('title_ar', e.target.value)}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        required
+                                        dir="rtl"
+                                        placeholder="أدخل عنوان الخبر..."
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                                        المحتوى *
+                                    </label>
+                                    <textarea
+                                        value={formData.content_ar}
+                                        onChange={(e) => handleInputChange('content_ar', e.target.value)}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        rows={8}
+                                        required
+                                        dir="rtl"
+                                        placeholder="أدخل محتوى الخبر..."
+                                    />
+                                </div>
                             </div>
-
-                            {/* Arabic Content */}
-                            {activeTab === 'ar' && (
-                                <div className="space-y-4 mb-6">
-                                    <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-2">
-                                            العنوان بالعربية *
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={formData.title_ar}
-                                            onChange={(e) => setFormData({ ...formData, title_ar: e.target.value })}
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                            required
-                                            dir="rtl"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-2">
-                                            المحتوى بالعربية *
-                                        </label>
-                                        <textarea
-                                            value={formData.content_ar}
-                                            onChange={(e) => setFormData({ ...formData, content_ar: e.target.value })}
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                            rows={8}
-                                            required
-                                            dir="rtl"
-                                        />
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* English Content */}
-                            {activeTab === 'en' && (
-                                <div className="space-y-4 mb-6">
-                                    <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-2">
-                                            Title (English)
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={formData.title_en}
-                                            onChange={(e) => setFormData({ ...formData, title_en: e.target.value })}
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                            dir="ltr"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-2">
-                                            Content (English)
-                                        </label>
-                                        <textarea
-                                            value={formData.content_en}
-                                            onChange={(e) => setFormData({ ...formData, content_en: e.target.value })}
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                            rows={8}
-                                            dir="ltr"
-                                        />
-                                    </div>
-                                </div>
-                            )}
 
                             {/* Settings */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -550,20 +491,15 @@ const NewsManagement = () => {
                                         التصنيف
                                     </label>
                                     <select
-                                        name="category"
                                         value={formData.category}
-                                        onChange={(e) => {
-                                            const newValue = e.target.value;
-                                            setFormData(prev => ({ ...prev, category: newValue }));
-                                        }}
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white"
-                                        style={{ color: '#111827', backgroundColor: 'white' }}
+                                        onChange={(e) => handleInputChange('category', e.target.value)}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         required
                                     >
-                                        <option value="general" style={{ color: '#111827', backgroundColor: 'white' }}>عام</option>
-                                        <option value="announcement" style={{ color: '#111827', backgroundColor: 'white' }}>إعلان</option>
-                                        <option value="urgent" style={{ color: '#111827', backgroundColor: 'white' }}>عاجل</option>
-                                        <option value="event" style={{ color: '#111827', backgroundColor: 'white' }}>حدث</option>
+                                        <option value="general">📰 عام</option>
+                                        <option value="announcement">📢 إعلان</option>
+                                        <option value="urgent">🔴 عاجل</option>
+                                        <option value="event">🎉 حدث</option>
                                     </select>
                                 </div>
                                 <div>
@@ -571,19 +507,14 @@ const NewsManagement = () => {
                                         الأولوية
                                     </label>
                                     <select
-                                        name="priority"
                                         value={formData.priority}
-                                        onChange={(e) => {
-                                            const newValue = e.target.value;
-                                            setFormData(prev => ({ ...prev, priority: newValue }));
-                                        }}
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white"
-                                        style={{ color: '#111827', backgroundColor: 'white' }}
+                                        onChange={(e) => handleInputChange('priority', e.target.value)}
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         required
                                     >
-                                        <option value="low" style={{ color: '#111827', backgroundColor: 'white' }}>منخفضة</option>
-                                        <option value="normal" style={{ color: '#111827', backgroundColor: 'white' }}>عادية</option>
-                                        <option value="high" style={{ color: '#111827', backgroundColor: 'white' }}>عالية</option>
+                                        <option value="low">منخفضة</option>
+                                        <option value="normal">عادية</option>
+                                        <option value="high">عالية</option>
                                     </select>
                                 </div>
                                 <div>

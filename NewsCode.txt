@@ -1,0 +1,305 @@
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+
+const API_BASE_URL = 'https://proshael.onrender.com';
+
+const NewsManagement = () => {
+  const [newsList, setNewsList] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [error, setError] = useState(null);
+  
+  const [formData, setFormData] = useState({
+    title: '',
+    content: '',
+    category: '',
+    priority: 'medium',
+    status: 'draft',
+    publishImmediately: false
+  });
+
+  useEffect(() => {
+    fetchNews();
+  }, []);
+
+  const fetchNews = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await axios.get(`${API_BASE_URL}/api/news`);
+      
+      if (response.data.success) {
+        setNewsList(response.data.data || []);
+      }
+    } catch (err) {
+      setError('فشل في تحميل الأخبار');
+      setNewsList([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const resetForm = () => {
+    setFormData({
+      title: '',
+      content: '',
+      category: '',
+      priority: 'medium',
+      status: 'draft',
+      publishImmediately: false
+    });
+    setShowForm(false);
+    setEditingId(null);
+    setError(null);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!formData.title.trim() || !formData.content.trim()) {
+      setError('يرجى ملء جميع الحقول المطلوبة');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const newsData = {
+        title: formData.title.trim(),
+        content: formData.content.trim(),
+        category: formData.category || 'general',
+        priority: formData.priority,
+        status: formData.publishImmediately ? 'published' : formData.status
+      };
+
+      const url = editingId 
+        ? `${API_BASE_URL}/api/news/${editingId}`
+        : `${API_BASE_URL}/api/news`;
+      
+      const method = editingId ? 'put' : 'post';
+      const response = await axios[method](url, newsData);
+
+      if (response.data.success) {
+        resetForm();
+        fetchNews();
+      }
+    } catch (err) {
+      setError(`فشل في ${editingId ? 'تحديث' : 'إنشاء'} الخبر`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEdit = (news) => {
+    setEditingId(news.id);
+    setFormData({
+      title: news.title || '',
+      content: news.content || '',
+      category: news.category || '',
+      priority: news.priority || 'medium',
+      status: news.status || 'draft',
+      publishImmediately: false
+    });
+    setShowForm(true);
+    setError(null);
+  };
+
+  const handleDelete = async (newsId) => {
+    if (!window.confirm('هل أنت متأكد من حذف هذا الخبر؟')) return;
+
+    try {
+      setLoading(true);
+      await axios.delete(`${API_BASE_URL}/api/news/${newsId}`);
+      fetchNews();
+    } catch (err) {
+      setError('فشل في حذف الخبر');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="p-6" dir="rtl">
+      <div className="mb-6 flex justify-between items-center">
+        <h1 className="text-3xl font-bold">إدارة الأخبار</h1>
+        <button
+          onClick={() => showForm ? resetForm() : setShowForm(true)}
+          className="btn btn-primary"
+        >
+          {showForm ? 'إلغاء' : '+ إنشاء خبر جديد'}
+        </button>
+      </div>
+
+      {error && (
+        <div className="alert alert-error mb-6">
+          <span>{error}</span>
+          <button onClick={() => setError(null)} className="btn btn-sm btn-ghost">✕</button>
+        </div>
+      )}
+
+      {showForm && (
+        <div className="card bg-base-200 shadow-lg mb-6">
+          <div className="card-body">
+            <h2 className="card-title text-2xl mb-4">
+              {editingId ? 'تعديل الخبر' : 'إنشاء خبر جديد'}
+            </h2>
+            
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">العنوان <span className="text-error">*</span></span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.title}
+                  onChange={(e) => handleInputChange('title', e.target.value)}
+                  className="input input-bordered"
+                  required
+                />
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text">المحتوى <span className="text-error">*</span></span>
+                </label>
+                <textarea
+                  value={formData.content}
+                  onChange={(e) => handleInputChange('content', e.target.value)}
+                  className="textarea textarea-bordered"
+                  rows="6"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="form-control">
+                  <label className="label"><span className="label-text">التصنيف</span></label>
+                  <select
+                    value={formData.category}
+                    onChange={(e) => handleInputChange('category', e.target.value)}
+                    className="select select-bordered"
+                  >
+                    <option value="">-- اختر التصنيف --</option>
+                    <option value="announcement">📢 إعلان</option>
+                    <option value="event">🎉 فعالية</option>
+                    <option value="achievement">🏆 إنجاز</option>
+                    <option value="condolence">💐 تعزية</option>
+                    <option value="general">📰 عام</option>
+                  </select>
+                </div>
+
+                <div className="form-control">
+                  <label className="label"><span className="label-text">الأولوية</span></label>
+                  <select
+                    value={formData.priority}
+                    onChange={(e) => handleInputChange('priority', e.target.value)}
+                    className="select select-bordered"
+                  >
+                    <option value="low">منخفضة</option>
+                    <option value="medium">متوسطة</option>
+                    <option value="high">عالية</option>
+                    <option value="urgent">🔴 عاجلة</option>
+                  </select>
+                </div>
+
+                <div className="form-control">
+                  <label className="label"><span className="label-text">الحالة</span></label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) => handleInputChange('status', e.target.value)}
+                    className="select select-bordered"
+                  >
+                    <option value="draft">📝 مسودة</option>
+                    <option value="published">✅ منشور</option>
+                    <option value="scheduled">📅 مجدول</option>
+                    <option value="archived">📦 مؤرشف</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-control">
+                <label className="label cursor-pointer justify-end gap-2">
+                  <span className="label-text">نشر مباشرة</span>
+                  <input
+                    type="checkbox"
+                    checked={formData.publishImmediately}
+                    onChange={(e) => handleInputChange('publishImmediately', e.target.checked)}
+                    className="checkbox checkbox-primary"
+                  />
+                </label>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4">
+                <button type="button" onClick={resetForm} className="btn btn-ghost">
+                  إلغاء
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={loading}>
+                  {loading ? 'جاري الحفظ...' : editingId ? 'تحديث' : 'حفظ'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <div className="card bg-base-200 shadow-lg">
+        <div className="card-body">
+          <h2 className="card-title mb-4">الأخبار الحالية</h2>
+          
+          {loading && !showForm ? (
+            <div className="flex justify-center py-12">
+              <span className="loading loading-spinner loading-lg"></span>
+            </div>
+          ) : newsList.length === 0 ? (
+            <div className="text-center py-12 opacity-60">
+              <div className="text-6xl mb-4">📰</div>
+              <p className="text-lg">لا توجد أخبار حالياً</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {newsList.map((news) => (
+                <div key={news.id} className="card bg-base-300 shadow">
+                  <div className="card-body">
+                    <h3 className="card-title">{news.title}</h3>
+                    <p className="opacity-80">{news.content}</p>
+                    
+                    <div className="flex justify-between items-center pt-4 border-t border-base-content/10">
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => handleEdit(news)} 
+                          className="btn btn-sm btn-primary"
+                        >
+                          ✏️ تعديل
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(news.id)} 
+                          className="btn btn-sm btn-error"
+                        >
+                          🗑️ حذف
+                        </button>
+                      </div>
+                      
+                      <div className="flex gap-2 text-xs">
+                        <div className="badge badge-info">{news.category}</div>
+                        <div className="badge badge-success">{news.status}</div>
+                        <div className="badge badge-warning">{news.priority}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default NewsManagement;
