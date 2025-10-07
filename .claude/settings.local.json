@@ -55,7 +55,8 @@
       "mcp__playwright__browser_resize",
       "Bash(test:*)",
       "Bash(npm run:*)",
-      "Bash(set TEST_ENV=production)"
+      "Bash(set TEST_ENV=production)",
+      "Bash(chmod:*)"
     ],
     "deny": [],
     "ask": []

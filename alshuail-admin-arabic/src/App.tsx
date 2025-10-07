@@ -24,6 +24,14 @@ import MemberSubscriptionView from './pages/mobile/MemberSubscriptionView';
 
 // Admin Pages
 import SubscriptionDashboard from './pages/admin/SubscriptionDashboard';
+import NewsManagement from './pages/admin/NewsManagement';
+import InitiativesManagement from './pages/admin/InitiativesManagement';
+
+// Member Pages - News & Initiatives
+import MemberNews from './pages/member/News';
+import MemberNewsDetail from './pages/member/NewsDetail';
+import MemberNotifications from './pages/member/Notifications';
+import MemberInitiatives from './pages/member/Initiatives';
 
 // Admin Dashboard Component
 const AdminDashboard: React.FC = () => {
@@ -251,6 +259,13 @@ const App: React.FC = () => {
             <Route path="/mobile/notifications" element={<MemberRoute><MobileNotifications /></MemberRoute>} />
             <Route path="/mobile/subscription" element={<MemberRoute><MemberSubscriptionView /></MemberRoute>} />
             <Route path="/mobile/subscriptions" element={<Navigate to="/mobile/subscription" replace />} />
+
+            {/* News & Initiatives Routes (Member) */}
+            <Route path="/mobile/news" element={<MemberRoute><MemberNews /></MemberRoute>} />
+            <Route path="/mobile/news/:id" element={<MemberRoute><MemberNewsDetail /></MemberRoute>} />
+            <Route path="/mobile/member-notifications" element={<MemberRoute><MemberNotifications /></MemberRoute>} />
+            <Route path="/mobile/initiatives" element={<MemberRoute><MemberInitiatives /></MemberRoute>} />
+
             <Route path="/mobile" element={<Navigate to="/mobile/login" replace />} />
 
             {/* Public member registration route */}
@@ -282,6 +297,10 @@ const App: React.FC = () => {
             {/* Subscription Management Routes */}
             <Route path="/admin/subscriptions" element={<AdminRoute><SubscriptionDashboard /></AdminRoute>} />
             <Route path="/subscriptions" element={<AdminRoute><SubscriptionDashboard /></AdminRoute>} />
+
+            {/* News & Initiatives Management Routes (Admin) */}
+            <Route path="/admin/news" element={<AdminRoute><NewsManagement /></AdminRoute>} />
+            <Route path="/admin/initiatives" element={<AdminRoute><InitiativesManagement /></AdminRoute>} />
 
             {/* Admin routes catch-all */}
             <Route path="/admin/*" element={<AdminRoute><StyledDashboard onLogout={() => {

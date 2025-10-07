@@ -72,4 +72,4 @@ supabase/.branches
 supabase/.temp
 
 # Debug
-debug.log
+debug.log.playwright-mcp/*.exe

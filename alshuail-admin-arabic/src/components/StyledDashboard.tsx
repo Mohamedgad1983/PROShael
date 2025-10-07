@@ -81,6 +81,12 @@ import MemberMonitoringDashboard from './MemberMonitoring/MemberMonitoringDashbo
 import DocumentManager from './Documents/DocumentManager.jsx';
 import FamilyTree from './FamilyTree/FamilyTree';
 
+// News & Initiatives Management - NEW
+// @ts-ignore
+import NewsManagement from '../pages/admin/NewsManagement';
+// @ts-ignore
+import InitiativesManagementNew from '../pages/admin/InitiativesManagement';
+
 import {
   formatHijriDate,
   getCurrentHijriDate,
@@ -1021,9 +1027,9 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
 
     { id: 'payments', label: 'المدفوعات', icon: BanknotesIcon },
 
-    { id: 'occasions', label: 'المناسبات', icon: CalendarIcon },
-
     { id: 'initiatives', label: 'المبادرات', icon: LightBulbIcon },
+
+    { id: 'news', label: '📰 الأخبار', icon: BellIcon },
 
     { id: 'diyas', label: 'الديات', icon: ScaleIcon },
 
@@ -4446,11 +4452,11 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
 
                 {activeSection === 'payments' && <PaymentsTracking />}
 
-                {activeSection === 'occasions' && <AppleOccasionsManagement />}
-
                 {activeSection === 'initiatives' && (
-                  <AppleInitiativesManagement />
+                  <InitiativesManagementNew />
                 )}
+
+                {activeSection === 'news' && <NewsManagement />}
 
                 {activeSection === 'diyas' && <AppleDiyasManagement />}
 
