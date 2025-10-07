@@ -162,8 +162,8 @@ const NewsManagement = () => {
             title_en: '',
             content_ar: '',
             content_en: '',
-            category: '',
-            priority: '',
+            category: 'general',
+            priority: 'normal',
             is_published: false,
             images: [],
             publish_date: ''
