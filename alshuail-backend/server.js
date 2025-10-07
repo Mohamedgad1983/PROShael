@@ -17,6 +17,10 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 import { testConnection } from './src/config/database.js';
 import membersRoutes from './src/routes/members.js';
 import paymentsRoutes from './src/routes/payments.js';
@@ -25,6 +29,8 @@ import dashboardRoutes from './src/routes/dashboard.js';
 import authRoutes from './src/routes/auth.js';
 import occasionsRoutes from './src/routes/occasions.js';
 import initiativesRoutes from './src/routes/initiatives.js';
+import initiativesEnhancedRoutes from './src/routes/initiativesEnhanced.js';
+import newsRoutes from './src/routes/news.js';
 import diyasRoutes from './src/routes/diyas.js';
 import notificationsRoutes from './src/routes/notifications.js';
 import testRoutes from './src/routes/test.js';
@@ -50,6 +56,26 @@ if (!process.env.JWT_SECRET) {
 const app = express();
 const PORT = process.env.PORT || 3001;
 // Deploy trigger: Family tree API enhanced with marriage tracking
+
+// Get __dirname equivalent for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Create uploads directories if they don't exist
+const uploadsDir = path.join(__dirname, 'uploads');
+const newsUploadsDir = path.join(uploadsDir, 'news');
+
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+    console.log('📁 Created uploads directory');
+}
+if (!fs.existsSync(newsUploadsDir)) {
+    fs.mkdirSync(newsUploadsDir, { recursive: true });
+    console.log('📁 Created news uploads directory');
+}
+
+// Serve uploaded files as static
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.use(helmet({
   crossOriginResourcePolicy: false,
@@ -176,6 +202,8 @@ app.use('/api/subscriptions', subscriptionsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/occasions', occasionsRoutes);
 app.use('/api/initiatives', initiativesRoutes);
+app.use('/api/initiatives-enhanced', initiativesEnhancedRoutes);
+app.use('/api/news', newsRoutes);
 app.use('/api/diyas', diyasRoutes);
 app.use('/api/notifications', notificationsRoutes);
 app.use('/api/test', testRoutes);
