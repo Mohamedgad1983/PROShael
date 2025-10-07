@@ -8,9 +8,15 @@ import { registerServiceWorker, initPerformanceMonitoring } from './utils/perfor
 // Initialize performance monitoring
 initPerformanceMonitoring();
 
-// Register service worker for caching
-// TEMPORARILY DISABLED - Service worker was caching API responses
-// registerServiceWorker();
+// FORCE UNREGISTER ALL SERVICE WORKERS - FIXES CACHING BUG
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(function(registrations) {
+    for(let registration of registrations) {
+      registration.unregister();
+      console.log('🗑️ Service worker unregistered to clear cache');
+    }
+  });
+}
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement

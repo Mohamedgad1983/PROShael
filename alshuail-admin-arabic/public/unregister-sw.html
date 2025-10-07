@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Cache - Al-Shuail Admin</title>
+    <style>
+        body {
+            font-family: 'Cairo', Arial, sans-serif;
+            direction: rtl;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            text-align: center;
+        }
+        .container {
+            background: rgba(255,255,255,0.1);
+            padding: 40px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+        button {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px;
+        }
+        button:hover {
+            transform: scale(1.05);
+        }
+        #log {
+            margin-top: 20px;
+            text-align: right;
+            font-family: monospace;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 تنظيف الذاكرة المؤقتة</h1>
+        <p>اضغط الزر لمسح جميع الملفات المخزنة مؤقتاً</p>
+        <button onclick="clearEverything()">🗑️ مسح الكل</button>
+        <button onclick="goToApp()">↗️ العودة للنظام</button>
+        <div id="log"></div>
+    </div>
+
+    <script>
+        function log(msg) {
+            const logDiv = document.getElementById('log');
+            logDiv.innerHTML += msg + '<br>';
+        }
+
+        async function clearEverything() {
+            try {
+                log('🔄 جاري المسح...');
+
+                // 1. Unregister ALL service workers
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for(let registration of registrations) {
+                    await registration.unregister();
+                    log('✅ تم إلغاء تسجيل Service Worker');
+                }
+
+                // 2. Clear ALL caches
+                const cacheNames = await caches.keys();
+                for (let name of cacheNames) {
+                    await caches.delete(name);
+                    log('✅ تم مسح Cache: ' + name);
+                }
+
+                // 3. Clear localStorage
+                localStorage.clear();
+                log('✅ تم مسح LocalStorage');
+
+                // 4. Clear sessionStorage
+                sessionStorage.clear();
+                log('✅ تم مسح SessionStorage');
+
+                // 5. Clear cookies
+                document.cookie.split(";").forEach(function(c) {
+                    document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+                });
+                log('✅ تم مسح Cookies');
+
+                log('');
+                log('✅✅✅ تم المسح بنجاح!');
+                log('');
+                log('⏳ سيتم تحديث الصفحة خلال 3 ثواني...');
+
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 3000);
+
+            } catch (error) {
+                log('❌ خطأ: ' + error.message);
+            }
+        }
+
+        function goToApp() {
+            window.location.href = '/';
+        }
+
+        // Auto-clear on load
+        window.addEventListener('load', () => {
+            log('📄 صفحة التنظيف جاهزة');
+            log('');
+        });
+    </script>
+</body>
+</html>
