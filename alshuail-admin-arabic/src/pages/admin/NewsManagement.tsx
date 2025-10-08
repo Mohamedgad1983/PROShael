@@ -36,6 +36,7 @@ const NewsManagement = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [showPushModal, setShowPushModal] = useState(false);
     const [pushingNewsId, setPushingNewsId] = useState<number | null>(null);
+    const [memberCount, setMemberCount] = useState<number>(6); // Default count, will be updated
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deletingNewsId, setDeletingNewsId] = useState<number | null>(null);
     const [deletingNews, setDeletingNews] = useState<NewsItem | null>(null);
@@ -139,22 +140,28 @@ const NewsManagement = () => {
     const handlePushNotification = async (newsId: number) => {
         try {
             const token = localStorage.getItem('token');
-            await axios.post(
+            setPushingNewsId(newsId);
+
+            const response = await axios.post(
                 `${API_URL}/news/${newsId}/push-notification`,
                 {},
                 { headers: { Authorization: `Bearer ${token}` } }
             );
 
-            // Show success animation
-            setPushingNewsId(newsId);
+            // Show success message with actual count
+            const recipientCount = response.data?.recipient_count || 0;
+            const successMessage = response.data?.message || `تم إرسال الإشعار إلى ${recipientCount} عضو بنجاح!`;
+
             setTimeout(() => {
                 setPushingNewsId(null);
-                alert('تم إرسال الإشعار إلى 344 عضو بنجاح!');
-            }, 2000);
+                setShowPushModal(false);
+                alert(`✅ ${successMessage}\n\n📊 عدد المستلمين: ${recipientCount}`);
+            }, 1000);
 
-            setShowPushModal(false);
         } catch (error: any) {
-            alert('خطأ في إرسال الإشعار: ' + (error.response?.data?.error || error.message));
+            setPushingNewsId(null);
+            const errorMsg = error.response?.data?.errorAr || error.response?.data?.error || error.message;
+            alert('❌ خطأ في إرسال الإشعار: ' + errorMsg);
         }
     };
 
@@ -731,7 +738,7 @@ const NewsManagement = () => {
                                     سيتم إرسال إشعار إلى
                                 </p>
                                 <p className="text-center text-5xl font-bold text-red-600 mb-2">
-                                    344
+                                    {memberCount}
                                 </p>
                                 <p className="text-center text-lg font-bold">
                                     عضو من عائلة الشعيل

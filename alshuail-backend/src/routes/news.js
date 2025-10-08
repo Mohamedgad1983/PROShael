@@ -250,6 +250,8 @@ router.post('/:id/push-notification', authenticateToken, adminOnly, async (req, 
         const { id } = req.params;
         const { custom_message } = req.body; // Optional custom notification text
 
+        console.log('[Push Notification] Starting for news ID:', id);
+
         // Get news post
         const { data: news, error: newsError } = await supabase
             .from('news_announcements')
@@ -257,61 +259,78 @@ router.post('/:id/push-notification', authenticateToken, adminOnly, async (req, 
             .eq('id', id)
             .single();
 
-        if (newsError) throw newsError;
-
-        if (!news.is_published) {
-            return res.status(400).json({ error: 'Cannot send notification for unpublished news' });
+        if (newsError) {
+            console.error('[Push Notification] News not found:', newsError);
+            throw newsError;
         }
 
-        // Get all active members
-        const { data: members, error: membersError } = await supabase
-            .from('members')
-            .select('id')
-            .eq('is_active', true);
+        if (!news.is_published) {
+            console.log('[Push Notification] News not published');
+            return res.status(400).json({
+                error: 'Cannot send notification for unpublished news',
+                errorAr: 'لا يمكن إرسال إشعار لخبر غير منشور'
+            });
+        }
 
-        if (membersError) throw membersError;
+        // Get all members (users with role='member')
+        const { data: members, error: membersError } = await supabase
+            .from('users')
+            .select('id, email, phone')
+            .eq('role', 'member');
+
+        if (membersError) {
+            console.error('[Push Notification] Error fetching members:', membersError);
+            throw membersError;
+        }
+
+        console.log('[Push Notification] Found', members.length, 'members');
 
         // Create notifications for ALL members
         const notifications = members.map(member => ({
-            member_id: member.id,
+            user_id: member.id,  // Using user_id instead of member_id
             type: 'news',
+            priority: news.priority || 'normal',
+            title: custom_message || news.title_ar || news.title,
             title_ar: custom_message || news.title_ar,
             title_en: news.title_en,
-            message_ar: `خبر جديد من عائلة الشعيل`,
-            message_en: 'New news from Al-Shuail family',
+            message: `خبر جديد من عائلة الشعيل`,
+            message_ar: `خبر جديد من عائلة الشعيل: ${(news.content_ar || news.content || '').substring(0, 100)}...`,
+            message_en: `New announcement from Al-Shuail family`,
             related_id: news.id,
             related_type: 'news',
-            action_url: `/news/${news.id}`,
-            push_sent: true,
-            push_sent_at: new Date()
+            icon: '📰',
+            action_url: `/member/news/${news.id}`,
+            is_read: false
         }));
 
         const { error: notifError } = await supabase
             .from('notifications')
             .insert(notifications);
 
-        if (notifError) throw notifError;
+        if (notifError) {
+            console.error('[Push Notification] Error inserting notifications:', notifError);
+            throw notifError;
+        }
 
-        // Mark news as notification sent
-        await supabase
-            .from('news_announcements')
-            .update({
-                notification_sent: true,
-                notification_sent_at: new Date(),
-                notification_count: members.length
-            })
-            .eq('id', id);
+        console.log('[Push Notification] Created', notifications.length, 'notifications');
 
-        // 🔥 Send actual push notifications to devices
-        await sendPushNotifications(members, news);
+        // 🔥 Send actual push notifications to devices (if configured)
+        const devicesSent = await sendPushNotifications(members, news);
 
         res.json({
-            message: `Notification sent to ${members.length} members successfully!`,
-            recipient_count: members.length
+            success: true,
+            message: `إشعار تم إرساله إلى ${members.length} عضو بنجاح!`,
+            messageEn: `Notification sent to ${members.length} members successfully!`,
+            recipient_count: members.length,
+            devices_sent: devicesSent
         });
     } catch (error) {
-        console.error('Push notification error:', error);
-        res.status(500).json({ error: error.message });
+        console.error('[Push Notification] Error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            errorAr: 'خطأ في إرسال الإشعارات'
+        });
     }
 });
 
