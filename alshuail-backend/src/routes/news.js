@@ -171,25 +171,39 @@ router.put('/:id', authenticateToken, adminOnly, upload.array('media', 10), asyn
 
             const existing_media = existingNews?.media_urls ? JSON.parse(existingNews.media_urls) : [];
             updates.media_urls = JSON.stringify([...existing_media, ...new_media]);
+        } else {
+            // If no files uploaded, don't update media_urls
+            delete updates.media_urls;
         }
 
-        // If publishing now
-        if (updates.is_published === 'true' && !updates.published_at) {
-            updates.published_at = new Date();
-        }
+        // Remove fields that don't exist in database
+        delete updates.images; // Frontend field that doesn't exist in DB
+        delete updates.publish_date; // Frontend field that doesn't exist in DB
+
+        console.log('[UPDATE NEWS] Updating news ID:', id);
+        console.log('[UPDATE NEWS] Updates:', updates);
 
         const { data, error } = await supabase
             .from('news_announcements')
             .update(updates)
             .eq('id', id)
-            .select()
-            .single();
+            .select();
 
-        if (error) throw error;
+        if (error) {
+            console.error('[UPDATE NEWS] Error:', error);
+            throw error;
+        }
+
+        if (!data || data.length === 0) {
+            console.error('[UPDATE NEWS] No news found with ID:', id);
+            return res.status(404).json({ error: 'News not found' });
+        }
+
+        console.log('[UPDATE NEWS] Success! Updated:', data[0]);
 
         res.json({
             message: 'News post updated successfully',
-            news: data
+            news: data[0]
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
