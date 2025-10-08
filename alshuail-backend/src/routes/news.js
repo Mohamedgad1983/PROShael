@@ -272,45 +272,55 @@ router.post('/:id/push-notification', authenticateToken, adminOnly, async (req, 
             });
         }
 
-        // Get all members (users with role='member')
+        // Get all members from members table (not users table)
         const { data: members, error: membersError } = await supabase
-            .from('users')
-            .select('id, email, phone')
-            .eq('role', 'member');
+            .from('members')
+            .select('id, member_id, email, phone, full_name')
+            .eq('is_active', true)
+            .eq('membership_status', 'active');
 
         if (membersError) {
             console.error('[Push Notification] Error fetching members:', membersError);
             throw membersError;
         }
 
-        console.log('[Push Notification] Found', members.length, 'members');
+        console.log('[Push Notification] Found', members.length, 'active members');
 
-        // Create notifications for ALL members
-        const notifications = members.map(member => ({
-            user_id: member.id,  // Using user_id instead of member_id
-            type: 'news',
+        // 📝 Since members don't have user_id and notifications table requires it,
+        // we'll send push notifications via external service (FCM/OneSignal)
+        // and store a single admin notification about the broadcast
+
+        // Create ONE notification for admin to track this broadcast
+        const adminNotification = {
+            user_id: req.user.id,  // Admin who sent the notification
+            type: 'news_broadcast',
             priority: news.priority || 'normal',
-            title: custom_message || news.title_ar || news.title,
-            title_ar: custom_message || news.title_ar,
-            message: `خبر جديد من عائلة الشعيل`,
-            message_ar: `خبر جديد من عائلة الشعيل: ${(news.content_ar || news.content || '').substring(0, 100)}...`,
+            title: `تم إرسال إشعار لـ ${members.length} عضو`,
+            title_ar: `تم إرسال إشعار لـ ${members.length} عضو`,
+            message: `تم إرسال إشعار بالخبر "${news.title_ar || news.title}" إلى ${members.length} عضو من أعضاء العائلة`,
+            message_ar: `تم إرسال إشعار بالخبر "${news.title_ar || news.title}" إلى ${members.length} عضو من أعضاء العائلة`,
             related_id: news.id,
             related_type: 'news',
-            icon: '📰',
-            action_url: `/member/news/${news.id}`,
-            is_read: false
-        }));
+            icon: '📢',
+            action_url: `/admin/news`,
+            is_read: false,
+            metadata: {
+                broadcast_to: members.length,
+                member_ids: members.map(m => m.id),
+                news_title: news.title_ar || news.title
+            }
+        };
 
         const { error: notifError } = await supabase
             .from('notifications')
-            .insert(notifications);
+            .insert([adminNotification]);
 
         if (notifError) {
-            console.error('[Push Notification] Error inserting notifications:', notifError);
+            console.error('[Push Notification] Error inserting admin notification:', notifError);
             throw notifError;
         }
 
-        console.log('[Push Notification] Created', notifications.length, 'notifications');
+        console.log('[Push Notification] Broadcast notification sent to', members.length, 'members');
 
         // 🔥 Send actual push notifications to devices (if configured)
         const devicesSent = await sendPushNotifications(members, news);
@@ -328,6 +338,42 @@ router.post('/:id/push-notification', authenticateToken, adminOnly, async (req, 
             success: false,
             error: error.message,
             errorAr: 'خطأ في إرسال الإشعارات'
+        });
+    }
+});
+
+// 5.1 GET MEMBER COUNT FOR NOTIFICATIONS (Admin)
+router.get('/notification/member-count', authenticateToken, adminOnly, async (req, res) => {
+    try {
+        console.log('[Member Count] Fetching active member count...');
+
+        // Get all active members
+        const { count, error } = await supabase
+            .from('members')
+            .select('*', { count: 'exact', head: true })
+            .eq('is_active', true)
+            .eq('membership_status', 'active');
+
+        if (error) {
+            console.error('[Member Count] Error:', error);
+            throw error;
+        }
+
+        console.log('[Member Count] Found', count, 'active members');
+
+        res.json({
+            success: true,
+            count: count || 0,
+            message: `${count} عضو نشط`,
+            messageEn: `${count} active members`
+        });
+    } catch (error) {
+        console.error('[Member Count] Error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            errorAr: 'خطأ في جلب عدد الأعضاء',
+            count: 0
         });
     }
 });
