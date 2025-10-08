@@ -498,32 +498,30 @@ const NewsManagement = () => {
                                         </button>
                                     </div>
 
-                                    {/* BIG RED PUSH NOTIFICATION BUTTON */}
-                                    {item.is_published && (
-                                        <button
-                                            onClick={() => {
-                                                setPreviewNews(item);
-                                                setShowPushModal(true);
-                                                fetchMemberCount(); // Fetch latest member count
-                                            }}
-                                            disabled={pushingNewsId === item.id}
-                                            className={`w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white py-3 rounded-lg font-bold text-sm transition-all duration-300 hover:shadow-2xl hover:scale-105 flex items-center justify-center gap-2 ${
-                                                pushingNewsId === item.id ? 'animate-pulse' : ''
-                                            }`}
-                                        >
-                                            {pushingNewsId === item.id ? (
-                                                <>
-                                                    <span className="animate-spin">⚡</span>
-                                                    <span>جاري الإرسال...</span>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <span className="text-xl">📢</span>
-                                                    <span>إرسال إشعار لجميع الأعضاء</span>
-                                                </>
-                                            )}
-                                        </button>
-                                    )}
+                                    {/* BIG RED PUSH NOTIFICATION BUTTON - Shows for ALL categories */}
+                                    <button
+                                        onClick={() => {
+                                            setPreviewNews(item);
+                                            setShowPushModal(true);
+                                            fetchMemberCount(); // Fetch latest member count
+                                        }}
+                                        disabled={pushingNewsId === item.id}
+                                        className={`w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white py-3 rounded-lg font-bold text-sm transition-all duration-300 hover:shadow-2xl hover:scale-105 flex items-center justify-center gap-2 ${
+                                            pushingNewsId === item.id ? 'animate-pulse' : ''
+                                        }`}
+                                    >
+                                        {pushingNewsId === item.id ? (
+                                            <>
+                                                <span className="animate-spin">⚡</span>
+                                                <span>جاري الإرسال...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span className="text-xl">📢</span>
+                                                <span>إرسال إشعار لجميع الأعضاء</span>
+                                            </>
+                                        )}
+                                    </button>
                                 </div>
                             </div>
                         </div>
