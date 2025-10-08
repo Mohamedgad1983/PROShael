@@ -492,29 +492,47 @@ const NewsManagement = () => {
                                     <label className="block text-sm font-bold text-gray-700 mb-2">
                                         التصنيف *
                                     </label>
-                                    <select
-                                        value={formData.category}
-                                        onChange={(e) => {
-                                            console.log('✅ Category changed to:', e.target.value);
-                                            handleInputChange('category', e.target.value);
-                                        }}
-                                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 cursor-pointer transition-all"
-                                        style={{
-                                            direction: 'rtl',
-                                            textAlign: 'right',
-                                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-                                            fontSize: '16px',
-                                            backgroundColor: 'white',
-                                            color: '#111827'
-                                        } as React.CSSProperties}
-                                        dir="rtl"
-                                        required
-                                    >
-                                        <option value="general">عام</option>
-                                        <option value="announcement">إعلان</option>
-                                        <option value="urgent">عاجل</option>
-                                        <option value="event">حدث</option>
-                                    </select>
+                                    <div className="relative">
+                                        <select
+                                            value={formData.category}
+                                            onChange={(e) => {
+                                                console.log('✅ Category changed to:', e.target.value);
+                                                handleInputChange('category', e.target.value);
+                                            }}
+                                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 cursor-pointer transition-all"
+                                            style={{
+                                                direction: 'rtl',
+                                                textAlign: 'right',
+                                                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                                                fontSize: '16px',
+                                                backgroundColor: 'white',
+                                                color: '#111827',
+                                                paddingRight: '16px'
+                                            } as React.CSSProperties}
+                                            dir="rtl"
+                                            required
+                                        >
+                                            <option value="general">عام</option>
+                                            <option value="announcement">إعلان</option>
+                                            <option value="urgent">عاجل</option>
+                                            <option value="event">حدث</option>
+                                        </select>
+                                        {/* Visual display of selected text */}
+                                        <div
+                                            className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none bg-white px-2"
+                                            style={{
+                                                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                                                fontSize: '16px',
+                                                color: '#111827',
+                                                direction: 'rtl'
+                                            }}
+                                        >
+                                            {formData.category === 'general' && 'عام'}
+                                            {formData.category === 'announcement' && 'إعلان'}
+                                            {formData.category === 'urgent' && 'عاجل'}
+                                            {formData.category === 'event' && 'حدث'}
+                                        </div>
+                                    </div>
                                 </div>
 
                                 {/* Priority Dropdown */}
@@ -522,28 +540,45 @@ const NewsManagement = () => {
                                     <label className="block text-sm font-bold text-gray-700 mb-2">
                                         الأولوية *
                                     </label>
-                                    <select
-                                        value={formData.priority}
-                                        onChange={(e) => {
-                                            console.log('✅ Priority changed to:', e.target.value);
-                                            handleInputChange('priority', e.target.value);
-                                        }}
-                                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 cursor-pointer transition-all"
-                                        style={{
-                                            direction: 'rtl',
-                                            textAlign: 'right',
-                                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-                                            fontSize: '16px',
-                                            backgroundColor: 'white',
-                                            color: '#111827'
-                                        } as React.CSSProperties}
-                                        dir="rtl"
-                                        required
-                                    >
-                                        <option value="low">منخفضة</option>
-                                        <option value="normal">عادية</option>
-                                        <option value="high">عالية</option>
-                                    </select>
+                                    <div className="relative">
+                                        <select
+                                            value={formData.priority}
+                                            onChange={(e) => {
+                                                console.log('✅ Priority changed to:', e.target.value);
+                                                handleInputChange('priority', e.target.value);
+                                            }}
+                                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 cursor-pointer transition-all"
+                                            style={{
+                                                direction: 'rtl',
+                                                textAlign: 'right',
+                                                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                                                fontSize: '16px',
+                                                backgroundColor: 'white',
+                                                color: '#111827',
+                                                paddingRight: '16px'
+                                            } as React.CSSProperties}
+                                            dir="rtl"
+                                            required
+                                        >
+                                            <option value="low">منخفضة</option>
+                                            <option value="normal">عادية</option>
+                                            <option value="high">عالية</option>
+                                        </select>
+                                        {/* Visual display of selected text */}
+                                        <div
+                                            className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none bg-white px-2"
+                                            style={{
+                                                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                                                fontSize: '16px',
+                                                color: '#111827',
+                                                direction: 'rtl'
+                                            }}
+                                        >
+                                            {formData.priority === 'low' && 'منخفضة'}
+                                            {formData.priority === 'normal' && 'عادية'}
+                                            {formData.priority === 'high' && 'عالية'}
+                                        </div>
+                                    </div>
                                 </div>
 
                                 {/* Status Checkbox */}
