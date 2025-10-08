@@ -11,6 +11,9 @@ select[dir="rtl"] {
     font-size: 16px !important;
     color: #111827 !important;
     background-color: white !important;
+    -webkit-appearance: auto !important;
+    -moz-appearance: auto !important;
+    appearance: auto !important;
 }
 
 /* Style options for RTL */
@@ -23,12 +26,12 @@ select[dir="rtl"] option {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif !important;
 }
 
-/* Remove browser default styling */
-select {
+/* Remove browser default styling - COMMENTED OUT TO FIX WINDOWS CHROME BUG */
+/* select {
     -webkit-appearance: none !important;
     -moz-appearance: none !important;
     appearance: none !important;
-}
+} */
 
 /* Add custom dropdown arrow for RTL */
 select[dir="rtl"] {
