@@ -22,7 +22,7 @@ const isAdmin = async (userId) => {
             .eq('id', userId)
             .single();
 
-        return data?.role === 'admin';
+        return data?.role === 'admin' || data?.role === 'super_admin';
     } catch (error) {
         console.error('Error checking admin status:', error);
         return false;
@@ -32,15 +32,22 @@ const isAdmin = async (userId) => {
 // Admin middleware
 const adminOnly = async (req, res, next) => {
     const userId = req.user?.id;
+    console.log('[adminOnly] Checking admin for user:', userId);
+
     if (!userId) {
+        console.log('[adminOnly] No userId - Unauthorized');
         return res.status(401).json({ error: 'Unauthorized' });
     }
 
     const admin = await isAdmin(userId);
+    console.log('[adminOnly] isAdmin result:', admin, 'for user:', userId);
+
     if (!admin) {
+        console.log('[adminOnly] User is not admin - Forbidden');
         return res.status(403).json({ error: 'Admin access required' });
     }
 
+    console.log('[adminOnly] Admin check passed, calling next()');
     next();
 };
 
@@ -103,21 +110,28 @@ router.post('/', authenticateToken, adminOnly, upload.array('media', 10), async 
             size: file.size
         })) : [];
 
+        // Prepare news data - use correct column names from database schema
+        // The table has: title (required), content (required), title_ar, content_ar, etc.
+        const newsData = {
+            category: category || 'general',
+            priority: priority || 'normal',
+            title: title_ar || title_en || 'Untitled',  // Required field
+            content: content_ar || content_en || '',     // Required field
+            title_ar,
+            title_en,
+            content_ar,
+            content_en,
+            author_id: req.user.id,
+            media_urls: media_urls,  // Already an array, Supabase handles JSONB
+            is_published: is_published === 'true' || is_published === true,
+            publish_date: (is_published === 'true' || is_published === true) ? new Date().toISOString() : null,
+            scheduled_for: scheduled_for || null,
+            status: (is_published === 'true' || is_published === true) ? 'published' : 'draft'
+        };
+
         const { data, error } = await supabase
             .from('news_announcements')
-            .insert([{
-                category: category || 'general',
-                priority: priority || 'normal',
-                title_ar,
-                title_en,
-                content_ar,
-                content_en,
-                author_id: req.user.id,
-                media_urls: JSON.stringify(media_urls),
-                is_published: is_published === 'true' || is_published === true,
-                published_at: (is_published === 'true' || is_published === true) ? new Date() : null,
-                scheduled_for: scheduled_for || null
-            }])
+            .insert([newsData])
             .select()
             .single();
 
@@ -182,20 +196,21 @@ router.put('/:id', authenticateToken, adminOnly, upload.array('media', 10), asyn
     }
 });
 
-// 3. DELETE NEWS POST (Admin Only - Soft Delete)
+// 3. DELETE NEWS POST (Admin Only - Hard Delete since table doesn't have deleted_at)
 router.delete('/:id', authenticateToken, adminOnly, async (req, res) => {
     try {
         const { id } = req.params;
 
         const { error } = await supabase
             .from('news_announcements')
-            .update({ deleted_at: new Date() })
+            .delete()
             .eq('id', id);
 
         if (error) throw error;
 
         res.json({ message: 'News post deleted successfully' });
     } catch (error) {
+        console.error('DELETE news error:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -208,7 +223,6 @@ router.get('/admin/all', authenticateToken, adminOnly, async (req, res) => {
         let query = supabase
             .from('news_announcements')
             .select('*, author:users!author_id(id, email)')
-            .is('deleted_at', null)
             .order('created_at', { ascending: false });
 
         if (category && category !== 'all') {
@@ -225,6 +239,7 @@ router.get('/admin/all', authenticateToken, adminOnly, async (req, res) => {
 
         res.json({ news: data });
     } catch (error) {
+        console.error('GET /admin/all error:', error);
         res.status(500).json({ error: error.message });
     }
 });

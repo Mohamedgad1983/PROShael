@@ -36,6 +36,9 @@ const NewsManagement = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [showPushModal, setShowPushModal] = useState(false);
     const [pushingNewsId, setPushingNewsId] = useState<number | null>(null);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deletingNewsId, setDeletingNewsId] = useState<number | null>(null);
+    const [deletingNews, setDeletingNews] = useState<NewsItem | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Form state
@@ -57,7 +60,7 @@ const NewsManagement = () => {
         publish_date: ''
     });
 
-    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+    const API_URL = (process.env.REACT_APP_API_URL || 'http://localhost:3001') + '/api';
 
     useEffect(() => {
         fetchNews();
@@ -75,7 +78,7 @@ const NewsManagement = () => {
         try {
             const token = localStorage.getItem('token');
             const params = selectedCategory !== 'all' ? { category: selectedCategory } : {};
-            const response = await axios.get(`${API_URL}/news`, {
+            const response = await axios.get(`${API_URL}/news/admin/all`, {
                 params,
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -112,12 +115,17 @@ const NewsManagement = () => {
                 });
             }
 
-            await axios.post(`${API_URL}/news`, formDataToSend, {
+            console.log('🚀 Attempting POST to:', `${API_URL}/news`);
+            console.log('🔑 Token:', token ? 'Present' : 'Missing');
+
+            const response = await axios.post(`${API_URL}/news`, formDataToSend, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                     'Content-Type': 'multipart/form-data'
                 }
             });
+
+            console.log('✅ POST Response:', response.data);
 
             alert('تم إنشاء الخبر بنجاح!');
             setShowCreateModal(false);
@@ -147,6 +155,29 @@ const NewsManagement = () => {
             setShowPushModal(false);
         } catch (error: any) {
             alert('خطأ في إرسال الإشعار: ' + (error.response?.data?.error || error.message));
+        }
+    };
+
+    const handleDeleteNews = async (newsId: number) => {
+        try {
+            const token = localStorage.getItem('token');
+            setDeletingNewsId(newsId);
+
+            await axios.delete(`${API_URL}/news/${newsId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            // Show success message
+            alert('✅ تم حذف الخبر بنجاح!');
+
+            // Close modal and refresh news list
+            setShowDeleteModal(false);
+            setDeletingNews(null);
+            setDeletingNewsId(null);
+            fetchNews();
+        } catch (error: any) {
+            setDeletingNewsId(null);
+            alert('❌ خطأ في حذف الخبر: ' + (error.response?.data?.error || error.message));
         }
     };
 
@@ -389,6 +420,15 @@ const NewsManagement = () => {
                                             className="flex-1 bg-blue-100 hover:bg-blue-200 text-blue-700 py-2 rounded-lg transition-colors duration-200 text-sm font-medium"
                                         >
                                             تعديل
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setDeletingNews(item);
+                                                setShowDeleteModal(true);
+                                            }}
+                                            className="flex-1 bg-red-100 hover:bg-red-200 text-red-700 py-2 rounded-lg transition-colors duration-200 text-sm font-medium"
+                                        >
+                                            حذف
                                         </button>
                                     </div>
 
@@ -727,6 +767,85 @@ const NewsManagement = () => {
                                     className="flex-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white py-3 rounded-lg font-bold transition-all hover:shadow-xl"
                                 >
                                     تأكيد الإرسال
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteModal && deletingNews && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl animate-bounce-in">
+                        <div className="bg-gradient-to-r from-red-600 to-red-700 text-white p-6 rounded-t-2xl">
+                            <div className="text-6xl text-center mb-4">⚠️</div>
+                            <h2 className="text-2xl font-bold text-center">تأكيد الحذف</h2>
+                        </div>
+                        <div className="p-6">
+                            <div className="bg-red-50 border-2 border-red-400 rounded-lg p-4 mb-4">
+                                <p className="text-center text-lg font-bold mb-3 text-red-800">
+                                    هل أنت متأكد من حذف هذا الخبر؟
+                                </p>
+                                <p className="text-center text-sm text-red-600 font-medium">
+                                    ⚠️ هذا الإجراء لا يمكن التراجع عنه
+                                </p>
+                            </div>
+
+                            <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                                <p className="font-bold text-gray-700 mb-2">الخبر المراد حذفه:</p>
+                                <p className="text-gray-800 font-medium line-clamp-2">
+                                    {deletingNews.title_ar || deletingNews.title_en}
+                                </p>
+                                <div className="flex gap-2 mt-2">
+                                    <span className={`px-2 py-1 rounded text-xs text-white ${getCategoryColor(deletingNews.category)}`}>
+                                        {getCategoryText(deletingNews.category)}
+                                    </span>
+                                    {deletingNews.priority === 'high' && (
+                                        <span className="px-2 py-1 rounded text-xs bg-red-100 text-red-800">
+                                            عالية الأولوية
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Hijri Date */}
+                            {deletingNews.created_at && (
+                                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-3 mb-6">
+                                    <p className="text-sm text-green-800 font-medium text-center flex items-center justify-center gap-2">
+                                        <span>📅</span>
+                                        <span>تاريخ النشر: {formatHijri(deletingNews.created_at)}</span>
+                                    </p>
+                                </div>
+                            )}
+
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => {
+                                        setShowDeleteModal(false);
+                                        setDeletingNews(null);
+                                    }}
+                                    disabled={deletingNewsId !== null}
+                                    className="flex-1 bg-gray-100 hover:bg-gray-200 py-3 rounded-lg transition-colors font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    إلغاء
+                                </button>
+                                <button
+                                    onClick={() => handleDeleteNews(deletingNews.id)}
+                                    disabled={deletingNewsId !== null}
+                                    className="flex-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white py-3 rounded-lg font-bold transition-all hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                    {deletingNewsId === deletingNews.id ? (
+                                        <>
+                                            <span className="animate-spin">⏳</span>
+                                            <span>جاري الحذف...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span>🗑️</span>
+                                            <span>تأكيد الحذف</span>
+                                        </>
+                                    )}
                                 </button>
                             </div>
                         </div>
