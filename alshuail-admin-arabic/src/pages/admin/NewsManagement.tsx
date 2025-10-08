@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { formatHijri } from '../../utils/hijriDate.js';
 import SimpleHijriDatePicker from '../../components/Common/SimpleHijriDatePicker';
+import '../../styles/SelectFix.css';
 
 interface NewsItem {
     id: number;
@@ -484,17 +485,21 @@ const NewsManagement = () => {
                                 </div>
                             </div>
 
-                            {/* Settings */}
+                            {/* Settings - FIXED DROPDOWNS */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                                {/* Category Dropdown */}
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-2">
-                                        التصنيف
+                                        التصنيف *
                                     </label>
                                     <select
                                         value={formData.category}
-                                        onChange={(e) => handleInputChange('category', e.target.value)}
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                        style={{ fontSize: '16px', fontFamily: 'Arial, sans-serif' }}
+                                        onChange={(e) => {
+                                            console.log('✅ Category changed to:', e.target.value);
+                                            handleInputChange('category', e.target.value);
+                                        }}
+                                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 cursor-pointer transition-all"
+                                        dir="rtl"
                                         required
                                     >
                                         <option value="general">عام</option>
@@ -503,15 +508,20 @@ const NewsManagement = () => {
                                         <option value="event">حدث</option>
                                     </select>
                                 </div>
+
+                                {/* Priority Dropdown */}
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-2">
-                                        الأولوية
+                                        الأولوية *
                                     </label>
                                     <select
                                         value={formData.priority}
-                                        onChange={(e) => handleInputChange('priority', e.target.value)}
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                        style={{ fontSize: '16px', fontFamily: 'Arial, sans-serif' }}
+                                        onChange={(e) => {
+                                            console.log('✅ Priority changed to:', e.target.value);
+                                            handleInputChange('priority', e.target.value);
+                                        }}
+                                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 cursor-pointer transition-all"
+                                        dir="rtl"
                                         required
                                     >
                                         <option value="low">منخفضة</option>
@@ -519,19 +529,21 @@ const NewsManagement = () => {
                                         <option value="high">عالية</option>
                                     </select>
                                 </div>
+
+                                {/* Status Checkbox */}
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 mb-2">
                                         الحالة
                                     </label>
-                                    <label className="flex items-center gap-3 px-4 py-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                                    <label className="flex items-center gap-3 px-4 py-3 border-2 border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 bg-white transition-all">
                                         <input
                                             type="checkbox"
                                             checked={formData.is_published}
                                             onChange={(e) => {
-                                                const checked = e.target.checked;
-                                                setFormData(prev => ({ ...prev, is_published: checked }));
+                                                console.log('✅ Publish status changed to:', e.target.checked);
+                                                handleInputChange('is_published', e.target.checked);
                                             }}
-                                            className="w-5 h-5 text-blue-600"
+                                            className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
                                         />
                                         <span className="font-medium">نشر مباشرة</span>
                                     </label>
