@@ -32,11 +32,14 @@ const NewsManagement = () => {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showPreviewModal, setShowPreviewModal] = useState(false);
     const [previewNews, setPreviewNews] = useState<NewsItem | null>(null);
+    const [editingNews, setEditingNews] = useState<NewsItem | null>(null);
+    const [isEditMode, setIsEditMode] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [showPushModal, setShowPushModal] = useState(false);
     const [pushingNewsId, setPushingNewsId] = useState<number | null>(null);
-    const [memberCount, setMemberCount] = useState<number>(6); // Default count, will be updated
+    const [memberCount, setMemberCount] = useState<number>(0); // Will be fetched from API
+    const [loadingMemberCount, setLoadingMemberCount] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deletingNewsId, setDeletingNewsId] = useState<number | null>(null);
     const [deletingNews, setDeletingNews] = useState<NewsItem | null>(null);
@@ -116,24 +119,62 @@ const NewsManagement = () => {
                 });
             }
 
-            console.log('🚀 Attempting POST to:', `${API_URL}/news`);
-            console.log('🔑 Token:', token ? 'Present' : 'Missing');
+            // Check if we're editing or creating
+            if (isEditMode && editingNews) {
+                // UPDATE existing news
+                console.log('🔄 Attempting PUT to:', `${API_URL}/news/${editingNews.id}`);
 
-            const response = await axios.post(`${API_URL}/news`, formDataToSend, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    'Content-Type': 'multipart/form-data'
-                }
-            });
+                const response = await axios.put(`${API_URL}/news/${editingNews.id}`, formDataToSend, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'multipart/form-data'
+                    }
+                });
 
-            console.log('✅ POST Response:', response.data);
+                console.log('✅ PUT Response:', response.data);
+                alert('تم تحديث الخبر بنجاح!');
 
-            alert('تم إنشاء الخبر بنجاح!');
-            setShowCreateModal(false);
-            fetchNews();
-            resetForm();
+                // Redirect to dashboard after successful update
+                window.location.href = '/admin/dashboard';
+            } else {
+                // CREATE new news
+                console.log('🚀 Attempting POST to:', `${API_URL}/news`);
+                console.log('🔑 Token:', token ? 'Present' : 'Missing');
+
+                const response = await axios.post(`${API_URL}/news`, formDataToSend, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'multipart/form-data'
+                    }
+                });
+
+                console.log('✅ POST Response:', response.data);
+                alert('تم إنشاء الخبر بنجاح!');
+                setShowCreateModal(false);
+                fetchNews();
+                resetForm();
+            }
         } catch (error: any) {
             alert('خطأ: ' + (error.response?.data?.error || error.message));
+        }
+    };
+
+    const fetchMemberCount = async () => {
+        try {
+            setLoadingMemberCount(true);
+            const token = localStorage.getItem('token');
+
+            const response = await axios.get(
+                `${API_URL}/news/notification/member-count`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            setMemberCount(response.data?.count || 0);
+        } catch (error: any) {
+            console.error('Error fetching member count:', error);
+            setMemberCount(0);
+        } finally {
+            setLoadingMemberCount(false);
         }
     };
 
@@ -269,7 +310,12 @@ const NewsManagement = () => {
                             <p className="text-gray-600">إنشاء وإدارة أخبار العائلة</p>
                         </div>
                         <button
-                            onClick={() => setShowCreateModal(true)}
+                            onClick={() => {
+                                setIsEditMode(false);
+                                setEditingNews(null);
+                                resetForm();
+                                setShowCreateModal(true);
+                            }}
                             className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-4 rounded-xl hover:shadow-2xl hover:scale-105 transition-all duration-300 flex items-center gap-3 font-bold"
                         >
                             <span className="text-2xl">+</span>
@@ -423,7 +469,20 @@ const NewsManagement = () => {
                                             معاينة
                                         </button>
                                         <button
-                                            onClick={() => window.location.href = `/admin/news/${item.id}/edit`}
+                                            onClick={() => {
+                                                setEditingNews(item);
+                                                setIsEditMode(true);
+                                                setFormData({
+                                                    title_ar: item.title_ar || '',
+                                                    content_ar: item.content_ar || '',
+                                                    category: item.category || 'general',
+                                                    priority: item.priority || 'normal',
+                                                    is_published: item.is_published || false,
+                                                    images: [],
+                                                    publish_date: ''
+                                                });
+                                                setShowCreateModal(true);
+                                            }}
                                             className="flex-1 bg-blue-100 hover:bg-blue-200 text-blue-700 py-2 rounded-lg transition-colors duration-200 text-sm font-medium"
                                         >
                                             تعديل
@@ -445,6 +504,7 @@ const NewsManagement = () => {
                                             onClick={() => {
                                                 setPreviewNews(item);
                                                 setShowPushModal(true);
+                                                fetchMemberCount(); // Fetch latest member count
                                             }}
                                             disabled={pushingNewsId === item.id}
                                             className={`w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white py-3 rounded-lg font-bold text-sm transition-all duration-300 hover:shadow-2xl hover:scale-105 flex items-center justify-center gap-2 ${
@@ -490,9 +550,14 @@ const NewsManagement = () => {
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
                     <div className="bg-white rounded-2xl max-w-4xl w-full my-8 shadow-2xl">
                         <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 flex justify-between items-center rounded-t-2xl">
-                            <h2 className="text-2xl font-bold">إنشاء خبر جديد</h2>
+                            <h2 className="text-2xl font-bold">{isEditMode ? 'تعديل الخبر' : 'إنشاء خبر جديد'}</h2>
                             <button
-                                onClick={() => setShowCreateModal(false)}
+                                onClick={() => {
+                                    setShowCreateModal(false);
+                                    setIsEditMode(false);
+                                    setEditingNews(null);
+                                    resetForm();
+                                }}
                                 className="text-white hover:bg-white hover:bg-opacity-20 rounded-full w-10 h-10 flex items-center justify-center text-2xl transition-all"
                             >
                                 ×
@@ -738,7 +803,11 @@ const NewsManagement = () => {
                                     سيتم إرسال إشعار إلى
                                 </p>
                                 <p className="text-center text-5xl font-bold text-red-600 mb-2">
-                                    {memberCount}
+                                    {loadingMemberCount ? (
+                                        <span className="animate-pulse">⏳</span>
+                                    ) : (
+                                        memberCount
+                                    )}
                                 </p>
                                 <p className="text-center text-lg font-bold">
                                     عضو من عائلة الشعيل
