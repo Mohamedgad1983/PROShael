@@ -217,119 +217,104 @@ const HijriDiyasManagement: React.FC = () => {
 
     return (
       <div className="modal-overlay-premium" onClick={() => setShowAddModal(false)}>
-        <div className="modal-content-premium" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '1600px', height: '90vh', display: 'flex', flexDirection: 'column', padding: '1rem' }}>
-          {/* Modal Header - Ultra Compact */}
-          <div className="flex items-center justify-between mb-2 flex-shrink-0">
-            <h2 className="text-base font-bold text-gray-900">إضافة حالة دية جديدة</h2>
-            <button onClick={() => setShowAddModal(false)} className="p-1 rounded-lg hover:bg-gray-100 transition-colors">
+        <div className="modal-content-premium" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '1700px', height: 'auto', maxHeight: '85vh', display: 'flex', flexDirection: 'column', padding: '0.75rem' }}>
+          {/* Modal Header - Minimal */}
+          <div className="flex items-center justify-between mb-1.5 flex-shrink-0">
+            <h2 className="text-sm font-bold text-gray-900">إضافة حالة دية جديدة</h2>
+            <button onClick={() => setShowAddModal(false)} className="p-0.5 rounded hover:bg-gray-100">
               <XMarkIcon className="w-4 h-4 text-gray-600" />
             </button>
           </div>
 
-          {/* Form - Ultra Compact, No Scrolling */}
-          <form className="flex-1" style={{ minHeight: 0 }}>
-            <div className="grid grid-cols-12 gap-2">
-              {/* Row 1: Title (full width) */}
-              <div className="col-span-12">
-                <label className="block text-xs text-gray-700 mb-0.5">عنوان الحالة *</label>
-                <input
-                  type="text"
-                  value={diyaData.title}
-                  onChange={(e) => setDiyaData({ ...diyaData, title: e.target.value })}
-                  className="input-premium w-full text-sm py-1.5"
-                  placeholder="مثال: دية حادث سير - اسم المستفيد"
-                  required
-                />
+          {/* Form - Maximum Compact 3-Row Layout */}
+          <form className="flex-shrink-0" style={{ padding: '0.5rem 0' }}>
+            <div className="grid grid-cols-12 gap-1.5">
+              {/* Row 1: Title + Category + Priority + Amount */}
+              <div className="col-span-6">
+                <label className="block text-xs text-gray-700" style={{ marginBottom: '2px' }}>عنوان الحالة *</label>
+                <input type="text" value={diyaData.title} onChange={(e) => setDiyaData({ ...diyaData, title: e.target.value })} style={{ padding: '4px 8px', fontSize: '13px', height: '32px' }} className="w-full rounded-lg border border-gray-300" placeholder="دية حادث سير" required />
               </div>
-
-              {/* Row 2: Category, Priority, Amount, Beneficiary (4 columns) */}
-              <div className="col-span-3">
-                <label className="block text-xs text-gray-700 mb-0.5">الفئة *</label>
-                <select value={diyaData.category} onChange={(e) => setDiyaData({ ...diyaData, category: e.target.value })} className="input-premium w-full text-sm py-1.5">
+              <div className="col-span-2">
+                <label className="block text-xs text-gray-700" style={{ marginBottom: '2px' }}>الفئة *</label>
+                <select value={diyaData.category} onChange={(e) => setDiyaData({ ...diyaData, category: e.target.value })} style={{ padding: '4px 8px', fontSize: '13px', height: '32px' }} className="w-full rounded-lg border border-gray-300">
                   <option value="accident">حادث</option>
                   <option value="medical">طبي</option>
                   <option value="dispute">خلاف</option>
                   <option value="other">أخرى</option>
                 </select>
               </div>
-
-              <div className="col-span-3">
-                <label className="block text-xs text-gray-700 mb-0.5">الأولوية *</label>
-                <select value={diyaData.priority} onChange={(e) => setDiyaData({ ...diyaData, priority: e.target.value })} className="input-premium w-full text-sm py-1.5">
+              <div className="col-span-2">
+                <label className="block text-xs text-gray-700" style={{ marginBottom: '2px' }}>الأولوية *</label>
+                <select value={diyaData.priority} onChange={(e) => setDiyaData({ ...diyaData, priority: e.target.value })} style={{ padding: '4px 8px', fontSize: '13px', height: '32px' }} className="w-full rounded-lg border border-gray-300">
                   <option value="high">عالية</option>
                   <option value="medium">متوسطة</option>
                   <option value="low">منخفضة</option>
                 </select>
               </div>
-
-              <div className="col-span-3">
-                <label className="block text-xs text-gray-700 mb-0.5">المبلغ (ريال) *</label>
-                <input type="number" value={diyaData.totalAmount} onChange={(e) => setDiyaData({ ...diyaData, totalAmount: parseInt(e.target.value) })} className="input-premium w-full text-sm py-1.5" min="0" required />
+              <div className="col-span-2">
+                <label className="block text-xs text-gray-700" style={{ marginBottom: '2px' }}>المبلغ *</label>
+                <input type="number" value={diyaData.totalAmount} onChange={(e) => setDiyaData({ ...diyaData, totalAmount: parseInt(e.target.value) })} style={{ padding: '4px 8px', fontSize: '13px', height: '32px' }} className="w-full rounded-lg border border-gray-300" min="0" required />
               </div>
 
-              <div className="col-span-3">
-                <label className="block text-xs text-gray-700 mb-0.5">المستفيد *</label>
-                <input type="text" value={diyaData.beneficiary} onChange={(e) => setDiyaData({ ...diyaData, beneficiary: e.target.value })} className="input-premium w-full text-sm py-1.5" placeholder="اسم العائلة" required />
+              {/* Row 2: Beneficiary + Start Date + Deadline Date */}
+              <div className="col-span-4">
+                <label className="block text-xs text-gray-700" style={{ marginBottom: '2px' }}>المستفيد *</label>
+                <input type="text" value={diyaData.beneficiary} onChange={(e) => setDiyaData({ ...diyaData, beneficiary: e.target.value })} style={{ padding: '4px 8px', fontSize: '13px', height: '32px' }} className="w-full rounded-lg border border-gray-300" placeholder="اسم العائلة" required />
               </div>
-
-              {/* Row 3: Start Date (inline) */}
-              <div className="col-span-6">
-                <label className="block text-xs text-gray-700 mb-0.5">تاريخ البداية (هجري) *</label>
+              <div className="col-span-4">
+                <label className="block text-xs text-gray-700" style={{ marginBottom: '2px' }}>تاريخ البداية (هجري) *</label>
                 <div className="grid grid-cols-3 gap-1">
-                  <select value={diyaData.startDay} onChange={(e) => setDiyaData({ ...diyaData, startDay: e.target.value })} className="input-premium text-sm py-1.5" required>
-                    <option value="">اليوم</option>
+                  <select value={diyaData.startDay} onChange={(e) => setDiyaData({ ...diyaData, startDay: e.target.value })} style={{ padding: '4px', fontSize: '13px', height: '32px' }} className="rounded-lg border border-gray-300" required>
+                    <option value="">يوم</option>
                     {days.map(day => <option key={day.value} value={day.value}>{day.label}</option>)}
                   </select>
-                  <select value={diyaData.startMonth} onChange={(e) => setDiyaData({ ...diyaData, startMonth: e.target.value })} className="input-premium text-sm py-1.5" required>
-                    <option value="">الشهر</option>
-                    {hijriMonths.map(month => <option key={month.value} value={month.value}>{month.label}</option>)}
+                  <select value={diyaData.startMonth} onChange={(e) => setDiyaData({ ...diyaData, startMonth: e.target.value })} style={{ padding: '4px', fontSize: '13px', height: '32px' }} className="rounded-lg border border-gray-300" required>
+                    <option value="">شهر</option>
+                    {hijriMonths.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
                   </select>
-                  <select value={diyaData.startYear} onChange={(e) => setDiyaData({ ...diyaData, startYear: e.target.value })} className="input-premium text-sm py-1.5" required>
-                    <option value="">السنة</option>
-                    {years.map(year => <option key={year.value} value={year.value}>{year.label} هـ</option>)}
+                  <select value={diyaData.startYear} onChange={(e) => setDiyaData({ ...diyaData, startYear: e.target.value })} style={{ padding: '4px', fontSize: '13px', height: '32px' }} className="rounded-lg border border-gray-300" required>
+                    <option value="">سنة</option>
+                    {years.map(y => <option key={y.value} value={y.value}>{y.label}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="col-span-4">
+                <label className="block text-xs text-gray-700" style={{ marginBottom: '2px' }}>الموعد النهائي (هجري) *</label>
+                <div className="grid grid-cols-3 gap-1">
+                  <select value={diyaData.deadlineDay} onChange={(e) => setDiyaData({ ...diyaData, deadlineDay: e.target.value })} style={{ padding: '4px', fontSize: '13px', height: '32px' }} className="rounded-lg border border-gray-300" required>
+                    <option value="">يوم</option>
+                    {days.map(day => <option key={day.value} value={day.value}>{day.label}</option>)}
+                  </select>
+                  <select value={diyaData.deadlineMonth} onChange={(e) => setDiyaData({ ...diyaData, deadlineMonth: e.target.value })} style={{ padding: '4px', fontSize: '13px', height: '32px' }} className="rounded-lg border border-gray-300" required>
+                    <option value="">شهر</option>
+                    {hijriMonths.map(m => <option key={m.value} value={m.value}>{m.label}</option>)}
+                  </select>
+                  <select value={diyaData.deadlineYear} onChange={(e) => setDiyaData({ ...diyaData, deadlineYear: e.target.value })} style={{ padding: '4px', fontSize: '13px', height: '32px' }} className="rounded-lg border border-gray-300" required>
+                    <option value="">سنة</option>
+                    {years.map(y => <option key={y.value} value={y.value}>{y.label}</option>)}
                   </select>
                 </div>
               </div>
 
-              {/* Row 3: Deadline Date (inline) */}
+              {/* Row 3: Description + Notes */}
               <div className="col-span-6">
-                <label className="block text-xs text-gray-700 mb-0.5">الموعد النهائي (هجري) *</label>
-                <div className="grid grid-cols-3 gap-1">
-                  <select value={diyaData.deadlineDay} onChange={(e) => setDiyaData({ ...diyaData, deadlineDay: e.target.value })} className="input-premium text-sm py-1.5" required>
-                    <option value="">اليوم</option>
-                    {days.map(day => <option key={day.value} value={day.value}>{day.label}</option>)}
-                  </select>
-                  <select value={diyaData.deadlineMonth} onChange={(e) => setDiyaData({ ...diyaData, deadlineMonth: e.target.value })} className="input-premium text-sm py-1.5" required>
-                    <option value="">الشهر</option>
-                    {hijriMonths.map(month => <option key={month.value} value={month.value}>{month.label}</option>)}
-                  </select>
-                  <select value={diyaData.deadlineYear} onChange={(e) => setDiyaData({ ...diyaData, deadlineYear: e.target.value })} className="input-premium text-sm py-1.5" required>
-                    <option value="">السنة</option>
-                    {years.map(year => <option key={year.value} value={year.value}>{year.label} هـ</option>)}
-                  </select>
-                </div>
+                <label className="block text-xs text-gray-700" style={{ marginBottom: '2px' }}>الوصف *</label>
+                <input type="text" value={diyaData.description} onChange={(e) => setDiyaData({ ...diyaData, description: e.target.value })} style={{ padding: '4px 8px', fontSize: '13px', height: '32px' }} className="w-full rounded-lg border border-gray-300" placeholder="تفاصيل الحالة" required />
               </div>
-
-              {/* Row 4: Description and Notes (side by side) */}
               <div className="col-span-6">
-                <label className="block text-xs text-gray-700 mb-0.5">الوصف *</label>
-                <textarea value={diyaData.description} onChange={(e) => setDiyaData({ ...diyaData, description: e.target.value })} className="input-premium w-full text-sm py-1.5" placeholder="تفاصيل الحالة" required style={{ height: '38px', resize: 'none' }} />
-              </div>
-
-              <div className="col-span-6">
-                <label className="block text-xs text-gray-700 mb-0.5">ملاحظات</label>
-                <textarea value={diyaData.notes} onChange={(e) => setDiyaData({ ...diyaData, notes: e.target.value })} className="input-premium w-full text-sm py-1.5" placeholder="ملاحظات إضافية" style={{ height: '38px', resize: 'none' }} />
+                <label className="block text-xs text-gray-700" style={{ marginBottom: '2px' }}>ملاحظات</label>
+                <input type="text" value={diyaData.notes} onChange={(e) => setDiyaData({ ...diyaData, notes: e.target.value })} style={{ padding: '4px 8px', fontSize: '13px', height: '32px' }} className="w-full rounded-lg border border-gray-300" placeholder="ملاحظات" />
               </div>
             </div>
           </form>
 
-          {/* Action Buttons - Ultra Compact */}
-          <div className="flex items-center justify-end gap-2 pt-2 border-t flex-shrink-0 mt-2">
-            <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-1.5 text-sm rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
+          {/* Action Buttons - Minimal */}
+          <div className="flex items-center justify-end gap-2 pt-1.5 border-t flex-shrink-0 mt-1.5">
+            <button type="button" onClick={() => setShowAddModal(false)} style={{ padding: '6px 16px', fontSize: '13px' }} className="rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">
               إلغاء
             </button>
-            <button type="submit" className="btn-gradient-premium text-sm px-4 py-1.5" onClick={(e) => { e.preventDefault(); console.log('Diya Data:'); setShowAddModal(false); }}>
-              إضافة الحالة
+            <button type="submit" style={{ padding: '6px 16px', fontSize: '13px' }} className="btn-gradient-premium" onClick={(e) => { e.preventDefault(); console.log('Diya Data:'); setShowAddModal(false); }}>
+              إضافة
             </button>
           </div>
         </div>
