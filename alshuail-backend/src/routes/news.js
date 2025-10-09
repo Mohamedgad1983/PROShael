@@ -10,6 +10,7 @@ import { authenticateToken } from '../middleware/auth.js';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { log } from '../utils/logger.js';
 
 const router = express.Router();
 
@@ -24,7 +25,7 @@ const isAdmin = async (userId) => {
 
         return data?.role === 'admin' || data?.role === 'super_admin';
     } catch (error) {
-        console.error('Error checking admin status:', error);
+        log.error('Error checking admin status', { error: error.message });
         return false;
     }
 };
@@ -32,22 +33,22 @@ const isAdmin = async (userId) => {
 // Admin middleware
 const adminOnly = async (req, res, next) => {
     const userId = req.user?.id;
-    console.log('[adminOnly] Checking admin for user:', userId);
+    log.info('[adminOnly] Checking admin for user', { userId });
 
     if (!userId) {
-        console.log('[adminOnly] No userId - Unauthorized');
+        log.info('[adminOnly] No userId - Unauthorized');
         return res.status(401).json({ error: 'Unauthorized' });
     }
 
     const admin = await isAdmin(userId);
-    console.log('[adminOnly] isAdmin result:', admin, 'for user:', userId);
+    log.info('[adminOnly] isAdmin result', { admin, userId });
 
     if (!admin) {
-        console.log('[adminOnly] User is not admin - Forbidden');
+        log.info('[adminOnly] User is not admin - Forbidden', { userId });
         return res.status(403).json({ error: 'Admin access required' });
     }
 
-    console.log('[adminOnly] Admin check passed, calling next()');
+    log.info('[adminOnly] Admin check passed, calling next', { userId });
     next();
 };
 
@@ -142,7 +143,7 @@ router.post('/', authenticateToken, adminOnly, upload.array('media', 10), async 
             news: data
         });
     } catch (error) {
-        console.error('Create news error:', error);
+        log.error('Create news error', { error: error.message });
         res.status(500).json({ error: error.message });
     }
 });
@@ -180,8 +181,8 @@ router.put('/:id', authenticateToken, adminOnly, upload.array('media', 10), asyn
         delete updates.images; // Frontend field that doesn't exist in DB
         delete updates.publish_date; // Frontend field that doesn't exist in DB
 
-        console.log('[UPDATE NEWS] Updating news ID:', id);
-        console.log('[UPDATE NEWS] Updates:', updates);
+        log.info('[UPDATE NEWS] Updating news ID', { id });
+        log.info('[UPDATE NEWS] Updates', { updates });
 
         const { data, error } = await supabase
             .from('news_announcements')
@@ -190,16 +191,16 @@ router.put('/:id', authenticateToken, adminOnly, upload.array('media', 10), asyn
             .select();
 
         if (error) {
-            console.error('[UPDATE NEWS] Error:', error);
+            log.error('[UPDATE NEWS] Error', { error: error.message });
             throw error;
         }
 
         if (!data || data.length === 0) {
-            console.error('[UPDATE NEWS] No news found with ID:', id);
+            log.error('[UPDATE NEWS] No news found with ID', { id });
             return res.status(404).json({ error: 'News not found' });
         }
 
-        console.log('[UPDATE NEWS] Success! Updated:', data[0]);
+        log.info('[UPDATE NEWS] Success! Updated', { newsId: data[0].id });
 
         res.json({
             message: 'News post updated successfully',
@@ -224,7 +225,7 @@ router.delete('/:id', authenticateToken, adminOnly, async (req, res) => {
 
         res.json({ message: 'News post deleted successfully' });
     } catch (error) {
-        console.error('DELETE news error:', error);
+        log.error('DELETE news error', { error: error.message });
         res.status(500).json({ error: error.message });
     }
 });
@@ -253,7 +254,7 @@ router.get('/admin/all', authenticateToken, adminOnly, async (req, res) => {
 
         res.json({ news: data });
     } catch (error) {
-        console.error('GET /admin/all error:', error);
+        log.error('GET /admin/all error', { error: error.message });
         res.status(500).json({ error: error.message });
     }
 });
@@ -264,7 +265,7 @@ router.post('/:id/push-notification', authenticateToken, adminOnly, async (req, 
         const { id } = req.params;
         const { custom_message } = req.body; // Optional custom notification text
 
-        console.log('[Push Notification] Starting for news ID:', id);
+        log.info('[Push Notification] Starting for news ID', { id });
 
         // Get news post
         const { data: news, error: newsError } = await supabase
@@ -274,12 +275,12 @@ router.post('/:id/push-notification', authenticateToken, adminOnly, async (req, 
             .single();
 
         if (newsError) {
-            console.error('[Push Notification] News not found:', newsError);
+            log.error('[Push Notification] News not found', { error: newsError.message });
             throw newsError;
         }
 
         if (!news.is_published) {
-            console.log('[Push Notification] News not published');
+            log.info('[Push Notification] News not published');
             return res.status(400).json({
                 error: 'Cannot send notification for unpublished news',
                 errorAr: 'لا يمكن إرسال إشعار لخبر غير منشور'
@@ -294,11 +295,11 @@ router.post('/:id/push-notification', authenticateToken, adminOnly, async (req, 
             .eq('membership_status', 'active');
 
         if (membersError) {
-            console.error('[Push Notification] Error fetching members:', membersError);
+            log.error('[Push Notification] Error fetching members', { error: membersError.message });
             throw membersError;
         }
 
-        console.log('[Push Notification] Found', members.length, 'active members');
+        log.info('[Push Notification] Found active members', { count: members.length });
 
         // 📝 Since members don't have user_id and notifications table requires it,
         // we'll send push notifications via external service (FCM/OneSignal)
@@ -330,11 +331,11 @@ router.post('/:id/push-notification', authenticateToken, adminOnly, async (req, 
             .insert([adminNotification]);
 
         if (notifError) {
-            console.error('[Push Notification] Error inserting admin notification:', notifError);
+            log.error('[Push Notification] Error inserting admin notification', { error: notifError.message });
             throw notifError;
         }
 
-        console.log('[Push Notification] Broadcast notification sent to', members.length, 'members');
+        log.info('[Push Notification] Broadcast notification sent to members', { count: members.length });
 
         // 🔥 Send actual push notifications to devices (if configured)
         const devicesSent = await sendPushNotifications(members, news);
@@ -347,7 +348,7 @@ router.post('/:id/push-notification', authenticateToken, adminOnly, async (req, 
             devices_sent: devicesSent
         });
     } catch (error) {
-        console.error('[Push Notification] Error:', error);
+        log.error('[Push Notification] Error', { error: error.message });
         res.status(500).json({
             success: false,
             error: error.message,
@@ -359,7 +360,7 @@ router.post('/:id/push-notification', authenticateToken, adminOnly, async (req, 
 // 5.1 GET MEMBER COUNT FOR NOTIFICATIONS (Admin)
 router.get('/notification/member-count', authenticateToken, adminOnly, async (req, res) => {
     try {
-        console.log('[Member Count] Fetching active member count...');
+        log.info('[Member Count] Fetching active member count');
 
         // Get all active members
         const { count, error } = await supabase
@@ -369,11 +370,11 @@ router.get('/notification/member-count', authenticateToken, adminOnly, async (re
             .eq('membership_status', 'active');
 
         if (error) {
-            console.error('[Member Count] Error:', error);
+            log.error('[Member Count] Error', { error: error.message });
             throw error;
         }
 
-        console.log('[Member Count] Found', count, 'active members');
+        log.info('[Member Count] Found active members', { count });
 
         res.json({
             success: true,
@@ -382,7 +383,7 @@ router.get('/notification/member-count', authenticateToken, adminOnly, async (re
             messageEn: `${count} active members`
         });
     } catch (error) {
-        console.error('[Member Count] Error:', error);
+        log.error('[Member Count] Error', { error: error.message });
         res.status(500).json({
             success: false,
             error: error.message,
@@ -395,7 +396,7 @@ router.get('/notification/member-count', authenticateToken, adminOnly, async (re
 // 5b. GET ACTIVE MEMBERS COUNT (Simpler endpoint for UI)
 router.get('/active-members-count', authenticateToken, adminOnly, async (req, res) => {
     try {
-        console.log('[Active Members Count] Fetching count...');
+        log.info('[Active Members Count] Fetching count');
 
         // Get count of active members
         const { count, error } = await supabase
@@ -405,18 +406,18 @@ router.get('/active-members-count', authenticateToken, adminOnly, async (req, re
             .eq('membership_status', 'active');
 
         if (error) {
-            console.error('[Active Members Count] Error:', error);
+            log.error('[Active Members Count] Error', { error: error.message });
             throw error;
         }
 
-        console.log('[Active Members Count] Found', count, 'active members');
+        log.info('[Active Members Count] Found active members', { count });
 
         res.json({
             count: count || 0,
             message: `${count} عضو نشط`
         });
     } catch (error) {
-        console.error('[Active Members Count] Error:', error);
+        log.error('[Active Members Count] Error', { error: error.message });
         res.status(500).json({
             error: error.message,
             errorAr: 'خطأ في جلب عدد الأعضاء',
@@ -797,7 +798,7 @@ async function sendPushNotifications(members, news) {
             .eq('is_active', true);
 
         if (!tokens || tokens.length === 0) {
-            console.log('No device tokens found for push notifications');
+            log.info('No device tokens found for push notifications');
             return 0;
         }
 
@@ -822,13 +823,13 @@ async function sendPushNotifications(members, news) {
             ...message
         });
 
-        console.log(`Push notifications sent: ${response.successCount} successful, ${response.failureCount} failed`);
+        log.info('Push notifications sent', { successful: response.successCount, failed: response.failureCount });
         */
 
-        console.log(`Would send push to ${tokens.length} devices`);
+        log.info('Would send push to devices', { tokenCount: tokens.length });
         return tokens.length;
     } catch (error) {
-        console.error('Push notification sending error:', error);
+        log.error('Push notification sending error', { error: error.message });
         return 0;
     }
 }
