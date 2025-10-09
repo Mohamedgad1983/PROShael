@@ -1,4 +1,5 @@
 import supabaseService from '../services/supabaseService.js';
+import { log } from '../utils/logger.js';
 
 /**
  * Simple Member Statement Search Controller
@@ -57,7 +58,7 @@ export const searchMemberStatement = async (req, res) => {
           .order('payment_date', { ascending: true });
 
         if (paymentError) {
-          console.error('Error fetching payments:', paymentError);
+          log.error('Error fetching payments', { error: paymentError.message });
         }
 
         // Organize payments by year
@@ -100,7 +101,7 @@ export const searchMemberStatement = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error in searchMemberStatement:', error);
+    log.error('Error in searchMemberStatement', { error: error.message });
     res.status(500).json({
       success: false,
       message: 'حدث خطأ أثناء البحث',
@@ -185,7 +186,7 @@ export const getMemberStatement = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error in getMemberStatement:', error);
+    log.error('Error in getMemberStatement', { error: error.message });
     res.status(500).json({
       success: false,
       message: 'حدث خطأ أثناء جلب كشف الحساب',
@@ -249,7 +250,7 @@ export const getAllMembersWithBalances = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error in getAllMembersWithBalances:', error);
+    log.error('Error in getAllMembersWithBalances', { error: error.message });
     res.status(500).json({
       success: false,
       message: 'حدث خطأ أثناء جلب البيانات',

@@ -2,6 +2,7 @@ import { supabase } from '../config/database.js';
 import XLSX from 'xlsx';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
+import { log } from '../utils/logger.js';
 
 // Helper function to generate 6-digit password
 function generateTempPassword() {
@@ -68,7 +69,7 @@ async function getNextMembershipNumber() {
 
     return '10001'; // Start from 10001
   } catch (error) {
-    console.error('Error getting next membership number:', error);
+    log.error('Error getting next membership number', { error: error.message });
     return '10001';
   }
 }
@@ -258,7 +259,7 @@ export const importMembersFromExcel = async (req, res) => {
         successfulImports++;
 
       } catch (rowError) {
-        console.error(`Error processing row ${i + 2}:`, rowError);
+        log.error('Error processing row', { row: i + 2, error: rowError.message });
         errors.push({
           row: i + 2,
           error: rowError.message || 'خطأ في معالجة البيانات'
@@ -281,7 +282,7 @@ export const importMembersFromExcel = async (req, res) => {
       .eq('id', batchId);
 
     if (updateBatchError) {
-      console.error('Error updating batch status:', updateBatchError);
+      log.error('Error updating batch status', { error: updateBatchError.message });
     }
 
     // Return response
@@ -299,7 +300,7 @@ export const importMembersFromExcel = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Import error:', error);
+    log.error('Import error', { error: error.message });
 
     // Update batch status to failed if batch was created
     if (batchId) {

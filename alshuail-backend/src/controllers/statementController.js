@@ -1,6 +1,7 @@
 // Optimized Statement Controller using Materialized Views
 // Now uses high-performance materialized views for instant responses
 import { supabase } from '../config/database.js';
+import { log } from '../utils/logger.js';
 
 // Phone number validation for Saudi and Kuwait
 const validatePhone = (phone) => {
@@ -65,7 +66,7 @@ export const searchByPhone = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Phone search error:', error);
+    log.error('Phone search error', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'خطأ في البحث'
@@ -117,7 +118,7 @@ export const searchByName = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Name search error:', error);
+    log.error('Name search error', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'خطأ في البحث'
@@ -160,7 +161,7 @@ export const searchByMemberId = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Member ID search error:', error);
+    log.error('Member ID search error', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'خطأ في البحث'
@@ -254,7 +255,7 @@ async function getMemberStatement(memberId) {
       }
     };
   } catch (error) {
-    console.error('Error generating statement:', error);
+    log.error('Error generating statement', { error: error.message });
     throw error;
   }
 }
@@ -301,7 +302,7 @@ export const generateStatement = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Statement generation error:', error);
+    log.error('Statement generation error', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'خطأ في إنشاء كشف الحساب'
