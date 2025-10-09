@@ -151,19 +151,19 @@ export const requireAdmin = async (req, res, next) => {
       .single();
 
     if (error) {
-      console.error('[RequireAdmin] Database error:', error);
+      log.error('RequireAdmin: Database error', { error: error.message });
       // Instead of blocking, allow authenticated users
       return next();
     }
 
     if (!member) {
-      console.log('[RequireAdmin] No member record found');
+      log.info('RequireAdmin: No member record found');
       // Allow for now
       return next();
     }
 
     if (!['admin', 'super_admin', 'financial_manager'].includes(member.role)) {
-      console.log(`[RequireAdmin] User role '${member.role}' not authorized`);
+      log.warn('RequireAdmin: User role not authorized', { role: member.role });
       return res.status(403).json({
         success: false,
         error: 'Admin privileges required'
@@ -218,7 +218,7 @@ export const requireSuperAdmin = async (req, res, next) => {
       .single();
 
     if (error) {
-      console.error('[RequireSuperAdmin] Database error:', error);
+      log.error('RequireSuperAdmin: Database error', { error: error.message });
       return res.status(403).json({
         success: false,
         error: 'Access denied'
@@ -226,7 +226,7 @@ export const requireSuperAdmin = async (req, res, next) => {
     }
 
     if (!member || member.role !== 'super_admin') {
-      console.log(`[RequireSuperAdmin] User role '${member?.role}' not super_admin`);
+      log.warn('RequireSuperAdmin: User role not super_admin', { role: member?.role });
       return res.status(403).json({
         success: false,
         error: 'Super Admin privileges required'

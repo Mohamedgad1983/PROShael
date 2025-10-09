@@ -6,10 +6,11 @@
 
 import jwt from 'jsonwebtoken';
 import { supabase } from '../config/database.js';
+import { log } from '../utils/logger.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'alshuail-dev-secret-2024-very-long-and-secure';
 if (!process.env.JWT_SECRET) {
-  console.warn('⚠️  WARNING: JWT_SECRET not set in environment. Using fallback for development.');
+  log.warn('JWT_SECRET not set in environment. Using fallback for development.');
 }
 
 /**
@@ -98,13 +99,13 @@ async function getUserRole(userId) {
     });
 
     if (error) {
-      console.error('Error fetching user role:', error);
+      log.error('Error fetching user role', { error: error.message });
       return null;
     }
 
     return data?.[0] || null;
   } catch (err) {
-    console.error('Error in getUserRole:', err);
+    log.error('Error in getUserRole', { error: err.message });
     return null;
   }
 }
@@ -120,13 +121,13 @@ async function hasPermission(userId, permissionName) {
     });
 
     if (error) {
-      console.error('Error checking permission:', error);
+      log.error('Error checking permission', { error: error.message });
       return false;
     }
 
     return data === true;
   } catch (err) {
-    console.error('Error in hasPermission:', err);
+    log.error('Error in hasPermission', { error: err.message });
     return false;
   }
 }
@@ -213,11 +214,11 @@ export const requireRole = (allowedRoles) => {
       };
 
       // Log access for audit (simplified - no await to prevent blocking)
-      logAccess(req).catch(err => console.error('Audit log error:', err));
+      logAccess(req).catch(err => log.error('Audit log error', { error: err.message }));
 
       next();
     } catch (error) {
-      console.error('RBAC Middleware Error:', error);
+      log.error('RBAC Middleware Error', { error: error.message });
       res.status(500).json({
         success: false,
         message: 'خطأ في التحقق من الصلاحيات'
@@ -272,7 +273,7 @@ export const requirePermission = (permissionName) => {
 
       next();
     } catch (error) {
-      console.error('Permission Check Error:', error);
+      log.error('Permission Check Error', { error: error.message });
       res.status(500).json({
         success: false,
         message: 'خطأ في التحقق من الصلاحيات'
@@ -313,7 +314,7 @@ export const requireOwnershipOrAdmin = (getResourceOwnerId) => {
         message: 'ليس لديك الصلاحية للوصول إلى هذا المورد'
       });
     } catch (error) {
-      console.error('Ownership Check Error:', error);
+      log.error('Ownership Check Error', { error: error.message });
       res.status(500).json({
         success: false,
         message: 'خطأ في التحقق من الصلاحيات'
@@ -355,10 +356,10 @@ async function logAccess(req) {
       });
 
     if (error) {
-      console.error('Error logging access:', error);
+      log.error('Error logging access', { error: error.message });
     }
   } catch (err) {
-    console.error('Error in logAccess:', err);
+    log.error('Error in logAccess', { error: err.message });
   }
 }
 
@@ -447,7 +448,7 @@ export const validateRoleAssignment = async (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error('Role Assignment Validation Error:', error);
+    log.error('Role Assignment Validation Error', { error: error.message });
     res.status(500).json({
       success: false,
       message: 'خطأ في التحقق من صلاحية تعيين الدور'

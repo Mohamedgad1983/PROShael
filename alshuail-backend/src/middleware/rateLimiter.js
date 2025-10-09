@@ -4,6 +4,7 @@
  */
 
 import { createErrorResponse } from '../utils/errorCodes.js';
+import { log } from '../utils/logger.js';
 
 class RateLimiter {
   constructor() {
@@ -207,7 +208,7 @@ export const createRateLimitMiddleware = (limitType = 'general') => {
 
     if (!limitCheck.allowed) {
       // Log potential abuse
-      console.warn(`Rate limit exceeded for ${clientId} on ${limitType}`);
+      log.warn('Rate limit exceeded', { clientId, limitType });
 
       return res.status(429).json(createErrorResponse('RATE_LIMIT_EXCEEDED', {
         message: rateLimiter.limits[limitType].message,
