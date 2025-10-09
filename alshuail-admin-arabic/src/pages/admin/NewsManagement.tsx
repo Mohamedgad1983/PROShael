@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { formatHijri } from '../../utils/hijriDate.js';
+import { toHijri } from 'hijri-converter';
 import SimpleHijriDatePicker from '../../components/Common/SimpleHijriDatePicker';
 import useActiveMemberCount from '../../hooks/useActiveMemberCount';
 import MemberCountToast from '../../components/Common/MemberCountToast';
@@ -63,6 +64,11 @@ const NewsManagement = () => {
     const [deletingNewsId, setDeletingNewsId] = useState<number | null>(null);
     const [deletingNews, setDeletingNews] = useState<NewsItem | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Hijri Date Range Filter
+    const [fromHijriDate, setFromHijriDate] = useState('');
+    const [toHijriDate, setToHijriDate] = useState('');
+    const [showDateFilter, setShowDateFilter] = useState(false);
 
     // Form state
     const [formData, setFormData] = useState<{
@@ -284,9 +290,37 @@ const NewsManagement = () => {
         return colors[priority] || 'text-gray-600';
     };
 
-    const filteredNews = news.filter(item =>
-        item.title_ar?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.title_en?.toLowerCase().includes(searchTerm.toLowerCase())
+    // Filter news by Hijri date range
+    const filterNewsByHijriDate = (newsItems: NewsItem[]) => {
+        if (!fromHijriDate && !toHijriDate) return newsItems;
+
+        return newsItems.filter(item => {
+            if (!item.created_at) return false;
+
+            // Convert created_at to Hijri for comparison
+            const [year, month, day] = item.created_at.split('T')[0].split('-').map(Number);
+            const hijriDate = toHijri(year, month, day);
+            const hijriDateStr = `${hijriDate.hy}-${String(hijriDate.hm).padStart(2, '0')}-${String(hijriDate.hd).padStart(2, '0')}`;
+
+            // Check if within range
+            if (fromHijriDate && hijriDateStr < fromHijriDate) return false;
+            if (toHijriDate && hijriDateStr > toHijriDate) return false;
+            return true;
+        });
+    };
+
+    // Clear date filters
+    const clearDateFilters = () => {
+        setFromHijriDate('');
+        setToHijriDate('');
+    };
+
+    // Apply all filters
+    const filteredNews = filterNewsByHijriDate(
+        news.filter(item =>
+            item.title_ar?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            item.title_en?.toLowerCase().includes(searchTerm.toLowerCase())
+        )
     );
 
     if (loading) {
@@ -359,29 +393,118 @@ const NewsManagement = () => {
                 </div>
             </div>
 
+            {/* Hijri Date Range Filter - Apple Style */}
+            <div className="max-w-7xl mx-auto mb-6">
+                <button
+                    onClick={() => setShowDateFilter(!showDateFilter)}
+                    className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-3 hover:shadow-md transition-all duration-200 w-full md:w-auto"
+                >
+                    <span className="text-2xl">📅</span>
+                    <span className="font-medium text-gray-700">تصفية بالتاريخ الهجري</span>
+                    <span className={`mr-auto transform transition-transform duration-200 ${showDateFilter ? 'rotate-180' : ''}`}>
+                        ▼
+                    </span>
+                </button>
+
+                {showDateFilter && (
+                    <div className="mt-4 bg-white rounded-2xl shadow-lg border border-gray-100 p-6 transition-all duration-300">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* From Date */}
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-3">من تاريخ</label>
+                                <div className="relative">
+                                    <input
+                                        type="date"
+                                        value={fromHijriDate}
+                                        onChange={(e) => setFromHijriDate(e.target.value)}
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-right"
+                                        placeholder="اختر التاريخ"
+                                    />
+                                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                                        📆
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* To Date */}
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-3">إلى تاريخ</label>
+                                <div className="relative">
+                                    <input
+                                        type="date"
+                                        value={toHijriDate}
+                                        onChange={(e) => setToHijriDate(e.target.value)}
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-right"
+                                        placeholder="اختر التاريخ"
+                                    />
+                                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                                        📆
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Filter Actions */}
+                        <div className="flex gap-3 mt-6">
+                            <button
+                                onClick={clearDateFilters}
+                                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 rounded-xl transition-all duration-200"
+                            >
+                                مسح الفلاتر
+                            </button>
+                            <button
+                                onClick={() => setShowDateFilter(false)}
+                                className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium py-3 rounded-xl shadow-md hover:shadow-lg transition-all duration-200"
+                            >
+                                تطبيق
+                            </button>
+                        </div>
+
+                        {/* Active Filters Display */}
+                        {(fromHijriDate || toHijriDate) && (
+                            <div className="mt-4 pt-4 border-t border-gray-100">
+                                <div className="flex items-center gap-2 text-sm flex-wrap">
+                                    <span className="font-semibold text-gray-700">الفلاتر النشطة:</span>
+                                    {fromHijriDate && (
+                                        <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-lg">
+                                            من: {new Date(fromHijriDate).toLocaleDateString('ar-SA')}
+                                        </span>
+                                    )}
+                                    {toHijriDate && (
+                                        <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-lg">
+                                            إلى: {new Date(toHijriDate).toLocaleDateString('ar-SA')}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+
             {/* Statistics */}
             <div className="max-w-7xl mx-auto mb-8">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
                         <div className="text-sm opacity-90 mb-2">إجمالي الأخبار</div>
-                        <div className="text-4xl font-bold">{news.length}</div>
+                        <div className="text-4xl font-bold">{filteredNews.length}</div>
                     </div>
                     <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
                         <div className="text-sm opacity-90 mb-2">المنشورة</div>
                         <div className="text-4xl font-bold">
-                            {news.filter(n => n.is_published).length}
+                            {filteredNews.filter(n => n.is_published).length}
                         </div>
                     </div>
                     <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl shadow-lg p-6 text-white">
                         <div className="text-sm opacity-90 mb-2">المسودات</div>
                         <div className="text-4xl font-bold">
-                            {news.filter(n => !n.is_published).length}
+                            {filteredNews.filter(n => !n.is_published).length}
                         </div>
                     </div>
                     <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl shadow-lg p-6 text-white">
                         <div className="text-sm opacity-90 mb-2">العاجلة</div>
                         <div className="text-4xl font-bold">
-                            {news.filter(n => n.category === 'urgent').length}
+                            {filteredNews.filter(n => n.category === 'urgent').length}
                         </div>
                     </div>
                 </div>

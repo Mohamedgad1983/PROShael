@@ -27,6 +27,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { HijriDateDisplay, HijriDateFilter, HijriCalendarWidget } from '../Common/HijriDateDisplay';
 import { formatHijriDate, formatDualDate, formatTimeAgo, isOverdue, getDaysUntil } from '../../utils/hijriDateUtils';
+import { toHijri } from 'hijri-converter';
 import '../../styles/ultra-premium-islamic-design.css';
 
 interface Diya {
@@ -70,6 +71,9 @@ const HijriDiyasManagement: React.FC = () => {
   const [filterPriority, setFilterPriority] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedDiya, setSelectedDiya] = useState<Diya | null>(null);
+  const [fromHijriDate, setFromHijriDate] = useState('');
+  const [toHijriDate, setToHijriDate] = useState('');
+  const [showDateFilter, setShowDateFilter] = useState(false);
 
   // Mock data
   const mockDiyas: Diya[] = [
@@ -429,12 +433,40 @@ const HijriDiyasManagement: React.FC = () => {
     );
   };
 
+  // Hijri date filtering logic
+  const filterDiyasByHijriDate = (diyasToFilter: Diya[]) => {
+    if (!fromHijriDate && !toHijriDate) return diyasToFilter;
+
+    return diyasToFilter.filter(diya => {
+      if (!diya.startDate) return false;
+
+      // Convert startDate to Hijri for comparison
+      const [year, month, day] = diya.startDate.split('-').map(Number);
+      const hijriDate = toHijri(year, month, day);
+      const hijriDateStr = `${hijriDate.hy}-${String(hijriDate.hm).padStart(2, '0')}-${String(hijriDate.hd).padStart(2, '0')}`;
+
+      // Check if within range
+      if (fromHijriDate && hijriDateStr < fromHijriDate) return false;
+      if (toHijriDate && hijriDateStr > toHijriDate) return false;
+      return true;
+    });
+  };
+
+  // Clear date filters
+  const clearDateFilters = () => {
+    setFromHijriDate('');
+    setToHijriDate('');
+  };
+
+  // Apply filtering
+  const filteredDiyas = filterDiyasByHijriDate(diyas);
+
   // Calculate statistics
-  const totalDiyas = diyas.length;
-  const activeDiyas = diyas.filter(d => d.status === 'active' || d.status === 'urgent').length;
-  const totalAmountNeeded = diyas.reduce((sum, d) => sum + d.totalAmount, 0);
-  const totalCollected = diyas.reduce((sum, d) => sum + d.collectedAmount, 0);
-  const totalRemaining = diyas.reduce((sum, d) => sum + d.remainingAmount, 0);
+  const totalDiyas = filteredDiyas.length;
+  const activeDiyas = filteredDiyas.filter(d => d.status === 'active' || d.status === 'urgent').length;
+  const totalAmountNeeded = filteredDiyas.reduce((sum, d) => sum + d.totalAmount, 0);
+  const totalCollected = filteredDiyas.reduce((sum, d) => sum + d.collectedAmount, 0);
+  const totalRemaining = filteredDiyas.reduce((sum, d) => sum + d.remainingAmount, 0);
 
   // Diya Card Component
   const DiyaCard: React.FC<{ diya: Diya }> = ({ diya }) => {
@@ -672,11 +704,93 @@ const HijriDiyasManagement: React.FC = () => {
         </div>
 
         {/* Hijri Date Filter */}
-        <HijriDateFilter
-          onFilterChange={(filter) => {
-            console.log('Date filter applied:', filter);
-          }}
-        />
+        <div className="mb-6">
+          <button
+            onClick={() => setShowDateFilter(!showDateFilter)}
+            className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-3 hover:shadow-md transition-all duration-200"
+          >
+            <span className="text-2xl">📅</span>
+            <span className="font-medium text-gray-700">تصفية بالتاريخ الهجري</span>
+            <span className={`mr-auto transform transition-transform duration-200 ${showDateFilter ? 'rotate-180' : ''}`}>
+              ▼
+            </span>
+          </button>
+
+          {showDateFilter && (
+            <div className="mt-4 bg-white rounded-2xl shadow-lg border border-gray-100 p-6 transition-all duration-300">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* From Date */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">من تاريخ</label>
+                  <div className="relative">
+                    <input
+                      type="date"
+                      value={fromHijriDate}
+                      onChange={(e) => setFromHijriDate(e.target.value)}
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-right"
+                      placeholder="اختر التاريخ"
+                    />
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                      📆
+                    </span>
+                  </div>
+                </div>
+
+                {/* To Date */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">إلى تاريخ</label>
+                  <div className="relative">
+                    <input
+                      type="date"
+                      value={toHijriDate}
+                      onChange={(e) => setToHijriDate(e.target.value)}
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-right"
+                      placeholder="اختر التاريخ"
+                    />
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                      📆
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Filter Actions */}
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={clearDateFilters}
+                  className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 rounded-xl transition-all duration-200"
+                >
+                  مسح الفلاتر
+                </button>
+                <button
+                  onClick={() => setShowDateFilter(false)}
+                  className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium py-3 rounded-xl shadow-md hover:shadow-lg transition-all duration-200"
+                >
+                  تطبيق
+                </button>
+              </div>
+
+              {/* Active Filters Display */}
+              {(fromHijriDate || toHijriDate) && (
+                <div className="mt-4 pt-4 border-t border-gray-100">
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="font-semibold text-gray-700">الفلاتر النشطة:</span>
+                    {fromHijriDate && (
+                      <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-lg">
+                        من: {new Date(fromHijriDate).toLocaleDateString('ar-SA')}
+                      </span>
+                    )}
+                    {toHijriDate && (
+                      <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-lg">
+                        إلى: {new Date(toHijriDate).toLocaleDateString('ar-SA')}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Statistics */}
@@ -757,7 +871,7 @@ const HijriDiyasManagement: React.FC = () => {
 
       {/* Diyas List */}
       <div className="space-y-4">
-        {diyas
+        {filteredDiyas
           .filter(diya => {
             const matchesSearch = diya.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                                  diya.description.toLowerCase().includes(searchQuery.toLowerCase()) ||

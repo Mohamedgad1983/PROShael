@@ -241,11 +241,11 @@ router.get('/:id/details', authenticateToken, adminOnly, async (req, res) => {
         if (initError) throw initError;
 
         // Get all donations for this initiative
-        const { data: donations, error: donError } = await supabase
+        const { data: donations, error: donError} = await supabase
             .from('initiative_donations')
             .select(`
                 *,
-                donor:members!donor_member_id(id, full_name_ar, full_name_en, member_number)
+                donor:members!donor_member_id(id, full_name, full_name_en, membership_number)
             `)
             .eq('initiative_id', id)
             .order('created_at', { ascending: false });
@@ -312,7 +312,7 @@ router.get('/:id/non-contributors', authenticateToken, adminOnly, async (req, re
         // Get all active members
         const { data: allMembers, error: membersError } = await supabase
             .from('members')
-            .select('id, member_id, full_name, full_name_ar, full_name_en, email, phone, member_number')
+            .select('id, member_id, full_name, full_name_en, email, phone, membership_number')
             .eq('is_active', true)
             .eq('membership_status', 'active');
 
@@ -382,7 +382,7 @@ router.post('/:id/notify-non-contributors', authenticateToken, adminOnly, async 
         // Get non-contributors using the same logic
         const { data: allMembers, error: membersError } = await supabase
             .from('members')
-            .select('id, member_id, full_name, full_name_ar, email, phone')
+            .select('id, member_id, full_name, full_name_en, email, phone, membership_number')
             .eq('is_active', true)
             .eq('membership_status', 'active');
 

@@ -12,6 +12,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface Initiative {
     id: number;
@@ -35,9 +38,9 @@ interface Donation {
     approval_date: string | null;
     donor: {
         id: number;
-        full_name_ar?: string;
+        full_name?: string;
         full_name_en?: string;
-        member_number?: string;
+        membership_number?: string;
     };
 }
 
@@ -45,9 +48,8 @@ interface NonContributor {
     id: number;
     member_id: number;
     full_name?: string;
-    full_name_ar?: string;
     full_name_en?: string;
-    member_number?: string;
+    membership_number?: string;
     phone?: string;
     email?: string;
 }
@@ -142,16 +144,16 @@ const InitiativeReport = () => {
     const handleExportCSV = () => {
         const csvData = activeTab === 'contributors'
             ? donations.map(d => ({
-                'رقم العضو': d.donor.member_number || '',
-                'الاسم': d.donor.full_name_ar || d.donor.full_name_en || '',
+                'رقم العضو': d.donor.membership_number || '',
+                'الاسم': d.donor.full_name || d.donor.full_name_en || '',
                 'المبلغ': d.amount,
                 'طريقة الدفع': d.payment_method,
                 'تاريخ الدفع': new Date(d.payment_date).toLocaleDateString('ar-SA'),
                 'معتمد': d.approved_by ? 'نعم' : 'لا'
             }))
             : nonContributors.map(m => ({
-                'رقم العضو': m.member_number || '',
-                'الاسم': m.full_name_ar || m.full_name || '',
+                'رقم العضو': m.membership_number || '',
+                'الاسم': m.full_name || m.full_name_en || '',
                 'الهاتف': m.phone || '',
                 'البريد الإلكتروني': m.email || ''
             }));
@@ -169,16 +171,109 @@ const InitiativeReport = () => {
         link.click();
     };
 
+    const handleExportExcel = () => {
+        const exportData = activeTab === 'contributors'
+            ? donations.map(d => ({
+                'رقم العضو': d.donor.membership_number || '',
+                'الاسم': d.donor.full_name || d.donor.full_name_en || '',
+                'المبلغ': d.amount,
+                'طريقة الدفع': d.payment_method,
+                'تاريخ الدفع': new Date(d.payment_date).toLocaleDateString('ar-SA'),
+                'معتمد': d.approved_by ? 'نعم' : 'لا'
+            }))
+            : nonContributors.map(m => ({
+                'رقم العضو': m.membership_number || '',
+                'الاسم': m.full_name || m.full_name_en || '',
+                'الهاتف': m.phone || '',
+                'البريد الإلكتروني': m.email || ''
+            }));
+
+        // Create worksheet from data
+        const worksheet = XLSX.utils.json_to_sheet(exportData);
+
+        // Set column widths for better readability
+        const columnWidths = activeTab === 'contributors'
+            ? [{ wch: 12 }, { wch: 25 }, { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 10 }]
+            : [{ wch: 12 }, { wch: 25 }, { wch: 15 }, { wch: 25 }];
+        worksheet['!cols'] = columnWidths;
+
+        // Create workbook and add worksheet
+        const workbook = XLSX.utils.book_new();
+        const sheetName = activeTab === 'contributors' ? 'المساهمون' : 'غير المساهمين';
+        XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+
+        // Generate Excel file and download
+        XLSX.writeFile(workbook, `initiative-${id}-${activeTab}-${Date.now()}.xlsx`);
+    };
+
+    const handleExportPDF = () => {
+        const doc = new jsPDF();
+
+        // Title
+        const title = activeTab === 'contributors'
+            ? `تقرير المساهمين - ${initiative?.title_ar || 'المبادرة'}`
+            : `غير المساهمين - ${initiative?.title_ar || 'المبادرة'}`;
+
+        doc.setFontSize(16);
+        doc.text(title, 105, 15, { align: 'center' });
+
+        // Table headers and data
+        const headers = activeTab === 'contributors'
+            ? [['رقم العضو', 'الاسم', 'المبلغ', 'طريقة الدفع', 'تاريخ الدفع', 'معتمد']]
+            : [['رقم العضو', 'الاسم', 'الهاتف', 'البريد الإلكتروني']];
+
+        const data = activeTab === 'contributors'
+            ? donations.map(d => [
+                d.donor.membership_number || '-',
+                d.donor.full_name || d.donor.full_name_en || '-',
+                d.amount.toLocaleString() + ' ر.س',
+                d.payment_method,
+                new Date(d.payment_date).toLocaleDateString('ar-SA'),
+                d.approved_by ? 'نعم' : 'لا'
+            ])
+            : nonContributors.map(m => [
+                m.membership_number || '-',
+                m.full_name || m.full_name_en || '-',
+                m.phone || '-',
+                m.email || '-'
+            ]);
+
+        // Generate table with autoTable
+        autoTable(doc, {
+            head: headers,
+            body: data,
+            startY: 25,
+            styles: {
+                font: 'helvetica',
+                fontSize: 9,
+                cellPadding: 3,
+                halign: 'center'
+            },
+            headStyles: {
+                fillColor: [66, 139, 202],
+                textColor: 255,
+                fontStyle: 'bold'
+            },
+            alternateRowStyles: {
+                fillColor: [245, 245, 245]
+            },
+            margin: { top: 25 }
+        });
+
+        // Save PDF
+        doc.save(`initiative-${id}-${activeTab}-${Date.now()}.pdf`);
+    };
+
     const filteredContributors = donations.filter(d =>
-        (d.donor.full_name_ar?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (d.donor.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
          d.donor.full_name_en?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-         d.donor.member_number?.includes(searchTerm))
+         d.donor.membership_number?.includes(searchTerm))
     );
 
     const filteredNonContributors = nonContributors.filter(m =>
-        (m.full_name_ar?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-         m.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-         m.member_number?.includes(searchTerm) ||
+        (m.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+         m.full_name_en?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+         m.membership_number?.includes(searchTerm) ||
          m.phone?.includes(searchTerm))
     );
 
@@ -222,13 +317,29 @@ const InitiativeReport = () => {
                     </button>
                     <h1 className="text-3xl font-bold text-gray-800">{initiative.title_ar || 'تقرير المبادرة'}</h1>
                 </div>
-                <button
-                    onClick={handleExportCSV}
-                    className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg flex items-center gap-2"
-                >
-                    <span>📥</span>
-                    <span>تصدير CSV</span>
-                </button>
+                <div className="flex gap-3">
+                    <button
+                        onClick={handleExportCSV}
+                        className="bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-lg flex items-center gap-2 transition-all hover:shadow-lg"
+                    >
+                        <span>📄</span>
+                        <span>CSV</span>
+                    </button>
+                    <button
+                        onClick={handleExportExcel}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-lg flex items-center gap-2 transition-all hover:shadow-lg"
+                    >
+                        <span>📊</span>
+                        <span>Excel</span>
+                    </button>
+                    <button
+                        onClick={handleExportPDF}
+                        className="bg-red-600 hover:bg-red-700 text-white px-5 py-3 rounded-lg flex items-center gap-2 transition-all hover:shadow-lg"
+                    >
+                        <span>📕</span>
+                        <span>PDF</span>
+                    </button>
+                </div>
             </div>
 
             {/* Financial Summary Cards */}
@@ -350,9 +461,9 @@ const InitiativeReport = () => {
                                     <tbody>
                                         {filteredContributors.map((donation) => (
                                             <tr key={donation.id} className="border-b hover:bg-gray-50">
-                                                <td className="px-4 py-3">{donation.donor.member_number || '-'}</td>
+                                                <td className="px-4 py-3">{donation.donor.membership_number || '-'}</td>
                                                 <td className="px-4 py-3 font-medium">
-                                                    {donation.donor.full_name_ar || donation.donor.full_name_en || '-'}
+                                                    {donation.donor.full_name || donation.donor.full_name_en || '-'}
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <span className="font-bold text-green-600">
@@ -436,9 +547,9 @@ const InitiativeReport = () => {
                                     <tbody>
                                         {filteredNonContributors.map((member) => (
                                             <tr key={member.id} className="border-b hover:bg-gray-50">
-                                                <td className="px-4 py-3">{member.member_number || '-'}</td>
+                                                <td className="px-4 py-3">{member.membership_number || '-'}</td>
                                                 <td className="px-4 py-3 font-medium">
-                                                    {member.full_name_ar || member.full_name || '-'}
+                                                    {member.full_name || member.full_name_en || '-'}
                                                 </td>
                                                 <td className="px-4 py-3">{member.phone || '-'}</td>
                                                 <td className="px-4 py-3">{member.email || '-'}</td>

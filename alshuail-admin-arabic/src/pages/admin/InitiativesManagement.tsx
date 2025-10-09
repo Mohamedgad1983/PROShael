@@ -42,6 +42,11 @@ const InitiativesManagement = () => {
     const [pushingInitiativeId, setPushingInitiativeId] = useState<number | null>(null);
     const [showToast, setShowToast] = useState(false);
 
+    // Hijri Date Range Filter
+    const [fromHijriDate, setFromHijriDate] = useState('');
+    const [toHijriDate, setToHijriDate] = useState('');
+    const [showDateFilter, setShowDateFilter] = useState(false);
+
     // Real-time member count with 10-second auto-refresh and change detection
     const {
         count: memberCount,
@@ -214,6 +219,35 @@ const InitiativesManagement = () => {
         return texts[status] || status;
     };
 
+    // Filter initiatives by Hijri date range
+    const filterInitiativesByHijriDate = (initiatives: Initiative[]) => {
+        if (!fromHijriDate && !toHijriDate) return initiatives;
+
+        return initiatives.filter(initiative => {
+            // Get the initiative's start_date or created date
+            const initDate = (formData as any).start_date || new Date().toISOString().split('T')[0];
+
+            // Convert Gregorian to Hijri for comparison
+            const [year, month, day] = initDate.split('-').map(Number);
+            const hijriDate = toHijri(year, month, day);
+            const hijriDateStr = `${hijriDate.hy}-${String(hijriDate.hm).padStart(2, '0')}-${String(hijriDate.hd).padStart(2, '0')}`;
+
+            // Check if within range
+            if (fromHijriDate && hijriDateStr < fromHijriDate) return false;
+            if (toHijriDate && hijriDateStr > toHijriDate) return false;
+            return true;
+        });
+    };
+
+    // Apply filtering
+    const filteredInitiatives = filterInitiativesByHijriDate(initiatives);
+
+    // Clear date filters
+    const clearDateFilters = () => {
+        setFromHijriDate('');
+        setToHijriDate('');
+    };
+
     if (loading) return (
         <div className="flex justify-center items-center h-screen">
             <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
@@ -255,35 +289,124 @@ const InitiativesManagement = () => {
                 ))}
             </div>
 
+            {/* Hijri Date Range Filter - Apple Style */}
+            <div className="mb-6">
+                <button
+                    onClick={() => setShowDateFilter(!showDateFilter)}
+                    className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-3 hover:shadow-md transition-all duration-200"
+                >
+                    <span className="text-2xl">📅</span>
+                    <span className="font-medium text-gray-700">تصفية بالتاريخ الهجري</span>
+                    <span className={`mr-auto transform transition-transform duration-200 ${showDateFilter ? 'rotate-180' : ''}`}>
+                        ▼
+                    </span>
+                </button>
+
+                {showDateFilter && (
+                    <div className="mt-4 bg-white rounded-2xl shadow-lg border border-gray-100 p-6 transition-all duration-300">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* From Date */}
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-3">من تاريخ</label>
+                                <div className="relative">
+                                    <input
+                                        type="date"
+                                        value={fromHijriDate}
+                                        onChange={(e) => setFromHijriDate(e.target.value)}
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-right"
+                                        placeholder="اختر التاريخ"
+                                    />
+                                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                                        📆
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* To Date */}
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-3">إلى تاريخ</label>
+                                <div className="relative">
+                                    <input
+                                        type="date"
+                                        value={toHijriDate}
+                                        onChange={(e) => setToHijriDate(e.target.value)}
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-right"
+                                        placeholder="اختر التاريخ"
+                                    />
+                                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                                        📆
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Filter Actions */}
+                        <div className="flex gap-3 mt-6">
+                            <button
+                                onClick={clearDateFilters}
+                                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 rounded-xl transition-all duration-200"
+                            >
+                                مسح الفلاتر
+                            </button>
+                            <button
+                                onClick={() => setShowDateFilter(false)}
+                                className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium py-3 rounded-xl shadow-md hover:shadow-lg transition-all duration-200"
+                            >
+                                تطبيق
+                            </button>
+                        </div>
+
+                        {/* Active Filters Display */}
+                        {(fromHijriDate || toHijriDate) && (
+                            <div className="mt-4 pt-4 border-t border-gray-100">
+                                <div className="flex items-center gap-2 text-sm">
+                                    <span className="font-semibold text-gray-700">الفلاتر النشطة:</span>
+                                    {fromHijriDate && (
+                                        <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-lg">
+                                            من: {new Date(fromHijriDate).toLocaleDateString('ar-SA')}
+                                        </span>
+                                    )}
+                                    {toHijriDate && (
+                                        <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-lg">
+                                            إلى: {new Date(toHijriDate).toLocaleDateString('ar-SA')}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
+
             {/* Statistics Bar */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
                 <div className="bg-white p-4 rounded-lg shadow">
                     <div className="text-gray-600 text-sm">إجمالي المبادرات</div>
-                    <div className="text-2xl font-bold">{initiatives.length}</div>
+                    <div className="text-2xl font-bold">{filteredInitiatives.length}</div>
                 </div>
                 <div className="bg-white p-4 rounded-lg shadow">
                     <div className="text-gray-600 text-sm">المبادرات النشطة</div>
                     <div className="text-2xl font-bold text-green-600">
-                        {initiatives.filter(i => i.status === 'active').length}
+                        {filteredInitiatives.filter(i => i.status === 'active').length}
                     </div>
                 </div>
                 <div className="bg-white p-4 rounded-lg shadow">
                     <div className="text-gray-600 text-sm">المبلغ المستهدف الإجمالي</div>
                     <div className="text-2xl font-bold">
-                        {initiatives.reduce((sum, i) => sum + (i.target_amount || 0), 0).toLocaleString()} ر.س
+                        {filteredInitiatives.reduce((sum, i) => sum + (i.target_amount || 0), 0).toLocaleString()} ر.س
                     </div>
                 </div>
                 <div className="bg-white p-4 rounded-lg shadow">
                     <div className="text-gray-600 text-sm">المبلغ المحصل</div>
                     <div className="text-2xl font-bold text-blue-600">
-                        {initiatives.reduce((sum, i) => sum + (i.current_amount || 0), 0).toLocaleString()} ر.س
+                        {filteredInitiatives.reduce((sum, i) => sum + (i.current_amount || 0), 0).toLocaleString()} ر.س
                     </div>
                 </div>
             </div>
 
             {/* Initiatives Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {initiatives.map(init => (
+                {filteredInitiatives.map(init => (
                     <div key={init.id} className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-200 overflow-hidden">
                         <div className={`h-2 ${getStatusColor(init.status)}`}></div>
                         <div className="p-6">
