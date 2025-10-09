@@ -1,5 +1,6 @@
 // Optimized Statement Controller using Materialized Views
 import { supabase } from '../config/database.js';
+import { log } from '../utils/logger.js';
 
 // Phone validation
 const validatePhone = (phone) => {
@@ -79,7 +80,7 @@ export const searchByPhone = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Phone search error:', error);
+    log.error('Phone search error', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'خطأ في البحث'
@@ -138,7 +139,7 @@ export const searchByName = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Name search error:', error);
+    log.error('Name search error', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'خطأ في البحث'
@@ -199,7 +200,7 @@ export const searchByMemberId = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Member ID search error:', error);
+    log.error('Member ID search error', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'خطأ في البحث'
@@ -224,7 +225,7 @@ export const getDashboardStatistics = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Dashboard stats error:', error);
+    log.error('Dashboard stats error', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'خطأ في جلب الإحصائيات'
@@ -254,7 +255,7 @@ export const getCriticalMembers = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Critical members error:', error);
+    log.error('Critical members error', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'خطأ في جلب الأعضاء الحرجين'
@@ -280,7 +281,7 @@ export const refreshViews = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('View refresh error:', error);
+    log.error('View refresh error', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'خطأ في تحديث البيانات'

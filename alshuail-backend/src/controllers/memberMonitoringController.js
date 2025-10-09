@@ -1,5 +1,6 @@
 import { supabase } from '../config/database.js';
 import ExcelJS from 'exceljs';
+import { log } from '../utils/logger.js';
 
 // All 8 tribal sections in the Al-Shuail family
 const TRIBAL_SECTIONS = [
@@ -88,7 +89,7 @@ export const getMemberMonitoring = async (req, res) => {
     const { data: allMembers, error: membersError, count: totalCount } = await membersQuery;
 
     if (membersError) {
-      console.error('Error fetching members:', membersError);
+      log.error('Error fetching members', { error: membersError.message });
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch members',
@@ -285,7 +286,7 @@ export const getMemberMonitoring = async (req, res) => {
     res.json(response);
 
   } catch (error) {
-    console.error('Error in getMemberMonitoring:', error);
+    log.error('Error in getMemberMonitoring', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'Internal server error',
@@ -326,7 +327,7 @@ export const suspendMember = async (req, res) => {
       .single();
 
     if (updateError) {
-      console.error('Error suspending member:', updateError);
+      log.error('Error suspending member', { error: updateError.message });
       return res.status(500).json({
         success: false,
         error: 'فشل إيقاف العضو',
@@ -366,7 +367,7 @@ export const suspendMember = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error in suspendMember:', error);
+    log.error('Error in suspendMember', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'خطأ في النظام',
@@ -511,7 +512,7 @@ export const notifyMember = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error in notifyMember:', error);
+    log.error('Error in notifyMember', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'خطأ في إرسال الإشعار',
@@ -709,7 +710,7 @@ export const exportMembers = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error in exportMembers:', error);
+    log.error('Error in exportMembers', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'خطأ في تصدير البيانات',
@@ -765,7 +766,7 @@ export const getAuditLog = async (req, res) => {
     const { data: logs, error, count } = await query;
 
     if (error) {
-      console.error('Error fetching audit logs:', error);
+      log.error('Error fetching audit logs', { error: error.message });
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch audit logs',
@@ -791,7 +792,7 @@ export const getAuditLog = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error in getAuditLog:', error);
+    log.error('Error in getAuditLog', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'خطأ في جلب سجل التدقيق',

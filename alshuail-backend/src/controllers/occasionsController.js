@@ -1,4 +1,5 @@
 import { supabase } from '../config/database.js';
+import { log } from '../utils/logger.js';
 
 /**
  * Get all occasions with optional filters
@@ -65,7 +66,7 @@ export const getAllOccasions = async (req, res) => {
       message: 'تم جلب المناسبات بنجاح'
     });
   } catch (error) {
-    console.error('Error fetching occasions:', error);
+    log.error('Error fetching occasions', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'فشل في جلب المناسبات',
@@ -114,7 +115,7 @@ export const getOccasionById = async (req, res) => {
       message: 'تم جلب بيانات المناسبة بنجاح'
     });
   } catch (error) {
-    console.error('Error fetching occasion:', error);
+    log.error('Error fetching occasion', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'فشل في جلب بيانات المناسبة',
@@ -204,7 +205,7 @@ export const createOccasion = async (req, res) => {
       message: 'تم إنشاء المناسبة بنجاح'
     });
   } catch (error) {
-    console.error('Error creating occasion:', error);
+    log.error('Error creating occasion', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'فشل في إنشاء المناسبة',
@@ -357,7 +358,7 @@ export const updateRSVP = async (req, res) => {
                status === 'declined' ? 'تم رفض الحضور' : 'تم تحديث حالة الحضور'
     });
   } catch (error) {
-    console.error('Error updating RSVP:', error);
+    log.error('Error updating RSVP', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'فشل في تحديث حالة الحضور',
@@ -441,7 +442,7 @@ export const updateOccasion = async (req, res) => {
       message: 'تم تحديث المناسبة بنجاح'
     });
   } catch (error) {
-    console.error('Error updating occasion:', error);
+    log.error('Error updating occasion', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'فشل في تحديث المناسبة',
@@ -485,7 +486,7 @@ export const deleteOccasion = async (req, res) => {
       message: 'تم حذف المناسبة بنجاح'
     });
   } catch (error) {
-    console.error('Error deleting occasion:', error);
+    log.error('Error deleting occasion', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'فشل في حذف المناسبة',
@@ -563,7 +564,7 @@ export const getOccasionStats = async (req, res) => {
       message: 'تم جلب إحصائيات المناسبات بنجاح'
     });
   } catch (error) {
-    console.error('Error fetching occasion stats:', error);
+    log.error('Error fetching occasion stats', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'فشل في جلب إحصائيات المناسبات',
