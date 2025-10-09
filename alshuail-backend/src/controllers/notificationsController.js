@@ -1,4 +1,5 @@
 import { supabase } from '../config/database.js';
+import { log } from '../utils/logger.js';
 
 /**
  * Get all notifications with pagination and filtering
@@ -91,7 +92,7 @@ export const getAllNotifications = async (req, res) => {
       message: 'تم جلب الإشعارات بنجاح'
     });
   } catch (error) {
-    console.error('Error fetching notifications:', error);
+    log.error('Error fetching notifications', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'فشل في جلب الإشعارات',
@@ -133,7 +134,7 @@ export const getNotificationById = async (req, res) => {
       message: 'تم جلب بيانات الإشعار بنجاح'
     });
   } catch (error) {
-    console.error('Error fetching notification:', error);
+    log.error('Error fetching notification', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'فشل في جلب بيانات الإشعار',
@@ -292,7 +293,7 @@ export const createNotification = async (req, res) => {
       message: `تم إرسال ${notifications.length} إشعار بنجاح`
     });
   } catch (error) {
-    console.error('Error creating notification:', error);
+    log.error('Error creating notification', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'فشل في إنشاء الإشعار',
@@ -353,7 +354,7 @@ export const markAsRead = async (req, res) => {
       message: 'تم وضع علامة قراءة على الإشعار'
     });
   } catch (error) {
-    console.error('Error marking notification as read:', error);
+    log.error('Error marking notification as read', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'فشل في تحديث حالة الإشعار',
@@ -405,7 +406,7 @@ export const bulkMarkAsRead = async (req, res) => {
       message: `تم وضع علامة قراءة على ${updatedNotifications?.length || 0} إشعار`
     });
   } catch (error) {
-    console.error('Error bulk marking notifications as read:', error);
+    log.error('Error bulk marking notifications as read', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'فشل في تحديث حالة الإشعارات',
@@ -448,7 +449,7 @@ export const deleteNotification = async (req, res) => {
       message: 'تم حذف الإشعار بنجاح'
     });
   } catch (error) {
-    console.error('Error deleting notification:', error);
+    log.error('Error deleting notification', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'فشل في حذف الإشعار',
@@ -531,7 +532,7 @@ export const getMemberNotifications = async (req, res) => {
       message: 'تم جلب إشعارات العضو بنجاح'
     });
   } catch (error) {
-    console.error('Error fetching member notifications:', error);
+    log.error('Error fetching member notifications', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'فشل في جلب إشعارات العضو',
@@ -648,7 +649,7 @@ export const getNotificationStats = async (req, res) => {
       message: 'تم جلب إحصائيات الإشعارات بنجاح'
     });
   } catch (error) {
-    console.error('Error fetching notification stats:', error);
+    log.error('Error fetching notification stats', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'فشل في جلب إحصائيات الإشعارات',

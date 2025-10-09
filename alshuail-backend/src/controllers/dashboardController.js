@@ -1,8 +1,9 @@
 import { supabase } from '../config/database.js';
+import { log } from '../utils/logger.js';
 
 export const getDashboardStats = async (req, res) => {
-  console.log('Dashboard stats request received');
-  console.log('User:', req.user);
+  log.http('Dashboard stats request received');
+  log.debug('Dashboard request user', { userId: req.user?.id, role: req.user?.role });
 
   try {
     // Use Promise.allSettled to prevent one failure from breaking everything
@@ -25,7 +26,7 @@ export const getDashboardStats = async (req, res) => {
     results.forEach((result, index) => {
       if (result.status === 'rejected') {
         const names = ['members', 'payments', 'subscriptions', 'activities', 'tribalSections'];
-        console.error(`Failed to get ${names[index]} stats:`, result.reason);
+        log.error(`Failed to get ${names[index]} stats`, { error: result.reason });
       }
     });
 
@@ -41,7 +42,7 @@ export const getDashboardStats = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Critical dashboard error:', error);
+    log.error('Critical dashboard error', { error: error.message });
     // Return mock data instead of failing completely
     res.json({
       success: true,
@@ -86,19 +87,19 @@ function getDefaultSubscriptionStats() {
 
 async function getMembersStatistics() {
   try {
-    console.log('Fetching members statistics...');
+    log.db('Fetching members statistics', 'members', 0);
     const { data: allMembers, error } = await supabase
       .from('members')
       .select('id, full_name, is_active, created_at')
       .limit(1000); // Add limit to prevent timeout
 
     if (error) {
-      console.error('Supabase members error:', error);
+      log.error('Supabase members error', { error: error.message });
       throw error;
     }
 
     if (!allMembers) {
-      console.log('No members data returned');
+      log.debug('No members data returned');
       return getDefaultMembersStats();
     }
 
@@ -116,7 +117,7 @@ async function getMembersStatistics() {
       }
     }).length;
 
-    console.log(`Members stats: Total=${totalMembers}, Active=${activeMembers}`);
+    log.debug('Members stats calculated', { total: totalMembers, active: activeMembers });
 
     return {
       total: totalMembers,
@@ -125,26 +126,26 @@ async function getMembersStatistics() {
       newThisMonth: newMembers
     };
   } catch (error) {
-    console.error('Error getting members statistics:', error.message || error);
+    log.error('Error getting members statistics', { error: error.message || error });
     return getDefaultMembersStats();
   }
 }
 
 async function getPaymentsStatistics() {
   try {
-    console.log('Fetching payments statistics...');
+    log.db('Fetching payments statistics', 'payments', 0);
     const { data: payments, error } = await supabase
       .from('payments')
       .select('id, amount, status, created_at')
       .limit(1000); // Add limit to prevent timeout
 
     if (error) {
-      console.error('Supabase payments error:', error);
+      log.error('Supabase payments error', { error: error.message });
       throw error;
     }
 
     if (!payments || payments.length === 0) {
-      console.log('No payments data');
+      log.debug('No payments data');
       return getDefaultPaymentsStats();
     }
 
@@ -176,7 +177,7 @@ async function getPaymentsStatistics() {
       return sum + amount;
     }, 0);
 
-    console.log(`Payments stats: Pending=${pendingPayments.length}, Paid=${paidPayments.length}`);
+    log.debug('Payments stats calculated', { pending: pendingPayments.length, paid: paidPayments.length });
 
     return {
       pending: pendingPayments.length,
@@ -186,27 +187,27 @@ async function getPaymentsStatistics() {
       totalPaid: paidPayments.length
     };
   } catch (error) {
-    console.error('Error getting payments statistics:', error.message || error);
+    log.error('Error getting payments statistics', { error: error.message || error });
     return getDefaultPaymentsStats();
   }
 }
 
 async function getSubscriptionStatistics() {
   try {
-    console.log('Fetching subscription statistics...');
+    log.db('Fetching subscription statistics', 'subscriptions', 0);
     const { data: subscriptions, error } = await supabase
       .from('subscriptions')
       .select('id, amount, status')
       .limit(1000); // Add limit to prevent timeout
 
     if (error) {
-      console.error('Supabase subscriptions error:', error);
+      log.error('Supabase subscriptions error', { error: error.message });
       // Don't throw, just return defaults
       return getDefaultSubscriptionStats();
     }
 
     if (!subscriptions || subscriptions.length === 0) {
-      console.log('No subscriptions data');
+      log.debug('No subscriptions data');
       return getDefaultSubscriptionStats();
     }
 
@@ -218,7 +219,7 @@ async function getSubscriptionStatistics() {
       return sum + amount;
     }, 0);
 
-    console.log(`Subscriptions stats: Active=${activeSubscriptions.length}, Total=${subscriptions.length}`);
+    log.debug('Subscriptions stats calculated', { active: activeSubscriptions.length, total: subscriptions.length });
 
     return {
       active: activeSubscriptions.length,
@@ -227,26 +228,26 @@ async function getSubscriptionStatistics() {
       revenue: Math.round(totalSubscriptionRevenue)
     };
   } catch (error) {
-    console.error('Error getting subscription statistics:', error.message || error);
+    log.error('Error getting subscription statistics', { error: error.message || error });
     return getDefaultSubscriptionStats();
   }
 }
 
 async function getTribalSectionsStatistics() {
   try {
-    console.log('Fetching tribal sections statistics...');
+    log.db('Fetching tribal sections statistics', 'members', 0);
     const { data: members, error } = await supabase
       .from('members')
       .select('tribal_section, total_paid')
       .limit(1000);
 
     if (error) {
-      console.error('Supabase tribal sections error:', error);
+      log.error('Supabase tribal sections error', { error: error.message });
       throw error;
     }
 
     if (!members || members.length === 0) {
-      console.log('No tribal section data');
+      log.debug('No tribal section data');
       return [];
     }
 
@@ -268,17 +269,17 @@ async function getTribalSectionsStatistics() {
     // Convert to array and sort by member count
     const tribalData = Object.values(sections).sort((a, b) => b.members - a.members);
 
-    console.log(`Tribal sections: ${tribalData.length} sections, ${members.length} total members`);
+    log.debug('Tribal sections calculated', { sections: tribalData.length, totalMembers: members.length });
     return tribalData;
   } catch (error) {
-    console.error('Error getting tribal sections statistics:', error.message || error);
+    log.error('Error getting tribal sections statistics', { error: error.message || error });
     return [];
   }
 }
 
 async function getRecentActivities() {
   try {
-    console.log('Fetching recent activities...');
+    log.db('Fetching recent activities', 'payments,members', 0);
 
     // Use Promise.allSettled to handle individual failures
     const [paymentsResult, membersResult] = await Promise.allSettled([
@@ -310,7 +311,7 @@ async function getRecentActivities() {
         }
       });
     } else if (paymentsResult.status === 'rejected') {
-      console.error('Failed to fetch recent payments:', paymentsResult.reason);
+      log.error('Failed to fetch recent payments', { error: paymentsResult.reason });
     }
 
     // Process members if successful
@@ -327,7 +328,7 @@ async function getRecentActivities() {
         }
       });
     } else if (membersResult.status === 'rejected') {
-      console.error('Failed to fetch recent members:', membersResult.reason);
+      log.error('Failed to fetch recent members', { error: membersResult.reason });
     }
 
     // Sort by date if we have activities
@@ -341,10 +342,10 @@ async function getRecentActivities() {
       });
     }
 
-    console.log(`Found ${activities.length} recent activities`);
+    log.debug('Recent activities fetched', { count: activities.length });
     return activities.slice(0, 10);
   } catch (error) {
-    console.error('Error getting recent activities:', error.message || error);
+    log.error('Error getting recent activities', { error: error.message || error });
     return [];
   }
 }

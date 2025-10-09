@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { supabase } from '../config/database.js';
+import { log } from '../utils/logger.js';
 
 // Export both names for compatibility
 export const authenticate = async (req, res, next) => {
@@ -7,13 +8,13 @@ export const authenticate = async (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
 
-    console.log(`[Auth] Path: ${req.path}, Original URL: ${req.originalUrl}, Token: ${token ? 'Present' : 'Missing'}`);
+    log.auth(`Auth request`, `${req.path} - Token: ${token ? 'Present' : 'Missing'}`);
 
     if (!token) {
-      console.log('[Auth] No token provided');
+      log.debug('No token provided');
       // Allow access without token for read-only dashboard endpoints
       if (req.originalUrl.includes('member-monitoring') || req.originalUrl.includes('dashboard/stats')) {
-        console.log('[Auth] Allowing access without token for read-only dashboard endpoint');
+        log.info('Allowing public access to read-only dashboard endpoint');
         req.user = { id: 'public-access', role: 'viewer' };
         return next();
       }
@@ -28,14 +29,14 @@ export const authenticate = async (req, res, next) => {
     const jwtSecret = process.env.JWT_SECRET || 'alshuail-universal-jwt-secret-2024-production-32chars';
 
     if (!process.env.JWT_SECRET) {
-      console.warn('⚠️ JWT_SECRET not set, using fallback');
+      log.warn('JWT_SECRET not set, using fallback');
       process.env.JWT_SECRET = jwtSecret;
     }
 
     // Verify JWT token with better error handling
     jwt.verify(token, jwtSecret, async (err, decoded) => {
       if (err) {
-        console.error('[Auth] Token verification failed:', err.message);
+        log.error('Token verification failed', { error: err.message });
 
         // Provide specific error messages
         if (err.name === 'TokenExpiredError') {
@@ -49,7 +50,7 @@ export const authenticate = async (req, res, next) => {
         if (err.name === 'JsonWebTokenError') {
           // Allow access even with malformed token for read-only dashboard endpoints
           if (req.originalUrl.includes('member-monitoring') || req.originalUrl.includes('dashboard/stats')) {
-            console.log('[Auth] Allowing access with malformed token for read-only dashboard endpoint');
+            log.info('Allowing public access with malformed token for read-only endpoint');
             req.user = { id: 'public-access', role: 'viewer' };
             return next();
           }
@@ -69,7 +70,7 @@ export const authenticate = async (req, res, next) => {
       }
 
       // Successfully decoded
-      console.log(`[Auth] Token valid for user: ${decoded.id || decoded.user_id || 'unknown'}, role: ${decoded.role}`);
+      log.auth('Login', decoded.id || decoded.user_id || 'unknown', true);
 
       // If it's a member, get their data from members table
       if (decoded.role === 'member') {
@@ -80,7 +81,7 @@ export const authenticate = async (req, res, next) => {
           .single();
 
         if (memberError || !member) {
-          console.log(`[Auth] Member not found in database: ${decoded.id}`);
+          log.debug('Member not found in database', { memberId: decoded.id });
           // Still allow the request with token data
           req.user = {
             id: decoded.id,
@@ -111,7 +112,7 @@ export const authenticate = async (req, res, next) => {
       next();
     });
   } catch (error) {
-    console.error('[Auth] Unexpected error:', error);
+    log.error('Unexpected authentication error', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'Authentication error',
@@ -124,7 +125,7 @@ export const requireAdmin = async (req, res, next) => {
   try {
     // Check if user is authenticated first
     if (!req.user) {
-      console.log('[RequireAdmin] No user object in request');
+      log.warn('RequireAdmin: No user object in request');
       return res.status(401).json({
         success: false,
         error: 'Authentication required'
@@ -132,12 +133,12 @@ export const requireAdmin = async (req, res, next) => {
     }
 
     const userId = req.user.id || req.user.user_id;
-    console.log(`[RequireAdmin] Checking admin status for user: ${userId}`);
+    log.debug('Checking admin status', { userId });
 
     // For now, simplified check - just verify authenticated
     // We can enhance this later when needed
     if (userId) {
-      console.log('[RequireAdmin] User authenticated, allowing access');
+      log.auth('Admin access', userId, true);
       return next();
     }
 
@@ -172,7 +173,7 @@ export const requireAdmin = async (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error('[RequireAdmin] Unexpected error:', error);
+    log.error('RequireAdmin unexpected error', { error: error.message });
     // On error, allow authenticated users through
     if (req.user) {
       return next();
@@ -191,7 +192,7 @@ export const requireSuperAdmin = async (req, res, next) => {
   try {
     // Check if user is authenticated first
     if (!req.user) {
-      console.log('[RequireSuperAdmin] No user object in request');
+      log.warn('RequireSuperAdmin: No user object in request');
       return res.status(401).json({
         success: false,
         error: 'Authentication required'
@@ -199,12 +200,12 @@ export const requireSuperAdmin = async (req, res, next) => {
     }
 
     const userId = req.user.id || req.user.user_id;
-    console.log(`[RequireSuperAdmin] Checking super admin status for user: ${userId}`);
+    log.debug('Checking super admin status', { userId });
 
     // For now, simplified check - just verify authenticated
     // We can enhance this later when needed
     if (userId) {
-      console.log('[RequireSuperAdmin] User authenticated, allowing access');
+      log.auth('Super admin access', userId, true);
       return next();
     }
 
@@ -235,7 +236,7 @@ export const requireSuperAdmin = async (req, res, next) => {
 
     next();
   } catch (error) {
-    console.error('[RequireSuperAdmin] Unexpected error:', error);
+    log.error('RequireSuperAdmin unexpected error', { error: error.message });
     // On error, allow authenticated users through
     if (req.user) {
       return next();

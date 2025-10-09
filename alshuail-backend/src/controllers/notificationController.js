@@ -4,6 +4,7 @@
 // ===============================================
 
 import { supabase } from '../config/database.js';
+import { log } from '../utils/logger.js';
 
 /**
  * Get all notifications for a member
@@ -16,7 +17,7 @@ export const getMemberNotifications = async (req, res) => {
   try {
     const memberId = req.user.id; // From auth middleware
 
-    console.log('[Notifications] Fetching for member:', memberId);
+    log.debug('Fetching notifications for member', { memberId });
 
     // Fetch notifications from database
     const { data: notifications, error } = await supabase
@@ -41,7 +42,7 @@ export const getMemberNotifications = async (req, res) => {
       .limit(50); // Last 50 notifications
 
     if (error) {
-      console.error('[Notifications] Database error:', error);
+      log.error('Notifications database error', { error: error.message });
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch notifications',
@@ -86,7 +87,7 @@ export const getMemberNotifications = async (req, res) => {
     // Count unread notifications
     const unreadCount = notifications.filter(n => !n.is_read).length;
 
-    console.log('[Notifications] Found:', notifications.length, 'Unread:', unreadCount);
+    log.debug('Notifications found', { total: notifications.length, unread: unreadCount });
 
     res.json({
       success: true,
@@ -98,7 +99,7 @@ export const getMemberNotifications = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[Notifications] Exception:', error);
+    log.error('Notifications exception', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'Internal server error',
@@ -147,7 +148,7 @@ export const getNotificationSummary = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[Notifications] Summary error:', error);
+    log.error('Notifications summary error', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 };
@@ -163,7 +164,7 @@ export const markNotificationAsRead = async (req, res) => {
     const { id } = req.params;
     const memberId = req.user.id;
 
-    console.log('[Notifications] Marking as read:', id, 'for member:', memberId);
+    log.debug('Marking notification as read', { notificationId: id, memberId });
 
     // Update notification
     const { data, error } = await supabase
@@ -178,7 +179,7 @@ export const markNotificationAsRead = async (req, res) => {
       .single();
 
     if (error) {
-      console.error('[Notifications] Mark read error:', error);
+      log.error('Notification mark read error', { error: error.message });
       return res.status(500).json({
         success: false,
         error: 'Failed to mark as read',
@@ -201,7 +202,7 @@ export const markNotificationAsRead = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[Notifications] Mark read exception:', error);
+    log.error('Notification mark read exception', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 };
@@ -216,7 +217,7 @@ export const markAllNotificationsAsRead = async (req, res) => {
   try {
     const memberId = req.user.id;
 
-    console.log('[Notifications] Marking all as read for member:', memberId);
+    log.debug('Marking all notifications as read', { memberId });
 
     const { data, error } = await supabase
       .from('notifications')
@@ -237,7 +238,7 @@ export const markAllNotificationsAsRead = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[Notifications] Mark all read error:', error);
+    log.error('Mark all notifications read error', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 };
@@ -268,7 +269,7 @@ export const deleteNotification = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('[Notifications] Delete error:', error);
+    log.error('Notification delete error', { error: error.message });
     res.status(500).json({ success: false, error: error.message });
   }
 };
