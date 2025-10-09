@@ -350,7 +350,7 @@ router.post('/:id/push-notification', authenticateToken, adminOnly, async (req, 
         }
 
         // Create ONE notification for admin to track this broadcast
-        // (Similar to news push notification pattern)
+        // (Following exact news.js pattern)
         const adminNotification = {
             user_id: req.user.id,  // Admin who sent the notification
             type: 'initiative_broadcast',
@@ -365,12 +365,9 @@ router.post('/:id/push-notification', authenticateToken, adminOnly, async (req, 
             action_url: `/admin/initiatives`,
             is_read: false,
             metadata: {
-                initiative_id: initiative.id,
-                initiative_title_ar: initiative.title_ar,
-                initiative_title_en: initiative.title_en,
-                target_amount: initiative.target_amount,
-                recipient_count: members.length,
-                broadcast_date: new Date().toISOString()
+                broadcast_to: members.length,
+                member_ids: members.map(m => m.id),
+                initiative_title: initiative.title_ar || initiative.title
             }
         };
 
