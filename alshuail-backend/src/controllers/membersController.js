@@ -2,10 +2,11 @@ import { supabase } from '../config/database.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { sanitizeJSON, prepareUpdateData } from '../utils/jsonSanitizer.js';
+import { log } from '../utils/logger.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'alshuail-super-secure-jwt-secret-key-2024-production-ready-32chars';
 if (!process.env.JWT_SECRET) {
-  console.warn('⚠️ JWT_SECRET not set in membersController, using fallback');
+  log.warn('JWT_SECRET not set in membersController, using fallback');
 }
 
 export const getAllMembers = async (req, res) => {
@@ -106,7 +107,7 @@ export const createMember = async (req, res) => {
   try {
     const memberData = req.body;
 
-    console.log('📥 Create Member Request:', JSON.stringify(memberData, null, 2));
+    log.debug('Create Member Request', { memberData });
 
     const requiredFields = ['full_name', 'phone'];
     for (const field of requiredFields) {
@@ -142,7 +143,7 @@ export const createMember = async (req, res) => {
       created_at: new Date().toISOString()
     };
 
-    console.log('🔄 Member to create:', JSON.stringify(memberToCreate, null, 2));
+    log.debug('Preparing to create member', { membershipNumber: memberToCreate.membership_number });
 
     const { data: newMember, error } = await supabase
       .from('members')
@@ -151,11 +152,11 @@ export const createMember = async (req, res) => {
       .single();
 
     if (error) {
-      console.error('❌ Supabase create error:', error);
+      log.error('Supabase create member error', { error: error.message });
       throw error;
     }
 
-    console.log('✅ Member created successfully:', newMember);
+    log.info('Member created successfully', { memberId: newMember.id, membershipNumber: newMember.membership_number });
 
     res.status(201).json({
       success: true,
@@ -163,7 +164,7 @@ export const createMember = async (req, res) => {
       message: 'تم إضافة العضو بنجاح'
     });
   } catch (error) {
-    console.error('❌ Create failed:', error);
+    log.error('Create member failed', { error: error.message });
     res.status(500).json({
       success: false,
       error: error.message || 'فشل في إضافة العضو'
