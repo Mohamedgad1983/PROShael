@@ -176,15 +176,13 @@ export const updateMember = async (req, res) => {
   try {
     const { id } = req.params;
 
-    console.log('🔍 Update Member Request Started');
-    console.log('📋 Member ID:', id);
-    console.log('📋 Request body type:', typeof req.body);
-    console.log('📋 Raw request body:', JSON.stringify(req.body, null, 2));
+    log.debug('Update member request started', { memberId: id });
+    log.debug('Update request body', { bodyType: typeof req.body });
 
     // Express JSON middleware already parses the body - use it directly
     const updateData = req.body || {};
 
-    console.log('✅ Update data received:', JSON.stringify(updateData, null, 2));
+    log.debug('Update data received', { fieldsCount: Object.keys(updateData).length });
 
     // Clean and validate the data before preparing
     const cleanedData = {};
@@ -212,12 +210,12 @@ export const updateMember = async (req, res) => {
       }
     });
 
-    console.log('🧹 Cleaned data:', JSON.stringify(cleanedData, null, 2));
+    log.debug('Data cleaned and validated', { fieldsCount: Object.keys(cleanedData).length });
 
     // Use our utility to prepare the update data
     const fieldsToUpdate = prepareUpdateData(cleanedData);
 
-    console.log('🔄 Prepared fields to update:', JSON.stringify(fieldsToUpdate, null, 2));
+    log.debug('Prepared fields for update', { fieldsToUpdate: Object.keys(fieldsToUpdate) });
 
     // Validate that we have at least one field to update
     if (Object.keys(fieldsToUpdate).length <= 1) { // Only updated_at
@@ -236,13 +234,12 @@ export const updateMember = async (req, res) => {
       .single();
 
     if (error) {
-      console.error('❌ Supabase update error:', error);
-      console.error('Error details:', {
+      log.error('Supabase member update error', {
+        error: error.message,
         code: error.code,
-        message: error.message,
         details: error.details,
         hint: error.hint,
-        fieldsAttempted: fieldsToUpdate
+        fieldsAttempted: Object.keys(fieldsToUpdate)
       });
 
       // Provide more specific error messages
@@ -270,8 +267,10 @@ export const updateMember = async (req, res) => {
       });
     }
 
-    console.log('✅ Member updated successfully');
-    console.log('✅ Updated data:', JSON.stringify(updatedMember, null, 2));
+    log.info('Member updated successfully', {
+      memberId: updatedMember.id,
+      membershipNumber: updatedMember.membership_number
+    });
 
     res.json({
       success: true,
@@ -279,11 +278,10 @@ export const updateMember = async (req, res) => {
       message: 'تم تحديث بيانات العضو بنجاح'
     });
   } catch (error) {
-    console.error('❌ Update failed:', error);
-    console.error('Full error object:', {
-      message: error.message,
-      stack: error.stack,
-      name: error.name
+    log.error('Member update failed', {
+      error: error.message,
+      name: error.name,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
 
     // Send a more detailed error response for debugging
@@ -478,7 +476,7 @@ export const sendRegistrationReminders = async (req, res) => {
     `.trim();
 
     // Log the reminder attempt
-    console.log(`Sending registration reminders to ${smsData.length} members`);
+    log.info('Sending registration reminders', { memberCount: smsData.length });
 
     res.json({
       success: true,
@@ -630,7 +628,7 @@ export const addMemberManually = async (req, res) => {
       }]);
 
     if (tokenError) {
-      console.error('Error creating token:', tokenError);
+      log.error('Error creating registration token', { error: tokenError.message });
       // Don't fail the whole operation if token creation fails
     }
 
@@ -641,7 +639,7 @@ export const addMemberManually = async (req, res) => {
       .eq('id', newMember.id);
 
     if (updateError) {
-      console.error('Error updating member with temp password:', updateError);
+      log.error('Error updating member with temp password', { error: updateError.message });
     }
 
     // Prepare response
@@ -655,9 +653,11 @@ export const addMemberManually = async (req, res) => {
 
     if (send_registration_link) {
       // In production, integrate with SMS service here
-      console.log(`SMS would be sent to ${phone}:`);
-      console.log(`Registration Token: ${registrationToken}`);
-      console.log(`Temporary Password: ${tempPassword}`);
+      log.info('SMS registration credentials prepared', {
+        phone,
+        hasToken: !!registrationToken,
+        hasPassword: !!tempPassword
+      });
     }
 
     res.status(201).json({
@@ -667,7 +667,7 @@ export const addMemberManually = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error adding member manually:', error);
+    log.error('Error adding member manually', { error: error.message });
     res.status(500).json({
       success: false,
       error: error.message || 'فشل في إضافة العضو'

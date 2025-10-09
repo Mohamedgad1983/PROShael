@@ -1,4 +1,5 @@
 import { supabase } from '../config/database.js';
+import { log } from '../utils/logger.js';
 
 /**
  * Generate reference number for diya case
@@ -95,7 +96,7 @@ export const getAllDiyas = async (req, res) => {
       message: 'تم جلب قضايا الديات بنجاح'
     });
   } catch (error) {
-    console.error('Error fetching diyas:', error);
+    log.error('Error fetching diyas', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'فشل في جلب قضايا الديات',
@@ -138,7 +139,7 @@ export const getDiyaById = async (req, res) => {
       message: 'تم جلب بيانات قضية الدية بنجاح'
     });
   } catch (error) {
-    console.error('Error fetching diya:', error);
+    log.error('Error fetching diya', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'فشل في جلب بيانات قضية الدية',
@@ -225,7 +226,7 @@ export const createDiya = async (req, res) => {
       message: 'تم إنشاء قضية الدية بنجاح'
     });
   } catch (error) {
-    console.error('Error creating diya:', error);
+    log.error('Error creating diya', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'فشل في إنشاء قضية الدية',
@@ -292,7 +293,7 @@ export const updateDiyaStatus = async (req, res) => {
                status === 'cancelled' ? 'تم إلغاء قضية الدية' : 'تم تحديث حالة الدية'
     });
   } catch (error) {
-    console.error('Error updating diya status:', error);
+    log.error('Error updating diya status', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'فشل في تحديث حالة الدية',
@@ -368,7 +369,7 @@ export const updateDiya = async (req, res) => {
       message: 'تم تحديث قضية الدية بنجاح'
     });
   } catch (error) {
-    console.error('Error updating diya:', error);
+    log.error('Error updating diya', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'فشل في تحديث قضية الدية',
@@ -420,7 +421,7 @@ export const deleteDiya = async (req, res) => {
       message: 'تم حذف قضية الدية بنجاح'
     });
   } catch (error) {
-    console.error('Error deleting diya:', error);
+    log.error('Error deleting diya', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'فشل في حذف قضية الدية',
@@ -540,7 +541,7 @@ export const getDiyaStats = async (req, res) => {
       message: 'تم جلب إحصائيات الديات بنجاح'
     });
   } catch (error) {
-    console.error('Error fetching diya stats:', error);
+    log.error('Error fetching diya stats', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'فشل في جلب إحصائيات الديات',
@@ -607,7 +608,7 @@ export const getMemberDiyas = async (req, res) => {
       message: 'تم جلب تاريخ ديات العضو بنجاح'
     });
   } catch (error) {
-    console.error('Error fetching member diyas:', error);
+    log.error('Error fetching member diyas', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'فشل في جلب تاريخ ديات العضو',

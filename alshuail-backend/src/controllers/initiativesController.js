@@ -1,4 +1,5 @@
 import { supabase } from '../config/database.js';
+import { log } from '../utils/logger.js';
 
 /**
  * Generate reference number for contribution
@@ -87,7 +88,7 @@ export const getAllInitiatives = async (req, res) => {
       message: 'تم جلب المبادرات بنجاح'
     });
   } catch (error) {
-    console.error('Error fetching initiatives:', error);
+    log.error('Error fetching initiatives', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'فشل في جلب المبادرات',
@@ -177,7 +178,7 @@ export const getInitiativeById = async (req, res) => {
       message: 'تم جلب بيانات المبادرة بنجاح'
     });
   } catch (error) {
-    console.error('Error fetching initiative:', error);
+    log.error('Error fetching initiative', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'فشل في جلب بيانات المبادرة',
@@ -276,7 +277,7 @@ export const createInitiative = async (req, res) => {
       message: 'تم إنشاء المبادرة بنجاح'
     });
   } catch (error) {
-    console.error('Error creating initiative:', error);
+    log.error('Error creating initiative', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'فشل في إنشاء المبادرة',
@@ -403,7 +404,7 @@ export const addContribution = async (req, res) => {
       message: status === 'confirmed' ? 'تم تأكيد المساهمة بنجاح' : 'تم إضافة المساهمة بنجاح'
     });
   } catch (error) {
-    console.error('Error adding contribution:', error);
+    log.error('Error adding contribution', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'فشل في إضافة المساهمة',
@@ -500,7 +501,7 @@ export const updateContributionStatus = async (req, res) => {
                status === 'rejected' ? 'تم رفض المساهمة' : 'تم تحديث حالة المساهمة'
     });
   } catch (error) {
-    console.error('Error updating contribution status:', error);
+    log.error('Error updating contribution status', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'فشل في تحديث حالة المساهمة',
@@ -592,7 +593,7 @@ export const updateInitiative = async (req, res) => {
       message: 'تم تحديث المبادرة بنجاح'
     });
   } catch (error) {
-    console.error('Error updating initiative:', error);
+    log.error('Error updating initiative', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'فشل في تحديث المبادرة',
@@ -675,7 +676,7 @@ export const getInitiativeStats = async (req, res) => {
       message: 'تم جلب إحصائيات المبادرات بنجاح'
     });
   } catch (error) {
-    console.error('Error fetching initiative stats:', error);
+    log.error('Error fetching initiative stats', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'فشل في جلب إحصائيات المبادرات',
