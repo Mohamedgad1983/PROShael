@@ -5,6 +5,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
+import { log } from '../utils/logger.js';
 
 dotenv.config();
 
@@ -15,10 +16,10 @@ const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || 'eyJhbGciOiJIUz
 
 // Log warnings if using defaults
 if (!process.env.SUPABASE_URL) {
-  console.warn('⚠️ SUPABASE_URL not set, using default value');
+  log.warn('SUPABASE_URL not set, using default value');
 }
 if (!process.env.SUPABASE_ANON_KEY) {
-  console.warn('⚠️ SUPABASE_ANON_KEY not set, using default value');
+  log.warn('SUPABASE_ANON_KEY not set, using default value');
 }
 
 // Create Supabase client for public operations
@@ -171,15 +172,15 @@ export async function testConnection() {
       .limit(1);
 
     if (error) {
-      console.error('Supabase connection error:', error);
+      log.error('Supabase connection error', { error: error.message });
       return { connected: false, error: error.message };
     }
 
-    console.log('✅ Successfully connected to Supabase database');
-    console.log(`📍 Project: oneiggrfzagqjbkdinin`);
+    log.info('Successfully connected to Supabase database');
+    log.info('Project: oneiggrfzagqjbkdinin');
     return { connected: true, projectRef: 'oneiggrfzagqjbkdinin' };
   } catch (err) {
-    console.error('Connection test failed:', err);
+    log.error('Connection test failed', { error: err.message });
     return { connected: false, error: err.message };
   }
 }

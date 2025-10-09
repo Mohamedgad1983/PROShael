@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { log } from '../utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -100,7 +101,7 @@ export const uploadToSupabase = async (file, userId, category) => {
       type: file.mimetype
     };
   } catch (error) {
-    console.error('Supabase upload error:', error);
+    log.error('Supabase upload error', { error: error.message });
     throw error;
   }
 };
@@ -115,7 +116,7 @@ export const deleteFromSupabase = async (filePath) => {
     if (error) throw error;
     return true;
   } catch (error) {
-    console.error('Supabase delete error:', error);
+    log.error('Supabase delete error', { error: error.message });
     throw error;
   }
 };
@@ -130,7 +131,7 @@ export const getSignedUrl = async (filePath, expiresIn = 3600) => {
     if (error) throw error;
     return data.signedUrl;
   } catch (error) {
-    console.error('Error generating signed URL:', error);
+    log.error('Error generating signed URL', { error: error.message });
     throw error;
   }
 };

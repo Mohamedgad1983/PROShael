@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
+import { log } from '../utils/logger.js';
 
 dotenv.config();
 
@@ -8,10 +9,10 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || 'eyJhbGciOiJIUzI1
 
 // Log warning if using defaults
 if (!process.env.SUPABASE_URL) {
-  console.warn('⚠️ SUPABASE_URL not set, using default');
+  log.warn('SUPABASE_URL not set, using default');
 }
 if (!process.env.SUPABASE_SERVICE_KEY) {
-  console.warn('⚠️ SUPABASE_SERVICE_KEY not set, using default');
+  log.warn('SUPABASE_SERVICE_KEY not set, using default');
 }
 
 export const supabase = createClient(supabaseUrl, supabaseServiceKey, {
@@ -29,15 +30,15 @@ export const testConnection = async () => {
       .limit(1);
 
     if (error) {
-      console.log('Database connection test - creating tables if needed...');
+      log.info('Database connection test - creating tables if needed...');
       await createTablesIfNotExist();
       return true;
     }
 
-    console.log('✅ Database connected successfully');
+    log.info('Database connected successfully');
     return true;
   } catch (error) {
-    console.error('❌ Database connection failed:', error);
+    log.error('Database connection failed', { error: error.message });
     return false;
   }
 };
@@ -212,9 +213,9 @@ async function createTablesIfNotExist() {
       `
     }).single();
 
-    console.log('✅ Tables created or verified successfully');
+    log.info('Tables created or verified successfully');
   } catch (error) {
-    console.log('Note: Tables might already exist or will be created manually');
+    log.info('Note: Tables might already exist or will be created manually');
   }
 }
 
