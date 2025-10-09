@@ -60,7 +60,7 @@ export class PaymentProcessingService {
         `)
         .single();
 
-      if (error) throw error;
+      if (error) {throw error;}
 
       return {
         success: true,
@@ -97,7 +97,7 @@ export class PaymentProcessingService {
         .eq('id', paymentId)
         .single();
 
-      if (fetchError) throw new Error('المدفوع غير موجود');
+      if (fetchError) {throw new Error('المدفوع غير موجود');}
 
       if (currentPayment.status === 'paid') {
         throw new Error('المدفوع مدفوع مسبقاً');
@@ -123,7 +123,7 @@ export class PaymentProcessingService {
         `)
         .single();
 
-      if (updateError) throw updateError;
+      if (updateError) {throw updateError;}
 
       // If subscription payment, update member's subscription
       if (currentPayment.category === 'subscription') {
@@ -177,7 +177,7 @@ export class PaymentProcessingService {
         `)
         .single();
 
-      if (error) throw error;
+      if (error) {throw error;}
 
       return {
         success: true,
@@ -291,7 +291,7 @@ export class PaymentProcessingService {
         .in('status', ['pending', 'paid'])
         .gte('created_at', timeThreshold.toISOString());
 
-      if (error) throw error;
+      if (error) {throw error;}
 
       return existingPayments && existingPayments.length > 0;
 
@@ -327,7 +327,7 @@ export class PaymentProcessingService {
    * @returns {string} Sanitized description
    */
   static sanitizeDescription(description) {
-    if (!description) return '';
+    if (!description) {return '';}
 
     // Remove HTML tags and script content
     let sanitized = description.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
@@ -412,7 +412,7 @@ export class PaymentProcessingService {
         .eq('id', paymentId)
         .single();
 
-      if (error) throw error;
+      if (error) {throw error;}
 
       return {
         success: true,

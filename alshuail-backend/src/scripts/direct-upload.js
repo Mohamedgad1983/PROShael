@@ -68,11 +68,11 @@ async function uploadRealData() {
 
     let totalMembers = 0;
     let membersWithPayments = 0;
-    let totalPaymentsToAdd = [];
+    const totalPaymentsToAdd = [];
 
     for (let i = 1; i < rawData.length && i <= 50; i++) { // Process first 50 members
       const row = rawData[i];
-      if (!row || row.length === 0) continue;
+      if (!row || row.length === 0) {continue;}
 
       totalMembers++;
 
@@ -182,7 +182,7 @@ async function uploadRealData() {
     }
 
     // STEP 5: Show final statistics
-    log.info('\n' + '='.repeat(50));
+    log.info(`\n${  '='.repeat(50)}`);
     log.info('📊 FINAL RESULTS FROM YOUR EXCEL DATA');
     log.info('='.repeat(50));
     log.info(`Total members processed: ${totalMembers}`);

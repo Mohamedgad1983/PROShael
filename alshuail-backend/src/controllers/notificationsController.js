@@ -57,7 +57,7 @@ export const getAllNotifications = async (req, res) => {
 
     const { data: notifications, error, count } = await query;
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     // Calculate summary statistics
     const unreadCount = notifications?.filter(n => !n.is_read).length || 0;
@@ -227,7 +227,7 @@ export const createNotification = async (req, res) => {
         `)
         .single();
 
-      if (error) throw error;
+      if (error) {throw error;}
       notifications.push(newNotification);
 
     } else {
@@ -250,7 +250,7 @@ export const createNotification = async (req, res) => {
 
       const { data: targetMembers, error: membersError } = await memberQuery;
 
-      if (membersError) throw membersError;
+      if (membersError) {throw membersError;}
 
       if (!targetMembers || targetMembers.length === 0) {
         return res.status(400).json({
@@ -278,7 +278,7 @@ export const createNotification = async (req, res) => {
           *
         `);
 
-      if (error) throw error;
+      if (error) {throw error;}
       notifications = newNotifications || [];
     }
 
@@ -346,7 +346,7 @@ export const markAsRead = async (req, res) => {
       `)
       .single();
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     res.json({
       success: true,
@@ -397,7 +397,7 @@ export const bulkMarkAsRead = async (req, res) => {
         *
       `);
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     res.json({
       success: true,
@@ -442,7 +442,7 @@ export const deleteNotification = async (req, res) => {
       .delete()
       .eq('id', id);
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     res.json({
       success: true,
@@ -509,7 +509,7 @@ export const getMemberNotifications = async (req, res) => {
 
     const { data: notifications, error, count } = await query;
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     // Calculate member-specific summary
     const unreadCount = notifications?.filter(n => !n.is_read).length || 0;
@@ -584,7 +584,7 @@ export const getNotificationStats = async (req, res) => {
 
     const { data: notifications, error } = await query;
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     // Calculate statistics
     const totalNotifications = notifications?.length || 0;

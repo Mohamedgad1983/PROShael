@@ -72,10 +72,10 @@ async function createEmailAdmin() {
     log.info('====================================');
     log.info('🔐 ADMIN LOGIN CREDENTIALS');
     log.info('====================================');
-    log.info('📧 Email: ' + adminData.email);
-    log.info('🔑 Password: ' + adminData.password);
-    log.info('👤 Name: ' + adminData.fullName);
-    log.info('⚡ Role: ' + adminData.role);
+    log.info(`📧 Email: ${  adminData.email}`);
+    log.info(`🔑 Password: ${  adminData.password}`);
+    log.info(`👤 Name: ${  adminData.fullName}`);
+    log.info(`⚡ Role: ${  adminData.role}`);
     log.info('====================================');
     log.info('\n🌐 Login at: http://localhost:3002');
     log.info('====================================\n');

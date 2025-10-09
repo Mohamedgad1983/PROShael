@@ -136,7 +136,7 @@ async function createSubscriptionsAndUpload() {
 
     for (let i = 1; i < rawData.length && i <= 100; i++) { // Process first 100 members
       const row = rawData[i];
-      if (!row || row.length === 0) continue;
+      if (!row || row.length === 0) {continue;}
 
       const memberName = row[1];
       const phone = row[3] || `050${String(1000000 + i).padStart(7, '0')}`;

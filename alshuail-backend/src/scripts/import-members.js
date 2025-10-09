@@ -155,7 +155,7 @@ const importMembers = async () => {
     }
 
     // Print summary
-    log.info('\n' + '='.repeat(50));
+    log.info(`\n${  '='.repeat(50)}`);
     log.info('📊 IMPORT SUMMARY');
     log.info('='.repeat(50));
     log.info(`✅ Successfully imported: ${successCount} members`);

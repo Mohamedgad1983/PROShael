@@ -280,13 +280,13 @@ async function authenticateMember(phone, password) {
   const cleanPhone = normalizePhone(phone);
 
   // Handle both formats: local (05xxx) and international (+9665xxx)
-  let phoneVariants = [cleanPhone];
+  const phoneVariants = [cleanPhone];
   if (cleanPhone.startsWith('0')) {
     // Convert local format to international
-    phoneVariants.push('+966' + cleanPhone.substring(1));
+    phoneVariants.push(`+966${  cleanPhone.substring(1)}`);
   } else if (cleanPhone.startsWith('+966')) {
     // Also try local format
-    phoneVariants.push('0' + cleanPhone.substring(4));
+    phoneVariants.push(`0${  cleanPhone.substring(4)}`);
   }
 
   // Try to find member with any phone format

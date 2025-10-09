@@ -230,7 +230,7 @@ export const createDynamicRateLimitMiddleware = (baseType = 'general') => {
     const userRole = req.user?.role;
 
     // Adjust limits based on user role
-    let limitType = baseType;
+    const limitType = baseType;
     let multiplier = 1;
 
     switch (userRole) {

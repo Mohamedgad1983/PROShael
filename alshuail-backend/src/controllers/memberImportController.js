@@ -21,7 +21,7 @@ function generateRegistrationToken() {
 
 // Helper function to validate and clean Arabic text
 function cleanArabicText(text) {
-  if (!text) return '';
+  if (!text) {return '';}
   return text.toString().trim()
     .replace(/[\u200F\u200E\u202A\u202B\u202C\u202D\u202E]/g, '') // Remove RTL/LTR marks
     .replace(/\s+/g, ' '); // Normalize whitespace
@@ -29,7 +29,7 @@ function cleanArabicText(text) {
 
 // Helper function to validate phone number
 function validatePhoneNumber(phone) {
-  if (!phone) return null;
+  if (!phone) {return null;}
   const cleanPhone = phone.toString().replace(/\D/g, '');
 
   // Saudi phone number validation (starts with 05 and 10 digits total)
@@ -44,7 +44,7 @@ function validatePhoneNumber(phone) {
 
   // Try to fix common formats
   if (cleanPhone.startsWith('5') && cleanPhone.length === 9) {
-    return '0' + cleanPhone;
+    return `0${  cleanPhone}`;
   }
 
   return null;
@@ -60,7 +60,7 @@ async function getNextMembershipNumber() {
       .order('membership_number', { ascending: false })
       .limit(1);
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     if (lastMember && lastMember.length > 0) {
       const lastNumber = parseInt(lastMember[0].membership_number);
@@ -131,7 +131,7 @@ export const importMembersFromExcel = async (req, res) => {
         status: 'processing'
       });
 
-    if (batchError) throw batchError;
+    if (batchError) {throw batchError;}
 
     let successfulImports = 0;
     let failedImports = 0;
@@ -216,7 +216,7 @@ export const importMembersFromExcel = async (req, res) => {
           .select()
           .single();
 
-        if (memberError) throw memberError;
+        if (memberError) {throw memberError;}
 
         // Generate registration token
         let registrationToken;
@@ -248,7 +248,7 @@ export const importMembersFromExcel = async (req, res) => {
             is_used: false
           });
 
-        if (tokenError) throw tokenError;
+        if (tokenError) {throw tokenError;}
 
         importedMembers.push({
           ...newMember,
@@ -332,7 +332,7 @@ export const getImportHistory = async (req, res) => {
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     const { count } = await supabase
       .from('excel_import_batches')
@@ -367,7 +367,7 @@ export const getImportBatchDetails = async (req, res) => {
       .eq('id', batchId)
       .single();
 
-    if (batchError) throw batchError;
+    if (batchError) {throw batchError;}
 
     if (!batch) {
       return res.status(404).json({
@@ -383,7 +383,7 @@ export const getImportBatchDetails = async (req, res) => {
       .eq('excel_import_batch', batchId)
       .order('created_at', { ascending: false });
 
-    if (membersError) throw membersError;
+    if (membersError) {throw membersError;}
 
     res.json({
       success: true,

@@ -1,17 +1,7 @@
 // VERY FIRST LINES of server.js
-// Updated: 2025-10-03 - Diya Dashboard System included
+// Updated: 2025-10-09 - Winston logging migration completed
 import dotenv from 'dotenv';
 dotenv.config();
-
-// Debug log
-console.log('Environment Check on Start:', {
-  SUPABASE_URL: process.env.SUPABASE_URL ? '✓ Loaded' : '✗ Missing',
-  SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY ? '✓ Loaded' : '✗ Missing',
-  SUPABASE_SERVICE_KEY: process.env.SUPABASE_SERVICE_KEY ? '✓ Loaded' : '✗ Missing',
-  JWT_SECRET: process.env.JWT_SECRET ? '✓ Loaded' : '✗ Missing',
-  NODE_ENV: process.env.NODE_ENV,
-  RENDER: process.env.RENDER
-});
 
 import express from 'express';
 import cors from 'cors';
@@ -46,11 +36,27 @@ import familyTreeRoutes from './src/routes/familyTree.js';
 import diyaDashboardRoutes from './src/routes/diyaDashboard.js';
 import memberRoutes from "./src/routes/member.js";
 import receiptsRoutes from "./src/routes/receipts.js";
+import { log } from './src/utils/logger.js';
 
-// Check JWT_SECRET but don't throw error - just warn
+// Environment check with Winston logging
+log.info('Environment Check on Start:', {
+  SUPABASE_URL: process.env.SUPABASE_URL ? '✓ Loaded' : '✗ Missing',
+  SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY ? '✓ Loaded' : '✗ Missing',
+  SUPABASE_SERVICE_KEY: process.env.SUPABASE_SERVICE_KEY ? '✓ Loaded' : '✗ Missing',
+  JWT_SECRET: process.env.JWT_SECRET ? '✓ Loaded' : '✗ Missing',
+  NODE_ENV: process.env.NODE_ENV,
+  RENDER: process.env.RENDER
+});
+
+// Check JWT_SECRET with proper production handling
 if (!process.env.JWT_SECRET) {
-  console.warn('⚠️  WARNING: JWT_SECRET not set. Using fallback secret for development.');
-  process.env.JWT_SECRET = process.env.JWT_SECRET || 'alshuail-dev-secret-2024-very-long-and-secure';
+  if (process.env.NODE_ENV === 'production') {
+    log.error('FATAL: JWT_SECRET not configured in production environment');
+    process.exit(1);
+  } else {
+    log.warn('⚠️  WARNING: JWT_SECRET not set. Using fallback secret for development only.');
+    process.env.JWT_SECRET = 'alshuail-dev-secret-2024-very-long-and-secure';
+  }
 }
 
 const app = express();
@@ -67,11 +73,11 @@ const newsUploadsDir = path.join(uploadsDir, 'news');
 
 if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
-    console.log('📁 Created uploads directory');
+    log.info('📁 Created uploads directory');
 }
 if (!fs.existsSync(newsUploadsDir)) {
     fs.mkdirSync(newsUploadsDir, { recursive: true });
-    console.log('📁 Created news uploads directory');
+    log.info('📁 Created news uploads directory');
 }
 
 // Serve uploaded files as static
@@ -95,7 +101,7 @@ const corsOptions = {
 
     // Log origin for debugging
     if (process.env.NODE_ENV === 'production') {
-      console.log(`[CORS] Request from origin: ${origin || 'no-origin'}`);
+      log.debug(`[CORS] Request from origin: ${origin || 'no-origin'}`);
     }
 
     // Allow requests with no origin (Postman, mobile apps, server-to-server)
@@ -108,10 +114,10 @@ const corsOptions = {
       if (allowedOrigins.includes(origin) ||
           origin.includes('alshuail-admin.pages.dev') ||
           origin === process.env.FRONTEND_URL) {
-        console.log(`[CORS] ✓ Allowed origin: ${origin}`);
+        log.info(`[CORS] ✓ Allowed origin: ${origin}`);
         return callback(null, true);
       } else {
-        console.log(`[CORS] ✗ Blocked origin: ${origin}`);
+        log.warn(`[CORS] ✗ Blocked origin: ${origin}`);
         // Still allow for now to prevent blocking
         return callback(null, true);
       }
@@ -166,7 +172,7 @@ app.use(express.json({
 // Enhanced error handling for JSON parsing
 app.use((err, req, res, next) => {
   if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
-    console.error('[ERROR] Bad JSON received:', {
+    log.error('[ERROR] Bad JSON received:', {
       error: err.message,
       body: err.body,
       path: req.path,
@@ -245,7 +251,7 @@ app.get('/api/health', async (req, res) => {
     const { testConnection } = await import('./src/config/database.js');
     health.checks.database = await testConnection();
   } catch (error) {
-    console.error('Health check DB error:', error.message);
+    log.error('Health check DB error:', { message: error.message });
     health.checks.database = false;
   }
 
@@ -301,7 +307,7 @@ app.get('/api/debug/env', (req, res) => {
 app.use((err, req, res, next) => {
   const errorId = Date.now().toString(36);
 
-  console.error(`[ERROR ${errorId}]`, {
+  log.error(`[ERROR ${errorId}]`, {
     timestamp: new Date().toISOString(),
     error: err.message,
     stack: err.stack,
@@ -343,49 +349,49 @@ app.use((err, req, res, next) => {
 });
 
 const startServer = async () => {
-  console.log('🔄 Starting Al-Shuail Backend Server v2.0 with Family Tree...');
-  console.log('═══════════════════════════════════════');
+  log.info('🔄 Starting Al-Shuail Backend Server v2.0 with Family Tree...');
+  log.info('═══════════════════════════════════════');
 
   // Test database connection
-  console.log('🔍 Testing database connection...');
+  log.info('🔍 Testing database connection...');
   const dbConnected = await testConnection();
 
   if (!dbConnected) {
-    console.error('⚠️  WARNING: Database connection could not be verified');
-    console.error('   The server will start but database operations may fail');
+    log.error('⚠️  WARNING: Database connection could not be verified');
+    log.error('   The server will start but database operations may fail');
   } else {
-    console.log('✅ Database connection successful');
+    log.info('✅ Database connection successful');
   }
 
   // Verify environment
-  console.log('\n📋 Environment Configuration:');
-  console.log(`   NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`   Platform: ${process.env.RENDER ? 'Render.com' : 'Local'}`);
-  console.log(`   JWT Secret: ${process.env.JWT_SECRET ? '✓ Configured' : '⚠️  Using fallback'}`);
-  console.log(`   Supabase: ${process.env.SUPABASE_URL ? '✓ Configured' : '✗ Missing'}`);
-  console.log(`   Frontend URL: ${process.env.FRONTEND_URL || 'Not set'}`);
+  log.info('\n📋 Environment Configuration:');
+  log.info(`   NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
+  log.info(`   Platform: ${process.env.RENDER ? 'Render.com' : 'Local'}`);
+  log.info(`   JWT Secret: ${process.env.JWT_SECRET ? '✓ Configured' : '⚠️  Using fallback'}`);
+  log.info(`   Supabase: ${process.env.SUPABASE_URL ? '✓ Configured' : '✗ Missing'}`);
+  log.info(`   Frontend URL: ${process.env.FRONTEND_URL || 'Not set'}`);
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log('\n🚀 Server Started Successfully!');
-    console.log('═══════════════════════════════════════');
-    console.log(`📡 API Server: http://localhost:${PORT}`);
-    console.log(`💚 Health Check: http://localhost:${PORT}/api/health`);
-    console.log(`🧪 Test Endpoint: http://localhost:${PORT}/api/test`);
-    console.log(`📊 Dashboard: http://localhost:3002`);
-    console.log('\n📌 Production URLs:');
-    console.log(`   API: https://proshael.onrender.com`);
-    console.log(`   Admin: https://alshuail-admin.pages.dev`);
-    console.log('═══════════════════════════════════════\n');
+    log.info('\n🚀 Server Started Successfully!');
+    log.info('═══════════════════════════════════════');
+    log.info(`📡 API Server: http://localhost:${PORT}`);
+    log.info(`💚 Health Check: http://localhost:${PORT}/api/health`);
+    log.info(`🧪 Test Endpoint: http://localhost:${PORT}/api/test`);
+    log.info(`📊 Dashboard: http://localhost:3002`);
+    log.info('\n📌 Production URLs:');
+    log.info(`   API: https://proshael.onrender.com`);
+    log.info(`   Admin: https://alshuail-admin.pages.dev`);
+    log.info('═══════════════════════════════════════\n');
   });
 
   // Graceful shutdown handling
   process.on('SIGTERM', () => {
-    console.log('\n⏹️  SIGTERM received, shutting down gracefully...');
+    log.info('\n⏹️  SIGTERM received, shutting down gracefully...');
     process.exit(0);
   });
 
   process.on('SIGINT', () => {
-    console.log('\n⏹️  SIGINT received, shutting down gracefully...');
+    log.info('\n⏹️  SIGINT received, shutting down gracefully...');
     process.exit(0);
   });
 };

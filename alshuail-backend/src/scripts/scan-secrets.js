@@ -234,7 +234,7 @@ class PreCommitScanner {
     if (secret.length <= 30) {
       return secret;
     }
-    return secret.substring(0, 15) + '...' + secret.substring(secret.length - 15);
+    return `${secret.substring(0, 15)  }...${  secret.substring(secret.length - 15)}`;
   }
 
   reportAndDecide() {

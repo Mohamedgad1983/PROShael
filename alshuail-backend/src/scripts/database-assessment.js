@@ -130,9 +130,9 @@ async function assessDatabase() {
         log.info(`⚠️ Found ${membersWithIssues.length} members with missing required fields`);
         membersWithIssues.slice(0, 5).forEach(member => {
           log.info(`   - ID: ${member.id}`);
-          if (!member.full_name) log.info('     Missing: full_name');
-          if (!member.phone) log.info('     Missing: phone');
-          if (!member.membership_number) log.info('     Missing: membership_number');
+          if (!member.full_name) {log.info('     Missing: full_name');}
+          if (!member.phone) {log.info('     Missing: phone');}
+          if (!member.membership_number) {log.info('     Missing: membership_number');}
         });
       } else {
         log.info('✅ All members have required fields');

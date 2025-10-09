@@ -12,7 +12,7 @@ export const getSubscriptionPlans = async (req, res) => {
       .eq('is_active', true)
       .order('base_amount', { ascending: true });
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     res.json({
       success: true,
@@ -128,7 +128,7 @@ export const getPaymentHistory = async (req, res) => {
       .order('payment_date', { ascending: false })
       .range(offset, offset + limit - 1);
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     res.json({
       success: true,
@@ -180,7 +180,7 @@ export const getAllSubscriptions = async (req, res) => {
       .order('next_payment_due', { ascending: true })
       .range(offset, offset + limit - 1);
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     // Get quick stats
     const { data: stats } = await supabase
@@ -221,7 +221,7 @@ export const getSubscriptionStats = async (req, res) => {
       .from('v_subscription_overview')
       .select('*');
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     const total_members = subscriptions.length;
     const active = subscriptions.filter(s => s.status === 'active').length;
@@ -269,7 +269,7 @@ export const getOverdueMembers = async (req, res) => {
       .eq('status', 'overdue')
       .order('next_payment_due', { ascending: true });
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     const total_due = overdueMembers.reduce((sum, member) =>
       sum + (member.amount_due || 50), 0);
@@ -365,7 +365,7 @@ export const recordPayment = async (req, res) => {
       .select()
       .single();
 
-    if (paymentError) throw paymentError;
+    if (paymentError) {throw paymentError;}
 
     // Calculate new values
     const new_balance = (subscription.current_balance || 0) + amount;
@@ -387,7 +387,7 @@ export const recordPayment = async (req, res) => {
       })
       .eq('id', subscription.id);
 
-    if (updateError) throw updateError;
+    if (updateError) {throw updateError;}
 
     // Update member balance
     const { error: memberUpdateError } = await supabase
@@ -397,7 +397,7 @@ export const recordPayment = async (req, res) => {
       })
       .eq('id', member_id);
 
-    if (memberUpdateError) throw memberUpdateError;
+    if (memberUpdateError) {throw memberUpdateError;}
 
     // Create notification
     if (member?.user_id) {
@@ -491,7 +491,7 @@ export const sendPaymentReminder = async (req, res) => {
               read: false
             });
 
-          if (error) throw error;
+          if (error) {throw error;}
 
           sent++;
           details.push({

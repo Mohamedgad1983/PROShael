@@ -60,7 +60,7 @@ class ArabicPDFExporter {
    * Format Arabic text for proper display
    */
   formatArabicText(text) {
-    if (!text) return '';
+    if (!text) {return '';}
 
     // Handle mixed Arabic and English text
     const segments = this.segmentText(text);
@@ -234,7 +234,7 @@ class ArabicPDFExporter {
 
     // Label (right-aligned)
     doc.font(this.fonts.english.bold)
-       .text(this.formatArabicText(label + ':'), valueX, doc.y, {
+       .text(this.formatArabicText(`${label  }:`), valueX, doc.y, {
          width: labelWidth,
          align: 'right'
        });
@@ -357,7 +357,7 @@ class ArabicPDFExporter {
    * Format currency with Arabic formatting
    */
   formatCurrency(amount) {
-    if (!amount && amount !== 0) return 'غير محدد';
+    if (!amount && amount !== 0) {return 'غير محدد';}
 
     const formatted = new Intl.NumberFormat('ar-SA', {
       style: 'currency',

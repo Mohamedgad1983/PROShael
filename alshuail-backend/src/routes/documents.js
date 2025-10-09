@@ -64,7 +64,7 @@ router.post('/upload', authenticateToken, upload.single('document'), async (req,
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     res.json({
       success: true,
@@ -112,7 +112,7 @@ router.get('/member/:memberId?', authenticateToken, async (req, res) => {
 
     const { data: documents, error, count } = await query;
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     // Add category translations and signed URLs
     const documentsWithDetails = await Promise.all((documents || []).map(async (doc) => {
@@ -219,8 +219,8 @@ router.put('/:documentId', authenticateToken, async (req, res) => {
     }
 
     const updateData = {};
-    if (title) updateData.title = title;
-    if (description !== undefined) updateData.description = description;
+    if (title) {updateData.title = title;}
+    if (description !== undefined) {updateData.description = description;}
     if (category && Object.values(DOCUMENT_CATEGORIES).includes(category)) {
       updateData.category = category;
     }
@@ -232,7 +232,7 @@ router.put('/:documentId', authenticateToken, async (req, res) => {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     res.json({
       success: true,
@@ -290,7 +290,7 @@ router.delete('/:documentId', authenticateToken, async (req, res) => {
       .update({ status: 'deleted', deleted_at: new Date().toISOString() })
       .eq('id', documentId);
 
-    if (updateError) throw updateError;
+    if (updateError) {throw updateError;}
 
     // Delete from storage
     await deleteFromSupabase(document.file_path);
@@ -335,7 +335,7 @@ router.get('/stats/overview', authenticateToken, async (req, res) => {
       .eq('member_id', memberId)
       .eq('status', 'active');
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     // Calculate statistics
     const categoryCount = {};

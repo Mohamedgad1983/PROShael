@@ -123,7 +123,7 @@ export const getNotificationSummary = async (req, res) => {
       .select('type, is_read')
       .eq('user_id', memberId);
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     // Count by category
     const summary = {
@@ -138,7 +138,7 @@ export const getNotificationSummary = async (req, res) => {
       const category = getCategoryFromType(notif.type);
       if (summary[category]) {
         summary[category].total++;
-        if (!notif.is_read) summary[category].unread++;
+        if (!notif.is_read) {summary[category].unread++;}
       }
     });
 
@@ -228,7 +228,7 @@ export const markAllNotificationsAsRead = async (req, res) => {
       .eq('user_id', memberId)
       .eq('is_read', false); // Only update unread ones
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     res.json({
       success: true,
@@ -260,7 +260,7 @@ export const deleteNotification = async (req, res) => {
       .eq('id', id)
       .eq('user_id', memberId);
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     res.json({
       success: true,
@@ -348,10 +348,10 @@ function formatTimeAgo(timestamp) {
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
 
-  if (diffMins < 1) return 'الآن';
-  if (diffMins < 60) return `منذ ${diffMins} دقيقة`;
-  if (diffHours < 24) return `منذ ${diffHours} ساعة`;
-  if (diffDays < 7) return `منذ ${diffDays} يوم`;
+  if (diffMins < 1) {return 'الآن';}
+  if (diffMins < 60) {return `منذ ${diffMins} دقيقة`;}
+  if (diffHours < 24) {return `منذ ${diffHours} ساعة`;}
+  if (diffDays < 7) {return `منذ ${diffDays} يوم`;}
 
   // Format as date
   return notifDate.toLocaleDateString('ar-SA', {

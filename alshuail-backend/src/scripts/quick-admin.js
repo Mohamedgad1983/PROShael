@@ -71,10 +71,10 @@ async function createQuickAdmin() {
     log.info('====================================');
     log.info('🔐 SUPER ADMIN LOGIN CREDENTIALS');
     log.info('====================================');
-    log.info('📱 Phone: ' + adminData.phone);
-    log.info('🔑 Password: ' + adminData.password);
-    log.info('👤 Name: ' + adminData.fullName);
-    log.info('⚡ Role: ' + adminData.role);
+    log.info(`📱 Phone: ${  adminData.phone}`);
+    log.info(`🔑 Password: ${  adminData.password}`);
+    log.info(`👤 Name: ${  adminData.fullName}`);
+    log.info(`⚡ Role: ${  adminData.role}`);
     log.info('====================================');
     log.info('\n🌐 Login at: http://localhost:3002');
     log.info('====================================\n');

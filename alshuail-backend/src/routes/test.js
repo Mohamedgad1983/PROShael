@@ -12,7 +12,7 @@ router.get('/occasions', async (req, res) => {
     const limit = 50;
     const offset = 0;
 
-    let query = supabase
+    const query = supabase
       .from('events')
       .select('*')
       .order('start_date', { ascending: true })
@@ -65,7 +65,7 @@ router.get('/initiatives', async (req, res) => {
       .order('created_at', { ascending: false })
       .range(0, 49);
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     res.json({
       success: true,
@@ -92,7 +92,7 @@ router.get('/notifications', async (req, res) => {
       .order('created_at', { ascending: false })
       .range(0, 49);
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     res.json({
       success: true,

@@ -31,7 +31,7 @@ export const searchMemberStatement = async (req, res) => {
         .ilike('phone', `%${query}%`)
         .limit(10);
 
-      if (error) throw error;
+      if (error) {throw error;}
       members = data;
 
     } else {
@@ -42,7 +42,7 @@ export const searchMemberStatement = async (req, res) => {
         .ilike('full_name', `%${query}%`)
         .limit(10);
 
-      if (error) throw error;
+      if (error) {throw error;}
       members = data;
     }
 
@@ -73,7 +73,7 @@ export const searchMemberStatement = async (req, res) => {
         if (payments) {
           payments.forEach(payment => {
             const year = new Date(payment.payment_date).getFullYear();
-            if (paymentsByYear.hasOwnProperty(year)) {
+            if (Object.hasOwn(paymentsByYear, year)) {
               paymentsByYear[year] += parseFloat(payment.amount);
             }
           });
@@ -137,7 +137,7 @@ export const getMemberStatement = async (req, res) => {
       .eq('status', 'completed')
       .order('payment_date', { ascending: false });
 
-    if (paymentError) throw paymentError;
+    if (paymentError) {throw paymentError;}
 
     // Organize by year
     const paymentsByYear = {
@@ -152,7 +152,7 @@ export const getMemberStatement = async (req, res) => {
 
     payments.forEach(payment => {
       const year = new Date(payment.payment_date).getFullYear();
-      if (paymentsByYear.hasOwnProperty(year)) {
+      if (Object.hasOwn(paymentsByYear, year)) {
         paymentsByYear[year] += parseFloat(payment.amount);
       }
 
@@ -204,7 +204,7 @@ export const getAllMembersWithBalances = async (req, res) => {
       .select('*')
       .order('full_name');
 
-    if (memberError) throw memberError;
+    if (memberError) {throw memberError;}
 
     // Get all payments
     const { data: payments, error: paymentError } = await supabaseService.client
@@ -212,7 +212,7 @@ export const getAllMembersWithBalances = async (req, res) => {
       .select('payer_id, amount')
       .eq('status', 'completed');
 
-    if (paymentError) throw paymentError;
+    if (paymentError) {throw paymentError;}
 
     // Calculate balances
     const balanceMap = {};

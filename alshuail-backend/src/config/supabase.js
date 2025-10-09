@@ -76,7 +76,7 @@ export const dbHelpers = {
       .select(options.select || '*')
       .order(options.orderBy || 'created_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) {throw error;}
     return data;
   },
 
@@ -88,7 +88,7 @@ export const dbHelpers = {
       .eq('id', id)
       .single();
 
-    if (error) throw error;
+    if (error) {throw error;}
     return data;
   },
 
@@ -100,7 +100,7 @@ export const dbHelpers = {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {throw error;}
     return created;
   },
 
@@ -113,7 +113,7 @@ export const dbHelpers = {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {throw error;}
     return data;
   },
 
@@ -124,7 +124,7 @@ export const dbHelpers = {
       .delete()
       .eq('id', id);
 
-    if (error) throw error;
+    if (error) {throw error;}
     return { success: true };
   },
 
@@ -158,7 +158,7 @@ export const dbHelpers = {
 
     const { data, error, count } = await query;
 
-    if (error) throw error;
+    if (error) {throw error;}
     return { data, count };
   }
 };

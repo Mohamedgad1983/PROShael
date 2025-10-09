@@ -42,7 +42,7 @@ export const dbHelpers = {
         `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {throw error;}
 
       // Calculate balance for each member
       return members.map(member => {
@@ -73,7 +73,7 @@ export const dbHelpers = {
         .eq('id', memberId)
         .single();
 
-      if (error) throw error;
+      if (error) {throw error;}
       return data;
     } catch (error) {
       log.error('Error fetching member:', { error: error.message });
@@ -95,7 +95,7 @@ export const dbHelpers = {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {throw error;}
       return data;
     } catch (error) {
       log.error('Error updating member status:', { error: error.message });
@@ -119,7 +119,7 @@ export const dbHelpers = {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {throw error;}
       return data;
     } catch (error) {
       log.error('Error logging audit action:', { error: error.message });
@@ -144,7 +144,7 @@ export const dbHelpers = {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {throw error;}
       return data;
     } catch (error) {
       log.error('Error creating notification:', { error: error.message });
@@ -167,7 +167,7 @@ export const dbHelpers = {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {throw error;}
       return data;
     } catch (error) {
       log.error('Error queuing SMS:', { error: error.message });

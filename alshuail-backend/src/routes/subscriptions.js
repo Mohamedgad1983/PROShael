@@ -12,7 +12,7 @@ router.get('/', requireRole(['super_admin', 'financial_manager']), async (req, r
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     res.json({
       success: true,
@@ -51,7 +51,7 @@ router.post('/', requireRole(['super_admin', 'financial_manager']), async (req, 
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     res.status(201).json({
       success: true,

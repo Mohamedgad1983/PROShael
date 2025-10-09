@@ -70,7 +70,7 @@ export const getAllDiyas = async (req, res) => {
 
     const { data: diyas, error, count } = await query;
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     // Calculate summary statistics
     const totalAmount = diyas?.reduce((sum, diya) => sum + Number(diya.amount), 0) || 0;
@@ -218,7 +218,7 @@ export const createDiya = async (req, res) => {
       `)
       .single();
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     res.status(201).json({
       success: true,
@@ -271,8 +271,8 @@ export const updateDiyaStatus = async (req, res) => {
       updated_at: new Date().toISOString()
     };
 
-    if (payment_method) updateData.payment_method = payment_method;
-    if (notes !== undefined) updateData.notes = notes;
+    if (payment_method) {updateData.payment_method = payment_method;}
+    if (notes !== undefined) {updateData.notes = notes;}
 
     const { data: updatedDiya, error } = await supabase
       .from('payments')
@@ -284,7 +284,7 @@ export const updateDiyaStatus = async (req, res) => {
       `)
       .single();
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     res.json({
       success: true,
@@ -345,11 +345,11 @@ export const updateDiya = async (req, res) => {
     };
 
     // Only update provided fields
-    if (amount !== undefined) updateData.amount = Number(amount);
-    if (title !== undefined) updateData.title = title;
-    if (description !== undefined) updateData.description = description;
-    if (payment_method !== undefined) updateData.payment_method = payment_method;
-    if (notes !== undefined) updateData.notes = notes;
+    if (amount !== undefined) {updateData.amount = Number(amount);}
+    if (title !== undefined) {updateData.title = title;}
+    if (description !== undefined) {updateData.description = description;}
+    if (payment_method !== undefined) {updateData.payment_method = payment_method;}
+    if (notes !== undefined) {updateData.notes = notes;}
 
     const { data: updatedDiya, error } = await supabase
       .from('payments')
@@ -361,7 +361,7 @@ export const updateDiya = async (req, res) => {
       `)
       .single();
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     res.json({
       success: true,
@@ -414,7 +414,7 @@ export const deleteDiya = async (req, res) => {
       .delete()
       .eq('id', id);
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     res.json({
       success: true,
@@ -452,10 +452,11 @@ export const getDiyaStats = async (req, res) => {
         case 'month':
           startDate = new Date(now.getFullYear(), now.getMonth(), 1);
           break;
-        case 'quarter':
+        case 'quarter': {
           const quarter = Math.floor(now.getMonth() / 3);
           startDate = new Date(now.getFullYear(), quarter * 3, 1);
           break;
+        }
         case 'year':
           startDate = new Date(now.getFullYear(), 0, 1);
           break;
@@ -470,7 +471,7 @@ export const getDiyaStats = async (req, res) => {
 
     const { data: diyas, error } = await query;
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     // Calculate statistics
     const totalCases = diyas?.length || 0;
@@ -581,7 +582,7 @@ export const getMemberDiyas = async (req, res) => {
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     // Calculate member summary
     const totalAmount = diyas?.reduce((sum, diya) => sum + Number(diya.amount), 0) || 0;

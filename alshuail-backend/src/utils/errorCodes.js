@@ -1,8 +1,9 @@
 /**
-import { log } from './logger.js';
  * Comprehensive Error Code System
  * Provides specific error codes and messages for better debugging
  */
+
+import { log } from './logger.js';
 
 export const ErrorCodes = {
   // Authentication Errors (1000-1099)

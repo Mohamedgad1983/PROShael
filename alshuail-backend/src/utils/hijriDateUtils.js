@@ -1,9 +1,10 @@
 /**
-import { log } from './logger.js';
  * Hijri Date Management Utilities
  * Handles conversion between Gregorian and Hijri calendars
  * Using JavaScript's native Intl API for accurate conversions
  */
+
+import { log } from './logger.js';
 
 export class HijriDateManager {
   /**
@@ -87,7 +88,7 @@ export class HijriDateManager {
    * @returns {string} Formatted Hijri date
    */
   static formatHijriDisplay(hijriDateString) {
-    if (!hijriDateString) return '';
+    if (!hijriDateString) {return '';}
 
     // Remove extra spaces and format nicely
     return hijriDateString.replace(/\s+/g, ' ').trim();

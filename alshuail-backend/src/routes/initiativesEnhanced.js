@@ -100,7 +100,7 @@ router.post('/', authenticateToken, adminOnly, async (req, res) => {
             .select()
             .single();
 
-        if (error) throw error;
+        if (error) {throw error;}
 
         res.status(201).json({
             message: 'Initiative created successfully',
@@ -128,7 +128,7 @@ router.put('/:id', authenticateToken, adminOnly, async (req, res) => {
             .select()
             .single();
 
-        if (error) throw error;
+        if (error) {throw error;}
 
         res.json({
             message: 'Initiative updated successfully',
@@ -151,7 +151,7 @@ router.delete('/:id', authenticateToken, adminOnly, async (req, res) => {
             .select()
             .single();
 
-        if (error) throw error;
+        if (error) {throw error;}
 
         res.json({
             message: 'Initiative deleted successfully',
@@ -192,7 +192,7 @@ router.patch('/:id/status', authenticateToken, adminOnly, async (req, res) => {
             .select()
             .single();
 
-        if (error) throw error;
+        if (error) {throw error;}
 
         res.json({
             message: `Initiative ${status} successfully`,
@@ -219,7 +219,7 @@ router.get('/admin/all', authenticateToken, adminOnly, async (req, res) => {
 
         const { data, error } = await query;
 
-        if (error) throw error;
+        if (error) {throw error;}
 
         res.json({ initiatives: data });
     } catch (error) {
@@ -239,7 +239,7 @@ router.get('/:id/details', authenticateToken, adminOnly, async (req, res) => {
             .eq('id', id)
             .single();
 
-        if (initError) throw initError;
+        if (initError) {throw initError;}
 
         // Get all donations for this initiative
         const { data: donations, error: donError} = await supabase
@@ -251,7 +251,7 @@ router.get('/:id/details', authenticateToken, adminOnly, async (req, res) => {
             .eq('initiative_id', id)
             .order('created_at', { ascending: false });
 
-        if (donError) throw donError;
+        if (donError) {throw donError;}
 
         // Calculate stats
         const totalDonations = donations.length;
@@ -290,7 +290,7 @@ router.patch('/donations/:donationId/approve', authenticateToken, adminOnly, asy
             .select()
             .single();
 
-        if (error) throw error;
+        if (error) {throw error;}
 
         // Trigger will auto-update initiative current_amount
 
@@ -389,14 +389,14 @@ router.post('/:id/notify-non-contributors', authenticateToken, adminOnly, async 
             .eq('is_active', true)
             .eq('membership_status', 'active');
 
-        if (membersError) throw membersError;
+        if (membersError) {throw membersError;}
 
         const { data: donations, error: donError } = await supabase
             .from('initiative_donations')
             .select('donor_member_id')
             .eq('initiative_id', id);
 
-        if (donError) throw donError;
+        if (donError) {throw donError;}
 
         const donorIds = new Set(donations.map(d => d.donor_member_id));
         const nonContributors = allMembers.filter(member => !donorIds.has(member.id));
@@ -566,7 +566,7 @@ router.get('/active', authenticateToken, async (req, res) => {
             .eq('status', 'active')
             .order('start_date', { ascending: false });
 
-        if (error) throw error;
+        if (error) {throw error;}
 
         // Calculate progress for each
         const initiativesWithProgress = data.map(init => ({
@@ -590,7 +590,7 @@ router.get('/previous', authenticateToken, async (req, res) => {
             .order('end_date', { ascending: false })
             .limit(50);
 
-        if (error) throw error;
+        if (error) {throw error;}
 
         res.json({ initiatives: data });
     } catch (error) {
@@ -622,7 +622,7 @@ router.post('/:id/contribute', authenticateToken, async (req, res) => {
             .eq('id', id)
             .single();
 
-        if (initError) throw initError;
+        if (initError) {throw initError;}
 
         // Validation
         if (initiative.status !== 'active') {
@@ -657,7 +657,7 @@ router.post('/:id/contribute', authenticateToken, async (req, res) => {
             .select()
             .single();
 
-        if (donError) throw donError;
+        if (donError) {throw donError;}
 
         res.status(201).json({
             message: 'Contribution submitted successfully. Pending approval.',
@@ -691,7 +691,7 @@ router.get('/my-contributions', authenticateToken, async (req, res) => {
             .eq('donor_member_id', userData.member_id)
             .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (error) {throw error;}
 
         res.json({ contributions: data });
     } catch (error) {

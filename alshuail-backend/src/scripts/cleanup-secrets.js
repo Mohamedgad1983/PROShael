@@ -252,7 +252,7 @@ class SecretScanner {
     if (secret.length <= 20) {
       return secret;
     }
-    return secret.substring(0, 10) + '...' + secret.substring(secret.length - 10);
+    return `${secret.substring(0, 10)  }...${  secret.substring(secret.length - 10)}`;
   }
 
   generateReplacement(type, original) {
@@ -308,7 +308,7 @@ class SecretScanner {
 
     // Print findings by severity
     for (const [severity, findings] of Object.entries(bySeverity)) {
-      if (findings.length === 0) continue;
+      if (findings.length === 0) {continue;}
 
       const colorMap = {
         critical: chalk.red,

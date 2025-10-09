@@ -43,7 +43,7 @@ export const getAllOccasions = async (req, res) => {
 
     const { data: occasions, error, count } = await query;
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     // Calculate additional metrics for each occasion
     const enhancedOccasions = occasions?.map(occasion => ({
@@ -197,7 +197,7 @@ export const createOccasion = async (req, res) => {
       .select('*')
       .single();
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     res.status(201).json({
       success: true,
@@ -306,7 +306,7 @@ export const updateRSVP = async (req, res) => {
         .select('*')
         .single();
 
-      if (updateError) throw updateError;
+      if (updateError) {throw updateError;}
       rsvpResult = updatedRsvp;
 
       // Calculate attendee change
@@ -329,7 +329,7 @@ export const updateRSVP = async (req, res) => {
         .select('*')
         .single();
 
-      if (createError) throw createError;
+      if (createError) {throw createError;}
       rsvpResult = newRsvp;
 
       // Calculate attendee change
@@ -348,7 +348,7 @@ export const updateRSVP = async (req, res) => {
         })
         .eq('id', id);
 
-      if (updateAttendeeError) throw updateAttendeeError;
+      if (updateAttendeeError) {throw updateAttendeeError;}
     }
 
     res.json({
@@ -418,14 +418,14 @@ export const updateOccasion = async (req, res) => {
     };
 
     // Only update provided fields
-    if (title !== undefined) updateData.title = title;
-    if (description !== undefined) updateData.description = description;
-    if (event_date !== undefined) updateData.event_date = event_date;
-    if (event_time !== undefined) updateData.event_time = event_time;
-    if (location !== undefined) updateData.location = location;
-    if (category !== undefined) updateData.category = category;
-    if (max_attendees !== undefined) updateData.max_attendees = max_attendees ? parseInt(max_attendees) : null;
-    if (status !== undefined) updateData.status = status;
+    if (title !== undefined) {updateData.title = title;}
+    if (description !== undefined) {updateData.description = description;}
+    if (event_date !== undefined) {updateData.event_date = event_date;}
+    if (event_time !== undefined) {updateData.event_time = event_time;}
+    if (location !== undefined) {updateData.location = location;}
+    if (category !== undefined) {updateData.category = category;}
+    if (max_attendees !== undefined) {updateData.max_attendees = max_attendees ? parseInt(max_attendees) : null;}
+    if (status !== undefined) {updateData.status = status;}
 
     const { data: updatedOccasion, error } = await supabase
       .from('events')
@@ -434,7 +434,7 @@ export const updateOccasion = async (req, res) => {
       .select('*')
       .single();
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     res.json({
       success: true,
@@ -479,7 +479,7 @@ export const deleteOccasion = async (req, res) => {
       .delete()
       .eq('id', id);
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     res.json({
       success: true,
@@ -506,7 +506,7 @@ export const getOccasionStats = async (req, res) => {
       .from('events')
       .select('*', { count: 'exact', head: true });
 
-    if (totalError) throw totalError;
+    if (totalError) {throw totalError;}
 
     // Get upcoming occasions
     const today = new Date().toISOString().split('T')[0];
@@ -516,7 +516,7 @@ export const getOccasionStats = async (req, res) => {
       .eq('status', 'active')
       .gte('event_date', today);
 
-    if (upcomingError) throw upcomingError;
+    if (upcomingError) {throw upcomingError;}
 
     // Get occasions by status
     const { data: statusData, error: statusError } = await supabase
@@ -524,7 +524,7 @@ export const getOccasionStats = async (req, res) => {
       .select('status')
       .not('status', 'is', null);
 
-    if (statusError) throw statusError;
+    if (statusError) {throw statusError;}
 
     const statusStats = statusData?.reduce((acc, item) => {
       acc[item.status] = (acc[item.status] || 0) + 1;
@@ -536,14 +536,14 @@ export const getOccasionStats = async (req, res) => {
       .from('event_rsvps')
       .select('*', { count: 'exact', head: true });
 
-    if (rsvpError) throw rsvpError;
+    if (rsvpError) {throw rsvpError;}
 
     // Get RSVPs by status
     const { data: rsvpStatusData, error: rsvpStatusError } = await supabase
       .from('event_rsvps')
       .select('status');
 
-    if (rsvpStatusError) throw rsvpStatusError;
+    if (rsvpStatusError) {throw rsvpStatusError;}
 
     const rsvpStatusStats = rsvpStatusData?.reduce((acc, item) => {
       acc[item.status] = (acc[item.status] || 0) + 1;

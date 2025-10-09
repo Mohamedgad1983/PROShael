@@ -1,10 +1,10 @@
 /**
-import { log } from '../utils/logger.js';
  * Optimized Report Query Service
  * Implements performance optimizations for large dataset queries
  * Target: < 3 seconds for 1000+ records
  */
 
+import { log } from '../utils/logger.js';
 import { supabase } from '../config/database.js';
 
 /**
@@ -51,7 +51,7 @@ export const getOptimizedFinancialData = async (options = {}) => {
 
     const { data, count, error } = await query;
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     return {
       data,

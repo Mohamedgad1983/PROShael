@@ -191,7 +191,7 @@ router.get('/visualization/:memberId', authenticateToken, async (req, res) => {
 
     // Build tree structure recursively
     const buildTree = async (memberId, currentDepth = 0) => {
-      if (currentDepth >= depth) return null;
+      if (currentDepth >= depth) {return null;}
 
       // Get children
       const { data: childRelations } = await supabase
@@ -227,7 +227,7 @@ router.get('/visualization/:memberId', authenticateToken, async (req, res) => {
 
     // Get parents for upward tree
     const getAncestors = async (memberId, currentDepth = 0) => {
-      if (currentDepth >= depth) return [];
+      if (currentDepth >= depth) {return [];}
 
       const { data: parentRelations } = await supabase
         .from('family_relationships')
@@ -342,7 +342,7 @@ router.post('/relationship', authenticateToken, async (req, res) => {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     res.status(201).json({
       success: true,
@@ -374,7 +374,7 @@ router.put('/relationship/:id', authenticateToken, async (req, res) => {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     res.json({
       success: true,
@@ -403,7 +403,7 @@ router.delete('/relationship/:id', authenticateToken, async (req, res) => {
       .update({ is_active: false })
       .eq('id', id);
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     res.json({
       success: true,
@@ -439,7 +439,7 @@ router.get('/search', authenticateToken, async (req, res) => {
       .or(`full_name.ilike.%${query}%,full_name_en.ilike.%${query}%,phone.ilike.%${query}%`)
       .limit(20);
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     res.json({
       success: true,

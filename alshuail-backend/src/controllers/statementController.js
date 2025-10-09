@@ -179,7 +179,7 @@ async function getMemberStatement(memberId) {
       .eq('id', memberId)
       .single();
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     // Already have all calculated data from the view
     const totalPaid = statement.current_balance || 0;

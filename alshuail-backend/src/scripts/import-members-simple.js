@@ -143,7 +143,7 @@ async function importMembersFromExcel() {
     }
 
     // Summary report
-    log.info('\n' + '='.repeat(80));
+    log.info(`\n${  '='.repeat(80)}`);
     log.info('📈 IMPORT SUMMARY');
     log.info('='.repeat(80));
     log.info(`✅ Successfully imported: ${successCount} members`);

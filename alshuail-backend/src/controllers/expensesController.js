@@ -102,12 +102,12 @@ export const getExpenses = async (req, res) => {
     }
 
     // Apply filters
-    if (category && category !== 'all') query = query.eq('expense_category', category);
-    if (status && status !== 'all') query = query.eq('status', status);
-    if (hijri_month) query = query.eq('hijri_month', parseInt(hijri_month));
-    if (hijri_year) query = query.eq('hijri_year', parseInt(hijri_year));
-    if (date_from) query = query.gte('expense_date', date_from);
-    if (date_to) query = query.lte('expense_date', date_to);
+    if (category && category !== 'all') {query = query.eq('expense_category', category);}
+    if (status && status !== 'all') {query = query.eq('status', status);}
+    if (hijri_month) {query = query.eq('hijri_month', parseInt(hijri_month));}
+    if (hijri_year) {query = query.eq('hijri_year', parseInt(hijri_year));}
+    if (date_from) {query = query.gte('expense_date', date_from);}
+    if (date_to) {query = query.lte('expense_date', date_to);}
 
     if (search) {
       query = query.or(`
@@ -119,7 +119,7 @@ export const getExpenses = async (req, res) => {
     }
 
     const { data: expenses, error } = await query;
-    if (error) throw error;
+    if (error) {throw error;}
 
     // Enhanced expense data with Hijri formatting and analysis
     const enhancedExpenses = (expenses || []).map(expense => ({
@@ -149,7 +149,7 @@ export const getExpenses = async (req, res) => {
       // Category breakdown
       by_category: expenses?.reduce((acc, e) => {
         const cat = e.expense_category || 'other';
-        if (!acc[cat]) acc[cat] = { count: 0, total: 0 };
+        if (!acc[cat]) {acc[cat] = { count: 0, total: 0 };}
         acc[cat].count++;
         acc[cat].total += parseFloat(e.amount || 0);
         return acc;
@@ -309,7 +309,7 @@ export const createExpense = async (req, res) => {
       `)
       .single();
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     // Create audit trail
     await createFinancialAuditTrail({
@@ -446,7 +446,7 @@ export const approveExpense = async (req, res) => {
       `)
       .single();
 
-    if (updateError) throw updateError;
+    if (updateError) {throw updateError;}
 
     // Create detailed audit trail
     await createFinancialAuditTrail({
@@ -570,7 +570,7 @@ export const updateExpense = async (req, res) => {
       `)
       .single();
 
-    if (updateError) throw updateError;
+    if (updateError) {throw updateError;}
 
     // Create audit trail
     await createFinancialAuditTrail({
@@ -764,7 +764,7 @@ export const deleteExpense = async (req, res) => {
       .select()
       .single();
 
-    if (deleteError) throw deleteError;
+    if (deleteError) {throw deleteError;}
 
     // Create audit trail
     await createFinancialAuditTrail({
@@ -854,7 +854,7 @@ export const getExpenseStatistics = async (req, res) => {
     }
 
     const { data: expenses, error } = await query;
-    if (error) throw error;
+    if (error) {throw error;}
 
     // Calculate statistics
     const statistics = {
@@ -1006,7 +1006,7 @@ const calculateAverageApprovalTime = (expenses) => {
     e.status === 'approved' && e.approved_at
   );
 
-  if (approvedExpenses.length === 0) return 0;
+  if (approvedExpenses.length === 0) {return 0;}
 
   const totalDays = approvedExpenses.reduce((sum, e) => {
     return sum + calculateDaysBetween(e.created_at, e.approved_at);

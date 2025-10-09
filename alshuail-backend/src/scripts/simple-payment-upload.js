@@ -64,8 +64,8 @@ async function uploadPayments() {
     const memberByPhone = {};
     const memberByNumber = {};
     members.forEach(m => {
-      if (m.phone) memberByPhone[m.phone] = m;
-      if (m.membership_number) memberByNumber[m.membership_number] = m;
+      if (m.phone) {memberByPhone[m.phone] = m;}
+      if (m.membership_number) {memberByNumber[m.membership_number] = m;}
     });
 
     // Process payments
@@ -75,14 +75,14 @@ async function uploadPayments() {
 
     for (let i = 1; i < rawData.length && i <= 100; i++) { // Process first 100
       const row = rawData[i];
-      if (!row || row.length === 0) continue;
+      if (!row || row.length === 0) {continue;}
 
       const membershipNumber = row[0];
       const memberName = row[1];
       const phone = row[3];
 
       // Find member in database
-      let dbMember = memberByPhone[phone] || memberByNumber[membershipNumber];
+      const dbMember = memberByPhone[phone] || memberByNumber[membershipNumber];
 
       if (dbMember) {
         processedCount++;

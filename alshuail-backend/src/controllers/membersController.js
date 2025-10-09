@@ -52,7 +52,7 @@ export const getAllMembers = async (req, res) => {
 
     const { data: members, error, count } = await query;
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     res.json({
       success: true,
@@ -82,7 +82,7 @@ export const getMemberById = async (req, res) => {
       .eq('id', id)
       .single();
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     if (!member) {
       return res.status(404).json({
@@ -121,7 +121,7 @@ export const createMember = async (req, res) => {
 
     // Generate membership number if not provided
     if (!memberData.membership_number) {
-      memberData.membership_number = 'SH-' + Date.now().toString().slice(-8);
+      memberData.membership_number = `SH-${  Date.now().toString().slice(-8)}`;
     }
 
     // Ensure all fields are properly set
@@ -308,7 +308,7 @@ export const deleteMember = async (req, res) => {
       .delete()
       .eq('id', id);
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     res.json({
       success: true,
@@ -329,7 +329,7 @@ export const getMemberStatistics = async (req, res) => {
       .from('members')
       .select('*', { count: 'exact', head: true });
 
-    if (totalError) throw totalError;
+    if (totalError) {throw totalError;}
 
     // Get active members count
     const { count: activeMembers, error: activeError } = await supabase
@@ -337,7 +337,7 @@ export const getMemberStatistics = async (req, res) => {
       .select('*', { count: 'exact', head: true })
       .eq('membership_status', 'active');
 
-    if (activeError) throw activeError;
+    if (activeError) {throw activeError;}
 
     // Get completed profiles count
     const { count: completedProfiles, error: completedError } = await supabase
@@ -345,7 +345,7 @@ export const getMemberStatistics = async (req, res) => {
       .select('*', { count: 'exact', head: true })
       .eq('profile_completed', true);
 
-    if (completedError) throw completedError;
+    if (completedError) {throw completedError;}
 
     // Get pending profiles count
     const { count: pendingProfiles, error: pendingError } = await supabase
@@ -353,7 +353,7 @@ export const getMemberStatistics = async (req, res) => {
       .select('*', { count: 'exact', head: true })
       .eq('profile_completed', false);
 
-    if (pendingError) throw pendingError;
+    if (pendingError) {throw pendingError;}
 
     // Get social security beneficiaries count
     const { count: socialSecurityBeneficiaries, error: socialSecurityError } = await supabase
@@ -362,7 +362,7 @@ export const getMemberStatistics = async (req, res) => {
       .eq('social_security_beneficiary', true)
       .eq('profile_completed', true);
 
-    if (socialSecurityError) throw socialSecurityError;
+    if (socialSecurityError) {throw socialSecurityError;}
 
     // Get members joined this month
     const startOfMonth = new Date();
@@ -374,7 +374,7 @@ export const getMemberStatistics = async (req, res) => {
       .select('*', { count: 'exact', head: true })
       .gte('created_at', startOfMonth.toISOString());
 
-    if (thisMonthError) throw thisMonthError;
+    if (thisMonthError) {throw thisMonthError;}
 
     // Get recent imports
     const { data: recentImports, error: importsError } = await supabase
@@ -383,7 +383,7 @@ export const getMemberStatistics = async (req, res) => {
       .order('created_at', { ascending: false })
       .limit(5);
 
-    if (importsError) throw importsError;
+    if (importsError) {throw importsError;}
 
     res.json({
       success: true,
@@ -438,7 +438,7 @@ export const sendRegistrationReminders = async (req, res) => {
       .eq('member_registration_tokens.is_used', false)
       .order('member_registration_tokens.created_at', { ascending: false });
 
-    if (membersError) throw membersError;
+    if (membersError) {throw membersError;}
 
     if (!membersData || membersData.length === 0) {
       return res.status(404).json({
@@ -517,7 +517,7 @@ export const getIncompleteProfiles = async (req, res) => {
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     res.json({
       success: true,
@@ -599,7 +599,7 @@ export const addMemberManually = async (req, res) => {
       .select()
       .single();
 
-    if (memberError) throw memberError;
+    if (memberError) {throw memberError;}
 
     // Generate registration token and temporary password
     const chars = 'ABCDEFGHIJKLMNPQRSTUVWXYZ123456789';
@@ -694,7 +694,7 @@ export const getMemberProfile = async (req, res) => {
       .eq('id', memberId)
       .single();
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     if (!member) {
       return res.status(404).json({
@@ -731,7 +731,7 @@ export const getMemberBalance = async (req, res) => {
       .eq('payer_id', memberId)
       .eq('status', 'completed');
 
-    if (paymentsError) throw paymentsError;
+    if (paymentsError) {throw paymentsError;}
 
     // Calculate total payments
     const totalPaid = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
@@ -743,7 +743,7 @@ export const getMemberBalance = async (req, res) => {
       .eq('id', memberId)
       .single();
 
-    if (memberError) throw memberError;
+    if (memberError) {throw memberError;}
 
     // Calculate minimum required balance (example: 1000 SAR)
     const minimumBalance = 1000;
@@ -786,7 +786,7 @@ export const getMemberTransactions = async (req, res) => {
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     res.json({
       success: true,
@@ -828,7 +828,7 @@ export const getMemberNotifications = async (req, res) => {
     const { data: notifications, error, count } = await query
       .range(offset, offset + limit - 1);
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     res.json({
       success: true,
@@ -878,7 +878,7 @@ export const updateMemberProfile = async (req, res) => {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     // Remove sensitive data from response
     const { temp_password: _, password_hash: __, ...memberData } = updatedMember;

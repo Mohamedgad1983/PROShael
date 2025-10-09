@@ -5,7 +5,7 @@ import { log } from '../utils/logger.js';
 // Helper function to convert Gregorian date to Hijri
 function convertToHijri(gregorianDate) {
   try {
-    if (!gregorianDate) return null;
+    if (!gregorianDate) {return null;}
 
     const date = new Date(gregorianDate);
     const hijriDate = date.toLocaleDateString('ar-SA-u-ca-islamic', {
@@ -23,13 +23,13 @@ function convertToHijri(gregorianDate) {
 
 // Helper function to validate National ID
 function validateNationalId(nationalId) {
-  if (!nationalId) return false;
+  if (!nationalId) {return false;}
 
   // Saudi National ID validation (10 digits, starts with 1 or 2)
   const cleanId = nationalId.toString().replace(/\D/g, '');
 
-  if (cleanId.length !== 10) return false;
-  if (!cleanId.startsWith('1') && !cleanId.startsWith('2')) return false;
+  if (cleanId.length !== 10) {return false;}
+  if (!cleanId.startsWith('1') && !cleanId.startsWith('2')) {return false;}
 
   // Luhn algorithm validation for Saudi National ID
   let sum = 0;
@@ -37,7 +37,7 @@ function validateNationalId(nationalId) {
     let digit = parseInt(cleanId[i]);
     if (i % 2 === 0) {
       digit *= 2;
-      if (digit > 9) digit = digit - 9;
+      if (digit > 9) {digit = digit - 9;}
     }
     sum += digit;
   }
@@ -50,14 +50,14 @@ function validateNationalId(nationalId) {
 
 // Helper function to validate email
 function validateEmail(email) {
-  if (!email) return true; // Email is optional
+  if (!email) {return true;} // Email is optional
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
 }
 
 // Helper function to validate profile image URL
 function validateImageUrl(url) {
-  if (!url) return true; // Image is optional
+  if (!url) {return true;} // Image is optional
   try {
     new URL(url);
     // Check if URL ends with common image extensions
@@ -306,7 +306,7 @@ export const completeProfile = async (req, res) => {
       .select()
       .single();
 
-    if (updateError) throw updateError;
+    if (updateError) {throw updateError;}
 
     // Mark token as used
     const { error: tokenUpdateError } = await supabase
@@ -426,7 +426,7 @@ export const resendRegistrationToken = async (req, res) => {
         is_used: false
       });
 
-    if (tokenError) throw tokenError;
+    if (tokenError) {throw tokenError;}
 
     res.json({
       success: true,

@@ -53,7 +53,7 @@ export const getAllInitiatives = async (req, res) => {
 
     const { data: initiatives, error, count } = await query;
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     // Calculate totals and metrics for each initiative
     const enhancedInitiatives = initiatives?.map(initiative => {
@@ -269,7 +269,7 @@ export const createInitiative = async (req, res) => {
       `)
       .single();
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     res.status(201).json({
       success: true,
@@ -383,7 +383,7 @@ export const addContribution = async (req, res) => {
       `)
       .single();
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     // Update initiative current amount if contribution is confirmed
     if (status === 'confirmed') {
@@ -395,7 +395,7 @@ export const addContribution = async (req, res) => {
         })
         .eq('id', id);
 
-      if (updateError) throw updateError;
+      if (updateError) {throw updateError;}
     }
 
     res.status(201).json({
@@ -460,7 +460,7 @@ export const updateContributionStatus = async (req, res) => {
 
     // Update contribution
     const updateData = { status };
-    if (notes !== undefined) updateData.notes = notes;
+    if (notes !== undefined) {updateData.notes = notes;}
 
     const { data: updatedContribution, error: updateError } = await supabase
       .from('activity_contributions')
@@ -472,7 +472,7 @@ export const updateContributionStatus = async (req, res) => {
       `)
       .single();
 
-    if (updateError) throw updateError;
+    if (updateError) {throw updateError;}
 
     // Update initiative current amount based on status change
     let amountChange = 0;
@@ -491,7 +491,7 @@ export const updateContributionStatus = async (req, res) => {
         })
         .eq('id', id);
 
-      if (updateInitiativeError) throw updateInitiativeError;
+      if (updateInitiativeError) {throw updateInitiativeError;}
     }
 
     res.json({
@@ -567,13 +567,13 @@ export const updateInitiative = async (req, res) => {
     };
 
     // Only update provided fields
-    if (title !== undefined) updateData.title = title;
-    if (description !== undefined) updateData.description = description;
-    if (category !== undefined) updateData.category = category;
-    if (target_amount !== undefined) updateData.target_amount = target_amount ? Number(target_amount) : null;
-    if (start_date !== undefined) updateData.start_date = start_date;
-    if (end_date !== undefined) updateData.end_date = end_date;
-    if (status !== undefined) updateData.status = status;
+    if (title !== undefined) {updateData.title = title;}
+    if (description !== undefined) {updateData.description = description;}
+    if (category !== undefined) {updateData.category = category;}
+    if (target_amount !== undefined) {updateData.target_amount = target_amount ? Number(target_amount) : null;}
+    if (start_date !== undefined) {updateData.start_date = start_date;}
+    if (end_date !== undefined) {updateData.end_date = end_date;}
+    if (status !== undefined) {updateData.status = status;}
 
     const { data: updatedInitiative, error } = await supabase
       .from('activities')
@@ -585,7 +585,7 @@ export const updateInitiative = async (req, res) => {
       `)
       .single();
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     res.json({
       success: true,
@@ -613,7 +613,7 @@ export const getInitiativeStats = async (req, res) => {
       .from('activities')
       .select('*', { count: 'exact', head: true });
 
-    if (totalError) throw totalError;
+    if (totalError) {throw totalError;}
 
     // Get active initiatives
     const { count: activeInitiatives, error: activeError } = await supabase
@@ -621,14 +621,14 @@ export const getInitiativeStats = async (req, res) => {
       .select('*', { count: 'exact', head: true })
       .eq('status', 'active');
 
-    if (activeError) throw activeError;
+    if (activeError) {throw activeError;}
 
     // Get total contributions
     const { count: totalContributions, error: contributionsError } = await supabase
       .from('activity_contributions')
       .select('*', { count: 'exact', head: true });
 
-    if (contributionsError) throw contributionsError;
+    if (contributionsError) {throw contributionsError;}
 
     // Get confirmed contributions and total amount
     const { data: confirmedContributions, error: confirmedError } = await supabase
@@ -636,7 +636,7 @@ export const getInitiativeStats = async (req, res) => {
       .select('amount')
       .eq('status', 'confirmed');
 
-    if (confirmedError) throw confirmedError;
+    if (confirmedError) {throw confirmedError;}
 
     const totalAmountRaised = confirmedContributions?.reduce((sum, c) => sum + Number(c.amount), 0) || 0;
 
@@ -645,7 +645,7 @@ export const getInitiativeStats = async (req, res) => {
       .from('activities')
       .select('status');
 
-    if (statusError) throw statusError;
+    if (statusError) {throw statusError;}
 
     const statusStats = statusData?.reduce((acc, item) => {
       acc[item.status] = (acc[item.status] || 0) + 1;
@@ -658,7 +658,7 @@ export const getInitiativeStats = async (req, res) => {
       .select('member_id')
       .eq('status', 'confirmed');
 
-    if (contributorsError) throw contributorsError;
+    if (contributorsError) {throw contributorsError;}
 
     const uniqueContributors = new Set(contributorsData?.map(c => c.member_id)).size;
 

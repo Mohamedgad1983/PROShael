@@ -1,5 +1,4 @@
 /**
-import { log } from '../utils/logger.js';
  * Member Monitoring Query Service
  * Optimized database queries for advanced filtering and monitoring
  *
@@ -10,6 +9,7 @@ import { log } from '../utils/logger.js';
  * - Efficient pagination and caching
  */
 
+import { log } from '../utils/logger.js';
 import { supabase } from '../config/database.js';
 
 // Cache for statistics (5-minute TTL)
@@ -226,9 +226,9 @@ function filterByBalance(members, operator, amount, min, max) {
  * Get compliance status based on balance
  */
 function getComplianceStatus(balance) {
-  if (balance >= 5000) return 'excellent';
-  if (balance >= 3000) return 'compliant';
-  if (balance >= 1000) return 'non-compliant';
+  if (balance >= 5000) {return 'excellent';}
+  if (balance >= 3000) {return 'compliant';}
+  if (balance >= 1000) {return 'non-compliant';}
   return 'critical';
 }
 

@@ -34,13 +34,13 @@ export const getAllPayments = async (req, res) => {
       .range(offset, offset + limit - 1);
 
     // Apply Hijri filtering
-    if (hijri_month) query = query.eq('hijri_month', parseInt(hijri_month));
-    if (hijri_year) query = query.eq('hijri_year', parseInt(hijri_year));
+    if (hijri_month) {query = query.eq('hijri_month', parseInt(hijri_month));}
+    if (hijri_year) {query = query.eq('hijri_year', parseInt(hijri_year));}
 
     // Apply other filters
-    if (status) query = query.eq('status', status);
-    if (member_id) query = query.eq('payer_id', member_id);
-    if (category) query = query.eq('category', category);
+    if (status) {query = query.eq('status', status);}
+    if (member_id) {query = query.eq('payer_id', member_id);}
+    if (category) {query = query.eq('category', category);}
 
     // Apply Hijri-primary sorting
     if (sort_by === 'hijri') {
@@ -54,7 +54,7 @@ export const getAllPayments = async (req, res) => {
 
     const { data: payments, error } = await query;
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     // Add formatted dates for frontend
     const paymentsWithFormattedDates = (payments || []).map(payment => ({
@@ -158,8 +158,8 @@ export const getPaymentStatistics = async (req, res) => {
     const { startDate, endDate } = req.query;
     const dateRange = {};
 
-    if (startDate) dateRange.startDate = startDate;
-    if (endDate) dateRange.endDate = endDate;
+    if (startDate) {dateRange.startDate = startDate;}
+    if (endDate) {dateRange.endDate = endDate;}
 
     const result = await FinancialAnalyticsService.getPaymentStatistics(dateRange);
 
@@ -194,12 +194,12 @@ export const getMemberPayments = async (req, res) => {
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
-    if (status) query = query.eq('status', status);
-    if (category) query = query.eq('category', category);
+    if (status) {query = query.eq('status', status);}
+    if (category) {query = query.eq('category', category);}
 
     const { data: payments, error } = await query;
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     // Get member's payment summary
     const { data: summaryData } = await supabase
@@ -492,12 +492,12 @@ export const getPaymentsGroupedByHijri = async (req, res) => {
       .order('hijri_month', { ascending: false })
       .order('hijri_day', { ascending: false });
 
-    if (hijri_year) query = query.eq('hijri_year', parseInt(hijri_year));
-    if (status) query = query.eq('status', status);
+    if (hijri_year) {query = query.eq('hijri_year', parseInt(hijri_year));}
+    if (status) {query = query.eq('status', status);}
 
     const { data: payments, error } = await query;
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     // Group payments by Hijri month
     const grouped = HijriDateManager.groupByHijriMonth(payments || []);
@@ -538,7 +538,7 @@ export const getHijriFinancialStats = async (req, res) => {
 
     const { data: payments, error } = await query;
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     // Calculate statistics
     const stats = {
@@ -631,7 +631,7 @@ export const payForInitiative = async (req, res) => {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     res.status(201).json({
       success: true,
@@ -689,7 +689,7 @@ export const payForDiya = async (req, res) => {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     res.status(201).json({
       success: true,
@@ -747,7 +747,7 @@ export const paySubscription = async (req, res) => {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     res.status(201).json({
       success: true,
@@ -826,7 +826,7 @@ export const payForMember = async (req, res) => {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     res.status(201).json({
       success: true,
@@ -891,7 +891,7 @@ export const uploadPaymentReceipt = async (req, res) => {
       .select()
       .single();
 
-    if (updateError) throw updateError;
+    if (updateError) {throw updateError;}
 
     res.json({
       success: true,

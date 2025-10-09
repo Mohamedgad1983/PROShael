@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../config/database.js';
+import { log } from '../utils/logger.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';

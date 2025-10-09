@@ -636,7 +636,7 @@ export class ReportExportService {
    */
   static addMemberContentToPDF(doc, reportData) {
     // Implementation for member reports
-    let yPosition = 180;
+    const yPosition = 180;
     doc.fontSize(16)
        .fillColor('#3498db')
        .text('تقرير الأعضاء', 50, yPosition, { align: 'right', width: 500 });
@@ -644,7 +644,7 @@ export class ReportExportService {
 
   static addMemberContentToExcel(worksheet, reportData) {
     // Implementation for member reports in Excel
-    let currentRow = 5;
+    const currentRow = 5;
     worksheet.mergeCells(`A${currentRow}:H${currentRow}`);
     const headerCell = worksheet.getCell(`A${currentRow}`);
     headerCell.value = 'تقرير الأعضاء';
@@ -655,14 +655,14 @@ export class ReportExportService {
    * Add general content (fallback)
    */
   static addGeneralContentToPDF(doc, reportData) {
-    let yPosition = 180;
+    const yPosition = 180;
     doc.fontSize(16)
        .fillColor('#9b59b6')
        .text('تقرير عام', 50, yPosition, { align: 'right', width: 500 });
   }
 
   static addGeneralContentToExcel(worksheet, reportData) {
-    let currentRow = 5;
+    const currentRow = 5;
     worksheet.mergeCells(`A${currentRow}:H${currentRow}`);
     const headerCell = worksheet.getCell(`A${currentRow}`);
     headerCell.value = 'تقرير عام';
@@ -734,7 +734,7 @@ export class ReportExportService {
    * Format dates in Arabic
    */
   static formatArabicDate(date) {
-    if (!date) return 'غير محدد';
+    if (!date) {return 'غير محدد';}
 
     const dateObj = new Date(date);
     return new Intl.DateTimeFormat('ar-SA', {

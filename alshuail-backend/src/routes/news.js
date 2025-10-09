@@ -136,7 +136,7 @@ router.post('/', authenticateToken, adminOnly, upload.array('media', 10), async 
             .select()
             .single();
 
-        if (error) throw error;
+        if (error) {throw error;}
 
         res.status(201).json({
             message: 'News post created successfully',
@@ -221,7 +221,7 @@ router.delete('/:id', authenticateToken, adminOnly, async (req, res) => {
             .delete()
             .eq('id', id);
 
-        if (error) throw error;
+        if (error) {throw error;}
 
         res.json({ message: 'News post deleted successfully' });
     } catch (error) {
@@ -250,7 +250,7 @@ router.get('/admin/all', authenticateToken, adminOnly, async (req, res) => {
 
         const { data, error } = await query;
 
-        if (error) throw error;
+        if (error) {throw error;}
 
         res.json({ news: data });
     } catch (error) {
@@ -438,7 +438,7 @@ router.get('/:id/stats', authenticateToken, adminOnly, async (req, res) => {
             .eq('id', id)
             .single();
 
-        if (newsError) throw newsError;
+        if (newsError) {throw newsError;}
 
         // Get notification stats
         const { data: notifStats, error: notifError } = await supabase
@@ -447,7 +447,7 @@ router.get('/:id/stats', authenticateToken, adminOnly, async (req, res) => {
             .eq('related_id', id)
             .eq('related_type', 'news');
 
-        if (notifError) throw notifError;
+        if (notifError) {throw notifError;}
 
         const totalNotifications = notifStats.length;
         const readNotifications = notifStats.filter(n => n.is_read).length;
@@ -461,7 +461,7 @@ router.get('/:id/stats', authenticateToken, adminOnly, async (req, res) => {
             .select('reaction_type')
             .eq('news_id', id);
 
-        if (reactError) throw reactError;
+        if (reactError) {throw reactError;}
 
         const reactionCounts = reactions.reduce((acc, r) => {
             acc[r.reaction_type] = (acc[r.reaction_type] || 0) + 1;
@@ -510,7 +510,7 @@ router.get('/', authenticateToken, async (req, res) => {
 
         const { data, error } = await query;
 
-        if (error) throw error;
+        if (error) {throw error;}
 
         res.json({ news: data });
     } catch (error) {
@@ -542,7 +542,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
             .eq('is_published', true)
             .single();
 
-        if (error) throw error;
+        if (error) {throw error;}
 
         // Get user's member_id
         const { data: userData } = await supabase
@@ -601,7 +601,7 @@ router.post('/:id/react', authenticateToken, async (req, res) => {
                 onConflict: 'news_id,member_id'
             });
 
-        if (error) throw error;
+        if (error) {throw error;}
 
         res.json({ message: 'Reaction saved successfully' });
     } catch (error) {
@@ -638,7 +638,7 @@ router.get('/notifications/my', authenticateToken, async (req, res) => {
 
         const { data, error } = await query;
 
-        if (error) throw error;
+        if (error) {throw error;}
 
         res.json({ notifications: data });
     } catch (error) {
@@ -668,7 +668,7 @@ router.patch('/notifications/:id/read', authenticateToken, async (req, res) => {
             .eq('id', id)
             .eq('member_id', userData.member_id);
 
-        if (error) throw error;
+        if (error) {throw error;}
 
         res.json({ message: 'Notification marked as read' });
     } catch (error) {
@@ -696,7 +696,7 @@ router.patch('/notifications/mark-all-read', authenticateToken, async (req, res)
             .eq('member_id', userData.member_id)
             .eq('is_read', false);
 
-        if (error) throw error;
+        if (error) {throw error;}
 
         res.json({ message: 'All notifications marked as read' });
     } catch (error) {
@@ -737,7 +737,7 @@ router.get('/notifications/unread-count', authenticateToken, async (req, res) =>
             .eq('member_id', userData.member_id)
             .eq('is_read', false);
 
-        if (error) throw error;
+        if (error) {throw error;}
 
         res.json({ unread_count: data.length });
     } catch (error) {
@@ -774,7 +774,7 @@ router.post('/notifications/register-device', authenticateToken, async (req, res
                 onConflict: 'user_id,device_token'
             });
 
-        if (error) throw error;
+        if (error) {throw error;}
 
         res.json({ message: 'Device registered for push notifications' });
     } catch (error) {

@@ -22,7 +22,7 @@ router.get('/dashboard', async (req, res) => {
             .or('title_ar.ilike.%دية%,title_en.ilike.%Diya%')
             .order('created_at', { ascending: false });
 
-        if (activitiesError) throw activitiesError;
+        if (activitiesError) {throw activitiesError;}
 
         // Get statistics for each activity
         const diyaStats = await Promise.all(activities.map(async (activity) => {
@@ -89,7 +89,7 @@ router.get('/:id/contributors', async (req, res) => {
             .eq('activity_id', id)
             .order('contribution_date', { ascending: false });
 
-        if (contribError) throw contribError;
+        if (contribError) {throw contribError;}
 
         // Get all member IDs
         const memberIds = [...new Set(contributions.map(c => c.contributor_id))];
@@ -100,7 +100,7 @@ router.get('/:id/contributors', async (req, res) => {
             .select('id, full_name, membership_number, tribal_section, phone')
             .in('id', memberIds);
 
-        if (membersError) throw membersError;
+        if (membersError) {throw membersError;}
 
         // Create a member lookup map
         const memberMap = {};
@@ -152,7 +152,7 @@ router.get('/:id/stats', async (req, res) => {
             .eq('id', id)
             .single();
 
-        if (activityError) throw activityError;
+        if (activityError) {throw activityError;}
 
         // Get contributions
         const { data: contributions, error: contribError } = await supabaseAdmin
@@ -167,7 +167,7 @@ router.get('/:id/stats', async (req, res) => {
             `)
             .eq('activity_id', id);
 
-        if (contribError) throw contribError;
+        if (contribError) {throw contribError;}
 
         // Calculate statistics
         const uniqueContributors = new Set(contributions?.map(c => c.contributor_id) || []);
@@ -229,7 +229,7 @@ router.get('/summary', async (req, res) => {
             .select('id')
             .or('title_ar.ilike.%دية%,title_en.ilike.%Diya%');
 
-        if (activitiesError) throw activitiesError;
+        if (activitiesError) {throw activitiesError;}
 
         const activityIds = activities.map(a => a.id);
 
@@ -239,7 +239,7 @@ router.get('/summary', async (req, res) => {
             .select('contribution_amount, contributor_id')
             .in('activity_id', activityIds);
 
-        if (contribError) throw contribError;
+        if (contribError) {throw contribError;}
 
         // Calculate summary statistics
         const uniqueContributors = new Set(contributions?.map(c => c.contributor_id) || []);
@@ -295,7 +295,7 @@ router.post('/:id/contribution', async (req, res) => {
             .select()
             .single();
 
-        if (error) throw error;
+        if (error) {throw error;}
 
         res.json({
             success: true,

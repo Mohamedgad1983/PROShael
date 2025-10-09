@@ -118,7 +118,7 @@ router.get('/system', authenticateToken, requireRole(['super_admin']), async (re
       });
     }
 
-    if (error) throw error;
+    if (error) {throw error;}
     res.json(settings);
   } catch (error) {
     log.error('Failed to fetch system settings', { error: error.message });
@@ -148,7 +148,7 @@ router.put('/system', authenticateToken, requireRole(['super_admin']), async (re
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {throw error;}
       result = data;
     } else {
       // Create new settings
@@ -161,7 +161,7 @@ router.put('/system', authenticateToken, requireRole(['super_admin']), async (re
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {throw error;}
       result = data;
     }
 
@@ -208,7 +208,7 @@ router.get('/users', authenticateToken, requireRole(['super_admin']), async (req
 
     const { data: users, error } = await query;
 
-    if (error) throw error;
+    if (error) {throw error;}
     res.json(users || []);
   } catch (error) {
     log.error('Failed to fetch users', { error: error.message });
@@ -250,7 +250,7 @@ router.post('/users', authenticateToken, requireRole(['super_admin']), async (re
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     // Log user creation
     await logActivity(
@@ -289,7 +289,7 @@ router.put('/users/:userId', authenticateToken, requireRole(['super_admin']), as
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     // Log user update
     await logActivity(
@@ -326,7 +326,7 @@ router.delete('/users/:userId', authenticateToken, requireRole(['super_admin']),
       .delete()
       .eq('id', userId);
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     // Log user deletion
     await logActivity(
@@ -381,7 +381,7 @@ router.get('/audit-logs', authenticateToken, requireRole(['super_admin']), async
 
     const { data: logs, error, count } = await query;
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     res.json({
       logs: logs || [],

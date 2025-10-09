@@ -1,9 +1,9 @@
 /**
-import { log } from './logger.js';
  * Access Control Utilities for Financial Management
  * Handles role-based permissions and financial access logging
  */
 
+import { log } from './logger.js';
 import { supabase } from '../config/database.js';
 
 /**
@@ -312,7 +312,7 @@ export const getRecentFinancialLogs = async (userId, limit = 10) => {
       .order('timestamp', { ascending: false })
       .limit(limit);
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     return logs || [];
   } catch (error) {
@@ -338,7 +338,7 @@ export const checkSuspiciousActivity = async (userId) => {
       .eq('access_result', 'DENIED')
       .gte('timestamp', oneHourAgo);
 
-    if (failedError) throw failedError;
+    if (failedError) {throw failedError;}
 
     // Check for unusual patterns
     const { data: recentActivity, error: activityError } = await supabase
@@ -348,7 +348,7 @@ export const checkSuspiciousActivity = async (userId) => {
       .gte('timestamp', oneHourAgo)
       .order('timestamp', { ascending: false });
 
-    if (activityError) throw activityError;
+    if (activityError) {throw activityError;}
 
     const isSuspicious = (failedAttempts?.length || 0) > 5 ||
                         (recentActivity?.length || 0) > 50;

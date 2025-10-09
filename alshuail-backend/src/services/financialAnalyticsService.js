@@ -29,7 +29,7 @@ export class FinancialAnalyticsService {
       }
 
       const { data: payments, error } = await query;
-      if (error) throw error;
+      if (error) {throw error;}
 
       // Calculate statistics
       const stats = {
@@ -144,7 +144,7 @@ export class FinancialAnalyticsService {
         .gte('created_at', startDate)
         .lte('created_at', endDate);
 
-      if (error) throw error;
+      if (error) {throw error;}
 
       const revenue = {
         period,
@@ -218,7 +218,7 @@ export class FinancialAnalyticsService {
         .from('payments')
         .select('category, amount, status, created_at');
 
-      if (error) throw error;
+      if (error) {throw error;}
 
       const categories = {};
 
@@ -296,12 +296,12 @@ export class FinancialAnalyticsService {
         `)
         .eq('status', 'paid');
 
-      if (error) throw error;
+      if (error) {throw error;}
 
       const memberStats = {};
 
       payments.forEach(payment => {
-        if (!payment.payer) return;
+        if (!payment.payer) {return;}
 
         const memberId = payment.payer.id;
         if (!memberStats[memberId]) {
@@ -378,7 +378,7 @@ export class FinancialAnalyticsService {
         .eq('status', 'pending')
         .lt('created_at', thirtyDaysAgo.toISOString());
 
-      if (error) throw error;
+      if (error) {throw error;}
 
       const overdueSummary = {
         count: overduePayments.length,

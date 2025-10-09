@@ -34,7 +34,7 @@ router.get('/roles',
         .select('*')
         .order('priority', { ascending: false });
 
-      if (error) throw error;
+      if (error) {throw error;}
 
       res.json({
         success: true,
@@ -90,7 +90,7 @@ router.post('/users/:userId/assign-role',
           is_active: true
         });
 
-      if (assignError) throw assignError;
+      if (assignError) {throw assignError;}
 
       // Update user's primary role
       await supabase
@@ -136,7 +136,7 @@ router.get('/users/:userId/role',
         p_user_id: userId
       });
 
-      if (error) throw error;
+      if (error) {throw error;}
 
       res.json({
         success: true,
@@ -328,7 +328,7 @@ router.get('/audit-logs',
         .order('created_at', { ascending: false })
         .limit(100);
 
-      if (error) throw error;
+      if (error) {throw error;}
 
       res.json({
         success: true,

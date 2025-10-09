@@ -112,7 +112,7 @@ const simpleImport = async () => {
     }
 
     // Summary
-    log.info('\n' + '='.repeat(50));
+    log.info(`\n${  '='.repeat(50)}`);
     log.info('📊 ملخص الاستيراد');
     log.info('='.repeat(50));
     log.info(`✅ تم استيراد: ${successCount} عضو`);

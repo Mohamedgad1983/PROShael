@@ -103,7 +103,7 @@ export const getMemberMonitoring = async (req, res) => {
       const totalPaid = parseFloat(member.total_paid || 0);
 
       // Handle different name field variations
-      let memberName = member.full_name || member.name || member.fullName ||
+      const memberName = member.full_name || member.name || member.fullName ||
                        (member.first_name ? `${member.first_name} ${member.last_name || ''}` : '') ||
                        `عضو ${member.id}`;
 
@@ -122,9 +122,9 @@ export const getMemberMonitoring = async (req, res) => {
 
       // Determine compliance status
       let complianceStatus = 'nonCompliant';
-      if (totalPaid >= 5000) complianceStatus = 'excellent';
-      else if (totalPaid >= minimumBalance) complianceStatus = 'compliant';
-      else if (totalPaid < 1000) complianceStatus = 'critical';
+      if (totalPaid >= 5000) {complianceStatus = 'excellent';}
+      else if (totalPaid >= minimumBalance) {complianceStatus = 'compliant';}
+      else if (totalPaid < 1000) {complianceStatus = 'critical';}
 
       return {
         id: member.id,
@@ -155,8 +155,8 @@ export const getMemberMonitoring = async (req, res) => {
     if (balanceCategory && BALANCE_CATEGORIES[balanceCategory]) {
       const category = BALANCE_CATEGORIES[balanceCategory];
       filteredMembers = filteredMembers.filter(m => {
-        if (category.min !== null && m.balance < category.min) return false;
-        if (category.max !== null && m.balance > category.max) return false;
+        if (category.min !== null && m.balance < category.min) {return false;}
+        if (category.max !== null && m.balance > category.max) {return false;}
         return true;
       });
     }
@@ -179,8 +179,8 @@ export const getMemberMonitoring = async (req, res) => {
     // Apply balance range filter
     if (balanceMin !== undefined || balanceMax !== undefined) {
       filteredMembers = filteredMembers.filter(m => {
-        if (balanceMin !== undefined && m.balance < parseFloat(balanceMin)) return false;
-        if (balanceMax !== undefined && m.balance > parseFloat(balanceMax)) return false;
+        if (balanceMin !== undefined && m.balance < parseFloat(balanceMin)) {return false;}
+        if (balanceMax !== undefined && m.balance > parseFloat(balanceMax)) {return false;}
         return true;
       });
     }
@@ -595,7 +595,7 @@ export const exportMembers = async (req, res) => {
       // Get total paid from member record (imported data stored directly in member)
       const totalPaid = parseFloat(member.total_paid || 0);
 
-      let memberName = member.full_name || member.name || member.fullName ||
+      const memberName = member.full_name || member.name || member.fullName ||
                        (member.first_name ? `${member.first_name} ${member.last_name || ''}` : '') ||
                        `عضو ${member.id}`;
 
@@ -609,9 +609,9 @@ export const exportMembers = async (req, res) => {
 
       const shortfall = Math.max(0, minimumBalance - totalPaid);
       let complianceStatus = 'غير ملتزم';
-      if (totalPaid >= 5000) complianceStatus = 'ممتاز';
-      else if (totalPaid >= minimumBalance) complianceStatus = 'ملتزم';
-      else if (totalPaid < 1000) complianceStatus = 'حرج';
+      if (totalPaid >= 5000) {complianceStatus = 'ممتاز';}
+      else if (totalPaid >= minimumBalance) {complianceStatus = 'ملتزم';}
+      else if (totalPaid < 1000) {complianceStatus = 'حرج';}
 
       return {
         'رقم العضوية': member.membership_number || `SH-${String(10000 + Math.abs(member.id.charCodeAt(0) * 100 + member.id.charCodeAt(1)))}`,
@@ -622,7 +622,7 @@ export const exportMembers = async (req, res) => {
         'الرصيد الحالي': totalPaid,
         'الحد الأدنى': minimumBalance,
         'المبلغ المتبقي': shortfall,
-        'نسبة الإنجاز': Math.round((totalPaid / minimumBalance) * 100) + '%',
+        'نسبة الإنجاز': `${Math.round((totalPaid / minimumBalance) * 100)  }%`,
         'حالة الالتزام': complianceStatus,
         'حالة العضوية': member.is_suspended ? 'موقوف' : 'نشط',
         'تاريخ الانضمام': member.joined_date || member.created_at,
@@ -637,8 +637,8 @@ export const exportMembers = async (req, res) => {
       const category = BALANCE_CATEGORIES[balanceCategory];
       filteredExportData = filteredExportData.filter(m => {
         const balance = m['الرصيد الحالي'];
-        if (category.min !== null && balance < category.min) return false;
-        if (category.max !== null && balance > category.max) return false;
+        if (category.min !== null && balance < category.min) {return false;}
+        if (category.max !== null && balance > category.max) {return false;}
         return true;
       });
     }
@@ -661,8 +661,8 @@ export const exportMembers = async (req, res) => {
     if (balanceMin !== undefined || balanceMax !== undefined) {
       filteredExportData = filteredExportData.filter(m => {
         const balance = m['الرصيد الحالي'];
-        if (balanceMin !== undefined && balance < parseFloat(balanceMin)) return false;
-        if (balanceMax !== undefined && balance > parseFloat(balanceMax)) return false;
+        if (balanceMin !== undefined && balance < parseFloat(balanceMin)) {return false;}
+        if (balanceMax !== undefined && balance > parseFloat(balanceMax)) {return false;}
         return true;
       });
     }
@@ -681,7 +681,7 @@ export const exportMembers = async (req, res) => {
       'الرصيد الحالي': totalBalance,
       'الحد الأدنى': '',
       'المبلغ المتبقي': totalShortfall,
-      'نسبة الإنجاز': Math.round((compliantCount / filteredExportData.length) * 100) + '% ملتزمون',
+      'نسبة الإنجاز': `${Math.round((compliantCount / filteredExportData.length) * 100)  }% ملتزمون`,
       'حالة الالتزام': '',
       'حالة العضوية': '',
       'تاريخ الانضمام': '',

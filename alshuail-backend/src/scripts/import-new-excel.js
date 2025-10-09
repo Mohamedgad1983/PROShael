@@ -70,8 +70,8 @@ async function importNewExcel() {
     const memberByNumber = {};
     if (existingMembers) {
       existingMembers.forEach(m => {
-        if (m.phone) memberByPhone[m.phone] = m;
-        if (m.membership_number) memberByNumber[m.membership_number] = m;
+        if (m.phone) {memberByPhone[m.phone] = m;}
+        if (m.membership_number) {memberByNumber[m.membership_number] = m;}
       });
     }
 
@@ -91,7 +91,7 @@ async function importNewExcel() {
     // Process each row
     for (let i = 1; i < rawData.length; i++) {
       const row = rawData[i];
-      if (!row || row.length === 0) continue;
+      if (!row || row.length === 0) {continue;}
 
       // Extract data from row (based on column positions from analysis)
       const membershipNumber = row[0]?.toString() || '';
@@ -113,13 +113,13 @@ async function importNewExcel() {
       const subscriptionType = row[16] || 'monthly';
 
       // Skip if no name or member ID
-      if (!fullNameAr && !membershipNumber) continue;
+      if (!fullNameAr && !membershipNumber) {continue;}
 
       // Format phone number (ensure it's in correct format)
       const formattedPhone = phone.startsWith('0') ? phone : `0${phone}`;
 
       // Check if member exists
-      let existingMember = memberByPhone[formattedPhone] || memberByNumber[membershipNumber];
+      const existingMember = memberByPhone[formattedPhone] || memberByNumber[membershipNumber];
 
       if (existingMember) {
         // Update existing member
@@ -245,8 +245,8 @@ async function importNewExcel() {
     const memberIdByPhone = {};
     const memberIdByNumber = {};
     allMembers?.forEach(m => {
-      if (m.phone) memberIdByPhone[m.phone] = m.id;
-      if (m.membership_number) memberIdByNumber[m.membership_number] = m.id;
+      if (m.phone) {memberIdByPhone[m.phone] = m.id;}
+      if (m.membership_number) {memberIdByNumber[m.membership_number] = m.id;}
     });
 
     // STEP 8: Create subscriptions for new members
