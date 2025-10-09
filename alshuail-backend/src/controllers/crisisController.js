@@ -1,4 +1,5 @@
 import { supabase } from '../config/database.js';
+import { log } from '../utils/logger.js';
 
 // Get crisis dashboard data - members below minimum balance
 export const getCrisisDashboard = async (req, res) => {
@@ -12,7 +13,7 @@ export const getCrisisDashboard = async (req, res) => {
       .order('full_name');
 
     if (membersError) {
-      console.error('Error fetching members:', membersError);
+      log.error('Error fetching members', { error: membersError.message });
       // Return mock data if database is not ready
       return res.json(getMockCrisisData());
     }
@@ -71,7 +72,7 @@ export const getCrisisDashboard = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error in getCrisisDashboard:', error);
+    log.error('Error in getCrisisDashboard', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'خطأ في جلب بيانات لوحة الأزمة',
@@ -124,7 +125,7 @@ export const updateMemberBalance = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error updating member balance:', error);
+    log.error('Error updating member balance', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'خطأ في تحديث الرصيد',

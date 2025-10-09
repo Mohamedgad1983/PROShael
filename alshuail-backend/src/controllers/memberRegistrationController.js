@@ -1,5 +1,6 @@
 import { supabase } from '../config/database.js';
 import bcrypt from 'bcryptjs';
+import { log } from '../utils/logger.js';
 
 // Helper function to convert Gregorian date to Hijri
 function convertToHijri(gregorianDate) {
@@ -15,7 +16,7 @@ function convertToHijri(gregorianDate) {
 
     return hijriDate;
   } catch (error) {
-    console.error('Error converting to Hijri:', error);
+    log.error('Error converting to Hijri', { error: error.message });
     return null;
   }
 }
@@ -317,7 +318,7 @@ export const completeProfile = async (req, res) => {
       .eq('id', tokenData.id);
 
     if (tokenUpdateError) {
-      console.error('Error updating token status:', tokenUpdateError);
+      log.error('Error updating token status', { error: tokenUpdateError.message });
     }
 
     // Return success response
@@ -377,7 +378,7 @@ export const resendRegistrationToken = async (req, res) => {
       .eq('is_used', false);
 
     if (deactivateError) {
-      console.error('Error deactivating old tokens:', deactivateError);
+      log.error('Error deactivating old tokens', { error: deactivateError.message });
     }
 
     // Generate new token

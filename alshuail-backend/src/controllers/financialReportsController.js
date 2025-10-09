@@ -28,6 +28,7 @@ import {
   streamReportData
 } from '../services/optimizedReportQueries.js';
 import { ErrorCodes, createErrorResponse } from '../utils/errorCodes.js';
+import { log } from '../utils/logger.js';
 
 // Create an instance of ReportExportService
 const reportExporter = new ReportExportService();
@@ -216,7 +217,7 @@ export const getFinancialSummary = async (req, res) => {
       message: 'Comprehensive financial summary generated successfully'
     });
   } catch (error) {
-    console.error('Financial summary error:', error);
+    log.error('Financial summary error', { error: error.message });
     res.status(500).json({
       success: false,
       error: error.message,
@@ -386,7 +387,7 @@ export const generateForensicReport = async (req, res) => {
       message: 'Forensic financial report generated successfully'
     });
   } catch (error) {
-    console.error('Forensic report error:', error);
+    log.error('Forensic report error', { error: error.message });
     res.status(500).json({
       success: false,
       error: error.message,
