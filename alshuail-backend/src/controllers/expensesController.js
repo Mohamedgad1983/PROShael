@@ -12,6 +12,7 @@ import {
   checkSuspiciousActivity
 } from '../utils/accessControl.js';
 import { HijriDateManager } from '../utils/hijriDateUtils.js';
+import { log } from '../utils/logger.js';
 
 /**
  * Get all expenses with comprehensive filtering and role-based access
@@ -1017,12 +1018,12 @@ const calculateAverageApprovalTime = (expenses) => {
 const sendExpenseApprovalNotification = async (expense) => {
   // Implementation for sending notifications
   // This would integrate with your notification system
-  console.log('Sending approval notification for expense:', expense.id);
+  log.info('Sending approval notification for expense', { expense_id: expense.id });
 };
 
 const sendExpenseStatusNotification = async (expense, action) => {
   // Implementation for sending status change notifications
-  console.log(`Sending ${action} notification for expense:`, expense.id);
+  log.info('Sending expense status notification', { action, expense_id: expense.id });
 };
 
 export default {
