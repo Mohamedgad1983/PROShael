@@ -587,8 +587,8 @@
   }
 }
 
-/* Dark Mode Support */
-@media (prefers-color-scheme: dark) {
+/* Dark Mode Support - DISABLED to maintain consistent white theme */
+/* @media (prefers-color-scheme: dark) {
   :root {
     --glass-ultra: rgba(0, 0, 0, 0.95);
     --glass-premium: rgba(0, 0, 0, 0.9);
@@ -611,7 +611,7 @@
     background: rgba(255, 255, 255, 0.1);
     border-color: var(--islamic-emerald);
   }
-}
+} */
 
 /* Print Styles */
 @media print {
