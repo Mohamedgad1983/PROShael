@@ -3,6 +3,7 @@ import axios from 'axios';
 import { toHijri } from 'hijri-converter';
 import SimpleHijriDatePicker from '../../components/Common/SimpleHijriDatePicker';
 import useActiveMemberCount from '../../hooks/useActiveMemberCount';
+import MemberCountToast from '../../components/Common/MemberCountToast';
 
 interface Initiative {
     id: number;
@@ -37,9 +38,24 @@ const InitiativesManagement = () => {
     const [showPushModal, setShowPushModal] = useState(false);
     const [previewInitiative, setPreviewInitiative] = useState<Initiative | null>(null);
     const [pushingInitiativeId, setPushingInitiativeId] = useState<number | null>(null);
+    const [showToast, setShowToast] = useState(false);
 
-    // Real-time member count with 10-second auto-refresh
-    const { count: memberCount, loading: loadingMemberCount } = useActiveMemberCount();
+    // Real-time member count with 10-second auto-refresh and change detection
+    const {
+        count: memberCount,
+        loading: loadingMemberCount,
+        hasChanged,
+        trend,
+        changeAmount,
+        previousCount,
+        lastUpdated
+    } = useActiveMemberCount({
+        onCountChange: (newCount, prevCount) => {
+            // Show toast when count changes
+            setShowToast(true);
+            console.log(`[Initiatives] Member count changed: ${prevCount} → ${newCount}`);
+        }
+    });
 
     // Form state
     const [formData, setFormData] = useState({
@@ -650,15 +666,46 @@ const InitiativesManagement = () => {
                             </p>
                         </div>
 
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-                            <div className="flex items-center gap-2 mb-2">
-                                <span className="text-2xl">👥</span>
-                                <span className="font-bold text-green-900">عدد المستلمين</span>
+                        <div className={`border rounded-lg p-4 mb-6 transition-all duration-500 ${
+                            hasChanged
+                                ? 'bg-gradient-to-r from-green-100 to-blue-100 border-green-400 shadow-lg scale-105'
+                                : 'bg-green-50 border-green-200'
+                        }`}>
+                            <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-2xl">👥</span>
+                                    <span className="font-bold text-green-900">عدد المستلمين</span>
+                                </div>
+                                {hasChanged && (
+                                    <span className="bg-yellow-400 text-yellow-900 text-xs px-2 py-1 rounded-full font-bold animate-pulse">
+                                        تم التحديث الآن!
+                                    </span>
+                                )}
                             </div>
                             {loadingMemberCount ? (
                                 <p className="text-green-700">جاري التحميل...</p>
                             ) : (
-                                <p className="text-2xl font-bold text-green-600">{memberCount} عضو نشط</p>
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-2">
+                                        <p className="text-3xl font-bold text-green-600">{memberCount} عضو نشط</p>
+                                        {trend === 'increased' && (
+                                            <span className="text-2xl text-green-500 animate-bounce">↑</span>
+                                        )}
+                                        {trend === 'decreased' && (
+                                            <span className="text-2xl text-red-500 animate-bounce">↓</span>
+                                        )}
+                                    </div>
+                                    {previousCount !== null && changeAmount !== 0 && (
+                                        <p className="text-sm text-gray-600">
+                                            {changeAmount > 0 ? '+' : ''}{changeAmount} من {previousCount} عضو
+                                        </p>
+                                    )}
+                                    {lastUpdated && (
+                                        <p className="text-xs text-gray-500">
+                                            آخر تحديث: {lastUpdated.toLocaleTimeString('ar-SA')}
+                                        </p>
+                                    )}
+                                </div>
                             )}
                         </div>
 
@@ -698,6 +745,16 @@ const InitiativesManagement = () => {
                     </div>
                 </div>
             )}
+
+            {/* Toast Notification for Member Count Changes */}
+            <MemberCountToast
+                show={showToast}
+                memberCount={memberCount}
+                previousCount={previousCount}
+                trend={trend}
+                changeAmount={changeAmount}
+                onClose={() => setShowToast(false)}
+            />
         </div>
     );
 };

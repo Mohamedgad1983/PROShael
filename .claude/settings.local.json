@@ -64,7 +64,14 @@
       "Bash(do [ -f \"$f\" ])",
       "WebFetch(domain:github.com)",
       "Bash(npm ls:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(set PORT=3002)",
+      "mcp__playwright__browser_fill_form",
+      "Bash(ren:*)",
+      "Bash(copy test-push-notification.mjs alshuail-backend\\ )",
+      "mcp__playwright__browser_select_option",
+      "Bash(npx playwright install:*)",
+      "Bash(npx kill-port:*)"
     ],
     "deny": [],
     "ask": []

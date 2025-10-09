@@ -1142,3 +1142,17 @@
     font-size: 1rem;
   }
 }
+
+/* Toast Notification Animations */
+@keyframes progress {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+.animate-progress-bar {
+  animation: progress 5s linear forwards;
+}
