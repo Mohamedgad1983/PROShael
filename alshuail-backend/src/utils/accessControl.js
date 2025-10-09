@@ -1,4 +1,5 @@
 /**
+import { log } from './logger.js';
  * Access Control Utilities for Financial Management
  * Handles role-based permissions and financial access logging
  */
@@ -38,7 +39,7 @@ export const logFinancialAccess = async (userId, accessResult, operation, userRo
         ip_address: ipAddress
       }]);
   } catch (error) {
-    console.error('Failed to log financial access:', error);
+    log.error('Failed to log financial access:', error);
     // Don't throw error to avoid disrupting main flow
   }
 };
@@ -226,7 +227,7 @@ export const getUserFinancialPermissions = async (userId) => {
       canManageBudgets: isFinancialManager
     };
   } catch (error) {
-    console.error('Failed to get user permissions:', error);
+    log.error('Failed to get user permissions:', error);
     return {
       canViewExpenses: false,
       canCreateExpenses: false,
@@ -271,7 +272,7 @@ export const createFinancialAuditTrail = async (auditData) => {
         created_at: new Date().toISOString()
       }]);
   } catch (error) {
-    console.error('Failed to create audit trail:', error);
+    log.error('Failed to create audit trail:', error);
   }
 };
 
@@ -315,7 +316,7 @@ export const getRecentFinancialLogs = async (userId, limit = 10) => {
 
     return logs || [];
   } catch (error) {
-    console.error('Failed to get financial logs:', error);
+    log.error('Failed to get financial logs:', error);
     return [];
   }
 };
@@ -374,7 +375,7 @@ export const checkSuspiciousActivity = async (userId) => {
       should_block: (failedAttempts?.length || 0) > 10
     };
   } catch (error) {
-    console.error('Failed to check suspicious activity:', error);
+    log.error('Failed to check suspicious activity:', error);
     return {
       is_suspicious: false,
       failed_attempts: 0,

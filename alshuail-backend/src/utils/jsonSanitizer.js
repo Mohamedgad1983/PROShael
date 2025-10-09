@@ -1,4 +1,5 @@
 // Utility to sanitize JSON data and prevent parsing errors
+import { log } from './logger.js';
 export const sanitizeJSON = (data) => {
   // If data is already an object (parsed by Express), return it as-is
   if (typeof data === 'object' && data !== null) {
@@ -10,7 +11,7 @@ export const sanitizeJSON = (data) => {
     try {
       return JSON.parse(data);
     } catch (error) {
-      console.error('Failed to parse JSON string:', error);
+      log.error('Failed to parse JSON string:', error);
       return {};
     }
   }

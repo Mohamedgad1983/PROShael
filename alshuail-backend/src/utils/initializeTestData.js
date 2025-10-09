@@ -1,8 +1,9 @@
 import { supabase } from '../config/database.js';
+import { log } from './logger.js';
 
 export async function initializeTestData() {
   try {
-    console.log('🚀 Initializing test data...');
+    log.info('🚀 Initializing test data...');
 
     // Create test members first
     const { data: members, error: membersError } = await supabase
@@ -26,9 +27,9 @@ export async function initializeTestData() {
       .select();
 
     if (membersError && !membersError.message.includes('duplicate')) {
-      console.log('Members might already exist:', membersError.message);
+      log.info('Members might already exist:', membersError.message);
     } else if (members) {
-      console.log('✅ Test members created:', members.length);
+      log.info('✅ Test members created:', members.length);
     }
 
     // Get existing members to use their IDs
@@ -78,9 +79,9 @@ export async function initializeTestData() {
       .select();
 
     if (eventsError && !eventsError.message.includes('duplicate')) {
-      console.log('Events creation error:', eventsError.message);
+      log.info('Events creation error:', eventsError.message);
     } else if (events) {
-      console.log('✅ Test events created:', events.length);
+      log.info('✅ Test events created:', events.length);
     }
 
     // Create test initiatives
@@ -111,9 +112,9 @@ export async function initializeTestData() {
       .select();
 
     if (activitiesError && !activitiesError.message.includes('duplicate')) {
-      console.log('Activities creation error:', activitiesError.message);
+      log.info('Activities creation error:', activitiesError.message);
     } else if (activities) {
-      console.log('✅ Test activities created:', activities.length);
+      log.info('✅ Test activities created:', activities.length);
     }
 
     // Create test diyas
@@ -142,9 +143,9 @@ export async function initializeTestData() {
       .select();
 
     if (diyasError && !diyasError.message.includes('duplicate')) {
-      console.log('Diyas creation error:', diyasError.message);
+      log.info('Diyas creation error:', diyasError.message);
     } else if (diyas) {
-      console.log('✅ Test diyas created:', diyas.length);
+      log.info('✅ Test diyas created:', diyas.length);
     }
 
     // Create test notifications
@@ -169,16 +170,16 @@ export async function initializeTestData() {
       .select();
 
     if (notificationsError && !notificationsError.message.includes('duplicate')) {
-      console.log('Notifications creation error:', notificationsError.message);
+      log.info('Notifications creation error:', notificationsError.message);
     } else if (notifications) {
-      console.log('✅ Test notifications created:', notifications.length);
+      log.info('✅ Test notifications created:', notifications.length);
     }
 
-    console.log('✅ Test data initialization completed successfully!');
+    log.info('✅ Test data initialization completed successfully!');
     return true;
 
   } catch (error) {
-    console.error('❌ Error initializing test data:', error);
+    log.error('❌ Error initializing test data:', error);
     return false;
   }
 }

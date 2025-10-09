@@ -1,4 +1,5 @@
 /**
+import { log } from './logger.js';
  * Hijri Date Management Utilities
  * Handles conversion between Gregorian and Hijri calendars
  * Using JavaScript's native Intl API for accurate conversions
@@ -67,7 +68,7 @@ export class HijriDateManager {
         is_special_month: monthData ? monthData.is_special : false
       };
     } catch (error) {
-      console.error('Error converting to Hijri:', error);
+      log.error('Error converting to Hijri:', error);
       return null;
     }
   }

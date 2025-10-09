@@ -1,4 +1,5 @@
 /**
+import { log } from './logger.js';
  * Comprehensive Error Code System
  * Provides specific error codes and messages for better debugging
  */
@@ -297,7 +298,7 @@ export const createErrorResponse = (errorKey, additionalInfo = {}) => {
  * Error handler middleware
  */
 export const errorHandler = (err, req, res, next) => {
-  console.error('Error occurred:', err);
+  log.error('Error occurred:', err);
 
   // Check if it's a known error
   const knownError = Object.values(ErrorCodes).find(e => e.code === err.code);
