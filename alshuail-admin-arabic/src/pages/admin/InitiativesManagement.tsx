@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toHijri } from 'hijri-converter';
 import SimpleHijriDatePicker from '../../components/Common/SimpleHijriDatePicker';
+import useActiveMemberCount from '../../hooks/useActiveMemberCount';
 
 interface Initiative {
     id: number;
@@ -36,8 +37,9 @@ const InitiativesManagement = () => {
     const [showPushModal, setShowPushModal] = useState(false);
     const [previewInitiative, setPreviewInitiative] = useState<Initiative | null>(null);
     const [pushingInitiativeId, setPushingInitiativeId] = useState<number | null>(null);
-    const [memberCount, setMemberCount] = useState<number>(0);
-    const [loadingMemberCount, setLoadingMemberCount] = useState(false);
+
+    // Real-time member count with 10-second auto-refresh
+    const { count: memberCount, loading: loadingMemberCount } = useActiveMemberCount();
 
     // Form state
     const [formData, setFormData] = useState({
@@ -67,22 +69,6 @@ const InitiativesManagement = () => {
             console.error('Fetch error:', error);
             setInitiatives([]);
             setLoading(false);
-        }
-    };
-
-    const fetchMemberCount = async () => {
-        try {
-            setLoadingMemberCount(true);
-            const token = localStorage.getItem('token');
-            const response = await axios.get(`${API_URL}/news/active-members-count`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            setMemberCount(response.data?.count || 0);
-        } catch (error: any) {
-            console.error('Error fetching member count:', error);
-            setMemberCount(0);
-        } finally {
-            setLoadingMemberCount(false);
         }
     };
 
@@ -383,7 +369,7 @@ const InitiativesManagement = () => {
                                 onClick={() => {
                                     setPreviewInitiative(init);
                                     setShowPushModal(true);
-                                    fetchMemberCount();
+                                    // Member count updates automatically every 10 seconds via useActiveMemberCount hook
                                 }}
                                 disabled={pushingInitiativeId === init.id}
                                 className={`w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white py-3 rounded-lg font-bold text-sm transition-all duration-300 hover:shadow-2xl hover:scale-105 flex items-center justify-center gap-2 ${

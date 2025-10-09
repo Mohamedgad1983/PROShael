@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { formatHijri } from '../../utils/hijriDate.js';
 import SimpleHijriDatePicker from '../../components/Common/SimpleHijriDatePicker';
+import useActiveMemberCount from '../../hooks/useActiveMemberCount';
 import '../../styles/SelectFix.css';
 
 interface NewsItem {
@@ -38,8 +39,10 @@ const NewsManagement = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [showPushModal, setShowPushModal] = useState(false);
     const [pushingNewsId, setPushingNewsId] = useState<number | null>(null);
-    const [memberCount, setMemberCount] = useState<number>(0); // Will be fetched from API
-    const [loadingMemberCount, setLoadingMemberCount] = useState(false);
+
+    // Real-time member count with 10-second auto-refresh
+    const { count: memberCount, loading: loadingMemberCount } = useActiveMemberCount();
+
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deletingNewsId, setDeletingNewsId] = useState<number | null>(null);
     const [deletingNews, setDeletingNews] = useState<NewsItem | null>(null);
@@ -156,25 +159,6 @@ const NewsManagement = () => {
             }
         } catch (error: any) {
             alert('خطأ: ' + (error.response?.data?.error || error.message));
-        }
-    };
-
-    const fetchMemberCount = async () => {
-        try {
-            setLoadingMemberCount(true);
-            const token = localStorage.getItem('token');
-
-            const response = await axios.get(
-                `${API_URL}/news/notification/member-count`,
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-
-            setMemberCount(response.data?.count || 0);
-        } catch (error: any) {
-            console.error('Error fetching member count:', error);
-            setMemberCount(0);
-        } finally {
-            setLoadingMemberCount(false);
         }
     };
 
@@ -503,7 +487,7 @@ const NewsManagement = () => {
                                         onClick={() => {
                                             setPreviewNews(item);
                                             setShowPushModal(true);
-                                            fetchMemberCount(); // Fetch latest member count
+                                            // Member count updates automatically every 10 seconds via useActiveMemberCount hook
                                         }}
                                         disabled={pushingNewsId === item.id}
                                         className={`w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white py-3 rounded-lg font-bold text-sm transition-all duration-300 hover:shadow-2xl hover:scale-105 flex items-center justify-center gap-2 ${
