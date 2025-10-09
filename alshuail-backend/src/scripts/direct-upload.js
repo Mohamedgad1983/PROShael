@@ -25,17 +25,17 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 // Initialize Supabase client with environment credentials
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-console.log('🚀 DIRECT EXCEL UPLOAD - REAL DATA');
-console.log('=====================================\n');
+log.info('🚀 DIRECT EXCEL UPLOAD - REAL DATA');
+log.info('=====================================\n');
 
 async function uploadRealData() {
   try {
     // STEP 1: Read the ACTUAL Excel file
-    console.log('📖 Reading YOUR Excel file with REAL data...');
+    log.info('📖 Reading YOUR Excel file with REAL data...');
     const excelPath = path.join(__dirname, '../../../AlShuail_Members_Prefilled_Import.xlsx');
 
     if (!fs.existsSync(excelPath)) {
-      console.error('❌ Excel file not found at:', excelPath);
+      log.error('❌ Excel file not found at:', excelPath);
       return;
     }
 
@@ -44,11 +44,11 @@ async function uploadRealData() {
     const sheet = workbook.Sheets[sheetName];
     const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-    console.log(`✅ Found ${rawData.length - 1} rows in Excel\n`);
+    log.info(`✅ Found ${rawData.length - 1} rows in Excel\n`);
 
     // STEP 2: Get column headers
     const headers = rawData[0];
-    console.log('📋 Excel columns found:', headers);
+    log.info('📋 Excel columns found:', headers);
 
     // Find year columns (2021, 2022, 2023, 2024, 2025)
     const yearColumns = {};
@@ -61,10 +61,10 @@ async function uploadRealData() {
         }
       }
     });
-    console.log('📅 Year columns:', Object.keys(yearColumns));
+    log.info('📅 Year columns:', Object.keys(yearColumns));
 
     // STEP 3: Process each member's REAL data
-    console.log('\n💰 Processing REAL payment data from Excel...\n');
+    log.info('\n💰 Processing REAL payment data from Excel...\n');
 
     let totalMembers = 0;
     let membersWithPayments = 0;
@@ -81,7 +81,7 @@ async function uploadRealData() {
       const phone = row[2] || `050${String(1000000 + i).padStart(7, '0')}`; // Column C - رقم الهاتف
       const memberId = row[0] || `SH-${10000 + i}`; // Column A - رقم العضوية
 
-      console.log(`\n👤 Member ${i}: ${memberName}`);
+      log.info(`\n👤 Member ${i}: ${memberName}`);
 
       // Check if this member exists in database
       const { data: existingMember, error: memberError } = await supabase
@@ -94,7 +94,7 @@ async function uploadRealData() {
 
       if (existingMember) {
         dbMemberId = existingMember.id;
-        console.log(`   ✅ Found in database with ID: ${dbMemberId}`);
+        log.info(`   ✅ Found in database with ID: ${dbMemberId}`);
       } else {
         // Create member if not exists
         const { data: newMember, error: createError } = await supabase
@@ -111,9 +111,9 @@ async function uploadRealData() {
 
         if (newMember) {
           dbMemberId = newMember.id;
-          console.log(`   ✅ Created new member with ID: ${dbMemberId}`);
+          log.info(`   ✅ Created new member with ID: ${dbMemberId}`);
         } else {
-          console.log(`   ❌ Could not create member:`, createError?.message);
+          log.info(`   ❌ Could not create member:`, createError?.message);
           continue;
         }
       }
@@ -125,7 +125,7 @@ async function uploadRealData() {
 
         if (amount > 0) {
           memberTotal += amount;
-          console.log(`   💵 Year ${year}: ${amount} SAR`);
+          log.info(`   💵 Year ${year}: ${amount} SAR`);
 
           totalPaymentsToAdd.push({
             payer_id: dbMemberId,
@@ -142,14 +142,14 @@ async function uploadRealData() {
 
       if (memberTotal > 0) {
         membersWithPayments++;
-        console.log(`   📊 Total: ${memberTotal} SAR - ${memberTotal >= 3000 ? '✅ SUFFICIENT' : '❌ INSUFFICIENT'}`);
+        log.info(`   📊 Total: ${memberTotal} SAR - ${memberTotal >= 3000 ? '✅ SUFFICIENT' : '❌ INSUFFICIENT'}`);
       } else {
-        console.log(`   ⚠️ No payments found`);
+        log.info(`   ⚠️ No payments found`);
       }
     }
 
     // STEP 4: Upload all payments to database
-    console.log(`\n📤 Uploading ${totalPaymentsToAdd.length} REAL payments to database...`);
+    log.info(`\n📤 Uploading ${totalPaymentsToAdd.length} REAL payments to database...`);
 
     if (totalPaymentsToAdd.length > 0) {
       // Upload in small batches
@@ -171,23 +171,23 @@ async function uploadRealData() {
           .select();
 
         if (error) {
-          console.error(`❌ Batch ${Math.floor(i/batchSize) + 1} error:`, error.message);
+          log.error(`❌ Batch ${Math.floor(i/batchSize) + 1} error:`, error.message);
         } else if (data) {
           successCount += data.length;
-          console.log(`✅ Batch ${Math.floor(i/batchSize) + 1}: ${data.length} payments uploaded`);
+          log.info(`✅ Batch ${Math.floor(i/batchSize) + 1}: ${data.length} payments uploaded`);
         }
       }
 
-      console.log(`\n✅ SUCCESS: ${successCount} payments uploaded!`);
+      log.info(`\n✅ SUCCESS: ${successCount} payments uploaded!`);
     }
 
     // STEP 5: Show final statistics
-    console.log('\n' + '='.repeat(50));
-    console.log('📊 FINAL RESULTS FROM YOUR EXCEL DATA');
-    console.log('='.repeat(50));
-    console.log(`Total members processed: ${totalMembers}`);
-    console.log(`Members with payments: ${membersWithPayments}`);
-    console.log(`Total payment records: ${totalPaymentsToAdd.length}`);
+    log.info('\n' + '='.repeat(50));
+    log.info('📊 FINAL RESULTS FROM YOUR EXCEL DATA');
+    log.info('='.repeat(50));
+    log.info(`Total members processed: ${totalMembers}`);
+    log.info(`Members with payments: ${membersWithPayments}`);
+    log.info(`Total payment records: ${totalPaymentsToAdd.length}`);
 
     // Get updated statistics from database
     const { data: allPayments } = await supabase
@@ -204,17 +204,17 @@ async function uploadRealData() {
       const sufficient = Object.values(balances).filter(b => b >= 3000).length;
       const insufficient = Object.values(balances).filter(b => b < 3000).length;
 
-      console.log(`\n✅ Members with balance ≥3000 SAR: ${sufficient}`);
-      console.log(`❌ Members with balance <3000 SAR: ${insufficient}`);
+      log.info(`\n✅ Members with balance ≥3000 SAR: ${sufficient}`);
+      log.info(`❌ Members with balance <3000 SAR: ${insufficient}`);
     }
 
-    console.log('\n🎉 DONE! Now you can:');
-    console.log('1. Open http://localhost:3002');
-    console.log('2. Click "🚨 لوحة الأزمة" to see REAL member balances');
-    console.log('3. Click "📋 البحث عن كشف" to search REAL payment data');
+    log.info('\n🎉 DONE! Now you can:');
+    log.info('1. Open http://localhost:3002');
+    log.info('2. Click "🚨 لوحة الأزمة" to see REAL member balances');
+    log.info('3. Click "📋 البحث عن كشف" to search REAL payment data');
 
   } catch (error) {
-    console.error('\n❌ Error:', error);
+    log.error('\n❌ Error:', error);
   }
 }
 

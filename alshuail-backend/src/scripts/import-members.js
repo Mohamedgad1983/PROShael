@@ -4,14 +4,14 @@ import fs from 'fs';
 import path from 'path';
 
 const importMembers = async () => {
-  console.log('🚀 Starting Member Import Process...\n');
+  log.info('🚀 Starting Member Import Process...\n');
 
   try {
     // Read Excel file
     const filePath = path.join(process.cwd(), 'AlShuail_Members_Prefilled_Import.xlsx');
 
     if (!fs.existsSync(filePath)) {
-      console.error('❌ Excel file not found at:', filePath);
+      log.error('❌ Excel file not found at:', filePath);
       return;
     }
 
@@ -20,7 +20,7 @@ const importMembers = async () => {
     const worksheet = workbook.Sheets[sheetName];
     const data = XLSX.utils.sheet_to_json(worksheet);
 
-    console.log(`📊 Found ${data.length} members in Excel file\n`);
+    log.info(`📊 Found ${data.length} members in Excel file\n`);
 
     let successCount = 0;
     let errorCount = 0;
@@ -115,7 +115,7 @@ const importMembers = async () => {
             });
 
           if (paymentError) {
-            console.warn(`⚠️ Payment error for ${memberData.full_name}:`, paymentError.message);
+            log.warn(`⚠️ Payment error for ${memberData.full_name}:`, paymentError.message);
           }
         }
 
@@ -136,13 +136,13 @@ const importMembers = async () => {
             });
 
           if (subError) {
-            console.warn(`⚠️ Subscription error for ${memberData.full_name}:`, subError.message);
+            log.warn(`⚠️ Subscription error for ${memberData.full_name}:`, subError.message);
           }
         }
 
         successCount++;
         const status = totalBalance >= 3000 ? '✅' : '❌';
-        console.log(`${status} [${i + 1}/${data.length}] ${memberData.full_name} - Balance: ${totalBalance} SAR`);
+        log.info(`${status} [${i + 1}/${data.length}] ${memberData.full_name} - Balance: ${totalBalance} SAR`);
 
       } catch (error) {
         errorCount++;
@@ -150,16 +150,16 @@ const importMembers = async () => {
           member: memberData.full_name,
           error: error.message
         });
-        console.error(`❌ Error importing ${memberData.full_name}:`, error.message);
+        log.error(`❌ Error importing ${memberData.full_name}:`, error.message);
       }
     }
 
     // Print summary
-    console.log('\n' + '='.repeat(50));
-    console.log('📊 IMPORT SUMMARY');
-    console.log('='.repeat(50));
-    console.log(`✅ Successfully imported: ${successCount} members`);
-    console.log(`❌ Failed imports: ${errorCount} members`);
+    log.info('\n' + '='.repeat(50));
+    log.info('📊 IMPORT SUMMARY');
+    log.info('='.repeat(50));
+    log.info(`✅ Successfully imported: ${successCount} members`);
+    log.info(`❌ Failed imports: ${errorCount} members`);
 
     // Calculate compliance statistics
     const { data: allMembers } = await supabase
@@ -179,30 +179,30 @@ const importMembers = async () => {
     const compliantCount = Object.values(memberBalances).filter(balance => balance >= 3000).length;
     const nonCompliantCount = allMembers?.length - compliantCount;
 
-    console.log(`\n💰 Financial Status:`);
-    console.log(`   - Members above 3000 SAR: ${compliantCount} (${((compliantCount / allMembers?.length) * 100).toFixed(1)}%)`);
-    console.log(`   - Members below 3000 SAR: ${nonCompliantCount} (${((nonCompliantCount / allMembers?.length) * 100).toFixed(1)}%)`);
+    log.info(`\n💰 Financial Status:`);
+    log.info(`   - Members above 3000 SAR: ${compliantCount} (${((compliantCount / allMembers?.length) * 100).toFixed(1)}%)`);
+    log.info(`   - Members below 3000 SAR: ${nonCompliantCount} (${((nonCompliantCount / allMembers?.length) * 100).toFixed(1)}%)`);
 
     if (errors.length > 0) {
-      console.log('\n⚠️ Import Errors:');
+      log.info('\n⚠️ Import Errors:');
       errors.forEach(err => {
-        console.log(`   - ${err.member}: ${err.error}`);
+        log.info(`   - ${err.member}: ${err.error}`);
       });
     }
 
-    console.log('\n✨ Import process completed!');
-    console.log('🚀 Crisis Dashboard will now show all member balances');
+    log.info('\n✨ Import process completed!');
+    log.info('🚀 Crisis Dashboard will now show all member balances');
 
   } catch (error) {
-    console.error('❌ Fatal error during import:', error);
+    log.error('❌ Fatal error during import:', error);
   }
 };
 
 // Run the import
 importMembers().then(() => {
-  console.log('\n👋 Exiting...');
+  log.info('\n👋 Exiting...');
   process.exit(0);
 }).catch(error => {
-  console.error('Fatal error:', error);
+  log.error('Fatal error:', error);
   process.exit(1);
 });

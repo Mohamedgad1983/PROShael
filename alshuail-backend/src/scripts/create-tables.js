@@ -15,13 +15,13 @@ const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-console.log('🔨 Creating Tables in Supabase');
-console.log('===============================\n');
+log.info('🔨 Creating Tables in Supabase');
+log.info('===============================\n');
 
 async function createTables() {
   try {
     // Create members table
-    console.log('Creating members table...');
+    log.info('Creating members table...');
     const { error: membersError } = await supabase.rpc('exec_sql', {
       sql: `
         CREATE TABLE IF NOT EXISTS members (
@@ -42,11 +42,11 @@ async function createTables() {
 
     if (membersError) {
       // Try alternative approach
-      console.log('Using direct table creation...');
+      log.info('Using direct table creation...');
     }
 
     // Create payments table
-    console.log('Creating payments table...');
+    log.info('Creating payments table...');
     const { error: paymentsError } = await supabase.rpc('exec_sql', {
       sql: `
         CREATE TABLE IF NOT EXISTS payments (
@@ -65,7 +65,7 @@ async function createTables() {
     });
 
     // Create member_balances table
-    console.log('Creating member_balances table...');
+    log.info('Creating member_balances table...');
     const { error: balancesError } = await supabase.rpc('exec_sql', {
       sql: `
         CREATE TABLE IF NOT EXISTS member_balances (
@@ -81,17 +81,17 @@ async function createTables() {
       `
     });
 
-    console.log('\n✅ Tables creation attempted!');
-    console.log('\n📝 Please go to your Supabase Dashboard and:');
-    console.log('1. Open SQL Editor');
-    console.log('2. Copy the SQL from: supabase-setup.sql');
-    console.log('3. Run it manually');
-    console.log('\nThis will ensure all tables, indexes, and views are created properly.');
+    log.info('\n✅ Tables creation attempted!');
+    log.info('\n📝 Please go to your Supabase Dashboard and:');
+    log.info('1. Open SQL Editor');
+    log.info('2. Copy the SQL from: supabase-setup.sql');
+    log.info('3. Run it manually');
+    log.info('\nThis will ensure all tables, indexes, and views are created properly.');
 
   } catch (error) {
-    console.error('Error:', error.message);
-    console.log('\n⚠️ Automatic table creation failed.');
-    console.log('Please create tables manually in Supabase SQL Editor.');
+    log.error('Error:', error.message);
+    log.info('\n⚠️ Automatic table creation failed.');
+    log.info('Please create tables manually in Supabase SQL Editor.');
   }
 }
 

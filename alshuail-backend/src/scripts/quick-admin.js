@@ -20,7 +20,7 @@ async function createQuickAdmin() {
       role: 'super_admin'
     };
 
-    console.log('Creating Super Admin Account...\n');
+    log.info('Creating Super Admin Account...\n');
 
     // Hash the password
     const hashedPassword = await bcrypt.hash(adminData.password, 12);
@@ -45,10 +45,10 @@ async function createQuickAdmin() {
         .eq('id', existingUser.id);
 
       if (error) {
-        console.error('Update error:', error.message);
+        log.error('Update error:', error.message);
         return;
       }
-      console.log('✅ Account updated successfully!\n');
+      log.info('✅ Account updated successfully!\n');
     } else {
       // Create new user
       const { error } = await supabase
@@ -62,25 +62,25 @@ async function createQuickAdmin() {
         }]);
 
       if (error) {
-        console.error('Creation error:', error.message);
+        log.error('Creation error:', error.message);
         return;
       }
-      console.log('✅ Account created successfully!\n');
+      log.info('✅ Account created successfully!\n');
     }
 
-    console.log('====================================');
-    console.log('🔐 SUPER ADMIN LOGIN CREDENTIALS');
-    console.log('====================================');
-    console.log('📱 Phone: ' + adminData.phone);
-    console.log('🔑 Password: ' + adminData.password);
-    console.log('👤 Name: ' + adminData.fullName);
-    console.log('⚡ Role: ' + adminData.role);
-    console.log('====================================');
-    console.log('\n🌐 Login at: http://localhost:3002');
-    console.log('====================================\n');
+    log.info('====================================');
+    log.info('🔐 SUPER ADMIN LOGIN CREDENTIALS');
+    log.info('====================================');
+    log.info('📱 Phone: ' + adminData.phone);
+    log.info('🔑 Password: ' + adminData.password);
+    log.info('👤 Name: ' + adminData.fullName);
+    log.info('⚡ Role: ' + adminData.role);
+    log.info('====================================');
+    log.info('\n🌐 Login at: http://localhost:3002');
+    log.info('====================================\n');
 
   } catch (error) {
-    console.error('Error:', error);
+    log.error('Error:', error);
   }
 }
 

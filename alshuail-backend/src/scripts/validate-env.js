@@ -152,18 +152,18 @@ class EnvValidator {
 
   validate() {
     if (!this.silent) {
-      console.log(chalk.blue.bold('\n🔐 Environment Variable Validation\n'));
+      log.info(chalk.blue.bold('\n🔐 Environment Variable Validation\n'));
     }
 
     // Load .env file if it exists
     if (fs.existsSync(this.envPath)) {
       dotenv.config({ path: this.envPath });
       if (!this.silent) {
-        console.log(chalk.gray(`Loaded: ${this.envPath}\n`));
+        log.info(chalk.gray(`Loaded: ${this.envPath}\n`));
       }
     } else {
       if (!this.silent) {
-        console.log(chalk.yellow(`⚠️  No .env file found at: ${this.envPath}\n`));
+        log.info(chalk.yellow(`⚠️  No .env file found at: ${this.envPath}\n`));
       }
     }
 
@@ -173,7 +173,7 @@ class EnvValidator {
     for (const [category, vars] of Object.entries(ENV_CONFIG)) {
       if (!this.silent) {
         const categoryLabel = category.charAt(0).toUpperCase() + category.slice(1);
-        console.log(chalk.blue.bold(`${categoryLabel} Variables:`));
+        log.info(chalk.blue.bold(`${categoryLabel} Variables:`));
       }
 
       for (const [varName, config] of Object.entries(vars)) {
@@ -198,7 +198,7 @@ class EnvValidator {
       }
 
       if (!this.silent) {
-        console.log('');
+        log.info('');
       }
     }
 
@@ -288,7 +288,7 @@ class EnvValidator {
       status = color(`${status} - Set`);
     }
 
-    console.log(status);
+    log.info(status);
   }
 
   applyAutoFixes() {
@@ -339,15 +339,15 @@ class EnvValidator {
     const backupPath = `${this.envPath}.backup-${Date.now()}`;
     if (fs.existsSync(this.envPath)) {
       fs.copyFileSync(this.envPath, backupPath);
-      console.log(chalk.gray(`Backup created: ${backupPath}`));
+      log.info(chalk.gray(`Backup created: ${backupPath}`));
     }
 
     fs.writeFileSync(this.envPath, envContent.join('\n'));
-    console.log(chalk.green(`✅ Environment file updated: ${this.envPath}\n`));
+    log.info(chalk.green(`✅ Environment file updated: ${this.envPath}\n`));
   }
 
   printSummary() {
-    console.log(chalk.blue.bold('📊 Validation Summary:\n'));
+    log.info(chalk.blue.bold('📊 Validation Summary:\n'));
 
     const criticalMissing = this.results.critical.missing.length;
     const criticalInvalid = this.results.critical.invalid.length;
@@ -355,46 +355,46 @@ class EnvValidator {
     const importantInvalid = this.results.important.invalid.length;
 
     if (criticalMissing > 0 || criticalInvalid > 0) {
-      console.log(chalk.red.bold('❌ CRITICAL ISSUES FOUND!\n'));
+      log.info(chalk.red.bold('❌ CRITICAL ISSUES FOUND!\n'));
 
       if (criticalMissing > 0) {
-        console.log(chalk.red(`Missing critical variables (${criticalMissing}):`));
+        log.info(chalk.red(`Missing critical variables (${criticalMissing}):`));
         for (const item of this.results.critical.missing) {
-          console.log(chalk.red(`  - ${item.name}: ${item.config.description}`));
+          log.info(chalk.red(`  - ${item.name}: ${item.config.description}`));
           if (item.config.example) {
-            console.log(chalk.gray(`    Example: ${item.config.example}`));
+            log.info(chalk.gray(`    Example: ${item.config.example}`));
           }
         }
-        console.log('');
+        log.info('');
       }
 
       if (criticalInvalid > 0) {
-        console.log(chalk.red(`Invalid critical variables (${criticalInvalid}):`));
+        log.info(chalk.red(`Invalid critical variables (${criticalInvalid}):`));
         for (const item of this.results.critical.invalid) {
-          console.log(chalk.red(`  - ${item.name}: ${item.config.description}`));
+          log.info(chalk.red(`  - ${item.name}: ${item.config.description}`));
         }
-        console.log('');
+        log.info('');
       }
 
-      console.log(chalk.cyan('To fix:'));
-      console.log(chalk.cyan('1. Create a .env file in your project root'));
-      console.log(chalk.cyan('2. Add the missing variables with valid values'));
-      console.log(chalk.cyan('3. Run this validator again to verify\n'));
+      log.info(chalk.cyan('To fix:'));
+      log.info(chalk.cyan('1. Create a .env file in your project root'));
+      log.info(chalk.cyan('2. Add the missing variables with valid values'));
+      log.info(chalk.cyan('3. Run this validator again to verify\n'));
 
       if (!this.autoFix) {
-        console.log(chalk.yellow('💡 Run with --auto-fix to generate a template .env file\n'));
+        log.info(chalk.yellow('💡 Run with --auto-fix to generate a template .env file\n'));
       }
     } else if (importantMissing > 0 || importantInvalid > 0) {
-      console.log(chalk.yellow('⚠️  Some important variables are missing or invalid.\n'));
-      console.log(chalk.yellow('The application will run but may have limited functionality.\n'));
+      log.info(chalk.yellow('⚠️  Some important variables are missing or invalid.\n'));
+      log.info(chalk.yellow('The application will run but may have limited functionality.\n'));
     } else {
-      console.log(chalk.green.bold('✅ All required environment variables are properly configured!\n'));
+      log.info(chalk.green.bold('✅ All required environment variables are properly configured!\n'));
     }
 
     // Show .env template command
     if ((criticalMissing > 0 || importantMissing > 0) && !this.autoFix) {
-      console.log(chalk.gray('Generate .env template:'));
-      console.log(chalk.gray('  node validate-env.js --generate-template\n'));
+      log.info(chalk.gray('Generate .env template:'));
+      log.info(chalk.gray('  node validate-env.js --generate-template\n'));
     }
   }
 
@@ -428,11 +428,11 @@ class EnvValidator {
 
     const templatePath = '.env.example';
     fs.writeFileSync(templatePath, template.join('\n'));
-    console.log(chalk.green(`✅ Template generated: ${templatePath}\n`));
-    console.log(chalk.cyan('Next steps:'));
-    console.log(chalk.cyan('1. Copy .env.example to .env'));
-    console.log(chalk.cyan('2. Fill in your actual values'));
-    console.log(chalk.cyan('3. Never commit the .env file to version control\n'));
+    log.info(chalk.green(`✅ Template generated: ${templatePath}\n`));
+    log.info(chalk.cyan('Next steps:'));
+    log.info(chalk.cyan('1. Copy .env.example to .env'));
+    log.info(chalk.cyan('2. Fill in your actual values'));
+    log.info(chalk.cyan('3. Never commit the .env file to version control\n'));
   }
 }
 
@@ -441,7 +441,7 @@ function main() {
   const args = process.argv.slice(2);
 
   if (args.includes('--help') || args.includes('-h')) {
-    console.log(`
+    log.info(`
 ${chalk.blue.bold('Environment Variable Validator')}
 
 Usage: node validate-env.js [options]

@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 
 const simpleImport = async () => {
-  console.log('🚀 Starting Simple Member Import...\n');
+  log.info('🚀 Starting Simple Member Import...\n');
 
   try {
     // Read Excel file
@@ -14,7 +14,7 @@ const simpleImport = async () => {
     const worksheet = workbook.Sheets[sheetName];
     const data = XLSX.utils.sheet_to_json(worksheet);
 
-    console.log(`📊 Found ${data.length} members to import\n`);
+    log.info(`📊 Found ${data.length} members to import\n`);
 
     let successCount = 0;
     let errorCount = 0;
@@ -102,21 +102,21 @@ const simpleImport = async () => {
         successCount++;
         const status = totalBalance >= 3000 ? '✅' : '❌';
         const shortfall = Math.max(0, 3000 - totalBalance);
-        console.log(`${status} [${i + 1}/${data.length}] ${memberData.full_name}`);
-        console.log(`   الرصيد: ${totalBalance} ريال ${shortfall > 0 ? `(النقص: ${shortfall} ريال)` : '(مكتمل)'}`);
+        log.info(`${status} [${i + 1}/${data.length}] ${memberData.full_name}`);
+        log.info(`   الرصيد: ${totalBalance} ريال ${shortfall > 0 ? `(النقص: ${shortfall} ريال)` : '(مكتمل)'}`);
 
       } catch (error) {
         errorCount++;
-        console.error(`❌ خطأ في ${memberData.full_name}: ${error.message}`);
+        log.error(`❌ خطأ في ${memberData.full_name}: ${error.message}`);
       }
     }
 
     // Summary
-    console.log('\n' + '='.repeat(50));
-    console.log('📊 ملخص الاستيراد');
-    console.log('='.repeat(50));
-    console.log(`✅ تم استيراد: ${successCount} عضو`);
-    console.log(`❌ فشل: ${errorCount} عضو`);
+    log.info('\n' + '='.repeat(50));
+    log.info('📊 ملخص الاستيراد');
+    log.info('='.repeat(50));
+    log.info(`✅ تم استيراد: ${successCount} عضو`);
+    log.info(`❌ فشل: ${errorCount} عضو`);
 
     // Check compliance
     const { data: allPayments } = await supabase
@@ -132,23 +132,23 @@ const simpleImport = async () => {
     const compliantCount = Object.values(memberBalances).filter(balance => balance >= 3000).length;
     const totalMembers = Object.keys(memberBalances).length;
 
-    console.log(`\n💰 حالة الصندوق:`);
-    console.log(`   - أعضاء فوق 3000 ريال: ${compliantCount} (${((compliantCount / totalMembers) * 100).toFixed(1)}%)`);
-    console.log(`   - أعضاء دون 3000 ريال: ${totalMembers - compliantCount} (${(((totalMembers - compliantCount) / totalMembers) * 100).toFixed(1)}%)`);
+    log.info(`\n💰 حالة الصندوق:`);
+    log.info(`   - أعضاء فوق 3000 ريال: ${compliantCount} (${((compliantCount / totalMembers) * 100).toFixed(1)}%)`);
+    log.info(`   - أعضاء دون 3000 ريال: ${totalMembers - compliantCount} (${(((totalMembers - compliantCount) / totalMembers) * 100).toFixed(1)}%)`);
 
-    console.log('\n✨ اكتملت عملية الاستيراد!');
-    console.log('🚀 لوحة الأزمة ستعرض الآن جميع أرصدة الأعضاء');
+    log.info('\n✨ اكتملت عملية الاستيراد!');
+    log.info('🚀 لوحة الأزمة ستعرض الآن جميع أرصدة الأعضاء');
 
   } catch (error) {
-    console.error('❌ خطأ كبير:', error);
+    log.error('❌ خطأ كبير:', error);
   }
 };
 
 // Run import
 simpleImport().then(() => {
-  console.log('\n👋 انتهى...');
+  log.info('\n👋 انتهى...');
   process.exit(0);
 }).catch(error => {
-  console.error('خطأ:', error);
+  log.error('خطأ:', error);
   process.exit(1);
 });

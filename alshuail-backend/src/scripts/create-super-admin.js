@@ -20,10 +20,10 @@ const question = (query) => new Promise((resolve) => rl.question(query, resolve)
 
 async function createSuperAdmin() {
   try {
-    console.log('========================================');
-    console.log('إنشاء حساب مدير عام جديد');
-    console.log('Create New Super Admin Account');
-    console.log('========================================\n');
+    log.info('========================================');
+    log.info('إنشاء حساب مدير عام جديد');
+    log.info('Create New Super Admin Account');
+    log.info('========================================\n');
 
     // Get user input
     const fullName = await question('أدخل الاسم الكامل بالعربية (Full Name in Arabic): ');
@@ -33,8 +33,8 @@ async function createSuperAdmin() {
     // Validate phone format
     const phoneRegex = /^(\+965|\+966)[0-9]{8,9}$/;
     if (!phoneRegex.test(phone)) {
-      console.error('❌ رقم الهاتف غير صحيح! يجب أن يبدأ بـ +965 أو +966');
-      console.error('Invalid phone format! Must start with +965 or +966');
+      log.error('❌ رقم الهاتف غير صحيح! يجب أن يبدأ بـ +965 أو +966');
+      log.error('Invalid phone format! Must start with +965 or +966');
       rl.close();
       return;
     }
@@ -50,8 +50,8 @@ async function createSuperAdmin() {
       .single();
 
     if (existingUser) {
-      console.log('\n⚠️ المستخدم موجود بالفعل، سيتم تحديث البيانات...');
-      console.log('User already exists, updating...\n');
+      log.info('\n⚠️ المستخدم موجود بالفعل، سيتم تحديث البيانات...');
+      log.info('User already exists, updating...\n');
 
       // Update existing user to super admin
       const { data, error } = await supabase
@@ -68,18 +68,18 @@ async function createSuperAdmin() {
         .single();
 
       if (error) {
-        console.error('❌ خطأ في التحديث:', error.message);
-        console.error('Update error:', error.message);
+        log.error('❌ خطأ في التحديث:', error.message);
+        log.error('Update error:', error.message);
       } else {
-        console.log('\n✅ تم تحديث المستخدم كمدير عام بنجاح!');
-        console.log('User updated as super admin successfully!\n');
-        console.log('========================================');
-        console.log('بيانات الدخول / Login Credentials:');
-        console.log('========================================');
-        console.log(`الهاتف (Phone): ${phone}`);
-        console.log(`كلمة المرور (Password): ${password}`);
-        console.log(`الصلاحية (Role): super_admin`);
-        console.log('========================================');
+        log.info('\n✅ تم تحديث المستخدم كمدير عام بنجاح!');
+        log.info('User updated as super admin successfully!\n');
+        log.info('========================================');
+        log.info('بيانات الدخول / Login Credentials:');
+        log.info('========================================');
+        log.info(`الهاتف (Phone): ${phone}`);
+        log.info(`كلمة المرور (Password): ${password}`);
+        log.info(`الصلاحية (Role): super_admin`);
+        log.info('========================================');
       }
     } else {
       // Create new super admin
@@ -100,25 +100,25 @@ async function createSuperAdmin() {
         .single();
 
       if (error) {
-        console.error('❌ خطأ في الإنشاء:', error.message);
-        console.error('Creation error:', error.message);
+        log.error('❌ خطأ في الإنشاء:', error.message);
+        log.error('Creation error:', error.message);
       } else {
-        console.log('\n✅ تم إنشاء حساب المدير العام بنجاح!');
-        console.log('Super admin account created successfully!\n');
-        console.log('========================================');
-        console.log('بيانات الدخول / Login Credentials:');
-        console.log('========================================');
-        console.log(`الاسم (Name): ${fullName}`);
-        console.log(`الهاتف (Phone): ${phone}`);
-        console.log(`كلمة المرور (Password): ${password}`);
-        console.log(`الصلاحية (Role): super_admin`);
-        console.log('========================================');
+        log.info('\n✅ تم إنشاء حساب المدير العام بنجاح!');
+        log.info('Super admin account created successfully!\n');
+        log.info('========================================');
+        log.info('بيانات الدخول / Login Credentials:');
+        log.info('========================================');
+        log.info(`الاسم (Name): ${fullName}`);
+        log.info(`الهاتف (Phone): ${phone}`);
+        log.info(`كلمة المرور (Password): ${password}`);
+        log.info(`الصلاحية (Role): super_admin`);
+        log.info('========================================');
       }
     }
 
     // Test the login
-    console.log('\n🔧 اختبار تسجيل الدخول...');
-    console.log('Testing login...\n');
+    log.info('\n🔧 اختبار تسجيل الدخول...');
+    log.info('Testing login...\n');
 
     const { data: loginTest } = await supabase
       .from('members')
@@ -129,23 +129,23 @@ async function createSuperAdmin() {
     if (loginTest) {
       const passwordMatch = await bcrypt.compare(password, loginTest.password_hash);
       if (passwordMatch) {
-        console.log('✅ تسجيل الدخول يعمل بشكل صحيح!');
-        console.log('Login test successful!');
+        log.info('✅ تسجيل الدخول يعمل بشكل صحيح!');
+        log.info('Login test successful!');
       } else {
-        console.log('⚠️ كلمة المرور لا تطابق');
-        console.log('Password mismatch');
+        log.info('⚠️ كلمة المرور لا تطابق');
+        log.info('Password mismatch');
       }
     }
 
-    console.log('\n========================================');
-    console.log('يمكنك الآن تسجيل الدخول من الموقع:');
-    console.log('You can now login at:');
-    console.log('http://localhost:3002');
-    console.log('========================================\n');
+    log.info('\n========================================');
+    log.info('يمكنك الآن تسجيل الدخول من الموقع:');
+    log.info('You can now login at:');
+    log.info('http://localhost:3002');
+    log.info('========================================\n');
 
   } catch (error) {
-    console.error('❌ خطأ غير متوقع:', error);
-    console.error('Unexpected error:', error);
+    log.error('❌ خطأ غير متوقع:', error);
+    log.error('Unexpected error:', error);
   } finally {
     rl.close();
   }

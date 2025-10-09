@@ -23,27 +23,27 @@ const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-console.log('💰 Adding Payment Data to Existing Members');
-console.log('==========================================\n');
+log.info('💰 Adding Payment Data to Existing Members');
+log.info('==========================================\n');
 
 async function addPayments() {
   try {
     // Get all existing members
-    console.log('📖 Fetching existing members...');
+    log.info('📖 Fetching existing members...');
     const { data: members, error: memberError } = await supabase
       .from('members')
       .select('*')
       .order('created_at');
 
     if (memberError) {
-      console.error('❌ Error fetching members:', memberError);
+      log.error('❌ Error fetching members:', memberError);
       return;
     }
 
-    console.log(`✅ Found ${members.length} members\n`);
+    log.info(`✅ Found ${members.length} members\n`);
 
     // Add sample payments for each member
-    console.log('💳 Adding payment history for each member...');
+    log.info('💳 Adding payment history for each member...');
     const payments = [];
 
     members.forEach((member, index) => {
@@ -72,7 +72,7 @@ async function addPayments() {
       });
     });
 
-    console.log(`📤 Uploading ${payments.length} payment records...`);
+    log.info(`📤 Uploading ${payments.length} payment records...`);
 
     // Upload payments in batches to avoid timeout
     const batchSize = 50;
@@ -83,15 +83,15 @@ async function addPayments() {
         .insert(batch);
 
       if (paymentError) {
-        console.error('❌ Error uploading batch:', paymentError);
+        log.error('❌ Error uploading batch:', paymentError);
       } else {
-        console.log(`✅ Uploaded batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(payments.length/batchSize)}`);
+        log.info(`✅ Uploaded batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(payments.length/batchSize)}`);
       }
     }
 
     // Calculate and display statistics
-    console.log('\n📊 Payment Statistics:');
-    console.log('=====================');
+    log.info('\n📊 Payment Statistics:');
+    log.info('=====================');
 
     // Get all payments to calculate balances
     const { data: allPayments, error: fetchError } = await supabase
@@ -122,21 +122,21 @@ async function addPayments() {
         }
       });
 
-      console.log(`Total Members: ${members.length}`);
-      console.log(`Total Payments: ${allPayments.length}`);
-      console.log(`Members with Sufficient Balance (≥3000): ${sufficientCount} (${(sufficientCount/members.length*100).toFixed(1)}%)`);
-      console.log(`Members with Insufficient Balance (<3000): ${insufficientCount} (${(insufficientCount/members.length*100).toFixed(1)}%)`);
-      console.log(`Total Shortfall: ${totalShortfall.toLocaleString()} SAR`);
+      log.info(`Total Members: ${members.length}`);
+      log.info(`Total Payments: ${allPayments.length}`);
+      log.info(`Members with Sufficient Balance (≥3000): ${sufficientCount} (${(sufficientCount/members.length*100).toFixed(1)}%)`);
+      log.info(`Members with Insufficient Balance (<3000): ${insufficientCount} (${(insufficientCount/members.length*100).toFixed(1)}%)`);
+      log.info(`Total Shortfall: ${totalShortfall.toLocaleString()} SAR`);
     }
 
-    console.log('\n✅ Payment data added successfully!');
-    console.log('\n📋 Next Steps:');
-    console.log('1. Test Crisis Dashboard at http://localhost:3002');
-    console.log('2. Click on "🚨 لوحة الأزمة" to see member balances');
-    console.log('3. Test "📋 البحث عن كشف" to search member statements');
+    log.info('\n✅ Payment data added successfully!');
+    log.info('\n📋 Next Steps:');
+    log.info('1. Test Crisis Dashboard at http://localhost:3002');
+    log.info('2. Click on "🚨 لوحة الأزمة" to see member balances');
+    log.info('3. Test "📋 البحث عن كشف" to search member statements');
 
   } catch (error) {
-    console.error('\n❌ Error:', error.message);
+    log.error('\n❌ Error:', error.message);
   }
 }
 

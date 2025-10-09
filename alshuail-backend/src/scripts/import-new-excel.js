@@ -25,17 +25,17 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 // Initialize Supabase client with environment credentials
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-console.log('🚀 IMPORTING NEW EXCEL DATA (289 MEMBERS)');
-console.log('==========================================\n');
+log.info('🚀 IMPORTING NEW EXCEL DATA (289 MEMBERS)');
+log.info('==========================================\n');
 
 async function importNewExcel() {
   try {
     // STEP 1: Read the new Excel file
-    console.log('📖 Reading Excel file: AlShuail_Members.xlsx');
+    log.info('📖 Reading Excel file: AlShuail_Members.xlsx');
     const excelPath = path.join(__dirname, '../../../../AlShuail_Members.xlsx');
 
     if (!fs.existsSync(excelPath)) {
-      console.error('❌ Excel file not found at:', excelPath);
+      log.error('❌ Excel file not found at:', excelPath);
       return;
     }
 
@@ -44,10 +44,10 @@ async function importNewExcel() {
     const sheet = workbook.Sheets[sheetName];
     const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-    console.log(`✅ Found ${rawData.length - 1} data rows\n`);
+    log.info(`✅ Found ${rawData.length - 1} data rows\n`);
 
     // STEP 2: Get subscription plan
-    console.log('📋 Getting subscription plan...');
+    log.info('📋 Getting subscription plan...');
     const { data: plans } = await supabase
       .from('subscription_plans')
       .select('*')
@@ -55,15 +55,15 @@ async function importNewExcel() {
       .limit(1);
 
     const planId = plans?.[0]?.id || 'efb37762-1507-4743-b0d8-412cb1b26710';
-    console.log(`✅ Using plan ID: ${planId}\n`);
+    log.info(`✅ Using plan ID: ${planId}\n`);
 
     // STEP 3: Get existing members from database
-    console.log('👥 Getting existing members from database...');
+    log.info('👥 Getting existing members from database...');
     const { data: existingMembers } = await supabase
       .from('members')
       .select('id, membership_number, phone, full_name');
 
-    console.log(`✅ Found ${existingMembers?.length || 0} existing members\n`);
+    log.info(`✅ Found ${existingMembers?.length || 0} existing members\n`);
 
     // Create lookup maps for existing members
     const memberByPhone = {};
@@ -86,7 +86,7 @@ async function importNewExcel() {
     let totalPaymentsCount = 0;
     let totalAmount = 0;
 
-    console.log('🔄 Processing member data...\n');
+    log.info('🔄 Processing member data...\n');
 
     // Process each row
     for (let i = 1; i < rawData.length; i++) {
@@ -188,15 +188,15 @@ async function importNewExcel() {
       });
     }
 
-    console.log('📊 Processing Summary:');
-    console.log(`  - New members to create: ${newMembersCount}`);
-    console.log(`  - Existing members to update: ${updatedMembersCount}`);
-    console.log(`  - Total payments to create: ${totalPaymentsCount}`);
-    console.log(`  - Total amount: ${totalAmount.toFixed(2)} SAR\n`);
+    log.info('📊 Processing Summary:');
+    log.info(`  - New members to create: ${newMembersCount}`);
+    log.info(`  - Existing members to update: ${updatedMembersCount}`);
+    log.info(`  - Total payments to create: ${totalPaymentsCount}`);
+    log.info(`  - Total amount: ${totalAmount.toFixed(2)} SAR\n`);
 
     // STEP 5: Insert new members
     if (membersToInsert.length > 0) {
-      console.log(`📤 Inserting ${membersToInsert.length} new members...`);
+      log.info(`📤 Inserting ${membersToInsert.length} new members...`);
       const batchSize = 10;
       let insertedCount = 0;
 
@@ -208,18 +208,18 @@ async function importNewExcel() {
           .select();
 
         if (error) {
-          console.error(`❌ Error inserting batch ${Math.floor(i/batchSize) + 1}:`, error.message);
+          log.error(`❌ Error inserting batch ${Math.floor(i/batchSize) + 1}:`, error.message);
         } else {
           insertedCount += data.length;
-          console.log(`  ✅ Batch ${Math.floor(i/batchSize) + 1}: Inserted ${data.length} members`);
+          log.info(`  ✅ Batch ${Math.floor(i/batchSize) + 1}: Inserted ${data.length} members`);
         }
       }
-      console.log(`✅ Successfully inserted ${insertedCount} new members\n`);
+      log.info(`✅ Successfully inserted ${insertedCount} new members\n`);
     }
 
     // STEP 6: Update existing members
     if (membersToUpdate.length > 0) {
-      console.log(`📤 Updating ${membersToUpdate.length} existing members...`);
+      log.info(`📤 Updating ${membersToUpdate.length} existing members...`);
       let updatedCount = 0;
 
       for (const member of membersToUpdate) {
@@ -232,11 +232,11 @@ async function importNewExcel() {
           updatedCount++;
         }
       }
-      console.log(`✅ Successfully updated ${updatedCount} members\n`);
+      log.info(`✅ Successfully updated ${updatedCount} members\n`);
     }
 
     // STEP 7: Get all members again (including newly created ones)
-    console.log('🔄 Getting updated member list...');
+    log.info('🔄 Getting updated member list...');
     const { data: allMembers } = await supabase
       .from('members')
       .select('id, membership_number, phone');
@@ -250,7 +250,7 @@ async function importNewExcel() {
     });
 
     // STEP 8: Create subscriptions for new members
-    console.log('📝 Creating subscriptions for members...');
+    log.info('📝 Creating subscriptions for members...');
     const subscriptionsCreated = [];
 
     for (const member of allMembers || []) {
@@ -281,7 +281,7 @@ async function importNewExcel() {
         .insert(subscriptionsCreated)
         .select();
 
-      console.log(`✅ Created ${data?.length || 0} new subscriptions\n`);
+      log.info(`✅ Created ${data?.length || 0} new subscriptions\n`);
     }
 
     // STEP 9: Get all subscriptions
@@ -295,7 +295,7 @@ async function importNewExcel() {
     });
 
     // STEP 10: Insert payments
-    console.log(`💰 Creating ${paymentsToInsert.length} payment records...`);
+    log.info(`💰 Creating ${paymentsToInsert.length} payment records...`);
     const finalPayments = [];
 
     for (const payment of paymentsToInsert) {
@@ -333,18 +333,18 @@ async function importNewExcel() {
           .select();
 
         if (error) {
-          console.error(`❌ Payment batch error:`, error.message);
+          log.error(`❌ Payment batch error:`, error.message);
         } else {
           paymentInsertCount += data.length;
-          console.log(`  ✅ Payment batch ${Math.floor(i/batchSize) + 1}: Created ${data.length} payments`);
+          log.info(`  ✅ Payment batch ${Math.floor(i/batchSize) + 1}: Created ${data.length} payments`);
         }
       }
-      console.log(`✅ Successfully created ${paymentInsertCount} payment records\n`);
+      log.info(`✅ Successfully created ${paymentInsertCount} payment records\n`);
     }
 
     // STEP 11: Final verification
-    console.log('📊 FINAL VERIFICATION:');
-    console.log('======================\n');
+    log.info('📊 FINAL VERIFICATION:');
+    log.info('======================\n');
 
     // Count members by balance status
     const { data: statusCount } = await supabase
@@ -354,21 +354,21 @@ async function importNewExcel() {
     const sufficient = statusCount?.filter(m => m.balance_status === 'sufficient').length || 0;
     const insufficient = statusCount?.filter(m => m.balance_status === 'insufficient').length || 0;
 
-    console.log('✅ IMPORT COMPLETE!');
-    console.log(`  - Total members in database: ${statusCount?.length || 0}`);
-    console.log(`  - Members with sufficient balance (≥3000): ${sufficient}`);
-    console.log(`  - Members with insufficient balance (<3000): ${insufficient}`);
-    console.log(`  - Total payment records created: ${paymentInsertCount || 0}`);
-    console.log(`  - Total amount imported: ${totalAmount.toFixed(2)} SAR`);
+    log.info('✅ IMPORT COMPLETE!');
+    log.info(`  - Total members in database: ${statusCount?.length || 0}`);
+    log.info(`  - Members with sufficient balance (≥3000): ${sufficient}`);
+    log.info(`  - Members with insufficient balance (<3000): ${insufficient}`);
+    log.info(`  - Total payment records created: ${paymentInsertCount || 0}`);
+    log.info(`  - Total amount imported: ${totalAmount.toFixed(2)} SAR`);
 
-    console.log('\n🎉 Your Crisis Dashboard should now show REAL data!');
-    console.log('   Open http://localhost:3002 and check:');
-    console.log('   1. 🚨 لوحة الأزمة - Crisis Dashboard');
-    console.log('   2. 📋 البحث عن كشف - Member Statement Search');
+    log.info('\n🎉 Your Crisis Dashboard should now show REAL data!');
+    log.info('   Open http://localhost:3002 and check:');
+    log.info('   1. 🚨 لوحة الأزمة - Crisis Dashboard');
+    log.info('   2. 📋 البحث عن كشف - Member Statement Search');
 
   } catch (error) {
-    console.error('\n❌ Import error:', error.message);
-    console.error(error);
+    log.error('\n❌ Import error:', error.message);
+    log.error(error);
   }
 }
 

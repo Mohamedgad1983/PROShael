@@ -89,16 +89,16 @@ class PreCommitScanner {
   }
 
   async scan() {
-    console.log(chalk.blue.bold('\n🔒 Pre-commit Security Check\n'));
+    log.info(chalk.blue.bold('\n🔒 Pre-commit Security Check\n'));
 
     const stagedFiles = this.getStagedFiles();
 
     if (stagedFiles.length === 0) {
-      console.log(chalk.gray('No staged files to scan.'));
+      log.info(chalk.gray('No staged files to scan.'));
       return true;
     }
 
-    console.log(chalk.gray(`Scanning ${stagedFiles.length} staged files...\n`));
+    log.info(chalk.gray(`Scanning ${stagedFiles.length} staged files...\n`));
 
     for (const file of stagedFiles) {
       if (this.shouldScanFile(file)) {
@@ -117,7 +117,7 @@ class PreCommitScanner {
 
       return output.trim().split('\n').filter(Boolean);
     } catch (error) {
-      console.error(chalk.red('Failed to get staged files. Are you in a git repository?'));
+      log.error(chalk.red('Failed to get staged files. Are you in a git repository?'));
       process.exit(1);
     }
   }
@@ -189,7 +189,7 @@ class PreCommitScanner {
         }
       }
     } catch (error) {
-      console.error(chalk.red(`Error scanning ${filePath}: ${error.message}`));
+      log.error(chalk.red(`Error scanning ${filePath}: ${error.message}`));
     }
   }
 
@@ -238,59 +238,59 @@ class PreCommitScanner {
   }
 
   reportAndDecide() {
-    console.log(chalk.blue.bold('📊 Scan Results:\n'));
-    console.log(chalk.gray(`Files scanned: ${this.filesScanned}`));
+    log.info(chalk.blue.bold('📊 Scan Results:\n'));
+    log.info(chalk.gray(`Files scanned: ${this.filesScanned}`));
 
     const hasBlockingIssues = this.findings.blocking.length > 0;
     const hasWarnings = this.findings.warnings.length > 0;
 
     if (!hasBlockingIssues && !hasWarnings) {
-      console.log(chalk.green.bold('\n✅ All clear! No secrets detected.\n'));
+      log.info(chalk.green.bold('\n✅ All clear! No secrets detected.\n'));
       return true;
     }
 
     // Show blocking issues
     if (hasBlockingIssues) {
-      console.log(chalk.red.bold(`\n❌ BLOCKING ISSUES (${this.findings.blocking.length}):`));
-      console.log(chalk.red('These must be fixed before committing:\n'));
+      log.info(chalk.red.bold(`\n❌ BLOCKING ISSUES (${this.findings.blocking.length}):`));
+      log.info(chalk.red('These must be fixed before committing:\n'));
 
       for (const finding of this.findings.blocking) {
-        console.log(chalk.red(`  🚫 ${finding.file}:${finding.line}`));
-        console.log(chalk.red(`     Type: ${finding.type}`));
-        console.log(chalk.red(`     Found: ${finding.match}`));
-        console.log(chalk.gray(`     Line: ${finding.content.substring(0, 80)}...`));
-        console.log('');
+        log.info(chalk.red(`  🚫 ${finding.file}:${finding.line}`));
+        log.info(chalk.red(`     Type: ${finding.type}`));
+        log.info(chalk.red(`     Found: ${finding.match}`));
+        log.info(chalk.gray(`     Line: ${finding.content.substring(0, 80)}...`));
+        log.info('');
       }
     }
 
     // Show warnings
     if (hasWarnings) {
-      console.log(chalk.yellow.bold(`\n⚠️  WARNINGS (${this.findings.warnings.length}):`));
-      console.log(chalk.yellow('Consider fixing these issues:\n'));
+      log.info(chalk.yellow.bold(`\n⚠️  WARNINGS (${this.findings.warnings.length}):`));
+      log.info(chalk.yellow('Consider fixing these issues:\n'));
 
       for (const finding of this.findings.warnings) {
-        console.log(chalk.yellow(`  ⚠️  ${finding.file}:${finding.line}`));
-        console.log(chalk.yellow(`     Type: ${finding.type}`));
-        console.log(chalk.yellow(`     Found: ${finding.match}`));
-        console.log('');
+        log.info(chalk.yellow(`  ⚠️  ${finding.file}:${finding.line}`));
+        log.info(chalk.yellow(`     Type: ${finding.type}`));
+        log.info(chalk.yellow(`     Found: ${finding.match}`));
+        log.info('');
       }
     }
 
     if (hasBlockingIssues) {
-      console.log(chalk.red.bold('\n❌ COMMIT BLOCKED!'));
-      console.log(chalk.red('Found hardcoded secrets that must be removed.\n'));
-      console.log(chalk.cyan('To fix:'));
-      console.log(chalk.cyan('1. Remove the hardcoded secrets from your files'));
-      console.log(chalk.cyan('2. Use environment variables instead'));
-      console.log(chalk.cyan('3. Run "npm run cleanup-secrets --fix" for automatic fixes'));
-      console.log(chalk.cyan('4. Stage your changes and try committing again\n'));
+      log.info(chalk.red.bold('\n❌ COMMIT BLOCKED!'));
+      log.info(chalk.red('Found hardcoded secrets that must be removed.\n'));
+      log.info(chalk.cyan('To fix:'));
+      log.info(chalk.cyan('1. Remove the hardcoded secrets from your files'));
+      log.info(chalk.cyan('2. Use environment variables instead'));
+      log.info(chalk.cyan('3. Run "npm run cleanup-secrets --fix" for automatic fixes'));
+      log.info(chalk.cyan('4. Stage your changes and try committing again\n'));
 
       return false;
     }
 
     if (hasWarnings) {
-      console.log(chalk.yellow.bold('\n⚠️  Commit allowed with warnings.'));
-      console.log(chalk.yellow('Please review and fix the warnings in your next commit.\n'));
+      log.info(chalk.yellow.bold('\n⚠️  Commit allowed with warnings.'));
+      log.info(chalk.yellow('Please review and fix the warnings in your next commit.\n'));
     }
 
     return true;
@@ -303,7 +303,7 @@ async function main() {
   const isClean = await scanner.scan();
 
   if (!isClean) {
-    console.log(chalk.red('Use --no-verify to bypass this check (NOT RECOMMENDED)\n'));
+    log.info(chalk.red('Use --no-verify to bypass this check (NOT RECOMMENDED)\n'));
     process.exit(1);
   }
 
@@ -313,7 +313,7 @@ async function main() {
 // Run if called directly
 if (import.meta.url === `file://${__filename}`) {
   main().catch(error => {
-    console.error(chalk.red(`Fatal error: ${error.message}`));
+    log.error(chalk.red(`Fatal error: ${error.message}`));
     process.exit(1);
   });
 }

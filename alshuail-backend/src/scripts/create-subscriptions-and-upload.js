@@ -25,26 +25,26 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 // Initialize Supabase client with environment credentials
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-console.log('🚀 CREATING SUBSCRIPTIONS AND UPLOADING PAYMENTS');
-console.log('================================================\n');
+log.info('🚀 CREATING SUBSCRIPTIONS AND UPLOADING PAYMENTS');
+log.info('================================================\n');
 
 async function createSubscriptionsAndUpload() {
   try {
     // STEP 1: Get all members that need subscriptions
-    console.log('📖 Getting all members...');
+    log.info('📖 Getting all members...');
     const { data: members, error: memberError } = await supabase
       .from('members')
       .select('id, full_name, membership_number');
 
     if (memberError) {
-      console.error('❌ Error fetching members:', memberError);
+      log.error('❌ Error fetching members:', memberError);
       return;
     }
 
-    console.log(`✅ Found ${members.length} members\n`);
+    log.info(`✅ Found ${members.length} members\n`);
 
     // STEP 2: Create subscriptions for each member
-    console.log('📋 Creating subscriptions for all members...');
+    log.info('📋 Creating subscriptions for all members...');
     const subscriptions = [];
 
     for (const member of members) {
@@ -70,7 +70,7 @@ async function createSubscriptionsAndUpload() {
     }
 
     if (subscriptions.length > 0) {
-      console.log(`📤 Creating ${subscriptions.length} new subscriptions...`);
+      log.info(`📤 Creating ${subscriptions.length} new subscriptions...`);
 
       // Insert in batches
       const batchSize = 10;
@@ -81,21 +81,21 @@ async function createSubscriptionsAndUpload() {
           .insert(batch);
 
         if (error) {
-          console.error(`❌ Batch error:`, error.message);
+          log.error(`❌ Batch error:`, error.message);
         } else {
-          console.log(`✅ Created batch ${Math.floor(i/batchSize) + 1}`);
+          log.info(`✅ Created batch ${Math.floor(i/batchSize) + 1}`);
         }
       }
     }
 
     // STEP 3: Get all subscriptions with member mapping
-    console.log('\n📖 Getting subscription IDs...');
+    log.info('\n📖 Getting subscription IDs...');
     const { data: allSubs, error: subError } = await supabase
       .from('subscriptions')
       .select('id, member_id');
 
     if (subError) {
-      console.error('❌ Error fetching subscriptions:', subError);
+      log.error('❌ Error fetching subscriptions:', subError);
       return;
     }
 
@@ -105,10 +105,10 @@ async function createSubscriptionsAndUpload() {
       memberToSub[sub.member_id] = sub.id;
     });
 
-    console.log(`✅ Found ${allSubs.length} subscriptions\n`);
+    log.info(`✅ Found ${allSubs.length} subscriptions\n`);
 
     // STEP 4: Read Excel and process payments
-    console.log('📖 Reading Excel file for payment data...');
+    log.info('📖 Reading Excel file for payment data...');
     const excelPath = path.join(__dirname, '../../../AlShuail_Members_Prefilled_Import.xlsx');
 
     const workbook = XLSX.readFile(excelPath);
@@ -129,7 +129,7 @@ async function createSubscriptionsAndUpload() {
       }
     });
 
-    console.log('📅 Processing payments for years:', Object.keys(yearColumns));
+    log.info('📅 Processing payments for years:', Object.keys(yearColumns));
 
     // Process payments
     const payments = [];
@@ -174,7 +174,7 @@ async function createSubscriptionsAndUpload() {
     }
 
     // STEP 5: Upload payments
-    console.log(`\n📤 Uploading ${payments.length} payments with subscription IDs...`);
+    log.info(`\n📤 Uploading ${payments.length} payments with subscription IDs...`);
 
     if (payments.length > 0) {
       const batchSize = 10;
@@ -189,19 +189,19 @@ async function createSubscriptionsAndUpload() {
           .select();
 
         if (error) {
-          console.error(`❌ Batch ${Math.floor(i/batchSize) + 1} error:`, error.message);
+          log.error(`❌ Batch ${Math.floor(i/batchSize) + 1} error:`, error.message);
         } else if (data) {
           successCount += data.length;
-          console.log(`✅ Uploaded batch ${Math.floor(i/batchSize) + 1}: ${data.length} payments`);
+          log.info(`✅ Uploaded batch ${Math.floor(i/batchSize) + 1}: ${data.length} payments`);
         }
       }
 
-      console.log(`\n🎉 SUCCESS: ${successCount} payments uploaded!`);
+      log.info(`\n🎉 SUCCESS: ${successCount} payments uploaded!`);
     }
 
     // STEP 6: Show statistics
-    console.log('\n📊 FINAL STATISTICS');
-    console.log('==================');
+    log.info('\n📊 FINAL STATISTICS');
+    log.info('==================');
 
     const { data: finalPayments } = await supabase
       .from('payments')
@@ -217,19 +217,19 @@ async function createSubscriptionsAndUpload() {
       const sufficient = Object.values(balances).filter(b => b >= 3000).length;
       const insufficient = Object.values(balances).filter(b => b < 3000).length;
 
-      console.log(`Total members: ${members.length}`);
-      console.log(`Total payments: ${finalPayments.length}`);
-      console.log(`✅ Members with balance ≥3000 SAR: ${sufficient}`);
-      console.log(`❌ Members with balance <3000 SAR: ${insufficient}`);
+      log.info(`Total members: ${members.length}`);
+      log.info(`Total payments: ${finalPayments.length}`);
+      log.info(`✅ Members with balance ≥3000 SAR: ${sufficient}`);
+      log.info(`❌ Members with balance <3000 SAR: ${insufficient}`);
     }
 
-    console.log('\n✅ DONE! Your real data is now in the database!');
-    console.log('You can now open http://localhost:3002 and see:');
-    console.log('- Crisis Dashboard with real member balances');
-    console.log('- Member Statement Search with actual payment history');
+    log.info('\n✅ DONE! Your real data is now in the database!');
+    log.info('You can now open http://localhost:3002 and see:');
+    log.info('- Crisis Dashboard with real member balances');
+    log.info('- Member Statement Search with actual payment history');
 
   } catch (error) {
-    console.error('\n❌ Error:', error);
+    log.error('\n❌ Error:', error);
   }
 }
 

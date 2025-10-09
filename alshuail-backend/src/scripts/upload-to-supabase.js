@@ -16,46 +16,46 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
-  console.error('❌ Missing Supabase credentials in .env file');
-  console.log('Please add the following to your .env file:');
-  console.log('SUPABASE_URL=your_supabase_url');
-  console.log('SUPABASE_SERVICE_KEY=your_service_key');
+  log.error('❌ Missing Supabase credentials in .env file');
+  log.info('Please add the following to your .env file:');
+  log.info('SUPABASE_URL=your_supabase_url');
+  log.info('SUPABASE_SERVICE_KEY=your_service_key');
   process.exit(1);
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-console.log('📊 Al-Shuail Family Data Upload Script');
-console.log('======================================');
+log.info('📊 Al-Shuail Family Data Upload Script');
+log.info('======================================');
 
 // Function to create tables if they don't exist
 async function createTables() {
-  console.log('\n📌 Step 1: Creating database tables...');
+  log.info('\n📌 Step 1: Creating database tables...');
 
   // Check if tables exist first
   const { data: tables } = await supabase.from('members').select('id').limit(1);
 
   if (tables === null) {
-    console.log('Creating members table...');
+    log.info('Creating members table...');
     // Note: You need to create these tables in Supabase Dashboard first
     // Or use Supabase migrations
-    console.log('⚠️  Please ensure the following tables exist in Supabase:');
-    console.log('   - members (id, member_id, full_name, phone, whatsapp, created_at)');
-    console.log('   - payments (id, member_id, year, amount, created_at)');
-    console.log('   - member_balances (id, member_id, total_balance, status, last_updated)');
+    log.info('⚠️  Please ensure the following tables exist in Supabase:');
+    log.info('   - members (id, member_id, full_name, phone, whatsapp, created_at)');
+    log.info('   - payments (id, member_id, year, amount, created_at)');
+    log.info('   - member_balances (id, member_id, total_balance, status, last_updated)');
   } else {
-    console.log('✅ Tables already exist');
+    log.info('✅ Tables already exist');
   }
 }
 
 // Function to read Excel file
 async function readExcelFile() {
-  console.log('\n📌 Step 2: Reading Excel file...');
+  log.info('\n📌 Step 2: Reading Excel file...');
 
   const excelPath = path.join(__dirname, '../../../AlShuail_Members_Prefilled_Import.xlsx');
 
   if (!fs.existsSync(excelPath)) {
-    console.error('❌ Excel file not found at:', excelPath);
+    log.error('❌ Excel file not found at:', excelPath);
     return null;
   }
 
@@ -64,19 +64,19 @@ async function readExcelFile() {
   const usedRange = sheet.usedRange();
 
   if (!usedRange) {
-    console.error('❌ Excel file is empty');
+    log.error('❌ Excel file is empty');
     return null;
   }
 
   const data = usedRange.value();
-  console.log(`✅ Found ${data.length - 1} members in Excel file`);
+  log.info(`✅ Found ${data.length - 1} members in Excel file`);
 
   return data;
 }
 
 // Function to process and upload members
 async function uploadMembers(excelData) {
-  console.log('\n📌 Step 3: Uploading member data...');
+  log.info('\n📌 Step 3: Uploading member data...');
 
   const headers = excelData[0];
   const members = [];
@@ -129,41 +129,41 @@ async function uploadMembers(excelData) {
   }
 
   // Upload members
-  console.log(`📤 Uploading ${members.length} members...`);
+  log.info(`📤 Uploading ${members.length} members...`);
   const { data: memberData, error: memberError } = await supabase
     .from('members')
     .upsert(members, { onConflict: 'member_id' });
 
   if (memberError) {
-    console.error('❌ Error uploading members:', memberError);
+    log.error('❌ Error uploading members:', memberError);
   } else {
-    console.log('✅ Members uploaded successfully');
+    log.info('✅ Members uploaded successfully');
   }
 
   // Upload payments
   if (payments.length > 0) {
-    console.log(`📤 Uploading ${payments.length} payment records...`);
+    log.info(`📤 Uploading ${payments.length} payment records...`);
     const { data: paymentData, error: paymentError } = await supabase
       .from('payments')
       .upsert(payments, { onConflict: 'member_id,year' });
 
     if (paymentError) {
-      console.error('❌ Error uploading payments:', paymentError);
+      log.error('❌ Error uploading payments:', paymentError);
     } else {
-      console.log('✅ Payments uploaded successfully');
+      log.info('✅ Payments uploaded successfully');
     }
   }
 
   // Upload balance summaries
-  console.log(`📤 Uploading ${balances.length} balance records...`);
+  log.info(`📤 Uploading ${balances.length} balance records...`);
   const { data: balanceData, error: balanceError } = await supabase
     .from('member_balances')
     .upsert(balances, { onConflict: 'member_id' });
 
   if (balanceError) {
-    console.error('❌ Error uploading balances:', balanceError);
+    log.error('❌ Error uploading balances:', balanceError);
   } else {
-    console.log('✅ Balances uploaded successfully');
+    log.info('✅ Balances uploaded successfully');
   }
 
   // Calculate statistics
@@ -172,23 +172,23 @@ async function uploadMembers(excelData) {
   const insufficientMembers = totalMembers - sufficientMembers;
   const totalShortfall = balances.reduce((sum, b) => sum + b.shortfall, 0);
 
-  console.log('\n📊 Upload Statistics:');
-  console.log('====================');
-  console.log(`Total Members: ${totalMembers}`);
-  console.log(`Sufficient Balance (≥3000): ${sufficientMembers} (${(sufficientMembers/totalMembers*100).toFixed(1)}%)`);
-  console.log(`Insufficient Balance (<3000): ${insufficientMembers} (${(insufficientMembers/totalMembers*100).toFixed(1)}%)`);
-  console.log(`Total Shortfall: ${totalShortfall.toLocaleString()} SAR`);
+  log.info('\n📊 Upload Statistics:');
+  log.info('====================');
+  log.info(`Total Members: ${totalMembers}`);
+  log.info(`Sufficient Balance (≥3000): ${sufficientMembers} (${(sufficientMembers/totalMembers*100).toFixed(1)}%)`);
+  log.info(`Insufficient Balance (<3000): ${insufficientMembers} (${(insufficientMembers/totalMembers*100).toFixed(1)}%)`);
+  log.info(`Total Shortfall: ${totalShortfall.toLocaleString()} SAR`);
 
   return { members, payments, balances };
 }
 
 // Function to create views for easy access
 async function createDatabaseViews() {
-  console.log('\n📌 Step 4: Creating database views...');
+  log.info('\n📌 Step 4: Creating database views...');
 
   // This would typically be done in Supabase SQL editor
-  console.log('⚠️  Please create the following view in Supabase SQL editor:');
-  console.log(`
+  log.info('⚠️  Please create the following view in Supabase SQL editor:');
+  log.info(`
 CREATE OR REPLACE VIEW member_statements AS
 SELECT
   m.member_id,
@@ -212,8 +212,8 @@ GROUP BY m.member_id, m.full_name, m.phone, mb.total_balance, mb.status, mb.shor
 
 // Function to set up real-time subscriptions
 async function setupRealtimeSubscriptions() {
-  console.log('\n📌 Step 5: Setting up real-time subscriptions...');
-  console.log('✅ Real-time updates will be handled by the frontend components');
+  log.info('\n📌 Step 5: Setting up real-time subscriptions...');
+  log.info('✅ Real-time updates will be handled by the frontend components');
 }
 
 // Main execution
@@ -225,7 +225,7 @@ async function main() {
     // Read Excel file
     const excelData = await readExcelFile();
     if (!excelData) {
-      console.error('❌ Failed to read Excel file');
+      log.error('❌ Failed to read Excel file');
       return;
     }
 
@@ -238,17 +238,17 @@ async function main() {
     // Set up real-time
     await setupRealtimeSubscriptions();
 
-    console.log('\n✅ Data upload completed successfully!');
-    console.log('=====================================');
-    console.log('\n🔗 Next Steps:');
-    console.log('1. Go to Supabase Dashboard and verify the data');
-    console.log('2. Create the member_statements view using the SQL above');
-    console.log('3. Update frontend components to use real database');
-    console.log('4. Test Crisis Dashboard with real data');
-    console.log('5. Test Member Statement Search with real data');
+    log.info('\n✅ Data upload completed successfully!');
+    log.info('=====================================');
+    log.info('\n🔗 Next Steps:');
+    log.info('1. Go to Supabase Dashboard and verify the data');
+    log.info('2. Create the member_statements view using the SQL above');
+    log.info('3. Update frontend components to use real database');
+    log.info('4. Test Crisis Dashboard with real data');
+    log.info('5. Test Member Statement Search with real data');
 
   } catch (error) {
-    console.error('\n❌ Upload failed:', error);
+    log.error('\n❌ Upload failed:', error);
     process.exit(1);
   }
 }

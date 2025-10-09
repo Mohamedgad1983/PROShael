@@ -23,15 +23,15 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey, {
   }
 });
 
-console.log('\n========================================');
-console.log('Member Balance & Monitoring Data Check');
-console.log('========================================\n');
+log.info('\n========================================');
+log.info('Member Balance & Monitoring Data Check');
+log.info('========================================\n');
 
 async function checkBalances() {
   try {
     // 1. Check if balance fields exist in members table
-    console.log('1. CHECKING BALANCE FIELDS IN MEMBERS TABLE');
-    console.log('--------------------------------------------');
+    log.info('1. CHECKING BALANCE FIELDS IN MEMBERS TABLE');
+    log.info('--------------------------------------------');
 
     const { data: sampleMember, error: memberError } = await supabase
       .from('members')
@@ -40,7 +40,7 @@ async function checkBalances() {
       .single();
 
     if (memberError) {
-      console.log('❌ Error fetching member:', memberError.message);
+      log.info('❌ Error fetching member:', memberError.message);
       return;
     }
 
@@ -48,14 +48,14 @@ async function checkBalances() {
     const availableBalanceFields = balanceFields.filter(field => field in sampleMember);
 
     if (availableBalanceFields.length > 0) {
-      console.log('✅ Found balance fields:', availableBalanceFields.join(', '));
+      log.info('✅ Found balance fields:', availableBalanceFields.join(', '));
     } else {
-      console.log('⚠️ No direct balance fields found in members table');
+      log.info('⚠️ No direct balance fields found in members table');
     }
 
     // 2. Check member with balance data
-    console.log('\n2. MEMBER BALANCE DATA ANALYSIS');
-    console.log('--------------------------------------------');
+    log.info('\n2. MEMBER BALANCE DATA ANALYSIS');
+    log.info('--------------------------------------------');
 
     const { data: membersWithBalance, error: balanceError } = await supabase
       .from('members')
@@ -64,7 +64,7 @@ async function checkBalances() {
       .limit(20);
 
     if (!balanceError && membersWithBalance) {
-      console.log(`✅ Found ${membersWithBalance.length} members with balance data`);
+      log.info(`✅ Found ${membersWithBalance.length} members with balance data`);
 
       // Group by balance status
       const balanceStatusGroups = {};
@@ -76,25 +76,25 @@ async function checkBalances() {
         balanceStatusGroups[status]++;
       });
 
-      console.log('\n   Balance Status Distribution:');
+      log.info('\n   Balance Status Distribution:');
       Object.entries(balanceStatusGroups).forEach(([status, count]) => {
-        console.log(`   - ${status}: ${count} members`);
+        log.info(`   - ${status}: ${count} members`);
       });
 
-      console.log('\n   Top 10 Members by Balance:');
+      log.info('\n   Top 10 Members by Balance:');
       membersWithBalance.slice(0, 10).forEach((member, index) => {
-        console.log(`   ${index + 1}. ${member.full_name}`);
-        console.log(`      - Phone: ${member.phone || 'N/A'}`);
-        console.log(`      - Member #: ${member.membership_number}`);
-        console.log(`      - Section: ${member.tribal_section || 'Not Specified'}`);
-        console.log(`      - Balance: ${member.total_balance || 0} SAR`);
-        console.log(`      - Status: ${member.balance_status || 'Unknown'}`);
+        log.info(`   ${index + 1}. ${member.full_name}`);
+        log.info(`      - Phone: ${member.phone || 'N/A'}`);
+        log.info(`      - Member #: ${member.membership_number}`);
+        log.info(`      - Section: ${member.tribal_section || 'Not Specified'}`);
+        log.info(`      - Balance: ${member.total_balance || 0} SAR`);
+        log.info(`      - Status: ${member.balance_status || 'Unknown'}`);
       });
     }
 
     // 3. Check payment records for balance calculation
-    console.log('\n3. PAYMENT RECORDS ANALYSIS');
-    console.log('--------------------------------------------');
+    log.info('\n3. PAYMENT RECORDS ANALYSIS');
+    log.info('--------------------------------------------');
 
     const { data: payments, error: paymentError, count: paymentCount } = await supabase
       .from('payments')
@@ -102,32 +102,32 @@ async function checkBalances() {
       .limit(5);
 
     if (!paymentError) {
-      console.log(`✅ Total payment records: ${paymentCount}`);
+      log.info(`✅ Total payment records: ${paymentCount}`);
 
       if (payments && payments.length > 0) {
-        console.log('\n   Payment record structure:');
+        log.info('\n   Payment record structure:');
         const paymentFields = Object.keys(payments[0]);
-        console.log(`   Fields: ${paymentFields.join(', ')}`);
+        log.info(`   Fields: ${paymentFields.join(', ')}`);
 
         // Check if payer_id links to members
         const payerIdExists = paymentFields.includes('payer_id');
         const memberIdExists = paymentFields.includes('member_id');
 
         if (payerIdExists) {
-          console.log('   ✅ payer_id field found - links payments to members');
+          log.info('   ✅ payer_id field found - links payments to members');
         } else if (memberIdExists) {
-          console.log('   ✅ member_id field found - links payments to members');
+          log.info('   ✅ member_id field found - links payments to members');
         } else {
-          console.log('   ⚠️ No clear member linking field found in payments');
+          log.info('   ⚠️ No clear member linking field found in payments');
         }
       }
     } else {
-      console.log('❌ Error accessing payments:', paymentError.message);
+      log.info('❌ Error accessing payments:', paymentError.message);
     }
 
     // 4. Calculate member balances from payments
-    console.log('\n4. CALCULATING MEMBER BALANCES FROM PAYMENTS');
-    console.log('--------------------------------------------');
+    log.info('\n4. CALCULATING MEMBER BALANCES FROM PAYMENTS');
+    log.info('--------------------------------------------');
 
     // Get all members
     const { data: allMembers, error: allMembersError } = await supabase
@@ -166,19 +166,19 @@ async function checkBalances() {
         // Sort by balance
         membersWithCalculatedBalance.sort((a, b) => b.calculated_balance - a.calculated_balance);
 
-        console.log(`✅ Calculated balances for ${allMembers.length} members`);
+        log.info(`✅ Calculated balances for ${allMembers.length} members`);
 
         // Show statistics
         const withPayments = membersWithCalculatedBalance.filter(m => m.calculated_balance > 0);
         const withoutPayments = membersWithCalculatedBalance.filter(m => m.calculated_balance === 0);
 
-        console.log(`   - Members with payments: ${withPayments.length}`);
-        console.log(`   - Members without payments: ${withoutPayments.length}`);
+        log.info(`   - Members with payments: ${withPayments.length}`);
+        log.info(`   - Members without payments: ${withoutPayments.length}`);
 
         // Show top contributors
-        console.log('\n   Top 5 Contributors (by calculated balance):');
+        log.info('\n   Top 5 Contributors (by calculated balance):');
         membersWithCalculatedBalance.slice(0, 5).forEach((member, index) => {
-          console.log(`   ${index + 1}. ${member.full_name}: ${member.calculated_balance} SAR`);
+          log.info(`   ${index + 1}. ${member.full_name}: ${member.calculated_balance} SAR`);
         });
 
         // Group by tribal section
@@ -199,22 +199,22 @@ async function checkBalances() {
           }
         });
 
-        console.log('\n   Balance Distribution by Tribal Section:');
+        log.info('\n   Balance Distribution by Tribal Section:');
         Object.entries(sectionBalances)
           .sort((a, b) => b[1].total - a[1].total)
           .forEach(([section, data]) => {
-            console.log(`   - ${section}:`);
-            console.log(`     Total: ${data.total} SAR`);
-            console.log(`     Members: ${data.count}`);
-            console.log(`     Active Contributors: ${data.members_with_payments}`);
-            console.log(`     Average: ${(data.total / data.count).toFixed(2)} SAR`);
+            log.info(`   - ${section}:`);
+            log.info(`     Total: ${data.total} SAR`);
+            log.info(`     Members: ${data.count}`);
+            log.info(`     Active Contributors: ${data.members_with_payments}`);
+            log.info(`     Average: ${(data.total / data.count).toFixed(2)} SAR`);
           });
       }
     }
 
     // 5. Check subscriptions table
-    console.log('\n5. SUBSCRIPTION DATA ANALYSIS');
-    console.log('--------------------------------------------');
+    log.info('\n5. SUBSCRIPTION DATA ANALYSIS');
+    log.info('--------------------------------------------');
 
     const { data: subscriptions, error: subError, count: subCount } = await supabase
       .from('subscriptions')
@@ -222,11 +222,11 @@ async function checkBalances() {
       .limit(5);
 
     if (!subError) {
-      console.log(`✅ Total subscription records: ${subCount}`);
+      log.info(`✅ Total subscription records: ${subCount}`);
 
       if (subscriptions && subscriptions.length > 0) {
         const subFields = Object.keys(subscriptions[0]);
-        console.log(`   Subscription fields: ${subFields.join(', ')}`);
+        log.info(`   Subscription fields: ${subFields.join(', ')}`);
 
         // Check subscription statuses
         const { data: subStatuses, error: statusError } = await supabase
@@ -240,43 +240,43 @@ async function checkBalances() {
             statusCounts[status] = (statusCounts[status] || 0) + 1;
           });
 
-          console.log('\n   Subscription Status Distribution:');
+          log.info('\n   Subscription Status Distribution:');
           Object.entries(statusCounts).forEach(([status, count]) => {
-            console.log(`   - ${status}: ${count}`);
+            log.info(`   - ${status}: ${count}`);
           });
         }
       }
     }
 
     // 6. Final Summary
-    console.log('\n6. MONITORING DASHBOARD DATA AVAILABILITY');
-    console.log('--------------------------------------------');
+    log.info('\n6. MONITORING DASHBOARD DATA AVAILABILITY');
+    log.info('--------------------------------------------');
 
-    console.log('✅ Available Data for Dashboard:');
-    console.log('   - Total Members: 299');
-    console.log('   - Members with tribal sections: Yes');
-    console.log('   - Payment records: Yes (724 records)');
-    console.log('   - Subscription records: Yes (299 records)');
-    console.log('   - Balance calculation: Can be derived from payments');
+    log.info('✅ Available Data for Dashboard:');
+    log.info('   - Total Members: 299');
+    log.info('   - Members with tribal sections: Yes');
+    log.info('   - Payment records: Yes (724 records)');
+    log.info('   - Subscription records: Yes (299 records)');
+    log.info('   - Balance calculation: Can be derived from payments');
 
-    console.log('\n⚠️ Data Considerations:');
-    console.log('   - Balance stored in members.total_balance field');
-    console.log('   - Balance status in members.balance_status field');
-    console.log('   - Can also calculate balance from payments.payer_id');
-    console.log('   - 1 member has missing phone number');
+    log.info('\n⚠️ Data Considerations:');
+    log.info('   - Balance stored in members.total_balance field');
+    log.info('   - Balance status in members.balance_status field');
+    log.info('   - Can also calculate balance from payments.payer_id');
+    log.info('   - 1 member has missing phone number');
 
-    console.log('\n✅ Recommendation:');
-    console.log('   The database has sufficient data for the member monitoring dashboard.');
-    console.log('   Use members.total_balance for quick access or calculate from payments for accuracy.');
+    log.info('\n✅ Recommendation:');
+    log.info('   The database has sufficient data for the member monitoring dashboard.');
+    log.info('   Use members.total_balance for quick access or calculate from payments for accuracy.');
 
   } catch (error) {
-    console.error('\n❌ ERROR:', error.message);
+    log.error('\n❌ ERROR:', error.message);
   }
 }
 
 checkBalances().then(() => {
-  console.log('\n========================================');
-  console.log('Check Complete');
-  console.log('========================================\n');
+  log.info('\n========================================');
+  log.info('Check Complete');
+  log.info('========================================\n');
   process.exit(0);
 });

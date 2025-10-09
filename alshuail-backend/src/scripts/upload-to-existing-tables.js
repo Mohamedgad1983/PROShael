@@ -25,17 +25,17 @@ const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-console.log('📊 Uploading Data to Existing Supabase Tables');
-console.log('==============================================\n');
+log.info('📊 Uploading Data to Existing Supabase Tables');
+log.info('==============================================\n');
 
 async function uploadData() {
   try {
     // Read Excel file
-    console.log('📖 Reading Excel file...');
+    log.info('📖 Reading Excel file...');
     const excelPath = path.join(__dirname, '../../../AlShuail_Members_Prefilled_Import.xlsx');
 
     if (!fs.existsSync(excelPath)) {
-      console.error('❌ Excel file not found');
+      log.error('❌ Excel file not found');
       return;
     }
 
@@ -44,7 +44,7 @@ async function uploadData() {
     const sheet = workbook.Sheets[sheetName];
     const data = XLSX.utils.sheet_to_json(sheet);
 
-    console.log(`✅ Found ${data.length} members in Excel\n`);
+    log.info(`✅ Found ${data.length} members in Excel\n`);
 
     // Sample Arabic names for realistic data
     const arabicNames = [
@@ -55,7 +55,7 @@ async function uploadData() {
     ];
 
     // Process and upload members to existing 'members' table
-    console.log('📤 Uploading to members table...');
+    log.info('📤 Uploading to members table...');
     const membersToUpload = [];
 
     for (let i = 0; i < Math.min(data.length, 50); i++) { // Upload first 50 for testing
@@ -82,8 +82,8 @@ async function uploadData() {
       .select();
 
     if (memberError) {
-      console.error('❌ Error uploading members:', memberError.message);
-      console.log('\nTrying upsert instead...');
+      log.error('❌ Error uploading members:', memberError.message);
+      log.info('\nTrying upsert instead...');
 
       // Try upsert if insert fails
       const { data: upsertedMembers, error: upsertError } = await supabase
@@ -92,16 +92,16 @@ async function uploadData() {
         .select();
 
       if (upsertError) {
-        console.error('❌ Upsert also failed:', upsertError.message);
+        log.error('❌ Upsert also failed:', upsertError.message);
       } else {
-        console.log(`✅ Successfully upserted ${upsertedMembers?.length || 0} members`);
+        log.info(`✅ Successfully upserted ${upsertedMembers?.length || 0} members`);
       }
     } else {
-      console.log(`✅ Successfully uploaded ${uploadedMembers?.length || 0} members`);
+      log.info(`✅ Successfully uploaded ${uploadedMembers?.length || 0} members`);
     }
 
     // Add sample payments for some members
-    console.log('\n📤 Adding sample payments...');
+    log.info('\n📤 Adding sample payments...');
     const paymentsToAdd = [];
 
     if (uploadedMembers && uploadedMembers.length > 0) {
@@ -128,22 +128,22 @@ async function uploadData() {
         .select();
 
       if (paymentError) {
-        console.error('❌ Error adding payments:', paymentError.message);
+        log.error('❌ Error adding payments:', paymentError.message);
       } else {
-        console.log(`✅ Added ${payments?.length || 0} sample payments`);
+        log.info(`✅ Added ${payments?.length || 0} sample payments`);
       }
     }
 
-    console.log('\n✅ Upload process completed!');
-    console.log('==========================');
-    console.log('\n📌 Next steps:');
-    console.log('1. Check your Supabase Dashboard > Table Editor');
-    console.log('2. Verify the "members" table has data');
-    console.log('3. Test the Crisis Dashboard at http://localhost:3002');
-    console.log('4. Test Member Statement Search');
+    log.info('\n✅ Upload process completed!');
+    log.info('==========================');
+    log.info('\n📌 Next steps:');
+    log.info('1. Check your Supabase Dashboard > Table Editor');
+    log.info('2. Verify the "members" table has data');
+    log.info('3. Test the Crisis Dashboard at http://localhost:3002');
+    log.info('4. Test Member Statement Search');
 
   } catch (error) {
-    console.error('\n❌ Error:', error.message);
+    log.error('\n❌ Error:', error.message);
   }
 }
 

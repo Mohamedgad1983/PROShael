@@ -25,13 +25,13 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 // Initialize Supabase client with environment credentials
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-console.log('🚀 FINAL UPLOAD - YOUR REAL EXCEL DATA');
-console.log('======================================\n');
+log.info('🚀 FINAL UPLOAD - YOUR REAL EXCEL DATA');
+log.info('======================================\n');
 
 async function finalUpload() {
   try {
     // Read Excel file
-    console.log('📖 Reading your Excel file...');
+    log.info('📖 Reading your Excel file...');
     const excelPath = path.join(__dirname, '../../../AlShuail_Members_Prefilled_Import.xlsx');
 
     const workbook = XLSX.readFile(excelPath);
@@ -52,14 +52,14 @@ async function finalUpload() {
       }
     });
 
-    console.log('📅 Found payment years:', Object.keys(yearColumns));
+    log.info('📅 Found payment years:', Object.keys(yearColumns));
 
     // Get all existing members
     const { data: members } = await supabase
       .from('members')
       .select('id, membership_number, full_name, phone');
 
-    console.log(`✅ Found ${members.length} members in database\n`);
+    log.info(`✅ Found ${members.length} members in database\n`);
 
     // Create lookup maps
     const memberByPhone = {};
@@ -75,7 +75,7 @@ async function finalUpload() {
     let totalAmount = 0;
     const nullSubscriptionId = "00000000-0000-0000-0000-000000000000"; // Null UUID
 
-    console.log('💰 Processing member payments from Excel...\n');
+    log.info('💰 Processing member payments from Excel...\n');
 
     for (let i = 1; i < rawData.length && i <= 200; i++) { // Process first 200
       const row = rawData[i];
@@ -119,12 +119,12 @@ async function finalUpload() {
 
         if (memberTotal > 0) {
           const status = memberTotal >= 3000 ? '✅' : '❌';
-          console.log(`${status} ${processedCount}. ${memberName}: ${memberTotal} SAR`);
+          log.info(`${status} ${processedCount}. ${memberName}: ${memberTotal} SAR`);
         }
       }
     }
 
-    console.log(`\n📤 Uploading ${payments.length} payments (Total: ${totalAmount} SAR)...\n`);
+    log.info(`\n📤 Uploading ${payments.length} payments (Total: ${totalAmount} SAR)...\n`);
 
     // Upload in small batches
     if (payments.length > 0) {
@@ -142,28 +142,28 @@ async function finalUpload() {
 
         if (error) {
           errorCount++;
-          console.error(`❌ Batch ${Math.floor(i/batchSize) + 1} failed:`, error.message);
+          log.error(`❌ Batch ${Math.floor(i/batchSize) + 1} failed:`, error.message);
 
           // If first batch fails, show sample payment structure for debugging
           if (i === 0) {
-            console.log('\nSample payment being sent:');
-            console.log(JSON.stringify(batch[0], null, 2));
+            log.info('\nSample payment being sent:');
+            log.info(JSON.stringify(batch[0], null, 2));
           }
         } else if (data) {
           successCount += data.length;
-          console.log(`✅ Batch ${Math.floor(i/batchSize) + 1}: Uploaded ${data.length} payments`);
+          log.info(`✅ Batch ${Math.floor(i/batchSize) + 1}: Uploaded ${data.length} payments`);
         }
       }
 
       if (successCount > 0) {
-        console.log(`\n🎉 SUCCESS: ${successCount} payments uploaded!`);
+        log.info(`\n🎉 SUCCESS: ${successCount} payments uploaded!`);
       } else {
-        console.log(`\n⚠️ No payments were uploaded. Check the error messages above.`);
+        log.info(`\n⚠️ No payments were uploaded. Check the error messages above.`);
       }
     }
 
     // Show final statistics
-    console.log('\n📊 CHECKING DATABASE FOR ALL PAYMENTS...');
+    log.info('\n📊 CHECKING DATABASE FOR ALL PAYMENTS...');
 
     const { data: allPayments } = await supabase
       .from('payments')
@@ -182,39 +182,39 @@ async function finalUpload() {
       const insufficient = Object.values(balances).filter(b => b < 3000).length;
       const totalMembers = Object.keys(balances).length;
 
-      console.log('\n========================================');
-      console.log('📊 FINAL DATABASE STATISTICS');
-      console.log('========================================');
-      console.log(`Total members with payments: ${totalMembers}`);
-      console.log(`Total payment records in database: ${allPayments.length}`);
-      console.log(`\n✅ Members with balance ≥3000 SAR: ${sufficient} (${(sufficient/totalMembers*100).toFixed(1)}%)`);
-      console.log(`❌ Members with balance <3000 SAR: ${insufficient} (${(insufficient/totalMembers*100).toFixed(1)}%)`);
+      log.info('\n========================================');
+      log.info('📊 FINAL DATABASE STATISTICS');
+      log.info('========================================');
+      log.info(`Total members with payments: ${totalMembers}`);
+      log.info(`Total payment records in database: ${allPayments.length}`);
+      log.info(`\n✅ Members with balance ≥3000 SAR: ${sufficient} (${(sufficient/totalMembers*100).toFixed(1)}%)`);
+      log.info(`❌ Members with balance <3000 SAR: ${insufficient} (${(insufficient/totalMembers*100).toFixed(1)}%)`);
 
       // Show top 5 members with highest balance
       const sortedBalances = Object.entries(balances)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 5);
 
-      console.log('\n📋 Top 5 Members by Balance:');
+      log.info('\n📋 Top 5 Members by Balance:');
       for (const [memberId, balance] of sortedBalances) {
         const member = members.find(m => m.id === memberId);
         if (member) {
-          console.log(`   ${member.full_name}: ${balance} SAR`);
+          log.info(`   ${member.full_name}: ${balance} SAR`);
         }
       }
     } else {
-      console.log('⚠️ No payments found in database yet.');
+      log.info('⚠️ No payments found in database yet.');
     }
 
-    console.log('\n✅ PROCESS COMPLETE!');
-    console.log('========================================');
-    console.log('You can now open http://localhost:3002');
-    console.log('1. Click "🚨 لوحة الأزمة" to see real member balances');
-    console.log('2. Click "📋 البحث عن كشف" to search payment history');
+    log.info('\n✅ PROCESS COMPLETE!');
+    log.info('========================================');
+    log.info('You can now open http://localhost:3002');
+    log.info('1. Click "🚨 لوحة الأزمة" to see real member balances');
+    log.info('2. Click "📋 البحث عن كشف" to search payment history');
 
   } catch (error) {
-    console.error('\n❌ Unexpected error:', error.message);
-    console.error(error);
+    log.error('\n❌ Unexpected error:', error.message);
+    log.error(error);
   }
 }
 

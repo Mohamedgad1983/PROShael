@@ -121,9 +121,9 @@ class SecretScanner {
   }
 
   async scan() {
-    console.log(chalk.blue.bold('\n🔍 Starting Security Scan...\n'));
-    console.log(chalk.gray(`Root directory: ${this.rootDir}`));
-    console.log(chalk.gray(`Mode: ${this.autoFix ? 'Auto-fix' : 'Report only'}\n`));
+    log.info(chalk.blue.bold('\n🔍 Starting Security Scan...\n'));
+    log.info(chalk.gray(`Root directory: ${this.rootDir}`));
+    log.info(chalk.gray(`Mode: ${this.autoFix ? 'Auto-fix' : 'Report only'}\n`));
 
     await this.scanDirectory(this.rootDir);
 
@@ -152,7 +152,7 @@ class SecretScanner {
         }
       }
     } catch (error) {
-      console.error(chalk.red(`Error scanning directory ${dir}: ${error.message}`));
+      log.error(chalk.red(`Error scanning directory ${dir}: ${error.message}`));
     }
   }
 
@@ -161,7 +161,7 @@ class SecretScanner {
       this.filesScanned++;
 
       if (this.verbose) {
-        console.log(chalk.gray(`Scanning: ${relativePath}`));
+        log.info(chalk.gray(`Scanning: ${relativePath}`));
       }
 
       const content = await fs.readFile(fullPath, 'utf-8');
@@ -213,10 +213,10 @@ class SecretScanner {
       if (fileModified) {
         await fs.writeFile(fullPath, modifiedContent);
         this.filesFixed++;
-        console.log(chalk.green(`✅ Fixed: ${relativePath}`));
+        log.info(chalk.green(`✅ Fixed: ${relativePath}`));
       }
     } catch (error) {
-      console.error(chalk.red(`Error scanning file ${relativePath}: ${error.message}`));
+      log.error(chalk.red(`Error scanning file ${relativePath}: ${error.message}`));
     }
   }
 
@@ -279,18 +279,18 @@ class SecretScanner {
   }
 
   printReport() {
-    console.log(chalk.blue.bold('\n📊 Security Scan Report\n'));
-    console.log(chalk.gray(`Files scanned: ${this.filesScanned}`));
-    console.log(chalk.gray(`Findings: ${this.findings.length}`));
+    log.info(chalk.blue.bold('\n📊 Security Scan Report\n'));
+    log.info(chalk.gray(`Files scanned: ${this.filesScanned}`));
+    log.info(chalk.gray(`Findings: ${this.findings.length}`));
 
     if (this.autoFix) {
-      console.log(chalk.gray(`Files fixed: ${this.filesFixed}\n`));
+      log.info(chalk.gray(`Files fixed: ${this.filesFixed}\n`));
     } else {
-      console.log('');
+      log.info('');
     }
 
     if (this.findings.length === 0) {
-      console.log(chalk.green.bold('✅ No security issues found!\n'));
+      log.info(chalk.green.bold('✅ No security issues found!\n'));
       return;
     }
 
@@ -318,37 +318,37 @@ class SecretScanner {
       };
 
       const color = colorMap[severity];
-      console.log(color.bold(`\n${severity.toUpperCase()} (${findings.length}):`));
+      log.info(color.bold(`\n${severity.toUpperCase()} (${findings.length}):`));
 
       for (const finding of findings) {
-        console.log(color(`  📁 ${finding.file}:${finding.line}`));
-        console.log(color(`     Type: ${finding.type}`));
-        console.log(color(`     Match: ${finding.match}`));
+        log.info(color(`  📁 ${finding.file}:${finding.line}`));
+        log.info(color(`     Type: ${finding.type}`));
+        log.info(color(`     Match: ${finding.match}`));
 
         if (finding.fixed) {
-          console.log(chalk.green(`     ✅ Fixed automatically`));
+          log.info(chalk.green(`     ✅ Fixed automatically`));
         } else if (finding.requiresManualReview) {
-          console.log(chalk.yellow(`     ⚠️ Requires manual review`));
+          log.info(chalk.yellow(`     ⚠️ Requires manual review`));
         }
       }
     }
 
-    console.log(chalk.blue.bold('\n📝 Summary:'));
+    log.info(chalk.blue.bold('\n📝 Summary:'));
     if (bySeverity.critical.length > 0) {
-      console.log(chalk.red(`  ❌ Critical issues: ${bySeverity.critical.length}`));
+      log.info(chalk.red(`  ❌ Critical issues: ${bySeverity.critical.length}`));
     }
     if (bySeverity.high.length > 0) {
-      console.log(chalk.yellow(`  ⚠️  High issues: ${bySeverity.high.length}`));
+      log.info(chalk.yellow(`  ⚠️  High issues: ${bySeverity.high.length}`));
     }
     if (bySeverity.medium.length > 0) {
-      console.log(chalk.blue(`  ℹ️  Medium issues: ${bySeverity.medium.length}`));
+      log.info(chalk.blue(`  ℹ️  Medium issues: ${bySeverity.medium.length}`));
     }
 
     if (!this.autoFix && this.findings.some(f => !f.requiresManualReview)) {
-      console.log(chalk.cyan('\n💡 Run with --fix flag to automatically fix some issues'));
+      log.info(chalk.cyan('\n💡 Run with --fix flag to automatically fix some issues'));
     }
 
-    console.log('');
+    log.info('');
   }
 }
 
@@ -362,7 +362,7 @@ async function main() {
   };
 
   if (args.includes('--help') || args.includes('-h')) {
-    console.log(`
+    log.info(`
 ${chalk.blue.bold('Secret Scanner & Cleanup Tool')}
 
 Usage: node cleanup-secrets.js [options]
@@ -391,7 +391,7 @@ Examples:
 // Run if called directly
 if (import.meta.url === `file://${__filename}`) {
   main().catch(error => {
-    console.error(chalk.red(`Fatal error: ${error.message}`));
+    log.error(chalk.red(`Fatal error: ${error.message}`));
     process.exit(1);
   });
 }

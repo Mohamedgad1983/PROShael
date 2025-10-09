@@ -22,11 +22,11 @@ const colors = {
 };
 
 async function applyOptimizations() {
-  console.log(`${colors.cyan}${colors.bright}Starting Member Monitoring Optimizations...${colors.reset}\n`);
+  log.info(`${colors.cyan}${colors.bright}Starting Member Monitoring Optimizations...${colors.reset}\n`);
 
   try {
     // 1. Add indexes for members table
-    console.log(`${colors.yellow}Adding indexes to members table...${colors.reset}`);
+    log.info(`${colors.yellow}Adding indexes to members table...${colors.reset}`);
 
     const memberIndexes = [
       {
@@ -58,18 +58,18 @@ async function applyOptimizations() {
         });
 
         if (!error) {
-          console.log(`  ✅ Created index: ${index.name}`);
+          log.info(`  ✅ Created index: ${index.name}`);
         } else {
-          console.log(`  ⚠️  Index ${index.name} might already exist or failed: ${error.message}`);
+          log.info(`  ⚠️  Index ${index.name} might already exist or failed: ${error.message}`);
         }
       } catch (err) {
         // Try direct SQL execution as fallback
-        console.log(`  ℹ️  Attempting direct SQL for ${index.name}`);
+        log.info(`  ℹ️  Attempting direct SQL for ${index.name}`);
       }
     }
 
     // 2. Add indexes for payments table
-    console.log(`\n${colors.yellow}Adding indexes to payments table...${colors.reset}`);
+    log.info(`\n${colors.yellow}Adding indexes to payments table...${colors.reset}`);
 
     const paymentIndexes = [
       {
@@ -93,17 +93,17 @@ async function applyOptimizations() {
         });
 
         if (!error) {
-          console.log(`  ✅ Created index: ${index.name}`);
+          log.info(`  ✅ Created index: ${index.name}`);
         } else {
-          console.log(`  ⚠️  Index ${index.name} might already exist or failed: ${error.message}`);
+          log.info(`  ⚠️  Index ${index.name} might already exist or failed: ${error.message}`);
         }
       } catch (err) {
-        console.log(`  ℹ️  Attempting direct SQL for ${index.name}`);
+        log.info(`  ℹ️  Attempting direct SQL for ${index.name}`);
       }
     }
 
     // 3. Add missing columns to members table
-    console.log(`\n${colors.yellow}Adding missing columns to members table...${colors.reset}`);
+    log.info(`\n${colors.yellow}Adding missing columns to members table...${colors.reset}`);
 
     const columns = [
       { name: 'tribal_section', type: 'VARCHAR(100)' },
@@ -120,17 +120,17 @@ async function applyOptimizations() {
         const { error } = await supabase.rpc('exec_sql', { sql });
 
         if (!error) {
-          console.log(`  ✅ Added column: ${column.name}`);
+          log.info(`  ✅ Added column: ${column.name}`);
         } else {
-          console.log(`  ⚠️  Column ${column.name} might already exist`);
+          log.info(`  ⚠️  Column ${column.name} might already exist`);
         }
       } catch (err) {
-        console.log(`  ℹ️  Column ${column.name} operation: ${err.message}`);
+        log.info(`  ℹ️  Column ${column.name} operation: ${err.message}`);
       }
     }
 
     // 4. Create audit_log table if not exists
-    console.log(`\n${colors.yellow}Creating audit_log table...${colors.reset}`);
+    log.info(`\n${colors.yellow}Creating audit_log table...${colors.reset}`);
 
     const auditTableSQL = `
       CREATE TABLE IF NOT EXISTS audit_log (
@@ -148,16 +148,16 @@ async function applyOptimizations() {
       const { error } = await supabase.rpc('exec_sql', { sql: auditTableSQL });
 
       if (!error) {
-        console.log(`  ✅ Created audit_log table`);
+        log.info(`  ✅ Created audit_log table`);
       } else {
-        console.log(`  ⚠️  audit_log table might already exist`);
+        log.info(`  ⚠️  audit_log table might already exist`);
       }
     } catch (err) {
-      console.log(`  ℹ️  audit_log table operation: ${err.message}`);
+      log.info(`  ℹ️  audit_log table operation: ${err.message}`);
     }
 
     // 5. Create SMS queue table
-    console.log(`\n${colors.yellow}Creating sms_queue table...${colors.reset}`);
+    log.info(`\n${colors.yellow}Creating sms_queue table...${colors.reset}`);
 
     const smsQueueSQL = `
       CREATE TABLE IF NOT EXISTS sms_queue (
@@ -178,16 +178,16 @@ async function applyOptimizations() {
       const { error } = await supabase.rpc('exec_sql', { sql: smsQueueSQL });
 
       if (!error) {
-        console.log(`  ✅ Created sms_queue table`);
+        log.info(`  ✅ Created sms_queue table`);
       } else {
-        console.log(`  ⚠️  sms_queue table might already exist`);
+        log.info(`  ⚠️  sms_queue table might already exist`);
       }
     } catch (err) {
-      console.log(`  ℹ️  sms_queue table operation: ${err.message}`);
+      log.info(`  ℹ️  sms_queue table operation: ${err.message}`);
     }
 
     // 6. Test the optimizations
-    console.log(`\n${colors.cyan}Testing optimizations...${colors.reset}`);
+    log.info(`\n${colors.cyan}Testing optimizations...${colors.reset}`);
 
     const startTime = Date.now();
 
@@ -200,14 +200,14 @@ async function applyOptimizations() {
     const queryTime = Date.now() - startTime;
 
     if (!testError) {
-      console.log(`  ✅ Test query successful in ${queryTime}ms`);
-      console.log(`  📊 Found ${testData.length} members`);
+      log.info(`  ✅ Test query successful in ${queryTime}ms`);
+      log.info(`  📊 Found ${testData.length} members`);
     } else {
-      console.log(`  ❌ Test query failed: ${testError.message}`);
+      log.info(`  ❌ Test query failed: ${testError.message}`);
     }
 
     // 7. Get statistics
-    console.log(`\n${colors.cyan}Database Statistics:${colors.reset}`);
+    log.info(`\n${colors.cyan}Database Statistics:${colors.reset}`);
 
     const { count: memberCount } = await supabase
       .from('members')
@@ -217,21 +217,21 @@ async function applyOptimizations() {
       .from('payments')
       .select('*', { count: 'exact', head: true });
 
-    console.log(`  📊 Total Members: ${memberCount || 0}`);
-    console.log(`  💰 Total Payments: ${paymentCount || 0}`);
+    log.info(`  📊 Total Members: ${memberCount || 0}`);
+    log.info(`  💰 Total Payments: ${paymentCount || 0}`);
 
-    console.log(`\n${colors.green}${colors.bright}✨ Optimizations Applied Successfully!${colors.reset}`);
-    console.log(`${colors.green}Performance target: < 300ms for queries with 1000+ members${colors.reset}\n`);
+    log.info(`\n${colors.green}${colors.bright}✨ Optimizations Applied Successfully!${colors.reset}`);
+    log.info(`${colors.green}Performance target: < 300ms for queries with 1000+ members${colors.reset}\n`);
 
   } catch (error) {
-    console.error(`${colors.red}Error applying optimizations:${colors.reset}`, error);
+    log.error(`${colors.red}Error applying optimizations:${colors.reset}`, error);
     process.exit(1);
   }
 }
 
 // Performance test function
 async function performanceTest() {
-  console.log(`\n${colors.cyan}Running performance tests...${colors.reset}`);
+  log.info(`\n${colors.cyan}Running performance tests...${colors.reset}`);
 
   const tests = [
     {
@@ -280,29 +280,29 @@ async function performanceTest() {
       const duration = Date.now() - startTime;
 
       const status = duration < 300 ? '✅' : '⚠️';
-      console.log(`  ${status} ${test.name}: ${duration}ms`);
+      log.info(`  ${status} ${test.name}: ${duration}ms`);
     } catch (error) {
-      console.log(`  ❌ ${test.name}: Failed - ${error.message}`);
+      log.info(`  ❌ ${test.name}: Failed - ${error.message}`);
     }
   }
 }
 
 // Run the script
 async function main() {
-  console.log(`${colors.bright}==================================${colors.reset}`);
-  console.log(`${colors.bright}Member Monitoring Optimization Tool${colors.reset}`);
-  console.log(`${colors.bright}==================================${colors.reset}\n`);
+  log.info(`${colors.bright}==================================${colors.reset}`);
+  log.info(`${colors.bright}Member Monitoring Optimization Tool${colors.reset}`);
+  log.info(`${colors.bright}==================================${colors.reset}\n`);
 
   await applyOptimizations();
   await performanceTest();
 
-  console.log(`\n${colors.green}${colors.bright}All operations completed!${colors.reset}`);
+  log.info(`\n${colors.green}${colors.bright}All operations completed!${colors.reset}`);
   process.exit(0);
 }
 
 // Handle errors
 process.on('unhandledRejection', (error) => {
-  console.error(`${colors.red}Unhandled error:${colors.reset}`, error);
+  log.error(`${colors.red}Unhandled error:${colors.reset}`, error);
   process.exit(1);
 });
 

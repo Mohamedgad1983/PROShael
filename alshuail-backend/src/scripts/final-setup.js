@@ -23,8 +23,8 @@ const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-console.log('🚀 Final Setup with Correct Table Structure');
-console.log('==========================================\n');
+log.info('🚀 Final Setup with Correct Table Structure');
+log.info('==========================================\n');
 
 // Helper function to generate reference number
 function generateReference() {
@@ -36,21 +36,21 @@ function generateReference() {
 async function finalSetup() {
   try {
     // STEP 1: Get all existing members
-    console.log('📖 Step 1: Fetching existing members...');
+    log.info('📖 Step 1: Fetching existing members...');
     const { data: members, error: memberError } = await supabase
       .from('members')
       .select('*')
       .order('created_at');
 
     if (memberError) {
-      console.error('❌ Error fetching members:', memberError);
+      log.error('❌ Error fetching members:', memberError);
       return;
     }
 
-    console.log(`✅ Found ${members.length} members\n`);
+    log.info(`✅ Found ${members.length} members\n`);
 
     // STEP 2: Create subscriptions for each member (with correct columns)
-    console.log('📋 Step 2: Creating annual subscriptions...');
+    log.info('📋 Step 2: Creating annual subscriptions...');
     const subscriptions = [];
 
     for (const member of members) {
@@ -73,7 +73,7 @@ async function finalSetup() {
       .select();
 
     if (subError) {
-      console.error('❌ Error creating subscriptions:', subError.message);
+      log.error('❌ Error creating subscriptions:', subError.message);
 
       // Check if subscriptions already exist
       const { data: existingSubs, error: fetchError } = await supabase
@@ -81,14 +81,14 @@ async function finalSetup() {
         .select('*');
 
       if (!fetchError && existingSubs && existingSubs.length > 0) {
-        console.log(`✅ Found ${existingSubs.length} existing subscriptions\n`);
+        log.info(`✅ Found ${existingSubs.length} existing subscriptions\n`);
       }
     } else {
-      console.log(`✅ Created ${createdSubs.length} subscriptions\n`);
+      log.info(`✅ Created ${createdSubs.length} subscriptions\n`);
     }
 
     // STEP 3: Add payments (no subscription_id needed!)
-    console.log('💰 Step 3: Adding payment records...');
+    log.info('💰 Step 3: Adding payment records...');
     const payments = [];
 
     // Generate realistic payments for each member
@@ -133,7 +133,7 @@ async function finalSetup() {
       }
     }
 
-    console.log(`📤 Uploading ${payments.length} payment records...`);
+    log.info(`📤 Uploading ${payments.length} payment records...`);
 
     // Upload payments in batches
     const batchSize = 10;
@@ -147,17 +147,17 @@ async function finalSetup() {
         .select();
 
       if (paymentError) {
-        console.error(`❌ Error in batch ${Math.floor(i/batchSize) + 1}:`, paymentError.message);
+        log.error(`❌ Error in batch ${Math.floor(i/batchSize) + 1}:`, paymentError.message);
       } else {
         successCount += insertedPayments.length;
-        console.log(`✅ Batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(payments.length/batchSize)} uploaded`);
+        log.info(`✅ Batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(payments.length/batchSize)} uploaded`);
       }
     }
 
-    console.log(`\n✅ Successfully uploaded ${successCount} payments\n`);
+    log.info(`\n✅ Successfully uploaded ${successCount} payments\n`);
 
     // STEP 4: Calculate and display statistics
-    console.log('📊 Step 4: Calculating final statistics...');
+    log.info('📊 Step 4: Calculating final statistics...');
 
     const { data: allPayments, error: fetchError } = await supabase
       .from('payments')
@@ -193,40 +193,40 @@ async function finalSetup() {
         totalCollected += data.total;
         if (data.total >= 3000) {
           sufficientCount++;
-          console.log(`✅ ${data.name}: ${data.total} SAR (كافي)`);
+          log.info(`✅ ${data.name}: ${data.total} SAR (كافي)`);
         } else {
           insufficientCount++;
           const shortfall = 3000 - data.total;
           totalShortfall += shortfall;
-          console.log(`❌ ${data.name}: ${data.total} SAR (نقص ${shortfall} SAR)`);
+          log.info(`❌ ${data.name}: ${data.total} SAR (نقص ${shortfall} SAR)`);
         }
       });
 
-      console.log('\n════════════════════════════════════');
-      console.log('📊 إحصائيات نهائية - FINAL STATISTICS');
-      console.log('════════════════════════════════════');
-      console.log(`👥 إجمالي الأعضاء: ${members.length}`);
-      console.log(`💳 إجمالي المدفوعات: ${allPayments.length}`);
-      console.log(`💰 إجمالي المحصل: ${totalCollected.toLocaleString()} ريال`);
-      console.log(`\n✅ رصيد كافي (≥3000): ${sufficientCount} عضو (${(sufficientCount/members.length*100).toFixed(1)}%)`);
-      console.log(`❌ رصيد غير كافي (<3000): ${insufficientCount} عضو (${(insufficientCount/members.length*100).toFixed(1)}%)`);
-      console.log(`💸 إجمالي النقص: ${totalShortfall.toLocaleString()} ريال`);
-      console.log(`📊 متوسط الرصيد: ${(totalCollected/members.length).toFixed(0)} ريال للعضو`);
+      log.info('\n════════════════════════════════════');
+      log.info('📊 إحصائيات نهائية - FINAL STATISTICS');
+      log.info('════════════════════════════════════');
+      log.info(`👥 إجمالي الأعضاء: ${members.length}`);
+      log.info(`💳 إجمالي المدفوعات: ${allPayments.length}`);
+      log.info(`💰 إجمالي المحصل: ${totalCollected.toLocaleString()} ريال`);
+      log.info(`\n✅ رصيد كافي (≥3000): ${sufficientCount} عضو (${(sufficientCount/members.length*100).toFixed(1)}%)`);
+      log.info(`❌ رصيد غير كافي (<3000): ${insufficientCount} عضو (${(insufficientCount/members.length*100).toFixed(1)}%)`);
+      log.info(`💸 إجمالي النقص: ${totalShortfall.toLocaleString()} ريال`);
+      log.info(`📊 متوسط الرصيد: ${(totalCollected/members.length).toFixed(0)} ريال للعضو`);
     }
 
-    console.log('\n✅ تم الإعداد بنجاح! - Setup Complete!');
-    console.log('════════════════════════════════════\n');
-    console.log('📋 يمكنك الآن - You can now:');
-    console.log('1. افتح - Open: http://localhost:3002');
-    console.log('2. اضغط "🚨 لوحة الأزمة" لرؤية البيانات الحقيقية');
-    console.log('3. اضغط "📋 البحث عن كشف" للبحث عن كشوفات الأعضاء');
-    console.log('\n💡 البيانات تظهر سيناريو واقعي:');
-    console.log('   - بعض الأعضاء دفعوا كل السنوات');
-    console.log('   - بعض الأعضاء لديهم مدفوعات ناقصة');
-    console.log('   - المبالغ متنوعة (500-1500 ريال)');
+    log.info('\n✅ تم الإعداد بنجاح! - Setup Complete!');
+    log.info('════════════════════════════════════\n');
+    log.info('📋 يمكنك الآن - You can now:');
+    log.info('1. افتح - Open: http://localhost:3002');
+    log.info('2. اضغط "🚨 لوحة الأزمة" لرؤية البيانات الحقيقية');
+    log.info('3. اضغط "📋 البحث عن كشف" للبحث عن كشوفات الأعضاء');
+    log.info('\n💡 البيانات تظهر سيناريو واقعي:');
+    log.info('   - بعض الأعضاء دفعوا كل السنوات');
+    log.info('   - بعض الأعضاء لديهم مدفوعات ناقصة');
+    log.info('   - المبالغ متنوعة (500-1500 ريال)');
 
   } catch (error) {
-    console.error('\n❌ Error:', error);
+    log.error('\n❌ Error:', error);
   }
 }
 

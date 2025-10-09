@@ -16,23 +16,23 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
-  console.error('❌ Missing Supabase credentials');
+  log.error('❌ Missing Supabase credentials');
   process.exit(1);
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-console.log('📊 Simple Upload Script for Al-Shuail Data');
-console.log('==========================================');
+log.info('📊 Simple Upload Script for Al-Shuail Data');
+log.info('==========================================');
 
 async function uploadData() {
   try {
     // Read Excel file
-    console.log('\n📌 Reading Excel file...');
+    log.info('\n📌 Reading Excel file...');
     const excelPath = path.join(__dirname, '../../../AlShuail_Members_Prefilled_Import.xlsx');
 
     if (!fs.existsSync(excelPath)) {
-      console.error('❌ Excel file not found');
+      log.error('❌ Excel file not found');
       return;
     }
 
@@ -41,7 +41,7 @@ async function uploadData() {
     const sheet = workbook.Sheets[sheetName];
     const data = XLSX.utils.sheet_to_json(sheet);
 
-    console.log(`✅ Found ${data.length} members in Excel`);
+    log.info(`✅ Found ${data.length} members in Excel`);
 
     // Sample Arabic names for better display
     const arabicNames = [
@@ -106,44 +106,44 @@ async function uploadData() {
     }
 
     // Upload to Supabase
-    console.log('\n📤 Uploading to Supabase...');
+    log.info('\n📤 Uploading to Supabase...');
 
     // Upload members
-    console.log(`Uploading ${members.length} members...`);
+    log.info(`Uploading ${members.length} members...`);
     const { error: memberError } = await supabase
       .from('members')
       .upsert(members, { onConflict: 'member_id' });
 
     if (memberError) {
-      console.error('❌ Error uploading members:', memberError.message);
+      log.error('❌ Error uploading members:', memberError.message);
     } else {
-      console.log('✅ Members uploaded');
+      log.info('✅ Members uploaded');
     }
 
     // Upload payments
     if (payments.length > 0) {
-      console.log(`Uploading ${payments.length} payments...`);
+      log.info(`Uploading ${payments.length} payments...`);
       const { error: paymentError } = await supabase
         .from('payments')
         .upsert(payments, { onConflict: 'member_id,year' });
 
       if (paymentError) {
-        console.error('❌ Error uploading payments:', paymentError.message);
+        log.error('❌ Error uploading payments:', paymentError.message);
       } else {
-        console.log('✅ Payments uploaded');
+        log.info('✅ Payments uploaded');
       }
     }
 
     // Upload balances
-    console.log(`Uploading ${balances.length} balances...`);
+    log.info(`Uploading ${balances.length} balances...`);
     const { error: balanceError } = await supabase
       .from('member_balances')
       .upsert(balances, { onConflict: 'member_id' });
 
     if (balanceError) {
-      console.error('❌ Error uploading balances:', balanceError.message);
+      log.error('❌ Error uploading balances:', balanceError.message);
     } else {
-      console.log('✅ Balances uploaded');
+      log.info('✅ Balances uploaded');
     }
 
     // Calculate statistics
@@ -151,18 +151,18 @@ async function uploadData() {
     const insufficient = balances.filter(b => b.status === 'insufficient').length;
     const totalShortfall = balances.reduce((sum, b) => sum + b.shortfall, 0);
 
-    console.log('\n📊 Upload Complete!');
-    console.log('===================');
-    console.log(`Total Members: ${members.length}`);
-    console.log(`Sufficient (≥3000): ${sufficient} (${(sufficient/members.length*100).toFixed(1)}%)`);
-    console.log(`Insufficient (<3000): ${insufficient} (${(insufficient/members.length*100).toFixed(1)}%)`);
-    console.log(`Total Shortfall: ${totalShortfall.toLocaleString()} SAR`);
+    log.info('\n📊 Upload Complete!');
+    log.info('===================');
+    log.info(`Total Members: ${members.length}`);
+    log.info(`Sufficient (≥3000): ${sufficient} (${(sufficient/members.length*100).toFixed(1)}%)`);
+    log.info(`Insufficient (<3000): ${insufficient} (${(insufficient/members.length*100).toFixed(1)}%)`);
+    log.info(`Total Shortfall: ${totalShortfall.toLocaleString()} SAR`);
 
-    console.log('\n✅ Data successfully uploaded to Supabase!');
-    console.log('You can now test the Crisis Dashboard and Member Statement Search.');
+    log.info('\n✅ Data successfully uploaded to Supabase!');
+    log.info('You can now test the Crisis Dashboard and Member Statement Search.');
 
   } catch (error) {
-    console.error('\n❌ Upload failed:', error.message);
+    log.error('\n❌ Upload failed:', error.message);
     process.exit(1);
   }
 }

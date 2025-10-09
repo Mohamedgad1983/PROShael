@@ -18,12 +18,12 @@ const supabase = createClient(
 
 // Simple import function
 async function importMembersFromExcel() {
-  console.log('🚀 Starting simple member import...\n');
+  log.info('🚀 Starting simple member import...\n');
 
   try {
     // Load the Excel file
     const filePath = path.join(__dirname, '../../../../AlShuail_Members_Prefilled_Import.xlsx');
-    console.log('📂 Reading Excel file from:', filePath);
+    log.info('📂 Reading Excel file from:', filePath);
 
     const workbook = await xlsx.fromFileAsync(filePath);
     const sheet = workbook.sheet(0);
@@ -31,7 +31,7 @@ async function importMembersFromExcel() {
 
     // Get headers (first row)
     const headers = data[0];
-    console.log('📋 Found columns:', headers.slice(0, 10).join(', '), '...\n');
+    log.info('📋 Found columns:', headers.slice(0, 10).join(', '), '...\n');
 
     // Process each member (skip header row)
     let successCount = 0;
@@ -79,10 +79,10 @@ async function importMembersFromExcel() {
       members.push(member);
     }
 
-    console.log(`📊 Processed ${members.length} members from Excel\n`);
+    log.info(`📊 Processed ${members.length} members from Excel\n`);
 
     // Insert members into database
-    console.log('💾 Inserting members into database...\n');
+    log.info('💾 Inserting members into database...\n');
 
     for (const member of members) {
       try {
@@ -104,7 +104,7 @@ async function importMembersFromExcel() {
           .single();
 
         if (memberError) {
-          console.log(`❌ Error inserting ${member.full_name}:`, memberError.message);
+          log.info(`❌ Error inserting ${member.full_name}:`, memberError.message);
           errorCount++;
           continue;
         }
@@ -134,48 +134,48 @@ async function importMembersFromExcel() {
         }
 
         successCount++;
-        console.log(`✅ Imported: ${member.full_name} (${member.phone}) - Total: ${member.total_balance} SAR`);
+        log.info(`✅ Imported: ${member.full_name} (${member.phone}) - Total: ${member.total_balance} SAR`);
 
       } catch (error) {
-        console.log(`❌ Error processing ${member.full_name}:`, error.message);
+        log.info(`❌ Error processing ${member.full_name}:`, error.message);
         errorCount++;
       }
     }
 
     // Summary report
-    console.log('\n' + '='.repeat(80));
-    console.log('📈 IMPORT SUMMARY');
-    console.log('='.repeat(80));
-    console.log(`✅ Successfully imported: ${successCount} members`);
-    console.log(`❌ Failed imports: ${errorCount} members`);
+    log.info('\n' + '='.repeat(80));
+    log.info('📈 IMPORT SUMMARY');
+    log.info('='.repeat(80));
+    log.info(`✅ Successfully imported: ${successCount} members`);
+    log.info(`❌ Failed imports: ${errorCount} members`);
 
     // Balance analysis
     const insufficientMembers = members.filter(m => m.balance_status === 'insufficient');
     const sufficientMembers = members.filter(m => m.balance_status === 'sufficient');
 
-    console.log(`\n💰 Balance Analysis:`);
-    console.log(`   • Members above 3000 SAR: ${sufficientMembers.length} (${(sufficientMembers.length/members.length*100).toFixed(1)}%)`);
-    console.log(`   • Members below 3000 SAR: ${insufficientMembers.length} (${(insufficientMembers.length/members.length*100).toFixed(1)}%)`);
+    log.info(`\n💰 Balance Analysis:`);
+    log.info(`   • Members above 3000 SAR: ${sufficientMembers.length} (${(sufficientMembers.length/members.length*100).toFixed(1)}%)`);
+    log.info(`   • Members below 3000 SAR: ${insufficientMembers.length} (${(insufficientMembers.length/members.length*100).toFixed(1)}%)`);
 
     // Show some examples of members below minimum
-    console.log(`\n⚠️ Sample Members Below Minimum (3000 SAR):`);
+    log.info(`\n⚠️ Sample Members Below Minimum (3000 SAR):`);
     insufficientMembers.slice(0, 5).forEach(member => {
-      console.log(`   • ${member.full_name}: ${member.total_balance} SAR (${member.phone})`);
+      log.info(`   • ${member.full_name}: ${member.total_balance} SAR (${member.phone})`);
     });
 
-    console.log('\n✅ Import completed successfully!');
+    log.info('\n✅ Import completed successfully!');
 
   } catch (error) {
-    console.error('❌ Fatal error during import:', error);
+    log.error('❌ Fatal error during import:', error);
     process.exit(1);
   }
 }
 
 // Run the import
 importMembersFromExcel().then(() => {
-  console.log('\n🎉 All done! Members are now in the database.');
+  log.info('\n🎉 All done! Members are now in the database.');
   process.exit(0);
 }).catch(error => {
-  console.error('Failed to import:', error);
+  log.error('Failed to import:', error);
   process.exit(1);
 });

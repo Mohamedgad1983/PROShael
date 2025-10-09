@@ -14,7 +14,7 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !supabaseServiceKey) {
-  console.error('Missing required environment variables');
+  log.error('Missing required environment variables');
   process.exit(1);
 }
 
@@ -22,7 +22,7 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 async function addMemberColumns() {
   try {
-    console.log('🔄 Starting to add missing columns to members table...\n');
+    log.info('🔄 Starting to add missing columns to members table...\n');
 
     // SQL commands to add columns
     const sqlCommands = [
@@ -46,22 +46,22 @@ async function addMemberColumns() {
 
     // Execute each command
     for (const sql of sqlCommands) {
-      console.log(`Executing: ${sql.substring(0, 50)}...`);
+      log.info(`Executing: ${sql.substring(0, 50)}...`);
       const { error } = await supabase.rpc('exec_sql', { sql_query: sql }).catch(err => {
         // If RPC doesn't exist, we'll note it
-        console.log(`⚠️ Note: RPC function might not exist. Column may already exist or need manual addition.`);
+        log.info(`⚠️ Note: RPC function might not exist. Column may already exist or need manual addition.`);
         return { error: err };
       });
 
       if (error && !error.message?.includes('already exists')) {
-        console.log(`⚠️ Warning: ${error.message}`);
+        log.info(`⚠️ Warning: ${error.message}`);
       } else {
-        console.log(`✅ Success`);
+        log.info(`✅ Success`);
       }
     }
 
     // Check current columns
-    console.log('\n📊 Checking current members table structure...\n');
+    log.info('\n📊 Checking current members table structure...\n');
 
     const { data: members, error: queryError } = await supabase
       .from('members')
@@ -70,9 +70,9 @@ async function addMemberColumns() {
 
     if (!queryError && members && members.length > 0) {
       const columns = Object.keys(members[0]);
-      console.log('Current columns in members table:');
+      log.info('Current columns in members table:');
       columns.forEach(col => {
-        console.log(`  - ${col}`);
+        log.info(`  - ${col}`);
       });
 
       // Check for our specific columns
@@ -80,24 +80,24 @@ async function addMemberColumns() {
       const missingColumns = requiredColumns.filter(col => !columns.includes(col));
 
       if (missingColumns.length > 0) {
-        console.log('\n❗ Missing columns that need to be added manually in Supabase Dashboard:');
+        log.info('\n❗ Missing columns that need to be added manually in Supabase Dashboard:');
         missingColumns.forEach(col => {
-          console.log(`  - ${col}`);
+          log.info(`  - ${col}`);
         });
-        console.log('\n📝 To add these columns manually:');
-        console.log('1. Go to your Supabase Dashboard');
-        console.log('2. Navigate to Table Editor > members table');
-        console.log('3. Click "Add column" and add each missing column');
-        console.log('4. Use VARCHAR(100) for text fields, DATE for date_of_birth');
+        log.info('\n📝 To add these columns manually:');
+        log.info('1. Go to your Supabase Dashboard');
+        log.info('2. Navigate to Table Editor > members table');
+        log.info('3. Click "Add column" and add each missing column');
+        log.info('4. Use VARCHAR(100) for text fields, DATE for date_of_birth');
       } else {
-        console.log('\n✅ All required columns are present!');
+        log.info('\n✅ All required columns are present!');
       }
     }
 
-    console.log('\n✨ Process completed!');
+    log.info('\n✨ Process completed!');
 
   } catch (error) {
-    console.error('❌ Error:', error);
+    log.error('❌ Error:', error);
   }
 }
 
