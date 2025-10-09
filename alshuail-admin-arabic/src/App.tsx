@@ -26,6 +26,7 @@ import MemberSubscriptionView from './pages/mobile/MemberSubscriptionView';
 import SubscriptionDashboard from './pages/admin/SubscriptionDashboard';
 import NewsManagement from './pages/admin/NewsManagement';
 import InitiativesManagement from './pages/admin/InitiativesManagement';
+import InitiativeReport from './pages/admin/InitiativeReport';
 
 // Member Pages - News & Initiatives
 import MemberNews from './pages/member/News';
@@ -301,6 +302,7 @@ const App: React.FC = () => {
             {/* News & Initiatives Management Routes (Admin) */}
             <Route path="/admin/news" element={<AdminRoute><NewsManagement /></AdminRoute>} />
             <Route path="/admin/initiatives" element={<AdminRoute><InitiativesManagement /></AdminRoute>} />
+            <Route path="/admin/initiatives/:id/report" element={<AdminRoute><InitiativeReport /></AdminRoute>} />
 
             {/* Admin routes catch-all */}
             <Route path="/admin/*" element={<AdminRoute><StyledDashboard onLogout={() => {

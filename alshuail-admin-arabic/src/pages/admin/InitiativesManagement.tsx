@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import { toHijri } from 'hijri-converter';
 import SimpleHijriDatePicker from '../../components/Common/SimpleHijriDatePicker';
 import useActiveMemberCount from '../../hooks/useActiveMemberCount';
@@ -26,6 +27,7 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 const InitiativesManagement = () => {
+    const navigate = useNavigate();
     const [initiatives, setInitiatives] = useState<Initiative[]>([]);
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -328,7 +330,14 @@ const InitiativesManagement = () => {
                             )}
 
                             {/* Action Buttons */}
-                            <div className="grid grid-cols-3 gap-2 mb-3">
+                            <div className="grid grid-cols-4 gap-2 mb-3">
+                                <button
+                                    onClick={() => navigate(`/admin/initiatives/${init.id}/report`)}
+                                    className="bg-purple-100 hover:bg-purple-200 text-purple-700 py-2 rounded-lg transition-colors duration-200 text-sm font-medium flex items-center justify-center gap-1"
+                                >
+                                    <span>📊</span>
+                                    <span>تقرير</span>
+                                </button>
                                 <button
                                     onClick={() => {
                                         setEditingInitiative(init);

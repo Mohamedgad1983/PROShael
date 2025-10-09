@@ -302,7 +302,159 @@ router.patch('/donations/:donationId/approve', authenticateToken, adminOnly, asy
     }
 });
 
-// 7. PUSH NOTIFICATION FOR INITIATIVE (Admin Only)
+// 7. GET NON-CONTRIBUTORS FOR INITIATIVE (Admin Only)
+router.get('/:id/non-contributors', authenticateToken, adminOnly, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        console.log('[Non-Contributors] Fetching for initiative ID:', id);
+
+        // Get all active members
+        const { data: allMembers, error: membersError } = await supabase
+            .from('members')
+            .select('id, member_id, full_name, full_name_ar, full_name_en, email, phone, member_number')
+            .eq('is_active', true)
+            .eq('membership_status', 'active');
+
+        if (membersError) {
+            console.error('[Non-Contributors] Error fetching members:', membersError);
+            throw membersError;
+        }
+
+        // Get all donors for this initiative
+        const { data: donations, error: donError } = await supabase
+            .from('initiative_donations')
+            .select('donor_member_id')
+            .eq('initiative_id', id);
+
+        if (donError) {
+            console.error('[Non-Contributors] Error fetching donations:', donError);
+            throw donError;
+        }
+
+        // Create set of donor member IDs for fast lookup
+        const donorIds = new Set(donations.map(d => d.donor_member_id));
+
+        // Filter members who haven't contributed
+        const nonContributors = allMembers.filter(member => !donorIds.has(member.id));
+
+        console.log('[Non-Contributors] Total active members:', allMembers.length);
+        console.log('[Non-Contributors] Total donors:', donorIds.size);
+        console.log('[Non-Contributors] Non-contributors:', nonContributors.length);
+
+        res.json({
+            nonContributors,
+            stats: {
+                totalActiveMembers: allMembers.length,
+                totalContributors: donorIds.size,
+                totalNonContributors: nonContributors.length,
+                contributionRate: ((donorIds.size / allMembers.length) * 100).toFixed(2)
+            }
+        });
+    } catch (error) {
+        console.error('[Non-Contributors] Error:', error);
+        res.status(500).json({
+            error: error.message,
+            errorAr: 'خطأ في جلب الأعضاء غير المساهمين'
+        });
+    }
+});
+
+// 8. PUSH NOTIFICATION TO NON-CONTRIBUTORS (Admin Only)
+router.post('/:id/notify-non-contributors', authenticateToken, adminOnly, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        console.log('[Notify Non-Contributors] Starting for initiative ID:', id);
+
+        // Get initiative details
+        const { data: initiative, error: initError } = await supabase
+            .from('initiatives')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+        if (initError) {
+            console.error('[Notify Non-Contributors] Initiative not found:', initError);
+            throw initError;
+        }
+
+        // Get non-contributors using the same logic
+        const { data: allMembers, error: membersError } = await supabase
+            .from('members')
+            .select('id, member_id, full_name, full_name_ar, email, phone')
+            .eq('is_active', true)
+            .eq('membership_status', 'active');
+
+        if (membersError) throw membersError;
+
+        const { data: donations, error: donError } = await supabase
+            .from('initiative_donations')
+            .select('donor_member_id')
+            .eq('initiative_id', id);
+
+        if (donError) throw donError;
+
+        const donorIds = new Set(donations.map(d => d.donor_member_id));
+        const nonContributors = allMembers.filter(member => !donorIds.has(member.id));
+
+        console.log('[Notify Non-Contributors] Found', nonContributors.length, 'non-contributors');
+
+        if (nonContributors.length === 0) {
+            return res.status(400).json({
+                error: 'All active members have already contributed',
+                errorAr: 'جميع الأعضاء النشطين قد ساهموا بالفعل'
+            });
+        }
+
+        // Create ONE notification for admin to track this targeted broadcast
+        const adminNotification = {
+            user_id: req.user.id,
+            type: 'initiative_reminder',
+            priority: 'high',
+            title: `تم إرسال تذكير لـ ${nonContributors.length} عضو غير مساهم`,
+            title_ar: `تم إرسال تذكير لـ ${nonContributors.length} عضو غير مساهم`,
+            message: `تم إرسال تذكير بالمبادرة "${initiative.title_ar || initiative.title}" إلى ${nonContributors.length} عضو لم يساهموا بعد`,
+            message_ar: `تم إرسال تذكير بالمبادرة "${initiative.title_ar || initiative.title}" إلى ${nonContributors.length} عضو لم يساهموا بعد`,
+            related_id: initiative.id,
+            related_type: 'initiative',
+            icon: '🔔',
+            action_url: `/admin/initiatives/${initiative.id}/report`,
+            is_read: false,
+            metadata: {
+                broadcast_to: nonContributors.length,
+                member_ids: nonContributors.map(m => m.id),
+                initiative_title: initiative.title_ar || initiative.title,
+                notification_type: 'non_contributor_reminder'
+            }
+        };
+
+        const { error: notifError } = await supabase
+            .from('notifications')
+            .insert([adminNotification]);
+
+        if (notifError) {
+            console.error('[Notify Non-Contributors] Error creating notification:', notifError);
+            throw notifError;
+        }
+
+        console.log('[Notify Non-Contributors] Admin notification created successfully');
+
+        res.json({
+            message: `تم إرسال تذكير إلى ${nonContributors.length} عضو غير مساهم بنجاح`,
+            recipient_count: nonContributors.length,
+            contributionRate: ((donorIds.size / allMembers.length) * 100).toFixed(2)
+        });
+    } catch (error) {
+        console.error('[Notify Non-Contributors] Error:', error);
+        res.status(500).json({
+            error: error.message,
+            errorAr: 'فشل إرسال التذكير'
+        });
+    }
+});
+
+// 9. PUSH NOTIFICATION FOR INITIATIVE (Admin Only)
 router.post('/:id/push-notification', authenticateToken, adminOnly, async (req, res) => {
     try {
         const { id } = req.params;
