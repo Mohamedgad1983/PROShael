@@ -217,9 +217,9 @@ const HijriDiyasManagement: React.FC = () => {
 
     return (
       <div className="modal-overlay-premium" onClick={() => setShowAddModal(false)}>
-        <div className="modal-content-premium" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div className="modal-content-premium" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '1200px', height: '95vh', display: 'flex', flexDirection: 'column' }}>
           {/* Modal Header */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-4 flex-shrink-0">
             <div className="flex items-center gap-3">
               <div className="icon-wrapper-gradient" style={{ background: 'var(--gradient-royal)' }}>
                 <HandRaisedIcon className="w-6 h-6 text-white" />
@@ -234,23 +234,23 @@ const HijriDiyasManagement: React.FC = () => {
             </button>
           </div>
 
-          {/* Form */}
-          <form className="space-y-5">
-            {/* Title */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">عنوان الحالة *</label>
-              <input
-                type="text"
-                value={diyaData.title}
-                onChange={(e) => setDiyaData({ ...diyaData, title: e.target.value })}
-                className="input-premium w-full"
-                placeholder="مثال: دية حادث سير - اسم المستفيد"
-                required
-              />
-            </div>
+          {/* Form - with flexible height and grid layout */}
+          <form className="flex-1 overflow-y-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* Title - Full width */}
+              <div className="lg:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">عنوان الحالة *</label>
+                <input
+                  type="text"
+                  value={diyaData.title}
+                  onChange={(e) => setDiyaData({ ...diyaData, title: e.target.value })}
+                  className="input-premium w-full"
+                  placeholder="مثال: دية حادث سير - اسم المستفيد"
+                  required
+                />
+              </div>
 
-            {/* Category and Priority */}
-            <div className="grid grid-cols-2 gap-4">
+              {/* Category */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">الفئة *</label>
                 <select
@@ -264,6 +264,8 @@ const HijriDiyasManagement: React.FC = () => {
                   <option value="other">أخرى</option>
                 </select>
               </div>
+
+              {/* Priority */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">الأولوية *</label>
                 <select
@@ -276,23 +278,8 @@ const HijriDiyasManagement: React.FC = () => {
                   <option value="low">منخفضة</option>
                 </select>
               </div>
-            </div>
 
-            {/* Description */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">الوصف *</label>
-              <textarea
-                value={diyaData.description}
-                onChange={(e) => setDiyaData({ ...diyaData, description: e.target.value })}
-                className="input-premium w-full"
-                rows={3}
-                placeholder="تفاصيل الحالة والظروف"
-                required
-              />
-            </div>
-
-            {/* Amount and Beneficiary */}
-            <div className="grid grid-cols-2 gap-4">
+              {/* Amount */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">المبلغ الإجمالي (ريال) *</label>
                 <input
@@ -304,6 +291,8 @@ const HijriDiyasManagement: React.FC = () => {
                   required
                 />
               </div>
+
+              {/* Beneficiary */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">المستفيد *</label>
                 <input
@@ -315,10 +304,8 @@ const HijriDiyasManagement: React.FC = () => {
                   required
                 />
               </div>
-            </div>
 
-            {/* Dates with Hijri Display */}
-            <div className="grid grid-cols-2 gap-4">
+              {/* Start Date */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">تاريخ البداية (هجري) *</label>
                 <div className="grid grid-cols-3 gap-2">
@@ -357,6 +344,8 @@ const HijriDiyasManagement: React.FC = () => {
                   </select>
                 </div>
               </div>
+
+              {/* Deadline Date */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">الموعد النهائي (هجري) *</label>
                 <div className="grid grid-cols-3 gap-2">
@@ -395,42 +384,55 @@ const HijriDiyasManagement: React.FC = () => {
                   </select>
                 </div>
               </div>
-            </div>
 
-            {/* Notes */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">ملاحظات</label>
-              <textarea
-                value={diyaData.notes}
-                onChange={(e) => setDiyaData({ ...diyaData, notes: e.target.value })}
-                className="input-premium w-full"
-                rows={2}
-                placeholder="ملاحظات إضافية"
-              />
-            </div>
+              {/* Description - Full width */}
+              <div className="lg:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">الوصف *</label>
+                <textarea
+                  value={diyaData.description}
+                  onChange={(e) => setDiyaData({ ...diyaData, description: e.target.value })}
+                  className="input-premium w-full"
+                  rows={2}
+                  placeholder="تفاصيل الحالة والظروف"
+                  required
+                />
+              </div>
 
-            {/* Action Buttons */}
-            <div className="flex items-center justify-end gap-3 pt-4 border-t">
-              <button
-                type="button"
-                onClick={() => setShowAddModal(false)}
-                className="px-6 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                إلغاء
-              </button>
-              <button
-                type="submit"
-                className="btn-gradient-premium"
-                onClick={(e) => {
-                  e.preventDefault();
-                  console.log('Diya Data:', diyaData);
-                  setShowAddModal(false);
-                }}
-              >
-                إضافة الحالة
-              </button>
+              {/* Notes - Full width */}
+              <div className="lg:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">ملاحظات</label>
+                <textarea
+                  value={diyaData.notes}
+                  onChange={(e) => setDiyaData({ ...diyaData, notes: e.target.value })}
+                  className="input-premium w-full"
+                  rows={2}
+                  placeholder="ملاحظات إضافية"
+                />
+              </div>
             </div>
           </form>
+
+          {/* Action Buttons - Fixed at bottom */}
+          <div className="flex items-center justify-end gap-3 pt-4 border-t flex-shrink-0 mt-4">
+            <button
+              type="button"
+              onClick={() => setShowAddModal(false)}
+              className="px-6 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              إلغاء
+            </button>
+            <button
+              type="submit"
+              className="btn-gradient-premium"
+              onClick={(e) => {
+                e.preventDefault();
+                console.log('Diya Data:');
+                setShowAddModal(false);
+              }}
+            >
+              إضافة الحالة
+            </button>
+          </div>
         </div>
       </div>
     );
