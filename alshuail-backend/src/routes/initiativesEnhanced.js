@@ -19,7 +19,8 @@ const isAdmin = async (userId) => {
             .eq('id', userId)
             .single();
 
-        return data?.role === 'admin';
+        // Accept both 'admin' and 'super_admin' roles
+        return data?.role === 'admin' || data?.role === 'super_admin';
     } catch (error) {
         console.error('Error checking admin status:', error);
         return false;
@@ -72,9 +73,14 @@ router.post('/', authenticateToken, adminOnly, async (req, res) => {
             return res.status(400).json({ error: 'Min contribution cannot exceed max' });
         }
 
-        const { data, error } = await supabase
+        // Convert empty strings to null for date fields
+        const startDate = start_date && start_date.trim() !== '' ? start_date : null;
+        const endDate = end_date && end_date.trim() !== '' ? end_date : null;
+
+        const { data, error} = await supabase
             .from('initiatives')
             .insert([{
+                title: title_ar || title_en || 'بدون عنوان', // Use title_ar as primary title, fallback to title_en or default
                 title_ar,
                 title_en,
                 description_ar,
@@ -85,8 +91,8 @@ router.post('/', authenticateToken, adminOnly, async (req, res) => {
                 current_amount: 0,
                 min_contribution: min_contribution || 0,
                 max_contribution,
-                start_date: start_date || new Date(),
-                end_date,
+                start_date: startDate,
+                end_date: endDate,
                 status: status || 'draft',
                 created_by: req.user.id
             }])
