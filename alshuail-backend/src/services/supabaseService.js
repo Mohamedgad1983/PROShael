@@ -1,6 +1,7 @@
 // Supabase Service Module
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
+import { log } from '../utils/logger.js';
 
 dotenv.config();
 
@@ -58,7 +59,7 @@ export const dbHelpers = {
         };
       });
     } catch (error) {
-      console.error('Error fetching members with balances:', error);
+      log.error('Error fetching members with balances:', { error: error.message });
       throw error;
     }
   },
@@ -75,7 +76,7 @@ export const dbHelpers = {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error fetching member:', error);
+      log.error('Error fetching member:', { error: error.message });
       throw error;
     }
   },
@@ -97,7 +98,7 @@ export const dbHelpers = {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error updating member status:', error);
+      log.error('Error updating member status:', { error: error.message });
       throw error;
     }
   },
@@ -121,7 +122,7 @@ export const dbHelpers = {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error logging audit action:', error);
+      log.error('Error logging audit action:', { error: error.message });
       throw error;
     }
   },
@@ -146,7 +147,7 @@ export const dbHelpers = {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error creating notification:', error);
+      log.error('Error creating notification:', { error: error.message });
       throw error;
     }
   },
@@ -169,7 +170,7 @@ export const dbHelpers = {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error queuing SMS:', error);
+      log.error('Error queuing SMS:', { error: error.message });
       throw error;
     }
   }

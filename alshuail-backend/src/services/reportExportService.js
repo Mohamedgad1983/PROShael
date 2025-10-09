@@ -1,4 +1,5 @@
 import PDFDocument from 'pdfkit';
+import { log } from '../utils/logger.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -56,7 +57,7 @@ export class ReportExportService {
 
       return urlData.publicUrl;
     } catch (error) {
-      console.error('Error generating report:', error);
+      log.error('Error generating report:', { error: error.message });
       throw error;
     }
   }

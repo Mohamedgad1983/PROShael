@@ -1,4 +1,5 @@
 import { supabase } from '../config/database.js';
+import { log } from '../utils/logger.js';
 
 /**
  * Payment Processing Service
@@ -295,7 +296,7 @@ export class PaymentProcessingService {
       return existingPayments && existingPayments.length > 0;
 
     } catch (error) {
-      console.error('Error detecting duplicate payment:', error);
+      log.error('Error detecting duplicate payment:', { error: error.message });
       return false; // Don't block payment creation on error
     }
   }
@@ -390,7 +391,7 @@ export class PaymentProcessingService {
           }]);
       }
     } catch (error) {
-      console.error('Error updating member subscription:', error);
+      log.error('Error updating member subscription:', { error: error.message });
       // Don't throw error as payment is already processed
     }
   }

@@ -1,4 +1,5 @@
 import { supabase } from '../config/database.js';
+import { log } from '../utils/logger.js';
 
 /**
  * Financial Analytics Service
@@ -578,7 +579,7 @@ export class FinancialAnalyticsService {
 
       return trends;
     } catch (error) {
-      console.error('Error calculating trends:', error);
+      log.error('Error calculating trends:', { error: error.message });
       return {};
     }
   }

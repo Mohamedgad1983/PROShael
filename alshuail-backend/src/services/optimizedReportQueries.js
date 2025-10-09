@@ -1,4 +1,5 @@
 /**
+import { log } from '../utils/logger.js';
  * Optimized Report Query Service
  * Implements performance optimizations for large dataset queries
  * Target: < 3 seconds for 1000+ records
@@ -60,7 +61,7 @@ export const getOptimizedFinancialData = async (options = {}) => {
       totalPages: Math.ceil(count / limit)
     };
   } catch (error) {
-    console.error('Optimized query error:', error);
+    log.error('Optimized query error:', { error: error.message });
     throw error;
   }
 };
@@ -107,7 +108,7 @@ export const getBatchedReportData = async (dateFilter) => {
       expenses: results[2].data || []
     };
   } catch (error) {
-    console.error('Batch query error:', error);
+    log.error('Batch query error:', { error: error.message });
     throw error;
   }
 };
@@ -131,7 +132,7 @@ export const getAggregatedSummary = async (dateFilter) => {
 
     return summary;
   } catch (error) {
-    console.error('Aggregation error:', error);
+    log.error('Aggregation error:', { error: error.message });
     return await getFallbackAggregation(dateFilter);
   }
 };

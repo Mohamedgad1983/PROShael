@@ -4,6 +4,7 @@
  */
 
 import { createClient } from 'redis';
+import { log } from '../utils/logger.js';
 
 class CacheService {
   constructor() {
@@ -29,7 +30,7 @@ class CacheService {
           socket: {
             reconnectStrategy: (retries) => {
               if (retries > 5) {
-                console.log('Redis connection failed, falling back to in-memory cache');
+                log.info('Redis connection failed, falling back to in-memory cache');
                 return new Error('Redis connection failed');
               }
               return Math.min(retries * 100, 3000);
@@ -38,21 +39,21 @@ class CacheService {
         });
 
         this.redisClient.on('error', (err) => {
-          console.error('Redis Client Error:', err);
+          log.error('Redis Client Error:', { error: err.message });
           this.cacheStats.errors++;
         });
 
         this.redisClient.on('connect', () => {
-          console.log('Redis connected successfully');
+          log.info('Redis connected successfully');
         });
 
         await this.redisClient.connect();
       } else {
-        console.log('Redis URL not configured, using in-memory cache');
+        log.info('Redis URL not configured, using in-memory cache');
       }
     } catch (error) {
-      console.error('Failed to initialize Redis:', error);
-      console.log('Falling back to in-memory cache');
+      log.error('Failed to initialize Redis:', { error: error.message });
+      log.info('Falling back to in-memory cache');
     }
   }
 
@@ -93,7 +94,7 @@ class CacheService {
 
       return true;
     } catch (error) {
-      console.error('Cache set error:', error);
+      log.error('Cache set error:', { error: error.message });
       this.cacheStats.errors++;
       return false;
     }
@@ -127,7 +128,7 @@ class CacheService {
       this.cacheStats.misses++;
       return null;
     } catch (error) {
-      console.error('Cache get error:', error);
+      log.error('Cache get error:', { error: error.message });
       this.cacheStats.errors++;
       return null;
     }
@@ -145,7 +146,7 @@ class CacheService {
       }
       return true;
     } catch (error) {
-      console.error('Cache delete error:', error);
+      log.error('Cache delete error:', { error: error.message });
       return false;
     }
   }
@@ -170,7 +171,7 @@ class CacheService {
       }
       return true;
     } catch (error) {
-      console.error('Cache clear error:', error);
+      log.error('Cache clear error:', { error: error.message });
       return false;
     }
   }

@@ -1,4 +1,5 @@
 /**
+import { log } from '../utils/logger.js';
  * Member Monitoring Query Service
  * Optimized database queries for advanced filtering and monitoring
  *
@@ -117,7 +118,7 @@ export async function buildMemberMonitoringQuery(filters = {}) {
         .in('status', ['completed', 'approved']);
 
       if (paymentsError) {
-        console.error(`Payment query failed for member ${member.id}:`, paymentsError);
+        log.error(`Payment query failed for member ${member.id}:`, paymentsError);
       }
 
       const totalPaid = payments?.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0) || 0;
@@ -179,7 +180,7 @@ export async function buildMemberMonitoringQuery(filters = {}) {
     };
 
   } catch (error) {
-    console.error('Error in buildMemberMonitoringQuery:', error);
+    log.error('Error in buildMemberMonitoringQuery:', { error: error.message });
     throw error;
   }
 }
@@ -327,7 +328,7 @@ export async function getMemberStatistics(forceRefresh = false) {
       .rpc('get_payment_summary', {});
 
     if (paymentError) {
-      console.error('Payment summary RPC failed:', paymentError);
+      log.error('Payment summary RPC failed:', { error: paymentError.message });
       // Fallback to manual calculation
       const memberBalances = await calculateMemberBalances(members);
       const stats = calculateStatistics(memberBalances);
@@ -365,7 +366,7 @@ export async function getMemberStatistics(forceRefresh = false) {
     };
 
   } catch (error) {
-    console.error('Error in getMemberStatistics:', error);
+    log.error('Error in getMemberStatistics:', { error: error.message });
     throw error;
   }
 }
@@ -435,7 +436,7 @@ export async function exportMemberData(filters = {}) {
     };
 
   } catch (error) {
-    console.error('Error in exportMemberData:', error);
+    log.error('Error in exportMemberData:', { error: error.message });
     throw error;
   }
 }
@@ -464,7 +465,7 @@ export async function getMemberDetails(memberId) {
       .order('created_at', { ascending: false });
 
     if (paymentsError) {
-      console.error('Failed to fetch payments:', paymentsError);
+      log.error('Failed to fetch payments:', { error: paymentsError.message });
     }
 
     // Get subscriptions
@@ -475,7 +476,7 @@ export async function getMemberDetails(memberId) {
       .order('created_at', { ascending: false });
 
     if (subscriptionsError) {
-      console.error('Failed to fetch subscriptions:', subscriptionsError);
+      log.error('Failed to fetch subscriptions:', { error: subscriptionsError.message });
     }
 
     // Calculate totals
@@ -509,7 +510,7 @@ export async function getMemberDetails(memberId) {
     };
 
   } catch (error) {
-    console.error('Error in getMemberDetails:', error);
+    log.error('Error in getMemberDetails:', { error: error.message });
     throw error;
   }
 }
@@ -548,7 +549,7 @@ export async function searchMembersAutocomplete(searchTerm, limit = 10) {
     };
 
   } catch (error) {
-    console.error('Error in searchMembersAutocomplete:', error);
+    log.error('Error in searchMembersAutocomplete:', { error: error.message });
     throw error;
   }
 }
@@ -599,7 +600,7 @@ export async function getTribalSectionStats() {
     };
 
   } catch (error) {
-    console.error('Error in getTribalSectionStats:', error);
+    log.error('Error in getTribalSectionStats:', { error: error.message });
     throw error;
   }
 }
