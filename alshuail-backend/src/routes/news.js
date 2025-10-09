@@ -392,6 +392,39 @@ router.get('/notification/member-count', authenticateToken, adminOnly, async (re
     }
 });
 
+// 5b. GET ACTIVE MEMBERS COUNT (Simpler endpoint for UI)
+router.get('/active-members-count', authenticateToken, adminOnly, async (req, res) => {
+    try {
+        console.log('[Active Members Count] Fetching count...');
+
+        // Get count of active members
+        const { count, error } = await supabase
+            .from('members')
+            .select('*', { count: 'exact', head: true })
+            .eq('is_active', true)
+            .eq('membership_status', 'active');
+
+        if (error) {
+            console.error('[Active Members Count] Error:', error);
+            throw error;
+        }
+
+        console.log('[Active Members Count] Found', count, 'active members');
+
+        res.json({
+            count: count || 0,
+            message: `${count} عضو نشط`
+        });
+    } catch (error) {
+        console.error('[Active Members Count] Error:', error);
+        res.status(500).json({
+            error: error.message,
+            errorAr: 'خطأ في جلب عدد الأعضاء',
+            count: 0
+        });
+    }
+});
+
 // 6. GET NEWS STATISTICS (Admin)
 router.get('/:id/stats', authenticateToken, adminOnly, async (req, res) => {
     try {
