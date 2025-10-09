@@ -7,6 +7,8 @@ interface Initiative {
     id: number;
     title_ar?: string;
     title_en?: string;
+    description_ar?: string;
+    description_en?: string;
     beneficiary_name_ar?: string;
     beneficiary_name_en?: string;
     target_amount: number;
@@ -26,6 +28,16 @@ const InitiativesManagement = () => {
     const [loading, setLoading] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [selectedStatus, setSelectedStatus] = useState('all');
+    const [editingInitiative, setEditingInitiative] = useState<Initiative | null>(null);
+    const [isEditMode, setIsEditMode] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deletingInitiative, setDeletingInitiative] = useState<Initiative | null>(null);
+    const [deletingInitiativeId, setDeletingInitiativeId] = useState<number | null>(null);
+    const [showPushModal, setShowPushModal] = useState(false);
+    const [previewInitiative, setPreviewInitiative] = useState<Initiative | null>(null);
+    const [pushingInitiativeId, setPushingInitiativeId] = useState<number | null>(null);
+    const [memberCount, setMemberCount] = useState<number>(0);
+    const [loadingMemberCount, setLoadingMemberCount] = useState(false);
 
     // Form state
     const [formData, setFormData] = useState({
@@ -35,6 +47,8 @@ const InitiativesManagement = () => {
         start_date: '', end_date: '', status: 'draft'
     });
 
+    const API_URL = (process.env.REACT_APP_API_URL || 'http://localhost:3001') + '/api';
+
     useEffect(() => {
         fetchInitiatives();
     }, [selectedStatus]);
@@ -43,10 +57,10 @@ const InitiativesManagement = () => {
         try {
             const token = localStorage.getItem('token');
             const params = selectedStatus !== 'all' ? { status: selectedStatus } : {};
-            const response = await axios.get(
-                `${process.env.REACT_APP_API_URL}/api/initiatives-enhanced/admin/all`,
-                { params, headers: { Authorization: `Bearer ${token}` } }
-            );
+            const response = await axios.get(`${API_URL}/initiatives-enhanced/admin/all`, {
+                params,
+                headers: { Authorization: `Bearer ${token}` }
+            });
             setInitiatives(response.data.initiatives || []);
             setLoading(false);
         } catch (error) {
@@ -56,25 +70,50 @@ const InitiativesManagement = () => {
         }
     };
 
+    const fetchMemberCount = async () => {
+        try {
+            setLoadingMemberCount(true);
+            const token = localStorage.getItem('token');
+            const response = await axios.get(`${API_URL}/news/active-members-count`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setMemberCount(response.data?.count || 0);
+        } catch (error: any) {
+            console.error('Error fetching member count:', error);
+            setMemberCount(0);
+        } finally {
+            setLoadingMemberCount(false);
+        }
+    };
+
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
             const token = localStorage.getItem('token');
-            await axios.post(
-                `${process.env.REACT_APP_API_URL}/api/initiatives-enhanced`,
-                formData,
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-            alert('تم إنشاء المبادرة بنجاح!');
+
+            if (isEditMode && editingInitiative) {
+                // UPDATE existing initiative
+                await axios.put(
+                    `${API_URL}/initiatives-enhanced/${editingInitiative.id}`,
+                    formData,
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+                alert('تم تحديث المبادرة بنجاح!');
+            } else {
+                // CREATE new initiative
+                await axios.post(
+                    `${API_URL}/initiatives-enhanced`,
+                    formData,
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+                alert('تم إنشاء المبادرة بنجاح!');
+            }
+
             setShowCreateModal(false);
+            setIsEditMode(false);
+            setEditingInitiative(null);
             fetchInitiatives();
-            // Reset form
-            setFormData({
-                title_ar: '', title_en: '', description_ar: '', description_en: '',
-                beneficiary_name_ar: '', beneficiary_name_en: '',
-                target_amount: '', min_contribution: '', max_contribution: '',
-                start_date: '', end_date: '', status: 'draft'
-            });
+            resetForm();
         } catch (error: any) {
             alert('خطأ: ' + (error.response?.data?.error || error.message));
         }
@@ -84,7 +123,7 @@ const InitiativesManagement = () => {
         try {
             const token = localStorage.getItem('token');
             await axios.patch(
-                `${process.env.REACT_APP_API_URL}/api/initiatives-enhanced/${initiativeId}/status`,
+                `${API_URL}/initiatives-enhanced/${initiativeId}/status`,
                 { status: newStatus },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
@@ -93,6 +132,62 @@ const InitiativesManagement = () => {
         } catch (error) {
             alert('خطأ في تحديث الحالة');
         }
+    };
+
+    const handlePushNotification = async (initiativeId: number) => {
+        try {
+            const token = localStorage.getItem('token');
+            setPushingInitiativeId(initiativeId);
+
+            const response = await axios.post(
+                `${API_URL}/initiatives-enhanced/${initiativeId}/push-notification`,
+                {},
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            const recipientCount = response.data?.recipient_count || 0;
+            const successMessage = response.data?.message || `تم إرسال الإشعار إلى ${recipientCount} عضو بنجاح!`;
+
+            setTimeout(() => {
+                setPushingInitiativeId(null);
+                setShowPushModal(false);
+                alert(`✅ ${successMessage}\n\n📊 عدد المستلمين: ${recipientCount}`);
+            }, 1000);
+
+        } catch (error: any) {
+            setPushingInitiativeId(null);
+            const errorMsg = error.response?.data?.errorAr || error.response?.data?.error || error.message;
+            alert('❌ خطأ في إرسال الإشعار: ' + errorMsg);
+        }
+    };
+
+    const handleDeleteInitiative = async (initiativeId: number) => {
+        try {
+            const token = localStorage.getItem('token');
+            setDeletingInitiativeId(initiativeId);
+
+            await axios.delete(`${API_URL}/initiatives-enhanced/${initiativeId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            alert('✅ تم حذف المبادرة بنجاح!');
+            setShowDeleteModal(false);
+            setDeletingInitiative(null);
+            setDeletingInitiativeId(null);
+            fetchInitiatives();
+        } catch (error: any) {
+            setDeletingInitiativeId(null);
+            alert('❌ خطأ في حذف المبادرة: ' + (error.response?.data?.error || error.message));
+        }
+    };
+
+    const resetForm = () => {
+        setFormData({
+            title_ar: '', title_en: '', description_ar: '', description_en: '',
+            beneficiary_name_ar: '', beneficiary_name_en: '',
+            target_amount: '', min_contribution: '', max_contribution: '',
+            start_date: '', end_date: '', status: 'draft'
+        });
     };
 
     const getStatusColor = (status: string) => {
@@ -126,7 +221,12 @@ const InitiativesManagement = () => {
             <div className="flex justify-between items-center mb-8">
                 <h1 className="text-3xl font-bold text-gray-800">إدارة المبادرات</h1>
                 <button
-                    onClick={() => setShowCreateModal(true)}
+                    onClick={() => {
+                        setIsEditMode(false);
+                        setEditingInitiative(null);
+                        resetForm();
+                        setShowCreateModal(true);
+                    }}
                     className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-lg hover:shadow-lg transition-all duration-200 flex items-center gap-2"
                 >
                     <span className="text-xl">+</span>
@@ -226,17 +326,44 @@ const InitiativesManagement = () => {
                             )}
 
                             {/* Action Buttons */}
-                            <div className="flex gap-2">
+                            <div className="grid grid-cols-3 gap-2 mb-3">
                                 <button
-                                    onClick={() => window.location.href = `/admin/initiatives/${init.id}`}
-                                    className="flex-1 bg-gray-100 hover:bg-gray-200 py-2 rounded-lg transition-colors duration-200"
+                                    onClick={() => {
+                                        setEditingInitiative(init);
+                                        setIsEditMode(true);
+                                        setFormData({
+                                            title_ar: init.title_ar || '',
+                                            title_en: init.title_en || '',
+                                            description_ar: init.description_ar || '',
+                                            description_en: init.description_en || '',
+                                            beneficiary_name_ar: init.beneficiary_name_ar || '',
+                                            beneficiary_name_en: init.beneficiary_name_en || '',
+                                            target_amount: String(init.target_amount || ''),
+                                            min_contribution: String(init.min_contribution || ''),
+                                            max_contribution: String(init.max_contribution || ''),
+                                            start_date: '',
+                                            end_date: '',
+                                            status: init.status || 'draft'
+                                        });
+                                        setShowCreateModal(true);
+                                    }}
+                                    className="bg-blue-100 hover:bg-blue-200 text-blue-700 py-2 rounded-lg transition-colors duration-200 text-sm font-medium"
                                 >
-                                    التفاصيل
+                                    تعديل
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setDeletingInitiative(init);
+                                        setShowDeleteModal(true);
+                                    }}
+                                    className="bg-red-100 hover:bg-red-200 text-red-700 py-2 rounded-lg transition-colors duration-200 text-sm font-medium"
+                                >
+                                    حذف
                                 </button>
                                 {init.status === 'draft' && (
                                     <button
                                         onClick={() => handleStatusChange(init.id, 'active')}
-                                        className="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg transition-colors duration-200"
+                                        className="bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg transition-colors duration-200 text-sm"
                                     >
                                         تفعيل
                                     </button>
@@ -244,12 +371,37 @@ const InitiativesManagement = () => {
                                 {init.status === 'active' && (
                                     <button
                                         onClick={() => handleStatusChange(init.id, 'completed')}
-                                        className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition-colors duration-200"
+                                        className="bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition-colors duration-200 text-sm"
                                     >
                                         إكمال
                                     </button>
                                 )}
                             </div>
+
+                            {/* Push Notification Button */}
+                            <button
+                                onClick={() => {
+                                    setPreviewInitiative(init);
+                                    setShowPushModal(true);
+                                    fetchMemberCount();
+                                }}
+                                disabled={pushingInitiativeId === init.id}
+                                className={`w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white py-3 rounded-lg font-bold text-sm transition-all duration-300 hover:shadow-2xl hover:scale-105 flex items-center justify-center gap-2 ${
+                                    pushingInitiativeId === init.id ? 'animate-pulse' : ''
+                                }`}
+                            >
+                                {pushingInitiativeId === init.id ? (
+                                    <>
+                                        <span className="animate-spin">⚡</span>
+                                        <span>جاري الإرسال...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span className="text-xl">📢</span>
+                                        <span>إرسال إشعار لجميع الأعضاء</span>
+                                    </>
+                                )}
+                            </button>
                         </div>
                     </div>
                 ))}
@@ -268,14 +420,20 @@ const InitiativesManagement = () => {
                 </div>
             )}
 
-            {/* Create Modal - Full Page */}
+            {/* Create/Edit Modal */}
             {showCreateModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-xl w-full max-w-6xl h-[95vh] overflow-y-auto">
                         <div className="sticky top-0 bg-white border-b p-6 flex justify-between items-center">
-                            <h2 className="text-2xl font-bold">إنشاء مبادرة جديدة</h2>
+                            <h2 className="text-2xl font-bold">
+                                {isEditMode ? 'تعديل المبادرة' : 'إنشاء مبادرة جديدة'}
+                            </h2>
                             <button
-                                onClick={() => setShowCreateModal(false)}
+                                onClick={() => {
+                                    setShowCreateModal(false);
+                                    setIsEditMode(false);
+                                    setEditingInitiative(null);
+                                }}
                                 className="text-gray-500 hover:text-gray-700 text-2xl"
                             >
                                 ×
@@ -437,7 +595,11 @@ const InitiativesManagement = () => {
                             <div className="flex gap-3 pt-4">
                                 <button
                                     type="button"
-                                    onClick={() => setShowCreateModal(false)}
+                                    onClick={() => {
+                                        setShowCreateModal(false);
+                                        setIsEditMode(false);
+                                        setEditingInitiative(null);
+                                    }}
                                     className="flex-1 bg-gray-100 hover:bg-gray-200 py-3 rounded-lg transition-colors duration-200"
                                 >
                                     إلغاء
@@ -446,10 +608,107 @@ const InitiativesManagement = () => {
                                     type="submit"
                                     className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3 rounded-lg transition-all duration-200"
                                 >
-                                    إنشاء المبادرة
+                                    {isEditMode ? 'حفظ التعديلات' : 'إنشاء المبادرة'}
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteModal && deletingInitiative && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl w-full max-w-md p-6">
+                        <h3 className="text-xl font-bold text-gray-800 mb-4">تأكيد الحذف</h3>
+                        <p className="text-gray-600 mb-6">
+                            هل أنت متأكد من حذف المبادرة "{deletingInitiative.title_ar || 'بدون عنوان'}"؟
+                            لا يمكن التراجع عن هذا الإجراء.
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => {
+                                    setShowDeleteModal(false);
+                                    setDeletingInitiative(null);
+                                }}
+                                disabled={deletingInitiativeId !== null}
+                                className="flex-1 bg-gray-100 hover:bg-gray-200 py-3 rounded-lg transition-colors duration-200"
+                            >
+                                إلغاء
+                            </button>
+                            <button
+                                onClick={() => handleDeleteInitiative(deletingInitiative.id)}
+                                disabled={deletingInitiativeId !== null}
+                                className="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg transition-colors duration-200"
+                            >
+                                {deletingInitiativeId ? 'جاري الحذف...' : 'حذف'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Push Notification Modal */}
+            {showPushModal && previewInitiative && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl w-full max-w-2xl p-6">
+                        <h3 className="text-2xl font-bold text-gray-800 mb-4">إرسال إشعار للأعضاء</h3>
+
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                            <h4 className="font-bold text-blue-900 mb-2">{previewInitiative.title_ar || 'بدون عنوان'}</h4>
+                            {previewInitiative.description_ar && (
+                                <p className="text-blue-800 text-sm mb-2">{previewInitiative.description_ar.substring(0, 150)}...</p>
+                            )}
+                            <p className="text-blue-700 text-sm">
+                                المبلغ المستهدف: {previewInitiative.target_amount.toLocaleString()} ر.س
+                            </p>
+                        </div>
+
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+                            <div className="flex items-center gap-2 mb-2">
+                                <span className="text-2xl">👥</span>
+                                <span className="font-bold text-green-900">عدد المستلمين</span>
+                            </div>
+                            {loadingMemberCount ? (
+                                <p className="text-green-700">جاري التحميل...</p>
+                            ) : (
+                                <p className="text-2xl font-bold text-green-600">{memberCount} عضو نشط</p>
+                            )}
+                        </div>
+
+                        <p className="text-gray-600 text-sm mb-6">
+                            سيتم إرسال إشعار فوري لجميع الأعضاء النشطين عن هذه المبادرة.
+                        </p>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => {
+                                    setShowPushModal(false);
+                                    setPreviewInitiative(null);
+                                }}
+                                disabled={pushingInitiativeId !== null}
+                                className="flex-1 bg-gray-100 hover:bg-gray-200 py-3 rounded-lg transition-colors duration-200"
+                            >
+                                إلغاء
+                            </button>
+                            <button
+                                onClick={() => handlePushNotification(previewInitiative.id)}
+                                disabled={pushingInitiativeId !== null}
+                                className="flex-1 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white py-3 rounded-lg font-bold transition-all duration-200 flex items-center justify-center gap-2"
+                            >
+                                {pushingInitiativeId ? (
+                                    <>
+                                        <span className="animate-spin">⚡</span>
+                                        <span>جاري الإرسال...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span>📢</span>
+                                        <span>إرسال الإشعار</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
