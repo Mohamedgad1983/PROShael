@@ -66,7 +66,7 @@ interface Payment {
 const HijriDiyasManagement: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [diyas, setDiyas] = useState<Diya[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterPriority, setFilterPriority] = useState('');
@@ -78,62 +78,63 @@ const HijriDiyasManagement: React.FC = () => {
   const [toGregorianDate, setToGregorianDate] = useState('');
   const [showDateFilter, setShowDateFilter] = useState(false);
 
-  // Mock data
-  const mockDiyas: Diya[] = [
-    {
-      id: 1,
-      caseNumber: 'DY-2024-001',
-      title: 'دية حادث سير - أحمد السالم',
-      description: 'دية ناتجة عن حادث سير غير متعمد على طريق الرياض - مكة',
-      totalAmount: 300000,
-      collectedAmount: 225000,
-      remainingAmount: 75000,
-      status: 'active',
-      priority: 'high',
-      startDate: '2024-01-15',
-      deadline: '2024-04-15',
-      contributorsCount: 45,
-      beneficiary: 'عائلة السالم',
-      createdBy: 'محمد الشعيل',
-      category: 'accident',
-      documents: ['police_report.pdf', 'court_order.pdf'],
-      payments: [
-        { id: 1, contributorName: 'خالد الشعيل', amount: 50000, date: '2024-01-20', paymentMethod: 'bank' },
-        { id: 2, contributorName: 'أحمد الشعيل', amount: 25000, date: '2024-01-25', paymentMethod: 'cash' },
-        { id: 3, contributorName: 'سارة الشعيل', amount: 30000, date: '2024-02-01', paymentMethod: 'online' }
-      ],
-      createdAt: '2024-01-15T10:00:00',
-      updatedAt: '2024-03-10T14:30:00'
-    },
-    {
-      id: 2,
-      caseNumber: 'DY-2024-002',
-      title: 'دية خطأ طبي - عبدالله المحمد',
-      description: 'دية ناتجة عن خطأ طبي أثناء عملية جراحية',
-      totalAmount: 200000,
-      collectedAmount: 50000,
-      remainingAmount: 150000,
-      status: 'urgent',
-      priority: 'high',
-      startDate: '2024-02-01',
-      deadline: '2024-03-31',
-      contributorsCount: 12,
-      beneficiary: 'عائلة المحمد',
-      createdBy: 'فاطمة الشعيل',
-      category: 'medical',
-      documents: ['medical_report.pdf', 'hospital_statement.pdf'],
-      payments: [
-        { id: 4, contributorName: 'نورا الشعيل', amount: 20000, date: '2024-02-05', paymentMethod: 'bank' },
-        { id: 5, contributorName: 'محمد الشعيل', amount: 30000, date: '2024-02-10', paymentMethod: 'bank' }
-      ],
-      createdAt: '2024-02-01T09:00:00',
-      updatedAt: '2024-03-12T11:00:00',
-      notes: 'حالة عاجلة تحتاج إلى دعم سريع'
+  // Fetch real Diyas data from database
+  const fetchDiyas = async () => {
+    setLoading(true);
+    try {
+      const API_URL = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
+      const response = await fetch(`${API_URL}/api/diyas`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch diyas');
+      }
+
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        // Transform database data to match component interface
+        const transformedDiyas = result.data.map((diya: any) => ({
+          id: diya.id,
+          caseNumber: diya.reference_number || `DY-${diya.id}`,
+          title: diya.title || 'دية',
+          description: diya.description || '',
+          totalAmount: Number(diya.amount) || 0,
+          collectedAmount: diya.status === 'paid' ? Number(diya.amount) : 0,
+          remainingAmount: diya.status === 'paid' ? 0 : Number(diya.amount),
+          status: diya.status === 'paid' ? 'completed' : diya.status === 'pending' ? 'active' : 'pending',
+          priority: 'medium',
+          startDate: diya.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+          deadline: diya.updated_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+          contributorsCount: 1,
+          beneficiary: diya.title?.split('-')[1]?.trim() || 'غير محدد',
+          createdBy: 'الإدارة',
+          category: 'other',
+          documents: [],
+          payments: [],
+          createdAt: diya.created_at,
+          updatedAt: diya.updated_at,
+          notes: diya.notes || ''
+        }));
+
+        setDiyas(transformedDiyas);
+        console.log(`✅ Loaded ${transformedDiyas.length} real Diyas from database`);
+      }
+    } catch (error) {
+      console.error('Error fetching diyas:', error);
+      // Keep empty array on error
+      setDiyas([]);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
   useEffect(() => {
-    setDiyas(mockDiyas);
+    fetchDiyas();
   }, []);
 
   // Helper functions
