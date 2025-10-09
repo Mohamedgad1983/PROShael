@@ -7,6 +7,7 @@
 import express from 'express';
 import { supabase } from '../config/database.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { log } from '../utils/logger.js';
 
 const router = express.Router();
 
@@ -22,7 +23,7 @@ const isAdmin = async (userId) => {
         // Accept both 'admin' and 'super_admin' roles
         return data?.role === 'admin' || data?.role === 'super_admin';
     } catch (error) {
-        console.error('Error checking admin status:', error);
+        log.error('Error checking admin status', { error: error.message });
         return false;
     }
 };
@@ -106,7 +107,7 @@ router.post('/', authenticateToken, adminOnly, async (req, res) => {
             initiative: data
         });
     } catch (error) {
-        console.error('Create initiative error:', error);
+        log.error('Create initiative error', { error: error.message });
         res.status(500).json({ error: error.message });
     }
 });
@@ -157,7 +158,7 @@ router.delete('/:id', authenticateToken, adminOnly, async (req, res) => {
             initiative: data
         });
     } catch (error) {
-        console.error('Delete initiative error:', error);
+        log.error('Delete initiative error', { error: error.message });
         res.status(500).json({ error: error.message });
     }
 });
@@ -307,7 +308,7 @@ router.get('/:id/non-contributors', authenticateToken, adminOnly, async (req, re
     try {
         const { id } = req.params;
 
-        console.log('[Non-Contributors] Fetching for initiative ID:', id);
+        log.info('[Non-Contributors] Fetching for initiative ID', { id });
 
         // Get all active members
         const { data: allMembers, error: membersError } = await supabase
@@ -317,7 +318,7 @@ router.get('/:id/non-contributors', authenticateToken, adminOnly, async (req, re
             .eq('membership_status', 'active');
 
         if (membersError) {
-            console.error('[Non-Contributors] Error fetching members:', membersError);
+            log.error('[Non-Contributors] Error fetching members', { error: membersError.message });
             throw membersError;
         }
 
@@ -328,7 +329,7 @@ router.get('/:id/non-contributors', authenticateToken, adminOnly, async (req, re
             .eq('initiative_id', id);
 
         if (donError) {
-            console.error('[Non-Contributors] Error fetching donations:', donError);
+            log.error('[Non-Contributors] Error fetching donations', { error: donError.message });
             throw donError;
         }
 
@@ -338,9 +339,11 @@ router.get('/:id/non-contributors', authenticateToken, adminOnly, async (req, re
         // Filter members who haven't contributed
         const nonContributors = allMembers.filter(member => !donorIds.has(member.id));
 
-        console.log('[Non-Contributors] Total active members:', allMembers.length);
-        console.log('[Non-Contributors] Total donors:', donorIds.size);
-        console.log('[Non-Contributors] Non-contributors:', nonContributors.length);
+        log.info('[Non-Contributors] Statistics', {
+            totalActiveMembers: allMembers.length,
+            totalDonors: donorIds.size,
+            nonContributors: nonContributors.length
+        });
 
         res.json({
             nonContributors,
@@ -352,7 +355,7 @@ router.get('/:id/non-contributors', authenticateToken, adminOnly, async (req, re
             }
         });
     } catch (error) {
-        console.error('[Non-Contributors] Error:', error);
+        log.error('[Non-Contributors] Error', { error: error.message });
         res.status(500).json({
             error: error.message,
             errorAr: 'خطأ في جلب الأعضاء غير المساهمين'
@@ -365,7 +368,7 @@ router.post('/:id/notify-non-contributors', authenticateToken, adminOnly, async 
     try {
         const { id } = req.params;
 
-        console.log('[Notify Non-Contributors] Starting for initiative ID:', id);
+        log.info('[Notify Non-Contributors] Starting for initiative ID', { id });
 
         // Get initiative details
         const { data: initiative, error: initError } = await supabase
@@ -375,7 +378,7 @@ router.post('/:id/notify-non-contributors', authenticateToken, adminOnly, async 
             .single();
 
         if (initError) {
-            console.error('[Notify Non-Contributors] Initiative not found:', initError);
+            log.error('[Notify Non-Contributors] Initiative not found', { error: initError.message });
             throw initError;
         }
 
@@ -398,7 +401,7 @@ router.post('/:id/notify-non-contributors', authenticateToken, adminOnly, async 
         const donorIds = new Set(donations.map(d => d.donor_member_id));
         const nonContributors = allMembers.filter(member => !donorIds.has(member.id));
 
-        console.log('[Notify Non-Contributors] Found', nonContributors.length, 'non-contributors');
+        log.info('[Notify Non-Contributors] Found non-contributors', { count: nonContributors.length });
 
         if (nonContributors.length === 0) {
             return res.status(400).json({
@@ -434,11 +437,11 @@ router.post('/:id/notify-non-contributors', authenticateToken, adminOnly, async 
             .insert([adminNotification]);
 
         if (notifError) {
-            console.error('[Notify Non-Contributors] Error creating notification:', notifError);
+            log.error('[Notify Non-Contributors] Error creating notification', { error: notifError.message });
             throw notifError;
         }
 
-        console.log('[Notify Non-Contributors] Admin notification created successfully');
+        log.info('[Notify Non-Contributors] Admin notification created successfully');
 
         res.json({
             message: `تم إرسال تذكير إلى ${nonContributors.length} عضو غير مساهم بنجاح`,
@@ -446,7 +449,7 @@ router.post('/:id/notify-non-contributors', authenticateToken, adminOnly, async 
             contributionRate: ((donorIds.size / allMembers.length) * 100).toFixed(2)
         });
     } catch (error) {
-        console.error('[Notify Non-Contributors] Error:', error);
+        log.error('[Notify Non-Contributors] Error', { error: error.message });
         res.status(500).json({
             error: error.message,
             errorAr: 'فشل إرسال التذكير'
@@ -459,7 +462,7 @@ router.post('/:id/push-notification', authenticateToken, adminOnly, async (req, 
     try {
         const { id } = req.params;
 
-        console.log('[Push Notification] Starting for initiative ID:', id);
+        log.info('[Push Notification] Starting for initiative ID', { id });
 
         // Get initiative details
         const { data: initiative, error: initError } = await supabase
@@ -469,7 +472,7 @@ router.post('/:id/push-notification', authenticateToken, adminOnly, async (req, 
             .single();
 
         if (initError) {
-            console.error('[Push Notification] Initiative not found:', initError);
+            log.error('[Push Notification] Initiative not found', { error: initError.message });
             throw initError;
         }
 
@@ -488,11 +491,11 @@ router.post('/:id/push-notification', authenticateToken, adminOnly, async (req, 
             .eq('membership_status', 'active');
 
         if (membersError) {
-            console.error('[Push Notification] Error fetching members:', membersError);
+            log.error('[Push Notification] Error fetching members', { error: membersError.message });
             throw membersError;
         }
 
-        console.log('[Push Notification] Found', members.length, 'active members');
+        log.info('[Push Notification] Found active members', { count: members.length });
 
         if (!members || members.length === 0) {
             return res.status(400).json({
@@ -528,11 +531,11 @@ router.post('/:id/push-notification', authenticateToken, adminOnly, async (req, 
             .insert([adminNotification]);
 
         if (notifError) {
-            console.error('[Push Notification] Error creating admin notification:', notifError);
+            log.error('[Push Notification] Error creating admin notification', { error: notifError.message });
             throw notifError;
         }
 
-        console.log('[Push Notification] Admin notification created successfully');
+        log.info('[Push Notification] Admin notification created successfully');
 
         // In a real implementation, you would send push notifications via FCM/OneSignal here
         // For now, we're just tracking the broadcast in the admin notifications
@@ -542,7 +545,7 @@ router.post('/:id/push-notification', authenticateToken, adminOnly, async (req, 
             recipient_count: members.length
         });
     } catch (error) {
-        console.error('Push notification error:', error);
+        log.error('Push notification error', { error: error.message });
         res.status(500).json({
             error: error.message,
             errorAr: 'فشل إرسال الإشعار'
