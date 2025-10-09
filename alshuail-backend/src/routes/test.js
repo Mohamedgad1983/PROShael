@@ -1,12 +1,13 @@
 import express from 'express';
 import { supabase } from '../config/database.js';
+import { log } from '../utils/logger.js';
 
 const router = express.Router();
 
 // Test route that works exactly like our testApiEndpoint.js
 router.get('/occasions', async (req, res) => {
   try {
-    console.log('Test occasions endpoint called');
+    log.info('Test occasions endpoint called');
 
     const limit = 50;
     const offset = 0;
@@ -20,7 +21,7 @@ router.get('/occasions', async (req, res) => {
     const { data: occasions, error, count } = await query;
 
     if (error) {
-      console.error('Test occasions error:', error);
+      log.error('Test occasions error', { error: error.message });
       throw error;
     }
 
@@ -45,7 +46,7 @@ router.get('/occasions', async (req, res) => {
       message: 'تم جلب المناسبات بنجاح (test route)'
     });
   } catch (error) {
-    console.error('Test occasions endpoint error:', error);
+    log.error('Test occasions endpoint error', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'فشل في جلب المناسبات (test route)',
@@ -56,7 +57,7 @@ router.get('/occasions', async (req, res) => {
 
 router.get('/initiatives', async (req, res) => {
   try {
-    console.log('Test initiatives endpoint called');
+    log.info('Test initiatives endpoint called');
 
     const { data: initiatives, error } = await supabase
       .from('activities')
@@ -72,7 +73,7 @@ router.get('/initiatives', async (req, res) => {
       message: 'تم جلب المبادرات بنجاح (test route)'
     });
   } catch (error) {
-    console.error('Test initiatives endpoint error:', error);
+    log.error('Test initiatives endpoint error', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'فشل في جلب المبادرات (test route)',
@@ -83,7 +84,7 @@ router.get('/initiatives', async (req, res) => {
 
 router.get('/notifications', async (req, res) => {
   try {
-    console.log('Test notifications endpoint called');
+    log.info('Test notifications endpoint called');
 
     const { data: notifications, error } = await supabase
       .from('notifications')
@@ -99,7 +100,7 @@ router.get('/notifications', async (req, res) => {
       message: 'تم جلب الإشعارات بنجاح (test route)'
     });
   } catch (error) {
-    console.error('Test notifications endpoint error:', error);
+    log.error('Test notifications endpoint error', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'فشل في جلب الإشعارات (test route)',

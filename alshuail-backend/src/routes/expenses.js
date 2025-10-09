@@ -9,6 +9,7 @@ import {
   approveExpense,
   deleteExpense
 } from '../controllers/expensesControllerSimple.js';
+import { log } from '../utils/logger.js';
 
 const router = express.Router();
 
@@ -29,7 +30,7 @@ const authenticateUser = async (req, res, next) => {
     }
 
     if (!process.env.JWT_SECRET) {
-      console.warn('⚠️ JWT_SECRET not set in expenses route, using fallback');
+      log.warn('JWT_SECRET not set in expenses route, using fallback');
       process.env.JWT_SECRET = 'alshuail-super-secure-jwt-secret-key-2024-production-ready-32chars';
     }
 

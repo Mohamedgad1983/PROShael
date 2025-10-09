@@ -17,6 +17,7 @@ import {
   getMemberNotifications,
   updateMemberProfile
 } from '../controllers/membersController.js';
+import { log } from '../utils/logger.js';
 import {
   importMembersFromExcel,
   getImportHistory,
@@ -67,7 +68,7 @@ router.get('/', async (req, res) => {
     // Call the controller
     await getAllMembers(req, res);
   } catch (error) {
-    console.error('Error in members route:', error);
+    log.error('Error in members route', { error: error.message });
     res.status(500).json({
       success: false,
       message: 'خطأ في جلب بيانات الأعضاء'

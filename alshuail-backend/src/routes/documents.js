@@ -1,5 +1,6 @@
 import express from 'express';
 import { authenticateToken } from '../middleware/auth.js';
+import { log } from '../utils/logger.js';
 import {
   upload,
   uploadToSupabase,
@@ -76,7 +77,7 @@ router.post('/upload', authenticateToken, upload.single('document'), async (req,
     });
 
   } catch (error) {
-    console.error('Upload error:', error);
+    log.error('Upload error:', { error: error.message });
     res.status(500).json({
       success: false,
       message: 'خطأ في رفع المستند',
@@ -135,7 +136,7 @@ router.get('/member/:memberId?', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Fetch error:', error);
+    log.error('Fetch error:', { error: error.message });
     res.status(500).json({
       success: false,
       message: 'خطأ في جلب المستندات',
@@ -186,7 +187,7 @@ router.get('/:documentId', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Fetch error:', error);
+    log.error('Fetch error:', { error: error.message });
     res.status(500).json({
       success: false,
       message: 'خطأ في جلب المستند',
@@ -244,7 +245,7 @@ router.put('/:documentId', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Update error:', error);
+    log.error('Update error:', { error: error.message });
     res.status(500).json({
       success: false,
       message: 'خطأ في تحديث المستند',
@@ -301,7 +302,7 @@ router.delete('/:documentId', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Delete error:', error);
+    log.error('Delete error:', { error: error.message });
     res.status(500).json({
       success: false,
       message: 'خطأ في حذف المستند',
@@ -362,7 +363,7 @@ router.get('/stats/overview', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Stats error:', error);
+    log.error('Stats error:', { error: error.message });
     res.status(500).json({
       success: false,
       message: 'خطأ في جلب الإحصائيات',

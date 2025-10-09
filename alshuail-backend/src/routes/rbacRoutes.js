@@ -4,6 +4,7 @@
  */
 
 import express from 'express';
+import { log } from '../utils/logger.js';
 import {
   requireRole,
   requirePermission,
@@ -40,7 +41,7 @@ router.get('/roles',
         roles: data
       });
     } catch (error) {
-      console.error('Error fetching roles:', error);
+      log.error('Error fetching roles:', { error: error.message });
       res.status(500).json({
         success: false,
         message: 'خطأ في جلب الأدوار'
@@ -106,7 +107,7 @@ router.post('/users/:userId/assign-role',
         message: 'تم تعيين الدور بنجاح'
       });
     } catch (error) {
-      console.error('Error assigning role:', error);
+      log.error('Error assigning role:', { error: error.message });
       res.status(500).json({
         success: false,
         message: 'خطأ في تعيين الدور'
@@ -142,7 +143,7 @@ router.get('/users/:userId/role',
         role: data?.[0] || null
       });
     } catch (error) {
-      console.error('Error fetching user role:', error);
+      log.error('Error fetching user role:', { error: error.message });
       res.status(500).json({
         success: false,
         message: 'خطأ في جلب دور المستخدم'
@@ -334,7 +335,7 @@ router.get('/audit-logs',
         logs: data
       });
     } catch (error) {
-      console.error('Error fetching audit logs:', error);
+      log.error('Error fetching audit logs:', { error: error.message });
       res.status(500).json({
         success: false,
         message: 'خطأ في جلب سجلات التدقيق'
@@ -401,7 +402,7 @@ router.post('/check-permission',
         userRole: req.user.role
       });
     } catch (error) {
-      console.error('Error checking permission:', error);
+      log.error('Error checking permission:', { error: error.message });
       res.status(500).json({
         success: false,
         message: 'خطأ في التحقق من الصلاحية'

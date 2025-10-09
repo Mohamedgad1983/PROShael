@@ -5,6 +5,7 @@
 
 import express from 'express';
 import { supabaseAdmin } from '../config/supabase.js';
+import { log } from '../utils/logger.js';
 
 const router = express.Router();
 
@@ -32,7 +33,7 @@ router.get('/dashboard', async (req, res) => {
                 .eq('activity_id', activity.id);
 
             if (contribError) {
-                console.error('Error fetching contributions:', contribError);
+                log.error('Error fetching contributions:', { error: contribError.message });
                 return {
                     ...activity,
                     total_contributors: 0,
@@ -65,7 +66,7 @@ router.get('/dashboard', async (req, res) => {
             data: diyaStats
         });
     } catch (error) {
-        console.error('Error fetching diya dashboard:', error);
+        log.error('Error fetching diya dashboard:', { error: error.message });
         res.status(500).json({
             success: false,
             error: 'Failed to fetch diya dashboard data'
@@ -128,7 +129,7 @@ router.get('/:id/contributors', async (req, res) => {
             total: contributors.length
         });
     } catch (error) {
-        console.error('Error fetching contributors:', error);
+        log.error('Error fetching contributors:', { error: error.message });
         res.status(500).json({
             success: false,
             error: 'Failed to fetch contributors'
@@ -208,7 +209,7 @@ router.get('/:id/stats', async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Error fetching diya stats:', error);
+        log.error('Error fetching diya stats:', { error: error.message });
         res.status(500).json({
             success: false,
             error: 'Failed to fetch diya statistics'
@@ -255,7 +256,7 @@ router.get('/summary', async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Error fetching diya summary:', error);
+        log.error('Error fetching diya summary:', { error: error.message });
         res.status(500).json({
             success: false,
             error: 'Failed to fetch diya summary'
@@ -301,7 +302,7 @@ router.post('/:id/contribution', async (req, res) => {
             data: contribution
         });
     } catch (error) {
-        console.error('Error adding contribution:', error);
+        log.error('Error adding contribution:', { error: error.message });
         res.status(500).json({
             success: false,
             error: 'Failed to add contribution'

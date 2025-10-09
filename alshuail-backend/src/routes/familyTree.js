@@ -2,6 +2,7 @@
 import express from 'express';
 import { authenticateToken } from '../middleware/auth.js';
 import { supabase } from '../config/supabase.js';
+import { log } from '../utils/logger.js';
 
 const router = express.Router();
 
@@ -158,7 +159,7 @@ router.get('/member/:memberId', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching family tree:', error);
+    log.error('Error fetching family tree:', { error: error.message });
     res.status(500).json({
       success: false,
       message: 'Error fetching family tree',
@@ -277,7 +278,7 @@ router.get('/visualization/:memberId', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error building family tree visualization:', error);
+    log.error('Error building family tree visualization:', { error: error.message });
     res.status(500).json({
       success: false,
       message: 'Error building family tree',
@@ -350,7 +351,7 @@ router.post('/relationship', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error creating relationship:', error);
+    log.error('Error creating relationship:', { error: error.message });
     res.status(500).json({
       success: false,
       message: 'Error creating relationship',
@@ -382,7 +383,7 @@ router.put('/relationship/:id', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error updating relationship:', error);
+    log.error('Error updating relationship:', { error: error.message });
     res.status(500).json({
       success: false,
       message: 'Error updating relationship',
@@ -410,7 +411,7 @@ router.delete('/relationship/:id', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error deleting relationship:', error);
+    log.error('Error deleting relationship:', { error: error.message });
     res.status(500).json({
       success: false,
       message: 'Error deleting relationship',
@@ -446,7 +447,7 @@ router.get('/search', authenticateToken, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error searching members:', error);
+    log.error('Error searching members:', { error: error.message });
     res.status(500).json({
       success: false,
       message: 'Error searching members',

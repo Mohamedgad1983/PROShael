@@ -2,13 +2,14 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { supabase } from '../config/database.js';
+import { log } from '../utils/logger.js';
 
 const router = express.Router();
 
 // CRITICAL: Use consistent JWT_SECRET across all files
 const JWT_SECRET = process.env.JWT_SECRET || 'alshuail-universal-jwt-secret-2024-production-32chars';
 if (!process.env.JWT_SECRET) {
-  console.warn('⚠️  WARNING: JWT_SECRET not set in environment. Using fallback secret.');
+  log.warn('JWT_SECRET not set in environment, using fallback secret');
   // Set it in process.env for consistency
   process.env.JWT_SECRET = JWT_SECRET;
 }
@@ -118,7 +119,7 @@ const parsePermissions = (rawPermissions) => {
   try {
     return JSON.parse(rawPermissions);
   } catch (error) {
-    console.warn('Unable to parse role permissions payload', error);
+    log.warn('Unable to parse role permissions payload', { error: error.message });
     return {};
   }
 };
@@ -132,7 +133,7 @@ async function fetchPrimaryRole(userId) {
     .single();
 
   if (error || !user) {
-    console.error('Failed to fetch user role from Supabase', error);
+    log.error('Failed to fetch user role from Supabase', { error: error?.message });
     return null;
   }
 
@@ -378,7 +379,7 @@ async function authenticateMember(phone, password) {
         })
         .eq('id', member.id);
     } catch (persistError) {
-      console.warn('Failed to persist member password hash', persistError);
+      log.warn('Failed to persist member password hash', { error: persistError.message });
     }
   }
 
@@ -466,7 +467,7 @@ async function handleMemberLogin(req, res) {
       });
     }
   } catch (error) {
-    console.error('Mobile login error:', error);
+    log.error('Mobile login error', { error: error.message });
     return res.status(500).json({
       success: false,
       error: 'خطأ في تسجيل الدخول'
@@ -501,7 +502,7 @@ router.post('/login', async (req, res) => {
       user: result.user
     });
   } catch (error) {
-    console.error('Login error:', error);
+    log.error('Login error', { error: error.message });
     return res.status(500).json({
       success: false,
       error: 'خطأ في تسجيل الدخول'
@@ -609,7 +610,7 @@ router.post('/change-password', async (req, res) => {
         .eq('id', decoded.id);
 
       if (updateError) {
-        console.error('Error updating member:', updateError);
+        log.error('Error updating member', { error: updateError.message });
       }
 
       return res.json({
@@ -629,7 +630,7 @@ router.post('/change-password', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Change password error:', error);
+    log.error('Change password error', { error: error.message });
     return res.status(500).json({
       success: false,
       message: 'خطأ في تغيير كلمة المرور',

@@ -2,6 +2,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { supabase } from '../config/database.js';
+import { log } from '../utils/logger.js';
 
 const router = express.Router();
 
@@ -78,7 +79,7 @@ const logActivity = async (userId, userEmail, userRole, actionType, details, ipA
         ip_address: ipAddress
       });
   } catch (error) {
-    console.error('Failed to log activity:', error);
+    log.error('Failed to log activity', { error: error.message });
   }
 };
 
@@ -120,7 +121,7 @@ router.get('/system', authenticateToken, requireRole(['super_admin']), async (re
     if (error) throw error;
     res.json(settings);
   } catch (error) {
-    console.error('Failed to fetch system settings:', error);
+    log.error('Failed to fetch system settings', { error: error.message });
     res.status(500).json({ error: 'Failed to fetch system settings' });
   }
 });
@@ -176,7 +177,7 @@ router.put('/system', authenticateToken, requireRole(['super_admin']), async (re
 
     res.json(result);
   } catch (error) {
-    console.error('Failed to update system settings:', error);
+    log.error('Failed to update system settings', { error: error.message });
     res.status(500).json({ error: 'Failed to update system settings' });
   }
 });
@@ -210,7 +211,7 @@ router.get('/users', authenticateToken, requireRole(['super_admin']), async (req
     if (error) throw error;
     res.json(users || []);
   } catch (error) {
-    console.error('Failed to fetch users:', error);
+    log.error('Failed to fetch users', { error: error.message });
     res.status(500).json({ error: 'Failed to fetch users' });
   }
 });
@@ -263,7 +264,7 @@ router.post('/users', authenticateToken, requireRole(['super_admin']), async (re
 
     res.status(201).json(newUser);
   } catch (error) {
-    console.error('Failed to create user:', error);
+    log.error('Failed to create user', { error: error.message });
     res.status(500).json({ error: 'Failed to create user' });
   }
 });
@@ -302,7 +303,7 @@ router.put('/users/:userId', authenticateToken, requireRole(['super_admin']), as
 
     res.json(updatedUser);
   } catch (error) {
-    console.error('Failed to update user:', error);
+    log.error('Failed to update user', { error: error.message });
     res.status(500).json({ error: 'Failed to update user' });
   }
 });
@@ -339,7 +340,7 @@ router.delete('/users/:userId', authenticateToken, requireRole(['super_admin']),
 
     res.json({ message: 'User deleted successfully' });
   } catch (error) {
-    console.error('Failed to delete user:', error);
+    log.error('Failed to delete user', { error: error.message });
     res.status(500).json({ error: 'Failed to delete user' });
   }
 });
@@ -392,7 +393,7 @@ router.get('/audit-logs', authenticateToken, requireRole(['super_admin']), async
       }
     });
   } catch (error) {
-    console.error('Failed to fetch audit logs:', error);
+    log.error('Failed to fetch audit logs', { error: error.message });
     res.status(500).json({ error: 'Failed to fetch audit logs' });
   }
 });
@@ -438,7 +439,7 @@ router.get('/preferences', authenticateToken, async (req, res) => {
 
     res.json(preferencesByRole[userRole] || preferencesByRole.user_member);
   } catch (error) {
-    console.error('Failed to fetch preferences:', error);
+    log.error('Failed to fetch preferences', { error: error.message });
     res.status(500).json({ error: 'Failed to fetch preferences' });
   }
 });
@@ -450,7 +451,7 @@ router.put('/preferences', authenticateToken, async (req, res) => {
     // For now, return success
     res.json({ message: 'Preferences updated successfully', preferences: req.body });
   } catch (error) {
-    console.error('Failed to update preferences:', error);
+    log.error('Failed to update preferences', { error: error.message });
     res.status(500).json({ error: 'Failed to update preferences' });
   }
 });
