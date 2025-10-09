@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { formatHijri } from '../../utils/hijriDate.js';
-import { toHijri } from 'hijri-converter';
+import { toHijri, toGregorian } from 'hijri-converter';
 import SimpleHijriDatePicker from '../../components/Common/SimpleHijriDatePicker';
+import { HijriDateInput } from '../../components/Common/HijriDateInput';
 import useActiveMemberCount from '../../hooks/useActiveMemberCount';
 import MemberCountToast from '../../components/Common/MemberCountToast';
 import '../../styles/SelectFix.css';
@@ -67,7 +68,9 @@ const NewsManagement = () => {
 
     // Hijri Date Range Filter
     const [fromHijriDate, setFromHijriDate] = useState('');
+    const [fromGregorianDate, setFromGregorianDate] = useState('');
     const [toHijriDate, setToHijriDate] = useState('');
+    const [toGregorianDate, setToGregorianDate] = useState('');
     const [showDateFilter, setShowDateFilter] = useState(false);
 
     // Form state
@@ -290,21 +293,19 @@ const NewsManagement = () => {
         return colors[priority] || 'text-gray-600';
     };
 
-    // Filter news by Hijri date range
+    // Filter news by Hijri date range (using Gregorian conversion for comparison)
     const filterNewsByHijriDate = (newsItems: NewsItem[]) => {
-        if (!fromHijriDate && !toHijriDate) return newsItems;
+        if (!fromGregorianDate && !toGregorianDate) return newsItems;
 
         return newsItems.filter(item => {
             if (!item.created_at) return false;
 
-            // Convert created_at to Hijri for comparison
-            const [year, month, day] = item.created_at.split('T')[0].split('-').map(Number);
-            const hijriDate = toHijri(year, month, day);
-            const hijriDateStr = `${hijriDate.hy}-${String(hijriDate.hm).padStart(2, '0')}-${String(hijriDate.hd).padStart(2, '0')}`;
+            // Compare with Gregorian dates (database format)
+            const itemDateStr = item.created_at.split('T')[0];
 
             // Check if within range
-            if (fromHijriDate && hijriDateStr < fromHijriDate) return false;
-            if (toHijriDate && hijriDateStr > toHijriDate) return false;
+            if (fromGregorianDate && itemDateStr < fromGregorianDate) return false;
+            if (toGregorianDate && itemDateStr > toGregorianDate) return false;
             return true;
         });
     };
@@ -312,7 +313,9 @@ const NewsManagement = () => {
     // Clear date filters
     const clearDateFilters = () => {
         setFromHijriDate('');
+        setFromGregorianDate('');
         setToHijriDate('');
+        setToGregorianDate('');
     };
 
     // Apply all filters
@@ -409,39 +412,29 @@ const NewsManagement = () => {
                 {showDateFilter && (
                     <div className="mt-4 bg-white rounded-2xl shadow-lg border border-gray-100 p-6 transition-all duration-300">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* From Date */}
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-3">من تاريخ</label>
-                                <div className="relative">
-                                    <input
-                                        type="date"
-                                        value={fromHijriDate}
-                                        onChange={(e) => setFromHijriDate(e.target.value)}
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-right"
-                                        placeholder="اختر التاريخ"
-                                    />
-                                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                                        📆
-                                    </span>
-                                </div>
-                            </div>
+                            {/* From Date - Hijri Input */}
+                            <HijriDateInput
+                                value={fromHijriDate}
+                                onChange={(hijri, gregorian) => {
+                                    setFromHijriDate(hijri);
+                                    setFromGregorianDate(gregorian);
+                                }}
+                                label="من تاريخ (هجري)"
+                                minYear={1440}
+                                maxYear={1450}
+                            />
 
-                            {/* To Date */}
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-3">إلى تاريخ</label>
-                                <div className="relative">
-                                    <input
-                                        type="date"
-                                        value={toHijriDate}
-                                        onChange={(e) => setToHijriDate(e.target.value)}
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-right"
-                                        placeholder="اختر التاريخ"
-                                    />
-                                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                                        📆
-                                    </span>
-                                </div>
-                            </div>
+                            {/* To Date - Hijri Input */}
+                            <HijriDateInput
+                                value={toHijriDate}
+                                onChange={(hijri, gregorian) => {
+                                    setToHijriDate(hijri);
+                                    setToGregorianDate(gregorian);
+                                }}
+                                label="إلى تاريخ (هجري)"
+                                minYear={1440}
+                                maxYear={1450}
+                            />
                         </div>
 
                         {/* Filter Actions */}
@@ -464,15 +457,15 @@ const NewsManagement = () => {
                         {(fromHijriDate || toHijriDate) && (
                             <div className="mt-4 pt-4 border-t border-gray-100">
                                 <div className="flex items-center gap-2 text-sm flex-wrap">
-                                    <span className="font-semibold text-gray-700">الفلاتر النشطة:</span>
+                                    <span className="font-semibold text-gray-700">الفلاتر النشطة (تاريخ هجري):</span>
                                     {fromHijriDate && (
                                         <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-lg">
-                                            من: {new Date(fromHijriDate).toLocaleDateString('ar-SA')}
+                                            من: {fromHijriDate} هـ
                                         </span>
                                     )}
                                     {toHijriDate && (
                                         <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-lg">
-                                            إلى: {new Date(toHijriDate).toLocaleDateString('ar-SA')}
+                                            إلى: {toHijriDate} هـ
                                         </span>
                                     )}
                                 </div>

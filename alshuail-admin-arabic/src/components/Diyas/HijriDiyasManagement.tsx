@@ -26,8 +26,9 @@ import {
   DocumentArrowDownIcon
 } from '@heroicons/react/24/outline';
 import { HijriDateDisplay, HijriDateFilter, HijriCalendarWidget } from '../Common/HijriDateDisplay';
+import { HijriDateInput } from '../Common/HijriDateInput';
 import { formatHijriDate, formatDualDate, formatTimeAgo, isOverdue, getDaysUntil } from '../../utils/hijriDateUtils';
-import { toHijri } from 'hijri-converter';
+import { toHijri, toGregorian } from 'hijri-converter';
 import '../../styles/ultra-premium-islamic-design.css';
 
 interface Diya {
@@ -72,7 +73,9 @@ const HijriDiyasManagement: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedDiya, setSelectedDiya] = useState<Diya | null>(null);
   const [fromHijriDate, setFromHijriDate] = useState('');
+  const [fromGregorianDate, setFromGregorianDate] = useState('');
   const [toHijriDate, setToHijriDate] = useState('');
+  const [toGregorianDate, setToGregorianDate] = useState('');
   const [showDateFilter, setShowDateFilter] = useState(false);
 
   // Mock data
@@ -433,21 +436,19 @@ const HijriDiyasManagement: React.FC = () => {
     );
   };
 
-  // Hijri date filtering logic
+  // Hijri date filtering logic (using Gregorian conversion for comparison)
   const filterDiyasByHijriDate = (diyasToFilter: Diya[]) => {
-    if (!fromHijriDate && !toHijriDate) return diyasToFilter;
+    if (!fromGregorianDate && !toGregorianDate) return diyasToFilter;
 
     return diyasToFilter.filter(diya => {
-      if (!diya.startDate) return false;
+      if (!diya.startDate && !diya.createdAt) return false;
 
-      // Convert startDate to Hijri for comparison
-      const [year, month, day] = diya.startDate.split('-').map(Number);
-      const hijriDate = toHijri(year, month, day);
-      const hijriDateStr = `${hijriDate.hy}-${String(hijriDate.hm).padStart(2, '0')}-${String(hijriDate.hd).padStart(2, '0')}`;
+      // Compare with Gregorian dates (database format)
+      const itemDateStr = (diya.startDate || diya.createdAt).split('T')[0];
 
       // Check if within range
-      if (fromHijriDate && hijriDateStr < fromHijriDate) return false;
-      if (toHijriDate && hijriDateStr > toHijriDate) return false;
+      if (fromGregorianDate && itemDateStr < fromGregorianDate) return false;
+      if (toGregorianDate && itemDateStr > toGregorianDate) return false;
       return true;
     });
   };
@@ -455,7 +456,9 @@ const HijriDiyasManagement: React.FC = () => {
   // Clear date filters
   const clearDateFilters = () => {
     setFromHijriDate('');
+    setFromGregorianDate('');
     setToHijriDate('');
+    setToGregorianDate('');
   };
 
   // Apply filtering
@@ -719,39 +722,29 @@ const HijriDiyasManagement: React.FC = () => {
           {showDateFilter && (
             <div className="mt-4 bg-white rounded-2xl shadow-lg border border-gray-100 p-6 transition-all duration-300">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* From Date */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">من تاريخ</label>
-                  <div className="relative">
-                    <input
-                      type="date"
-                      value={fromHijriDate}
-                      onChange={(e) => setFromHijriDate(e.target.value)}
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-right"
-                      placeholder="اختر التاريخ"
-                    />
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                      📆
-                    </span>
-                  </div>
-                </div>
+                {/* From Date - Hijri Input */}
+                <HijriDateInput
+                  value={fromHijriDate}
+                  onChange={(hijri, gregorian) => {
+                    setFromHijriDate(hijri);
+                    setFromGregorianDate(gregorian);
+                  }}
+                  label="من تاريخ (هجري)"
+                  minYear={1440}
+                  maxYear={1450}
+                />
 
-                {/* To Date */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-3">إلى تاريخ</label>
-                  <div className="relative">
-                    <input
-                      type="date"
-                      value={toHijriDate}
-                      onChange={(e) => setToHijriDate(e.target.value)}
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-right"
-                      placeholder="اختر التاريخ"
-                    />
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                      📆
-                    </span>
-                  </div>
-                </div>
+                {/* To Date - Hijri Input */}
+                <HijriDateInput
+                  value={toHijriDate}
+                  onChange={(hijri, gregorian) => {
+                    setToHijriDate(hijri);
+                    setToGregorianDate(gregorian);
+                  }}
+                  label="إلى تاريخ (هجري)"
+                  minYear={1440}
+                  maxYear={1450}
+                />
               </div>
 
               {/* Filter Actions */}
@@ -773,16 +766,16 @@ const HijriDiyasManagement: React.FC = () => {
               {/* Active Filters Display */}
               {(fromHijriDate || toHijriDate) && (
                 <div className="mt-4 pt-4 border-t border-gray-100">
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="font-semibold text-gray-700">الفلاتر النشطة:</span>
+                  <div className="flex items-center gap-2 text-sm flex-wrap">
+                    <span className="font-semibold text-gray-700">الفلاتر النشطة (تاريخ هجري):</span>
                     {fromHijriDate && (
                       <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-lg">
-                        من: {new Date(fromHijriDate).toLocaleDateString('ar-SA')}
+                        من: {fromHijriDate} هـ
                       </span>
                     )}
                     {toHijriDate && (
                       <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-lg">
-                        إلى: {new Date(toHijriDate).toLocaleDateString('ar-SA')}
+                        إلى: {toHijriDate} هـ
                       </span>
                     )}
                   </div>
