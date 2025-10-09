@@ -12,6 +12,7 @@ import {
   getTribalSectionStats
 } from '../services/memberMonitoringQueryService.js';
 import { supabase } from '../config/database.js';
+import { log } from '../utils/logger.js';
 
 /**
  * Get member monitoring dashboard with advanced filters
@@ -84,7 +85,7 @@ export const getMemberMonitoring = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error in getMemberMonitoring:', error);
+    log.error('Error in getMemberMonitoring', { error: error.message });
     res.status(500).json({
       error: 'Internal server error',
       message: error.message
@@ -108,7 +109,7 @@ export const getDashboardStatistics = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error in getDashboardStatistics:', error);
+    log.error('Error in getDashboardStatistics', { error: error.message });
     res.status(500).json({
       error: 'Failed to fetch statistics',
       message: error.message
@@ -144,7 +145,7 @@ export const exportMembers = async (req, res) => {
     res.json(result);
 
   } catch (error) {
-    console.error('Error in exportMembers:', error);
+    log.error('Error in exportMembers', { error: error.message });
     res.status(500).json({
       error: 'Export failed',
       message: error.message
@@ -170,7 +171,7 @@ export const getMemberDetailsById = async (req, res) => {
     res.json(result);
 
   } catch (error) {
-    console.error('Error in getMemberDetailsById:', error);
+    log.error('Error in getMemberDetailsById', { error: error.message });
     res.status(500).json({
       error: 'Failed to fetch member details',
       message: error.message
@@ -197,7 +198,7 @@ export const searchMembers = async (req, res) => {
     res.json(result);
 
   } catch (error) {
-    console.error('Error in searchMembers:', error);
+    log.error('Error in searchMembers', { error: error.message });
     res.status(500).json({
       error: 'Search failed',
       message: error.message
@@ -215,7 +216,7 @@ export const getTribalSections = async (req, res) => {
     res.json(result);
 
   } catch (error) {
-    console.error('Error in getTribalSections:', error);
+    log.error('Error in getTribalSections', { error: error.message });
     res.status(500).json({
       error: 'Failed to fetch tribal sections',
       message: error.message
@@ -251,7 +252,7 @@ export const suspendMember = async (req, res) => {
       .single();
 
     if (updateError) {
-      console.error('Error suspending member:', updateError);
+      log.error('Error suspending member', { error: updateError.message });
       return res.status(500).json({ error: 'Failed to suspend member' });
     }
 
@@ -275,7 +276,7 @@ export const suspendMember = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error in suspendMember:', error);
+    log.error('Error in suspendMember', { error: error.message });
     res.status(500).json({
       error: 'Internal server error',
       message: error.message
@@ -307,7 +308,7 @@ export const reactivateMember = async (req, res) => {
       .single();
 
     if (updateError) {
-      console.error('Error reactivating member:', updateError);
+      log.error('Error reactivating member', { error: updateError.message });
       return res.status(500).json({ error: 'Failed to reactivate member' });
     }
 
@@ -331,7 +332,7 @@ export const reactivateMember = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error in reactivateMember:', error);
+    log.error('Error in reactivateMember', { error: error.message });
     res.status(500).json({
       error: 'Internal server error',
       message: error.message
@@ -395,7 +396,7 @@ export const notifyMembers = async (req, res) => {
             });
 
           if (notifError) {
-            console.error(`Notification creation failed for ${memberId}:`, notifError);
+            log.error('Notification creation failed', { memberId, error: notifError.message });
           }
         }
 
@@ -414,7 +415,7 @@ export const notifyMembers = async (req, res) => {
             });
 
           if (smsError) {
-            console.error(`SMS queue failed for ${memberId}:`, smsError);
+            log.error('SMS queue failed', { memberId, error: smsError.message });
           }
         }
 
@@ -424,7 +425,7 @@ export const notifyMembers = async (req, res) => {
         });
 
       } catch (error) {
-        console.error(`Failed to notify member ${memberId}:`, error);
+        log.error('Failed to notify member', { memberId, error: error.message });
         results.failed.push({
           memberId,
           reason: error.message
@@ -454,7 +455,7 @@ export const notifyMembers = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error in notifyMembers:', error);
+    log.error('Error in notifyMembers', { error: error.message });
     res.status(500).json({
       error: 'Internal server error',
       message: error.message
@@ -509,7 +510,7 @@ export const getAuditLog = async (req, res) => {
     const { data: logs, error, count } = await query;
 
     if (error) {
-      console.error('Error fetching audit logs:', error);
+      log.error('Error fetching audit logs', { error: error.message });
       return res.status(500).json({ error: 'Failed to fetch audit logs' });
     }
 
@@ -525,7 +526,7 @@ export const getAuditLog = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error in getAuditLog:', error);
+    log.error('Error in getAuditLog', { error: error.message });
     res.status(500).json({
       error: 'Internal server error',
       message: error.message
@@ -546,10 +547,10 @@ async function logAuditAction(auditData) {
       });
 
     if (error) {
-      console.error('Error logging audit action:', error);
+      log.error('Error logging audit action', { error: error.message });
     }
   } catch (error) {
-    console.error('Failed to log audit action:', error);
+    log.error('Failed to log audit action', { error: error.message });
   }
 }
 

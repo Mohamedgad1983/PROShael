@@ -1,4 +1,5 @@
 import { supabase } from '../config/database.js';
+import { log } from '../utils/logger.js';
 
 // Get member profile
 export const getMemberProfile = async (req, res) => {
@@ -12,7 +13,7 @@ export const getMemberProfile = async (req, res) => {
       .single();
 
     if (error) {
-      console.error('Error fetching member profile:', error);
+      log.error('Error fetching member profile', { error: error.message });
       return res.status(500).json({ message: 'خطأ في جلب البيانات' });
     }
 
@@ -22,7 +23,7 @@ export const getMemberProfile = async (req, res) => {
 
     res.json(data);
   } catch (error) {
-    console.error('Error in getMemberProfile:', error);
+    log.error('Error in getMemberProfile', { error: error.message });
     res.status(500).json({ message: 'خطأ في الخادم' });
   }
 };
@@ -40,7 +41,7 @@ export const getMemberBalance = async (req, res) => {
       .single();
 
     if (error) {
-      console.error('Error fetching member balance:', error);
+      log.error('Error fetching member balance', { error: error.message });
       return res.status(500).json({ message: 'خطأ في جلب البيانات' });
     }
 
@@ -60,7 +61,7 @@ export const getMemberBalance = async (req, res) => {
       color: isCompliant ? 'green' : 'red'
     });
   } catch (error) {
-    console.error('Error in getMemberBalance:', error);
+    log.error('Error in getMemberBalance', { error: error.message });
     res.status(500).json({ message: 'خطأ في الخادم' });
   }
 };
@@ -102,13 +103,13 @@ export const getMemberPayments = async (req, res) => {
     const { data, error } = await query;
 
     if (error) {
-      console.error('Error fetching payments:', error);
+      log.error('Error fetching payments', { error: error.message });
       return res.status(500).json({ message: 'خطأ في جلب البيانات' });
     }
 
     res.json(data || []);
   } catch (error) {
-    console.error('Error in getMemberPayments:', error);
+    log.error('Error in getMemberPayments', { error: error.message });
     res.status(500).json({ message: 'خطأ في الخادم' });
   }
 };
@@ -142,7 +143,7 @@ export const createPayment = async (req, res) => {
       .single();
 
     if (error) {
-      console.error('Error creating payment:', error);
+      log.error('Error creating payment', { error: error.message });
       return res.status(500).json({ message: 'خطأ في إنشاء الدفعة' });
     }
 
@@ -151,7 +152,7 @@ export const createPayment = async (req, res) => {
       payment: data
     });
   } catch (error) {
-    console.error('Error in createPayment:', error);
+    log.error('Error in createPayment', { error: error.message });
     res.status(500).json({ message: 'خطأ في الخادم' });
   }
 };
@@ -175,13 +176,13 @@ export const searchMembers = async (req, res) => {
       .limit(10);
 
     if (error) {
-      console.error('Error searching members:', error);
+      log.error('Error searching members', { error: error.message });
       return res.status(500).json({ message: 'خطأ في البحث' });
     }
 
     res.json(data || []);
   } catch (error) {
-    console.error('Error in searchMembers:', error);
+    log.error('Error in searchMembers', { error: error.message });
     res.status(500).json({ message: 'خطأ في الخادم' });
   }
 };
@@ -206,7 +207,7 @@ export const getMemberNotifications = async (req, res) => {
     const { data, error } = await query;
 
     if (error) {
-      console.error('Error fetching notifications:', error);
+      log.error('Error fetching notifications', { error: error.message });
       return res.status(500).json({ message: 'خطأ في جلب الإشعارات' });
     }
 
@@ -225,7 +226,7 @@ export const getMemberNotifications = async (req, res) => {
 
     res.json(notificationsWithReadStatus);
   } catch (error) {
-    console.error('Error in getMemberNotifications:', error);
+    log.error('Error in getMemberNotifications', { error: error.message });
     res.status(500).json({ message: 'خطأ في الخادم' });
   }
 };
@@ -257,7 +258,7 @@ export const markNotificationAsRead = async (req, res) => {
 
     res.json({ message: 'تم تحديد الإشعار كمقروء' });
   } catch (error) {
-    console.error('Error in markNotificationAsRead:', error);
+    log.error('Error in markNotificationAsRead', { error: error.message });
     res.status(500).json({ message: 'خطأ في الخادم' });
   }
 };
@@ -303,7 +304,7 @@ export const markAllNotificationsAsRead = async (req, res) => {
 
     res.json({ message: 'تم تحديد جميع الإشعارات كمقروءة' });
   } catch (error) {
-    console.error('Error in markAllNotificationsAsRead:', error);
+    log.error('Error in markAllNotificationsAsRead', { error: error.message });
     res.status(500).json({ message: 'خطأ في الخادم' });
   }
 };
@@ -328,7 +329,7 @@ export const uploadReceipt = async (req, res) => {
       });
 
     if (error) {
-      console.error('Error uploading receipt:', error);
+      log.error('Error uploading receipt', { error: error.message });
       return res.status(500).json({ message: 'خطأ في رفع الإيصال' });
     }
 
@@ -343,7 +344,7 @@ export const uploadReceipt = async (req, res) => {
       fileName: fileName
     });
   } catch (error) {
-    console.error('Error in uploadReceipt:', error);
+    log.error('Error in uploadReceipt', { error: error.message });
     res.status(500).json({ message: 'خطأ في الخادم' });
   }
 };

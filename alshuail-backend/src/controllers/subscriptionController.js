@@ -1,4 +1,5 @@
 import { supabase } from '../config/database.js';
+import { log } from '../utils/logger.js';
 
 // ========================================
 // 1. Get all subscription plans (PUBLIC)
@@ -18,7 +19,7 @@ export const getSubscriptionPlans = async (req, res) => {
       plans: plans || []
     });
   } catch (error) {
-    console.error('[Subscription] Get plans error:', error);
+    log.error('Subscription: Get plans error', { error: error.message });
     res.status(500).json({
       success: false,
       message: 'فشل في جلب خطط الاشتراك',
@@ -49,7 +50,7 @@ export const getMemberSubscription = async (req, res) => {
       .single();
 
     if (error) {
-      console.error('[Subscription] Get member subscription error:', error);
+      log.error('Subscription: Get member subscription error', { error: error.message });
       return res.status(404).json({
         success: false,
         message: 'لم يتم العثور على اشتراك لهذا العضو'
@@ -70,7 +71,7 @@ export const getMemberSubscription = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('[Subscription] Get member subscription error:', error);
+    log.error('Subscription: Get member subscription error', { error: error.message });
     res.status(500).json({
       success: false,
       message: 'فشل في جلب بيانات الاشتراك',
@@ -137,7 +138,7 @@ export const getPaymentHistory = async (req, res) => {
       limit
     });
   } catch (error) {
-    console.error('[Subscription] Get payment history error:', error);
+    log.error('Subscription: Get payment history error', { error: error.message });
     res.status(500).json({
       success: false,
       message: 'فشل في جلب سجل الدفعات',
@@ -201,7 +202,7 @@ export const getAllSubscriptions = async (req, res) => {
       stats: statsData
     });
   } catch (error) {
-    console.error('[Subscription] Get all subscriptions error:', error);
+    log.error('Subscription: Get all subscriptions error', { error: error.message });
     res.status(500).json({
       success: false,
       message: 'فشل في جلب الاشتراكات',
@@ -248,7 +249,7 @@ export const getSubscriptionStats = async (req, res) => {
       avg_months_ahead: Math.round(avg_months_ahead * 10) / 10 // Round to 1 decimal
     });
   } catch (error) {
-    console.error('[Subscription] Get stats error:', error);
+    log.error('Subscription: Get stats error', { error: error.message });
     res.status(500).json({
       success: false,
       message: 'فشل في جلب الإحصائيات',
@@ -279,7 +280,7 @@ export const getOverdueMembers = async (req, res) => {
       total_due
     });
   } catch (error) {
-    console.error('[Subscription] Get overdue members error:', error);
+    log.error('Subscription: Get overdue members error', { error: error.message });
     res.status(500).json({
       success: false,
       message: 'فشل في جلب الأعضاء المتأخرين',
@@ -421,7 +422,7 @@ export const recordPayment = async (req, res) => {
       payment_id: payment.id
     });
   } catch (error) {
-    console.error('[Subscription] Record payment error:', error);
+    log.error('Subscription: Record payment error', { error: error.message });
     res.status(500).json({
       success: false,
       message: 'فشل في تسجيل الدفعة',
@@ -526,7 +527,7 @@ export const sendPaymentReminder = async (req, res) => {
       message: `تم إرسال ${sent} تذكير بنجاح`
     });
   } catch (error) {
-    console.error('[Subscription] Send reminder error:', error);
+    log.error('Subscription: Send reminder error', { error: error.message });
     res.status(500).json({
       success: false,
       message: 'فشل في إرسال التذكير',
