@@ -295,21 +295,19 @@ const App: React.FC = () => {
               window.location.href = '/login';
             }} /></AdminRoute>} />
 
-            {/* Subscription Management Routes */}
-            <Route path="/admin/subscriptions" element={<AdminRoute><SubscriptionDashboard /></AdminRoute>} />
-            <Route path="/subscriptions" element={<AdminRoute><SubscriptionDashboard /></AdminRoute>} />
-
-            {/* News & Initiatives Management Routes (Admin) */}
-            <Route path="/admin/news" element={<AdminRoute><NewsManagement /></AdminRoute>} />
-            <Route path="/admin/initiatives" element={<AdminRoute><InitiativesManagement /></AdminRoute>} />
+            {/* Initiative Report - Keep separate route for detail page */}
             <Route path="/admin/initiatives/:id/report" element={<AdminRoute><InitiativeReport /></AdminRoute>} />
 
-            {/* Admin routes catch-all */}
+            {/* Admin routes - StyledDashboard with sidebar handles all /admin/* routes */}
+            {/* This includes: /admin/dashboard, /admin/news, /admin/initiatives, /admin/subscriptions, /admin/diyas, etc. */}
             <Route path="/admin/*" element={<AdminRoute><StyledDashboard onLogout={() => {
               localStorage.removeItem('token');
               localStorage.removeItem('user');
               window.location.href = '/login';
             }} /></AdminRoute>} />
+
+            {/* Legacy subscription route - redirects to admin */}
+            <Route path="/subscriptions" element={<Navigate to="/admin/subscriptions" replace />} />
             <Route path="/login" element={<AdminDashboard />} />
 
             {/* Default route redirects to login */}

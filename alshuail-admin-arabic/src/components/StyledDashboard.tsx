@@ -86,6 +86,8 @@ import FamilyTree from './FamilyTree/FamilyTree';
 import NewsManagement from '../pages/admin/NewsManagement';
 // @ts-ignore
 import InitiativesManagementNew from '../pages/admin/InitiativesManagement';
+// @ts-ignore
+import SubscriptionDashboard from '../pages/admin/SubscriptionDashboard';
 
 import {
   formatHijriDate,
@@ -885,13 +887,6 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
   // Handle section change with animation
 
   const handleSectionChange = (sectionId: string) => {
-    // Navigate to new subscription dashboard instead of old component
-    if (sectionId === 'subscriptions') {
-      navigate('/admin/subscriptions');
-      setSidebarOpen(false);
-      return;
-    }
-
     if (sectionId === activeSection) return;
 
     setIsLoading(true);
@@ -4448,7 +4443,7 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
                   </div>
                 )}
 
-                {/* Subscriptions now handled by route /admin/subscriptions */}
+                {activeSection === 'subscriptions' && <SubscriptionDashboard />}
 
                 {activeSection === 'payments' && <PaymentsTracking />}
 
