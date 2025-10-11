@@ -71,7 +71,7 @@ const formatTime = (time, locale = 'ar-SA') => {
 };
 
 const calculateProgress = (current, target) => {
-    if (!target || target <= 0) return 0;
+    if (!target || target <= 0) {return 0;}
     const progress = (current / target) * 100;
     return Math.min(Math.round(progress * 100) / 100, 100); // Round to 2 decimal places, max 100%
 };

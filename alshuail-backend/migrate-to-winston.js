@@ -36,7 +36,7 @@ function getLoggerImport(filePath) {
 
 function migrateFile(filePath) {
   try {
-    let content = readFileSync(filePath, 'utf8');
+    const content = readFileSync(filePath, 'utf8');
     let changed = false;
 
     // Check if logger is already imported

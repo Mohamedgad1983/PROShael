@@ -73,7 +73,7 @@ function addEslintDisable(filePath, content) {
   if (shouldAddDisable && !content.includes('/* eslint-disable require-await */')) {
     // Check if there's already an eslint-disable comment
     if (!content.match(/^\/\*\s*eslint-disable/m)) {
-      return '/* eslint-disable require-await */\n' + content;
+      return `/* eslint-disable require-await */\n${  content}`;
     }
   }
 

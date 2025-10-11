@@ -23,7 +23,7 @@ async function runSQLScript() {
           console.log(`Executing statement ${i + 1}/${statements.length}...`);
 
           const { data, error } = await supabase.rpc('exec_sql', {
-            sql_query: statement + ';'
+            sql_query: `${statement  };`
           });
 
           if (error) {

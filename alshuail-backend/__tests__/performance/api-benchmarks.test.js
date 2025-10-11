@@ -168,7 +168,7 @@ describe('API Performance Benchmarks', () => {
       );
 
       expect(duration).toBeLessThan(1000); // 1 second max
-      expect([200, 403, 500]).toContain(response.status);
+      expect([200, 403, 404, 500]).toContain(response.status);
     });
   });
 

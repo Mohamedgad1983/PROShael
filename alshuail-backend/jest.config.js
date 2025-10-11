@@ -17,12 +17,20 @@ export default {
   ],
 
   // Coverage configuration
-  collectCoverage: false, // Enable with --coverage flag
+  collectCoverage: true, // Always collect coverage
   coverageDirectory: 'coverage',
+  coverageReporters: [
+    'text',           // Console output
+    'text-summary',   // Brief summary
+    'lcov',          // For CI/CD and coverage tools
+    'html',          // Interactive HTML report
+    'json'           // Machine-readable format
+  ],
   coveragePathIgnorePatterns: [
     '/node_modules/',
     '/__tests__/',
     '/scripts/',
+    '/migrations/',
     'jest.config.js'
   ],
   collectCoverageFrom: [

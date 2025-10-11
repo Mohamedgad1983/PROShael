@@ -34,7 +34,7 @@ async function testLogin() {
     if (data.success) {
       console.log('\n✅ LOGIN SUCCESSFUL!');
       console.log('User:', data.user);
-      console.log('Token (first 20 chars):', data.token?.substring(0, 20) + '...');
+      console.log('Token (first 20 chars):', `${data.token?.substring(0, 20)  }...`);
     } else {
       console.log('\n❌ LOGIN FAILED');
       console.log('Error:', data.error || data.message);

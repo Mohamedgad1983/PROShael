@@ -44,41 +44,51 @@ jobs:
         SUPABASE_SERVICE_KEY=${{ secrets.SUPABASE_SERVICE_KEY || 'test-service-key' }}
         EOF
 
-    - name: Run Unit Tests
+    - name: Run Tests with Coverage
       run: |
         cd alshuail-backend
-        npm test -- __tests__/unit/
+        npm run test:ci
       env:
         NODE_ENV: test
 
-    - name: Run Integration Tests
+    - name: Generate Coverage Report
+      if: always()
       run: |
         cd alshuail-backend
-        npm test -- __tests__/integration/
-      env:
-        NODE_ENV: test
+        echo "## 📊 Test Coverage Report" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        cat coverage/coverage-summary.json | node -e "
+          const data = JSON.parse(require('fs').readFileSync(0, 'utf-8'));
+          const total = data.total;
+          console.log('Coverage Summary:');
+          console.log('Lines:      ' + total.lines.pct + '%');
+          console.log('Statements: ' + total.statements.pct + '%');
+          console.log('Functions:  ' + total.functions.pct + '%');
+          console.log('Branches:   ' + total.branches.pct + '%');
+        " >> $GITHUB_STEP_SUMMARY || echo "Coverage summary not available" >> $GITHUB_STEP_SUMMARY
+        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
 
-    - name: Run E2E Tests
-      run: |
-        cd alshuail-backend
-        npm test -- __tests__/e2e/ || true
-      env:
-        NODE_ENV: test
-
-    - name: Run Performance Benchmarks
-      run: |
-        cd alshuail-backend
-        npm test -- __tests__/performance/ || true
-      env:
-        NODE_ENV: test
-
-    - name: Upload Test Results
+    - name: Upload Coverage Reports
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: test-results
-        path: alshuail-backend/coverage/
+        name: coverage-reports
+        path: |
+          alshuail-backend/coverage/
+          !alshuail-backend/coverage/**/*.js
         retention-days: 30
+
+    - name: Upload Coverage to Codecov (Optional)
+      if: always()
+      uses: codecov/codecov-action@v4
+      continue-on-error: true
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: alshuail-backend/coverage/lcov.info
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
 
   lint:
     name: Code Quality Check

@@ -38,7 +38,7 @@ async function testLogin() {
     process.exit(1);
   }
 
-  console.log('  Hash:', user.password_hash.substring(0, 20) + '...');
+  console.log('  Hash:', `${user.password_hash.substring(0, 20)  }...`);
   console.log('');
 
   const match = await bcrypt.compare(password, user.password_hash);

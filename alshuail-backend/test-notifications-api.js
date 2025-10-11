@@ -39,7 +39,7 @@ async function getAuthToken() {
 }
 
 async function testNotificationEndpoints(token) {
-  console.log('\n' + '='.repeat(50));
+  console.log(`\n${  '='.repeat(50)}`);
   console.log('🧪 TESTING NOTIFICATION ENDPOINTS');
   console.log('='.repeat(50));
 
@@ -276,7 +276,7 @@ async function runTests() {
   // Run tests
   await testNotificationEndpoints(token);
 
-  console.log('\n' + '='.repeat(50));
+  console.log(`\n${  '='.repeat(50)}`);
   console.log('✅ ALL TESTS COMPLETED');
   console.log('='.repeat(50));
 

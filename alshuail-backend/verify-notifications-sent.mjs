@@ -20,7 +20,7 @@ async function verifyNotifications() {
             .limit(1)
             .single();
 
-        if (newsError) throw newsError;
+        if (newsError) {throw newsError;}
 
         console.log('📰 Latest News:');
         console.log(`   Title: ${news.title_ar}`);
@@ -34,7 +34,7 @@ async function verifyNotifications() {
             .eq('related_id', news.id)
             .eq('type', 'news');
 
-        if (notifError) throw notifError;
+        if (notifError) {throw notifError;}
 
         console.log(`✅ Found ${notifications.length} notifications sent!\n`);
 

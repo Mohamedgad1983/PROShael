@@ -226,8 +226,8 @@ app.get('/api/health', async (req, res) => {
     platform: config.platform.isRender ? 'Render' : 'Local',
     uptime: process.uptime(),
     memory: {
-      used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + ' MB',
-      total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + ' MB'
+      used: `${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)  } MB`,
+      total: `${Math.round(process.memoryUsage().heapTotal / 1024 / 1024)  } MB`
     },
     checks: {
       database: false,

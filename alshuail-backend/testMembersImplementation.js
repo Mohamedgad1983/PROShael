@@ -115,7 +115,7 @@ async function testAPI() {
       total_members: updatedStatsResponse.data.data.total_members,
       completed_profiles: updatedStatsResponse.data.data.completed_profiles,
       pending_profiles: updatedStatsResponse.data.data.pending_profiles,
-      completion_rate: updatedStatsResponse.data.data.completion_rate + '%'
+      completion_rate: `${updatedStatsResponse.data.data.completion_rate  }%`
     });
 
     // Clean up test file

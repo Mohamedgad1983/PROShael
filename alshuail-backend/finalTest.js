@@ -124,7 +124,7 @@ async function finalTest() {
       active: updatedStats.data.active_members,
       completed: updatedStats.data.completed_profiles,
       pending: updatedStats.data.pending_profiles,
-      completion_rate: updatedStats.data.completion_rate + '%'
+      completion_rate: `${updatedStats.data.completion_rate  }%`
     });
 
     // Test 6: Import History

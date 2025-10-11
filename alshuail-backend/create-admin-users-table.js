@@ -29,7 +29,7 @@ async function createAdmin() {
         })
         .eq('id', existing.id);
 
-      if (error) throw error;
+      if (error) {throw error;}
       console.log('✅ Admin updated in users table');
     } else {
       const { error } = await supabase
@@ -42,7 +42,7 @@ async function createAdmin() {
           is_active: true
         }]);
 
-      if (error) throw error;
+      if (error) {throw error;}
       console.log('✅ Admin created in users table');
     }
 

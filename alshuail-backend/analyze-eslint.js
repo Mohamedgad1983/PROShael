@@ -19,13 +19,13 @@ try {
         fileIssues[currentFile] = { console: 0, unused: 0, curly: 0, other: 0 };
       }
     } else if (line.includes('Unexpected console statement')) {
-      if (currentFile) fileIssues[currentFile].console++;
+      if (currentFile) {fileIssues[currentFile].console++;}
     } else if (line.includes('never used')) {
-      if (currentFile) fileIssues[currentFile].unused++;
+      if (currentFile) {fileIssues[currentFile].unused++;}
     } else if (line.includes('Expected { after')) {
-      if (currentFile) fileIssues[currentFile].curly++;
+      if (currentFile) {fileIssues[currentFile].curly++;}
     } else if (line.includes('warning')) {
-      if (currentFile) fileIssues[currentFile].other++;
+      if (currentFile) {fileIssues[currentFile].other++;}
     }
   }
 
@@ -39,7 +39,7 @@ try {
     .slice(0, 30);
 
   console.log('\n📊 Top Files with ESLint Issues:\n');
-  console.log('File'.padEnd(50) + 'Console  Unused  Curly  Other  Total');
+  console.log(`${'File'.padEnd(50)  }Console  Unused  Curly  Other  Total`);
   console.log('='.repeat(85));
 
   for (const item of sorted) {

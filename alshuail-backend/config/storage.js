@@ -82,7 +82,7 @@ const uploadToSupabase = async (file, userId, category) => {
         upsert: false
       });
 
-    if (error) throw error;
+    if (error) {throw error;}
 
     // Get public URL
     const { data: urlData } = supabase.storage
@@ -108,7 +108,7 @@ const deleteFromSupabase = async (filePath) => {
       .from(BUCKET_NAME)
       .remove([filePath]);
 
-    if (error) throw error;
+    if (error) {throw error;}
     return true;
   } catch (error) {
     console.error('Supabase delete error:', error);
@@ -123,7 +123,7 @@ const getSignedUrl = async (filePath, expiresIn = 3600) => {
       .from(BUCKET_NAME)
       .createSignedUrl(filePath, expiresIn);
 
-    if (error) throw error;
+    if (error) {throw error;}
     return data.signedUrl;
   } catch (error) {
     console.error('Error generating signed URL:', error);

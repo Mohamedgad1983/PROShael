@@ -174,7 +174,7 @@ router.post('/export', authenticateToken, async (req, res) => {
         .eq('id', memberId)
         .single();
 
-      if (memberError) continue;
+      if (memberError) {continue;}
 
       // Get payment history
       const { data: payments } = await supabase
@@ -266,7 +266,7 @@ router.post('/member/:memberId/payment', authenticateToken, async (req, res) => 
         });
     }
 
-    if (result.error) throw result.error;
+    if (result.error) {throw result.error;}
 
     // Update member's total balance
     const { data: allPayments } = await supabase

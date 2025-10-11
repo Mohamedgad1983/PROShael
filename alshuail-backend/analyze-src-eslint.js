@@ -22,11 +22,11 @@ try {
         fileIssues[currentFile] = { unused: 0, requireAwait: 0, other: 0 };
       }
     } else if (line.includes('never used')) {
-      if (currentFile) fileIssues[currentFile].unused++;
+      if (currentFile) {fileIssues[currentFile].unused++;}
     } else if (line.includes('require-await') || line.includes('no \'await\' expression')) {
-      if (currentFile) fileIssues[currentFile].requireAwait++;
+      if (currentFile) {fileIssues[currentFile].requireAwait++;}
     } else if (line.includes('warning')) {
-      if (currentFile) fileIssues[currentFile].other++;
+      if (currentFile) {fileIssues[currentFile].other++;}
     }
   }
 
@@ -41,7 +41,7 @@ try {
     .slice(0, 30);
 
   console.log('\n📊 Top src/ Files with ESLint Issues:\n');
-  console.log('File'.padEnd(60) + 'Unused  Await  Other  Total');
+  console.log(`${'File'.padEnd(60)  }Unused  Await  Other  Total`);
   console.log('='.repeat(95));
 
   for (const item of sorted) {

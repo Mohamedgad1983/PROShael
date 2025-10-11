@@ -10,7 +10,7 @@ async function testAPIQueries() {
     const limit = 50;
     const offset = 0;
 
-    let query = supabase
+    const query = supabase
       .from('events')
       .select('*')
       .order('start_date', { ascending: true })

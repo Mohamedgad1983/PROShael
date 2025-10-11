@@ -20,8 +20,8 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function testAuthentication() {
     // Use specific test member
-    let testPhone = '0555555555';  // Specific test phone
-    let testPassword = '123456';
+    const testPhone = '0555555555';  // Specific test phone
+    const testPassword = '123456';
 
     console.log('\n=== Testing Mobile Authentication ===');
     console.log('Phone (local format):', testPhone);
@@ -31,9 +31,9 @@ async function testAuthentication() {
         // 1. Check if member exists
         console.log('\n1. Checking if member exists in database...');
         // Try both phone formats
-        let phoneVariants = [testPhone];
+        const phoneVariants = [testPhone];
         if (testPhone.startsWith('0')) {
-            phoneVariants.push('+966' + testPhone.substring(1));
+            phoneVariants.push(`+966${  testPhone.substring(1)}`);
         }
 
         let member = null;
@@ -100,10 +100,10 @@ async function testAuthentication() {
             try {
                 const hashMatch = await bcrypt.compare(testPassword, member.password_hash);
                 console.log('- Password matches hash:', hashMatch);
-                if (hashMatch) passwordValid = true;
+                if (hashMatch) {passwordValid = true;}
 
                 // Show hash details for debugging
-                console.log('- Hash starts with:', member.password_hash.substring(0, 20) + '...');
+                console.log('- Hash starts with:', `${member.password_hash.substring(0, 20)  }...`);
                 console.log('- Hash length:', member.password_hash.length);
             } catch (e) {
                 console.log('- Error comparing with password_hash:', e.message);
@@ -118,14 +118,14 @@ async function testAuthentication() {
             // Direct comparison
             const directMatch = testPassword === member.temp_password;
             console.log('- Direct match:', directMatch);
-            if (directMatch) passwordValid = true;
+            if (directMatch) {passwordValid = true;}
 
             // Try bcrypt comparison if temp_password might be a hash
             if (!directMatch && member.temp_password.startsWith('$2')) {
                 try {
                     const tempHashMatch = await bcrypt.compare(testPassword, member.temp_password);
                     console.log('- Temp password hash match:', tempHashMatch);
-                    if (tempHashMatch) passwordValid = true;
+                    if (tempHashMatch) {passwordValid = true;}
                 } catch (e) {
                     console.log('- Temp password is not a valid hash');
                 }

@@ -92,7 +92,13 @@
       "Bash(npm test)",
       "Bash(do echo \"$file:\")",
       "mcp__serena__think_about_collected_information",
-      "Bash(npm test:*)"
+      "Bash(npm test:*)",
+      "Bash(claude --version)",
+      "Bash(npm audit:*)",
+      "Bash(npm view:*)",
+      "Bash(npm info:*)",
+      "Bash(npm uninstall:*)",
+      "Read(//d//**)"
     ],
     "deny": [],
     "ask": []

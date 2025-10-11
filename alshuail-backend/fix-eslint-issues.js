@@ -32,7 +32,7 @@ function fixUnusedVars(content) {
 
   // Fix function parameters that are unused
   content = content.replace(/(\w+)\(([^)]*)\)\s*{/g, (match, funcName, params) => {
-    if (!params) return match;
+    if (!params) {return match;}
 
     // Split parameters and prefix common unused ones
     const paramList = params.split(',').map(p => p.trim());

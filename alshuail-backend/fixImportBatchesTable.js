@@ -74,7 +74,7 @@ async function fixImportBatchesTable() {
     }
 
     // Test a simple insert and delete to verify
-    const testId = 'test-' + Date.now();
+    const testId = `test-${  Date.now()}`;
     const { error: testInsertError } = await supabase
       .from('excel_import_batches')
       .insert({
@@ -114,7 +114,7 @@ async function fixRegistrationTokensTable() {
   try {
     console.log('🔧 Checking and fixing member_registration_tokens table...');
 
-    const testId = 'test-' + Date.now();
+    const testId = `test-${  Date.now()}`;
     const { error: testInsertError } = await supabase
       .from('member_registration_tokens')
       .insert({

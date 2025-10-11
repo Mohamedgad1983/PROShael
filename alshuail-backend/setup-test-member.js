@@ -92,7 +92,7 @@ async function setupTestMember() {
     console.log('\nYou can now login with:');
 
     if (updatedMember.phone.startsWith('+966')) {
-        const localPhone = '0' + updatedMember.phone.substring(4);
+        const localPhone = `0${  updatedMember.phone.substring(4)}`;
         console.log('- Phone (local format):', localPhone);
         console.log('- Phone (international format):', updatedMember.phone);
     } else {
