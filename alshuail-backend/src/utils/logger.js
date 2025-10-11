@@ -5,6 +5,7 @@
 import winston from 'winston';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { mkdirSync, existsSync } from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -45,26 +46,31 @@ const format = winston.format.combine(
   )
 );
 
-// Define transports
+// Define transports based on environment
 const transports = [
-  // Console transport for all environments
+  // Console transport for all environments (Render captures this)
   new winston.transports.Console(),
-
-  // File transport for errors (production and development)
-  new winston.transports.File({
-    filename: path.join(process.cwd(), 'logs', 'error.log'),
-    level: 'error',
-    maxsize: 5242880, // 5MB
-    maxFiles: 5,
-  }),
-
-  // File transport for all logs (only in production)
-  new winston.transports.File({
-    filename: path.join(process.cwd(), 'logs', 'combined.log'),
-    maxsize: 5242880, // 5MB
-    maxFiles: 5,
-  }),
 ];
+
+// Only add file transports in development (not in production to improve performance)
+const isDevelopment = (process.env.NODE_ENV || 'development') === 'development';
+if (isDevelopment) {
+  transports.push(
+    // File transport for errors
+    new winston.transports.File({
+      filename: path.join(process.cwd(), 'logs', 'error.log'),
+      level: 'error',
+      maxsize: 5242880, // 5MB
+      maxFiles: 5,
+    }),
+    // File transport for all logs
+    new winston.transports.File({
+      filename: path.join(process.cwd(), 'logs', 'combined.log'),
+      maxsize: 5242880, // 5MB
+      maxFiles: 5,
+    })
+  );
+}
 
 // Create the logger instance
 const logger = winston.createLogger({
@@ -76,11 +82,12 @@ const logger = winston.createLogger({
   exitOnError: false,
 });
 
-// Create logs directory if it doesn't exist
-import { mkdirSync, existsSync } from 'fs';
-const logsDir = path.join(process.cwd(), 'logs');
-if (!existsSync(logsDir)) {
-  mkdirSync(logsDir, { recursive: true });
+// Create logs directory only in development (file logging disabled in production for performance)
+if (isDevelopment) {
+  const logsDir = path.join(process.cwd(), 'logs');
+  if (!existsSync(logsDir)) {
+    mkdirSync(logsDir, { recursive: true });
+  }
 }
 
 /**
