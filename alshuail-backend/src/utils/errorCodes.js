@@ -298,14 +298,15 @@ export const createErrorResponse = (errorKey, additionalInfo = {}) => {
 /**
  * Error handler middleware
  */
-export const errorHandler = (err, req, res, next) => {
+export const errorHandler = (err, req, res, _next) => {
   log.error('Error occurred:', err);
 
-  // Check if it's a known error
-  const knownError = Object.values(ErrorCodes).find(e => e.code === err.code);
+  // Check if it's a known error by code
+  const knownErrorEntry = Object.entries(ErrorCodes).find(([_key, error]) => error.code === err.code);
 
-  if (knownError) {
-    return res.status(knownError.httpStatus).json(createErrorResponse(err.code));
+  if (knownErrorEntry) {
+    const [errorKey, knownError] = knownErrorEntry;
+    return res.status(knownError.httpStatus).json(createErrorResponse(errorKey));
   }
 
   // Handle Supabase errors
@@ -331,10 +332,15 @@ export const errorHandler = (err, req, res, next) => {
 
 /**
  * Async error wrapper for route handlers
+ * Catches both synchronous and asynchronous errors
  */
 export const asyncErrorWrapper = (fn) => {
-  return (req, res, next) => {
-    Promise.resolve(fn(req, res, next)).catch(next);
+  return async (req, res, next) => {
+    try {
+      await fn(req, res, next);
+    } catch (error) {
+      next(error);
+    }
   };
 };
 

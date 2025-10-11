@@ -1,8 +1,6 @@
 // VERY FIRST LINES of server.js
 // Updated: 2025-10-09 - Winston logging migration completed
-import dotenv from 'dotenv';
-dotenv.config();
-
+// Updated: 2025-10-10 - Centralized environment configuration
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -23,7 +21,7 @@ import initiativesEnhancedRoutes from './src/routes/initiativesEnhanced.js';
 import newsRoutes from './src/routes/news.js';
 import diyasRoutes from './src/routes/diyas.js';
 import notificationsRoutes from './src/routes/notifications.js';
-import testRoutes from './src/routes/test.js';
+import testRoutes from './src/routes/testEndpoints.js';
 import expensesRoutes from './src/routes/expenses.js';
 import financialReportsRoutes from './src/routes/financialReports.js';
 import settingsRoutes from './src/routes/settings.js';
@@ -37,30 +35,23 @@ import diyaDashboardRoutes from './src/routes/diyaDashboard.js';
 import memberRoutes from "./src/routes/member.js";
 import receiptsRoutes from "./src/routes/receipts.js";
 import { log } from './src/utils/logger.js';
+import { config } from './src/config/env.js';
+import { errorHandler } from './src/utils/errorCodes.js';
 
 // Environment check with Winston logging
 log.info('Environment Check on Start:', {
-  SUPABASE_URL: process.env.SUPABASE_URL ? '✓ Loaded' : '✗ Missing',
-  SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY ? '✓ Loaded' : '✗ Missing',
-  SUPABASE_SERVICE_KEY: process.env.SUPABASE_SERVICE_KEY ? '✓ Loaded' : '✗ Missing',
-  JWT_SECRET: process.env.JWT_SECRET ? '✓ Loaded' : '✗ Missing',
-  NODE_ENV: process.env.NODE_ENV,
-  RENDER: process.env.RENDER
+  SUPABASE_URL: config.supabase.url ? '✓ Loaded' : '✗ Missing',
+  SUPABASE_ANON_KEY: config.supabase.anonKey ? '✓ Loaded' : '✗ Missing',
+  SUPABASE_SERVICE_KEY: config.supabase.serviceKey ? '✓ Loaded' : '✗ Missing',
+  JWT_SECRET: config.jwt.secret ? '✓ Loaded' : '✗ Missing',
+  NODE_ENV: config.env,
+  RENDER: config.platform.isRender
 });
 
-// Check JWT_SECRET with proper production handling
-if (!process.env.JWT_SECRET) {
-  if (process.env.NODE_ENV === 'production') {
-    log.error('FATAL: JWT_SECRET not configured in production environment');
-    process.exit(1);
-  } else {
-    log.warn('⚠️  WARNING: JWT_SECRET not set. Using fallback secret for development only.');
-    process.env.JWT_SECRET = 'alshuail-dev-secret-2024-very-long-and-secure';
-  }
-}
+// JWT_SECRET validation is now handled in config/env.js
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = config.port;
 // Deploy trigger: Family tree API enhanced with marriage tracking
 
 // Get __dirname equivalent for ES modules
@@ -100,7 +91,7 @@ const corsOptions = {
     ];
 
     // Log origin for debugging
-    if (process.env.NODE_ENV === 'production') {
+    if (config.isProduction) {
       log.debug(`[CORS] Request from origin: ${origin || 'no-origin'}`);
     }
 
@@ -110,10 +101,10 @@ const corsOptions = {
     }
 
     // In production, check allowed origins
-    if (process.env.NODE_ENV === 'production') {
+    if (config.isProduction) {
       if (allowedOrigins.includes(origin) ||
           origin.includes('alshuail-admin.pages.dev') ||
-          origin === process.env.FRONTEND_URL) {
+          origin === config.frontend.url) {
         log.info(`[CORS] ✓ Allowed origin: ${origin}`);
         return callback(null, true);
       } else {
@@ -181,7 +172,7 @@ app.use((err, req, res, next) => {
     return res.status(400).json({
       success: false,
       error: 'Invalid JSON format',
-      details: process.env.NODE_ENV === 'development' ? err.message : undefined
+      details: config.isDevelopment ? err.message : undefined
     });
   }
   next();
@@ -231,8 +222,8 @@ app.get('/api/health', async (req, res) => {
     status: 'healthy',
     timestamp: new Date().toISOString(),
     service: 'Al-Shuail Backend API',
-    environment: process.env.NODE_ENV || 'development',
-    platform: process.env.RENDER ? 'Render' : 'Local',
+    environment: config.env,
+    platform: config.platform.isRender ? 'Render' : 'Local',
     uptime: process.uptime(),
     memory: {
       used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + ' MB',
@@ -240,9 +231,9 @@ app.get('/api/health', async (req, res) => {
     },
     checks: {
       database: false,
-      jwt: !!process.env.JWT_SECRET,
-      supabase_url: !!process.env.SUPABASE_URL,
-      supabase_keys: !!process.env.SUPABASE_ANON_KEY && !!process.env.SUPABASE_SERVICE_KEY
+      jwt: !!config.jwt.secret,
+      supabase_url: !!config.supabase.url,
+      supabase_keys: !!config.supabase.anonKey && !!config.supabase.serviceKey
     }
   };
 
@@ -279,20 +270,20 @@ app.get('/api/test', (req, res) => {
 // Debug endpoint for troubleshooting
 app.get('/api/debug/env', (req, res) => {
   // Only in development or with special header
-  if (process.env.NODE_ENV === 'production' &&
+  if (config.isProduction &&
       req.headers['x-debug-token'] !== 'alshuail-debug-2024') {
     return res.status(403).json({ error: 'Forbidden' });
   }
 
   res.json({
-    environment: process.env.NODE_ENV,
+    environment: config.env,
     port: PORT,
-    render: !!process.env.RENDER,
+    render: config.platform.isRender,
     configs: {
-      jwt_configured: !!process.env.JWT_SECRET,
-      supabase_configured: !!process.env.SUPABASE_URL,
-      frontend_url: process.env.FRONTEND_URL || 'not-set',
-      cors_origin: process.env.CORS_ORIGIN || 'not-set'
+      jwt_configured: !!config.jwt.secret,
+      supabase_configured: !!config.supabase.url,
+      frontend_url: config.frontend.url,
+      cors_origin: config.frontend.corsOrigin
     },
     request: {
       origin: req.headers.origin || 'no-origin',
@@ -303,50 +294,9 @@ app.get('/api/debug/env', (req, res) => {
   });
 });
 
-// Enhanced global error handler with logging
-app.use((err, req, res, next) => {
-  const errorId = Date.now().toString(36);
-
-  log.error(`[ERROR ${errorId}]`, {
-    timestamp: new Date().toISOString(),
-    error: err.message,
-    stack: err.stack,
-    path: req.path,
-    method: req.method,
-    origin: req.headers.origin,
-    user: req.user?.id || 'anonymous'
-  });
-
-  // Check for specific error types
-  if (err.name === 'UnauthorizedError') {
-    return res.status(401).json({
-      success: false,
-      error: 'غير مصرح',
-      error_en: 'Unauthorized',
-      errorId
-    });
-  }
-
-  if (err.name === 'ValidationError') {
-    return res.status(400).json({
-      success: false,
-      error: 'بيانات غير صحيحة',
-      error_en: 'Invalid data',
-      details: process.env.NODE_ENV === 'development' ? err.message : undefined,
-      errorId
-    });
-  }
-
-  // Default error response
-  res.status(err.status || 500).json({
-    success: false,
-    error: 'حدث خطأ في الخادم',
-    error_en: 'Server error occurred',
-    message: process.env.NODE_ENV === 'development' ? err.message : undefined,
-    errorId,
-    timestamp: new Date().toISOString()
-  });
-});
+// Comprehensive centralized error handler
+// Uses error codes system from errorCodes.js with Arabic/English support
+app.use(errorHandler);
 
 const startServer = async () => {
   log.info('🔄 Starting Al-Shuail Backend Server v2.0 with Family Tree...');
@@ -365,11 +315,11 @@ const startServer = async () => {
 
   // Verify environment
   log.info('\n📋 Environment Configuration:');
-  log.info(`   NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
-  log.info(`   Platform: ${process.env.RENDER ? 'Render.com' : 'Local'}`);
-  log.info(`   JWT Secret: ${process.env.JWT_SECRET ? '✓ Configured' : '⚠️  Using fallback'}`);
-  log.info(`   Supabase: ${process.env.SUPABASE_URL ? '✓ Configured' : '✗ Missing'}`);
-  log.info(`   Frontend URL: ${process.env.FRONTEND_URL || 'Not set'}`);
+  log.info(`   NODE_ENV: ${config.env}`);
+  log.info(`   Platform: ${config.platform.isRender ? 'Render.com' : 'Local'}`);
+  log.info(`   JWT Secret: ${config.jwt.secret ? '✓ Configured' : '⚠️  Not configured'}`);
+  log.info(`   Supabase: ${config.supabase.url ? '✓ Configured' : '✗ Missing'}`);
+  log.info(`   Frontend URL: ${config.frontend.url}`);
 
   app.listen(PORT, '0.0.0.0', () => {
     log.info('\n🚀 Server Started Successfully!');
