@@ -399,13 +399,13 @@ export const approveExpense = async (req, res) => {
     }
 
     // Get current expense
-    const { data: currentExpense, error: fetchError } = await supabase
+    const { data: currentExpense, error: _fetchError } = await supabase
       .from('expenses')
       .select('*')
       .eq('id', expenseId)
       .single();
 
-    if (fetchError || !currentExpense) {
+    if (_fetchError || !currentExpense) {
       return res.status(404).json({
         success: false,
         error: 'Expense not found',
@@ -434,7 +434,7 @@ export const approveExpense = async (req, res) => {
       updated_at: new Date().toISOString()
     };
 
-    const { data: expense, error: updateError } = await supabase
+    const { data: expense, error: _updateError } = await supabase
       .from('expenses')
       .update(updateData)
       .eq('id', expenseId)
@@ -446,7 +446,7 @@ export const approveExpense = async (req, res) => {
       `)
       .single();
 
-    if (updateError) {throw updateError;}
+    if (_updateError) {throw _updateError;}
 
     // Create detailed audit trail
     await createFinancialAuditTrail({
@@ -527,13 +527,13 @@ export const updateExpense = async (req, res) => {
     }
 
     // Get current expense for audit trail
-    const { data: currentExpense, error: fetchError } = await supabase
+    const { data: currentExpense, error: _fetchError } = await supabase
       .from('expenses')
       .select('*')
       .eq('id', expenseId)
       .single();
 
-    if (fetchError || !currentExpense) {
+    if (_fetchError || !currentExpense) {
       return res.status(404).json({
         success: false,
         error: 'Expense not found',
@@ -558,7 +558,7 @@ export const updateExpense = async (req, res) => {
       updateData.hijri_month_name = hijriData.hijri_month_name;
     }
 
-    const { data: expense, error: updateError } = await supabase
+    const { data: expense, error: _updateError } = await supabase
       .from('expenses')
       .update(updateData)
       .eq('id', expenseId)
@@ -570,7 +570,7 @@ export const updateExpense = async (req, res) => {
       `)
       .single();
 
-    if (updateError) {throw updateError;}
+    if (_updateError) {throw _updateError;}
 
     // Create audit trail
     await createFinancialAuditTrail({
@@ -737,13 +737,13 @@ export const deleteExpense = async (req, res) => {
     }
 
     // Get current expense for audit
-    const { data: currentExpense, error: fetchError } = await supabase
+    const { data: currentExpense, error: _fetchError } = await supabase
       .from('expenses')
       .select('*')
       .eq('id', expenseId)
       .single();
 
-    if (fetchError || !currentExpense) {
+    if (_fetchError || !currentExpense) {
       return res.status(404).json({
         success: false,
         error: 'Expense not found',
@@ -752,7 +752,7 @@ export const deleteExpense = async (req, res) => {
     }
 
     // Soft delete by updating status
-    const { data: expense, error: deleteError } = await supabase
+    const { data: expense, error: _deleteError } = await supabase
       .from('expenses')
       .update({
         status: 'deleted',
@@ -764,7 +764,7 @@ export const deleteExpense = async (req, res) => {
       .select()
       .single();
 
-    if (deleteError) {throw deleteError;}
+    if (_deleteError) {throw _deleteError;}
 
     // Create audit trail
     await createFinancialAuditTrail({
@@ -1015,12 +1015,14 @@ const calculateAverageApprovalTime = (expenses) => {
   return Math.round(totalDays / approvedExpenses.length);
 };
 
+/* eslint-disable require-await */
 const sendExpenseApprovalNotification = async (expense) => {
   // Implementation for sending notifications
   // This would integrate with your notification system
   log.info('Sending approval notification for expense', { expense_id: expense.id });
 };
 
+/* eslint-disable require-await */
 const sendExpenseStatusNotification = async (expense, action) => {
   // Implementation for sending status change notifications
   log.info('Sending expense status notification', { action, expense_id: expense.id });

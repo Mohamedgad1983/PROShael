@@ -1,19 +1,22 @@
+/* eslint-disable require-await */
 /**
  * RBAC Routes Configuration
  * Defines all protected routes with their required roles
  */
 
 import express from 'express';
+import { supabase } from '../config/database.js';
 import { log } from '../utils/logger.js';
 import {
-  requireRole,
+  requireRole as _requireRole,
   requirePermission,
   requireSuperAdmin,
   requireFinancialManager,
   requireFamilyTreeAdmin,
   requireOccasionsAdmin,
   requireAnyAuthenticated,
-  validateRoleAssignment
+  validateRoleAssignment,
+  hasPermission
 } from '../middleware/rbacMiddleware.js';
 import { authenticate } from '../middleware/auth.js';
 
@@ -29,16 +32,16 @@ router.get('/roles',
   requireSuperAdmin,
   async (req, res) => {
     try {
-      const { data, error } = await supabase
+      const { data: _data, error: _error } = await supabase
         .from('user_roles')
         .select('*')
         .order('priority', { ascending: false });
 
-      if (error) {throw error;}
+      if (_error) {throw _error;}
 
       res.json({
         success: true,
-        roles: data
+        roles: _data
       });
     } catch (error) {
       log.error('Error fetching roles:', { error: error.message });
@@ -61,13 +64,13 @@ router.post('/users/:userId/assign-role',
       const { roleName } = req.body;
 
       // Get role ID
-      const { data: role, error: roleError } = await supabase
+      const { data: role, error: _roleError } = await supabase
         .from('user_roles')
         .select('id')
         .eq('role_name', roleName)
         .single();
 
-      if (roleError || !role) {
+      if (_roleError || !role) {
         return res.status(400).json({
           success: false,
           message: 'الدور المطلوب غير موجود'
@@ -81,7 +84,7 @@ router.post('/users/:userId/assign-role',
         .eq('user_id', userId);
 
       // Assign new role
-      const { error: assignError } = await supabase
+      const { error: _assignError } = await supabase
         .from('user_role_assignments')
         .insert({
           user_id: userId,
@@ -90,7 +93,7 @@ router.post('/users/:userId/assign-role',
           is_active: true
         });
 
-      if (assignError) {throw assignError;}
+      if (_assignError) {throw _assignError;}
 
       // Update user's primary role
       await supabase
@@ -132,15 +135,15 @@ router.get('/users/:userId/role',
         });
       }
 
-      const { data, error } = await supabase.rpc('get_user_role', {
+      const { data: _data, error: _error } = await supabase.rpc('get_user_role', {
         p_user_id: userId
       });
 
-      if (error) {throw error;}
+      if (_error) {throw _error;}
 
       res.json({
         success: true,
-        role: data?.[0] || null
+        role: _data?.[0] || null
       });
     } catch (error) {
       log.error('Error fetching user role:', { error: error.message });
@@ -322,17 +325,17 @@ router.get('/audit-logs',
   requireSuperAdmin,
   async (req, res) => {
     try {
-      const { data, error } = await supabase
+      const { data: _data, error: _error } = await supabase
         .from('audit_logs')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(100);
 
-      if (error) {throw error;}
+      if (_error) {throw _error;}
 
       res.json({
         success: true,
-        logs: data
+        logs: _data
       });
     } catch (error) {
       log.error('Error fetching audit logs:', { error: error.message });

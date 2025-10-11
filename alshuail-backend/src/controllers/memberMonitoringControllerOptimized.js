@@ -239,7 +239,7 @@ export const suspendMember = async (req, res) => {
     }
 
     // Update member status
-    const { data: updatedMember, error: updateError } = await supabase
+    const { data: updatedMember, error: _updateError } = await supabase
       .from('members')
       .update({
         is_suspended: true,
@@ -251,8 +251,8 @@ export const suspendMember = async (req, res) => {
       .select()
       .single();
 
-    if (updateError) {
-      log.error('Error suspending member', { error: updateError.message });
+    if (_updateError) {
+      log.error('Error suspending member', { error: _updateError.message });
       return res.status(500).json({ error: 'Failed to suspend member' });
     }
 
@@ -293,7 +293,7 @@ export const reactivateMember = async (req, res) => {
     const { adminId, notes } = req.body;
 
     // Update member status
-    const { data: updatedMember, error: updateError } = await supabase
+    const { data: updatedMember, error: _updateError } = await supabase
       .from('members')
       .update({
         is_suspended: false,
@@ -307,8 +307,8 @@ export const reactivateMember = async (req, res) => {
       .select()
       .single();
 
-    if (updateError) {
-      log.error('Error reactivating member', { error: updateError.message });
+    if (_updateError) {
+      log.error('Error reactivating member', { error: _updateError.message });
       return res.status(500).json({ error: 'Failed to reactivate member' });
     }
 
@@ -368,13 +368,13 @@ export const notifyMembers = async (req, res) => {
     for (const memberId of memberIds) {
       try {
         // Get member details
-        const { data: member, error: memberError } = await supabase
+        const { data: member, error: _memberError } = await supabase
           .from('members')
           .select('*')
           .eq('id', memberId)
           .single();
 
-        if (memberError || !member) {
+        if (_memberError || !member) {
           results.failed.push({
             memberId,
             reason: 'Member not found'
@@ -384,7 +384,7 @@ export const notifyMembers = async (req, res) => {
 
         // Create notification record
         if (channel === 'app' || channel === 'both') {
-          const { error: notifError } = await supabase
+          const { error: _notifError } = await supabase
             .from('notifications')
             .insert({
               member_id: memberId,
@@ -395,8 +395,8 @@ export const notifyMembers = async (req, res) => {
               created_at: new Date().toISOString()
             });
 
-          if (notifError) {
-            log.error('Notification creation failed', { memberId, error: notifError.message });
+          if (_notifError) {
+            log.error('Notification creation failed', { memberId, error: _notifError.message });
           }
         }
 
@@ -404,7 +404,7 @@ export const notifyMembers = async (req, res) => {
         if ((channel === 'sms' || channel === 'both') && (member.phone || member.mobile)) {
           const phoneNumber = member.phone || member.mobile;
 
-          const { error: smsError } = await supabase
+          const { error: _smsError } = await supabase
             .from('sms_queue')
             .insert({
               phone_number: phoneNumber,
@@ -414,8 +414,8 @@ export const notifyMembers = async (req, res) => {
               created_at: new Date().toISOString()
             });
 
-          if (smsError) {
-            log.error('SMS queue failed', { memberId, error: smsError.message });
+          if (_smsError) {
+            log.error('SMS queue failed', { memberId, error: _smsError.message });
           }
         }
 

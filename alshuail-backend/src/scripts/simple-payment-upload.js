@@ -1,9 +1,10 @@
 import XLSX from 'xlsx';
 import { createClient } from '@supabase/supabase-js';
-import fs from 'fs';
+import _fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+import { log } from '../utils/logger.js';
 
 dotenv.config();
 
@@ -121,16 +122,16 @@ async function uploadPayments() {
       for (let i = 0; i < payments.length; i += batchSize) {
         const batch = payments.slice(i, i + batchSize);
 
-        const { data, error } = await supabase
+        const { data: _data, error } = await supabase
           .from('payments')
           .insert(batch)
           .select();
 
         if (error) {
           log.error(`❌ Batch ${Math.floor(i/batchSize) + 1} failed:`, error.message);
-        } else if (data) {
-          successCount += data.length;
-          log.info(`✅ Batch ${Math.floor(i/batchSize) + 1}: Uploaded ${data.length} payments`);
+        } else if (_data) {
+          successCount += _data.length;
+          log.info(`✅ Batch ${Math.floor(i/batchSize) + 1}: Uploaded ${_data.length} payments`);
         }
       }
 

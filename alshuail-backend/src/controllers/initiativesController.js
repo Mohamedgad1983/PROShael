@@ -234,13 +234,13 @@ export const createInitiative = async (req, res) => {
 
     // Validate organizer exists if provided
     if (organizer_id) {
-      const { data: organizer, error: organizerError } = await supabase
+      const { data: organizer, error: _organizerError } = await supabase
         .from('members')
         .select('id')
         .eq('id', organizer_id)
         .single();
 
-      if (organizerError || !organizer) {
+      if (_organizerError || !organizer) {
         return res.status(400).json({
           success: false,
           error: 'المنظم المحدد غير موجود'
@@ -318,13 +318,13 @@ export const addContribution = async (req, res) => {
     }
 
     // Check if initiative exists and is active
-    const { data: initiative, error: initiativeError } = await supabase
+    const { data: initiative, error: _initiativeError } = await supabase
       .from('activities')
       .select('id, status, target_amount, current_amount, end_date')
       .eq('id', id)
       .single();
 
-    if (initiativeError || !initiative) {
+    if (_initiativeError || !initiative) {
       return res.status(404).json({
         success: false,
         error: 'المبادرة غير موجودة'
@@ -347,13 +347,13 @@ export const addContribution = async (req, res) => {
     }
 
     // Check if member exists
-    const { data: member, error: memberError } = await supabase
+    const { data: member, error: _memberError } = await supabase
       .from('members')
       .select('id')
       .eq('id', member_id)
       .single();
 
-    if (memberError || !member) {
+    if (_memberError || !member) {
       return res.status(400).json({
         success: false,
         error: 'العضو المحدد غير موجود'
@@ -387,7 +387,7 @@ export const addContribution = async (req, res) => {
 
     // Update initiative current amount if contribution is confirmed
     if (status === 'confirmed') {
-      const { error: updateError } = await supabase
+      const { error: _updateError } = await supabase
         .from('activities')
         .update({
           current_amount: Number(initiative.current_amount) + contributionAmount,
@@ -395,7 +395,7 @@ export const addContribution = async (req, res) => {
         })
         .eq('id', id);
 
-      if (updateError) {throw updateError;}
+      if (_updateError) {throw _updateError;}
     }
 
     res.status(201).json({
@@ -430,14 +430,14 @@ export const updateContributionStatus = async (req, res) => {
     }
 
     // Get current contribution
-    const { data: contribution, error: contributionError } = await supabase
+    const { data: contribution, error: _contributionError } = await supabase
       .from('activity_contributions')
       .select('*')
       .eq('id', contributionId)
       .eq('activity_id', id)
       .single();
 
-    if (contributionError || !contribution) {
+    if (_contributionError || !contribution) {
       return res.status(404).json({
         success: false,
         error: 'المساهمة غير موجودة'
@@ -445,13 +445,13 @@ export const updateContributionStatus = async (req, res) => {
     }
 
     // Get initiative data
-    const { data: initiative, error: initiativeError } = await supabase
+    const { data: initiative, error: _initiativeError } = await supabase
       .from('activities')
       .select('current_amount')
       .eq('id', id)
       .single();
 
-    if (initiativeError || !initiative) {
+    if (_initiativeError || !initiative) {
       return res.status(404).json({
         success: false,
         error: 'المبادرة غير موجودة'
@@ -462,7 +462,7 @@ export const updateContributionStatus = async (req, res) => {
     const updateData = { status };
     if (notes !== undefined) {updateData.notes = notes;}
 
-    const { data: updatedContribution, error: updateError } = await supabase
+    const { data: updatedContribution, error: _updateError } = await supabase
       .from('activity_contributions')
       .update(updateData)
       .eq('id', contributionId)
@@ -472,7 +472,7 @@ export const updateContributionStatus = async (req, res) => {
       `)
       .single();
 
-    if (updateError) {throw updateError;}
+    if (_updateError) {throw _updateError;}
 
     // Update initiative current amount based on status change
     let amountChange = 0;
@@ -483,7 +483,7 @@ export const updateContributionStatus = async (req, res) => {
     }
 
     if (amountChange !== 0) {
-      const { error: updateInitiativeError } = await supabase
+      const { error: _updateInitiativeError } = await supabase
         .from('activities')
         .update({
           current_amount: Math.max(0, Number(initiative.current_amount) + amountChange),
@@ -491,7 +491,7 @@ export const updateContributionStatus = async (req, res) => {
         })
         .eq('id', id);
 
-      if (updateInitiativeError) {throw updateInitiativeError;}
+      if (_updateInitiativeError) {throw _updateInitiativeError;}
     }
 
     res.json({
@@ -528,13 +528,13 @@ export const updateInitiative = async (req, res) => {
     } = req.body;
 
     // Check if initiative exists
-    const { data: existingInitiative, error: checkError } = await supabase
+    const { data: existingInitiative, error: _checkError } = await supabase
       .from('activities')
       .select('*')
       .eq('id', id)
       .single();
 
-    if (checkError || !existingInitiative) {
+    if (_checkError || !existingInitiative) {
       return res.status(404).json({
         success: false,
         error: 'المبادرة غير موجودة'
@@ -609,43 +609,43 @@ export const updateInitiative = async (req, res) => {
 export const getInitiativeStats = async (req, res) => {
   try {
     // Get total initiatives
-    const { count: totalInitiatives, error: totalError } = await supabase
+    const { count: totalInitiatives, error: _totalError } = await supabase
       .from('activities')
       .select('*', { count: 'exact', head: true });
 
-    if (totalError) {throw totalError;}
+    if (_totalError) {throw _totalError;}
 
     // Get active initiatives
-    const { count: activeInitiatives, error: activeError } = await supabase
+    const { count: activeInitiatives, error: _activeError } = await supabase
       .from('activities')
       .select('*', { count: 'exact', head: true })
       .eq('status', 'active');
 
-    if (activeError) {throw activeError;}
+    if (_activeError) {throw _activeError;}
 
     // Get total contributions
-    const { count: totalContributions, error: contributionsError } = await supabase
+    const { count: totalContributions, error: _contributionsError } = await supabase
       .from('activity_contributions')
       .select('*', { count: 'exact', head: true });
 
-    if (contributionsError) {throw contributionsError;}
+    if (_contributionsError) {throw _contributionsError;}
 
     // Get confirmed contributions and total amount
-    const { data: confirmedContributions, error: confirmedError } = await supabase
+    const { data: confirmedContributions, error: _confirmedError } = await supabase
       .from('activity_contributions')
       .select('amount')
       .eq('status', 'confirmed');
 
-    if (confirmedError) {throw confirmedError;}
+    if (_confirmedError) {throw _confirmedError;}
 
     const totalAmountRaised = confirmedContributions?.reduce((sum, c) => sum + Number(c.amount), 0) || 0;
 
     // Get initiatives by status
-    const { data: statusData, error: statusError } = await supabase
+    const { data: statusData, error: _statusError } = await supabase
       .from('activities')
       .select('status');
 
-    if (statusError) {throw statusError;}
+    if (_statusError) {throw _statusError;}
 
     const statusStats = statusData?.reduce((acc, item) => {
       acc[item.status] = (acc[item.status] || 0) + 1;
@@ -653,12 +653,12 @@ export const getInitiativeStats = async (req, res) => {
     }, {}) || {};
 
     // Get unique contributors
-    const { data: contributorsData, error: contributorsError } = await supabase
+    const { data: contributorsData, error: _contributorsError } = await supabase
       .from('activity_contributions')
       .select('member_id')
       .eq('status', 'confirmed');
 
-    if (contributorsError) {throw contributorsError;}
+    if (_contributorsError) {throw _contributorsError;}
 
     const uniqueContributors = new Set(contributorsData?.map(c => c.member_id)).size;
 

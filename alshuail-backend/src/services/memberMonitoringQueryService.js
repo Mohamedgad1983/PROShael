@@ -111,14 +111,14 @@ export async function buildMemberMonitoringQuery(filters = {}) {
     // Step 2: Calculate balances and apply balance filters
     const memberMonitoringData = await Promise.all(members.map(async (member) => {
       // Get total payments for this member
-      const { data: payments, error: paymentsError } = await supabase
+      const { data: payments, error: _paymentsError } = await supabase
         .from('payments')
         .select('amount')
         .eq('payer_id', member.id)
         .in('status', ['completed', 'approved']);
 
-      if (paymentsError) {
-        log.error(`Payment query failed for member ${member.id}:`, paymentsError);
+      if (_paymentsError) {
+        log.error(`Payment query failed for member ${member.id}:`, _paymentsError);
       }
 
       const totalPaid = payments?.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0) || 0;
@@ -315,20 +315,20 @@ export async function getMemberStatistics(forceRefresh = false) {
     }
 
     // Fetch fresh data
-    const { data: members, error: membersError } = await supabase
+    const { data: members, error: _membersError } = await supabase
       .from('members')
       .select('id, tribal_section, is_suspended');
 
-    if (membersError) {
-      throw new Error(`Failed to fetch members: ${membersError.message}`);
+    if (_membersError) {
+      throw new Error(`Failed to fetch members: ${_membersError.message}`);
     }
 
     // Get payment summary using aggregation
-    const { data: paymentSummary, error: paymentError } = await supabase
+    const { data: paymentSummary, error: _paymentError } = await supabase
       .rpc('get_payment_summary', {});
 
-    if (paymentError) {
-      log.error('Payment summary RPC failed:', { error: paymentError.message });
+    if (_paymentError) {
+      log.error('Payment summary RPC failed:', { error: _paymentError.message });
       // Fallback to manual calculation
       const memberBalances = await calculateMemberBalances(members);
       const stats = calculateStatistics(memberBalances);
@@ -447,36 +447,36 @@ export async function exportMemberData(filters = {}) {
 export async function getMemberDetails(memberId) {
   try {
     // Get member data
-    const { data: member, error: memberError } = await supabase
+    const { data: member, error: _memberError } = await supabase
       .from('members')
       .select('*')
       .eq('id', memberId)
       .single();
 
-    if (memberError) {
-      throw new Error(`Member not found: ${memberError.message}`);
+    if (_memberError) {
+      throw new Error(`Member not found: ${_memberError.message}`);
     }
 
     // Get payment history
-    const { data: payments, error: paymentsError } = await supabase
+    const { data: payments, error: _paymentsError } = await supabase
       .from('payments')
       .select('*')
       .eq('payer_id', memberId)
       .order('created_at', { ascending: false });
 
-    if (paymentsError) {
-      log.error('Failed to fetch payments:', { error: paymentsError.message });
+    if (_paymentsError) {
+      log.error('Failed to fetch payments:', { error: _paymentsError.message });
     }
 
     // Get subscriptions
-    const { data: subscriptions, error: subscriptionsError } = await supabase
+    const { data: subscriptions, error: _subscriptionsError } = await supabase
       .from('subscriptions')
       .select('*')
       .eq('member_id', memberId)
       .order('created_at', { ascending: false });
 
-    if (subscriptionsError) {
-      log.error('Failed to fetch subscriptions:', { error: subscriptionsError.message });
+    if (_subscriptionsError) {
+      log.error('Failed to fetch subscriptions:', { error: _subscriptionsError.message });
     }
 
     // Calculate totals

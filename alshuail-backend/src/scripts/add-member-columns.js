@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import fs from 'fs';
+import _fs from 'fs';
 import { log } from '../utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -64,12 +64,12 @@ async function addMemberColumns() {
     // Check current columns
     log.info('\n📊 Checking current members table structure...\n');
 
-    const { data: members, error: queryError } = await supabase
+    const { data: members, error: _queryError } = await supabase
       .from('members')
       .select('*')
       .limit(1);
 
-    if (!queryError && members && members.length > 0) {
+    if (!_queryError && members && members.length > 0) {
       const columns = Object.keys(members[0]);
       log.info('Current columns in members table:');
       columns.forEach(col => {

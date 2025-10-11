@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import { log } from '../utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -110,12 +111,12 @@ async function uploadData() {
 
     // Upload members
     log.info(`Uploading ${members.length} members...`);
-    const { error: memberError } = await supabase
+    const { error: _memberError } = await supabase
       .from('members')
       .upsert(members, { onConflict: 'member_id' });
 
-    if (memberError) {
-      log.error('❌ Error uploading members:', memberError.message);
+    if (_memberError) {
+      log.error('❌ Error uploading members:', _memberError.message);
     } else {
       log.info('✅ Members uploaded');
     }
@@ -123,12 +124,12 @@ async function uploadData() {
     // Upload payments
     if (payments.length > 0) {
       log.info(`Uploading ${payments.length} payments...`);
-      const { error: paymentError } = await supabase
+      const { error: _paymentError } = await supabase
         .from('payments')
         .upsert(payments, { onConflict: 'member_id,year' });
 
-      if (paymentError) {
-        log.error('❌ Error uploading payments:', paymentError.message);
+      if (_paymentError) {
+        log.error('❌ Error uploading payments:', _paymentError.message);
       } else {
         log.info('✅ Payments uploaded');
       }
@@ -136,12 +137,12 @@ async function uploadData() {
 
     // Upload balances
     log.info(`Uploading ${balances.length} balances...`);
-    const { error: balanceError } = await supabase
+    const { error: _balanceError } = await supabase
       .from('member_balances')
       .upsert(balances, { onConflict: 'member_id' });
 
-    if (balanceError) {
-      log.error('❌ Error uploading balances:', balanceError.message);
+    if (_balanceError) {
+      log.error('❌ Error uploading balances:', _balanceError.message);
     } else {
       log.info('✅ Balances uploaded');
     }

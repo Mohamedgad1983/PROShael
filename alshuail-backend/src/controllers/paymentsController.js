@@ -2,7 +2,7 @@ import { supabase } from '../config/database.js';
 import { PaymentProcessingService } from '../services/paymentProcessingService.js';
 import { FinancialAnalyticsService } from '../services/financialAnalyticsService.js';
 import { ReceiptService } from '../services/receiptService.js';
-import { HijriDateManager, convertToHijriString, convertToHijriYear, convertToHijriMonth, convertToHijriDay, convertToHijriMonthName } from '../utils/hijriDateUtils.js';
+import { HijriDateManager, convertToHijriString as _convertToHijriString, convertToHijriYear as _convertToHijriYear, convertToHijriMonth as _convertToHijriMonth, convertToHijriDay as _convertToHijriDay, convertToHijriMonthName as _convertToHijriMonthName } from '../utils/hijriDateUtils.js';
 import jwt from 'jsonwebtoken';
 import { log } from '../utils/logger.js';
 
@@ -132,7 +132,7 @@ export const updatePaymentStatus = async (req, res) => {
 
 export const getPaymentStats = async (req, res) => {
   try {
-    const { period = 'month' } = req.query;
+    const { period: _period = 'month' } = req.query;
     const result = await FinancialAnalyticsService.getPaymentStatistics();
 
     if (result.success) {
@@ -450,6 +450,7 @@ export const getMemberContributions = async (req, res) => {
  * Get Hijri calendar data
  * @route GET /api/hijri-calendar
  */
+/* eslint-disable require-await */
 export const getHijriCalendarData = async (req, res) => {
   try {
     const months = HijriDateManager.getHijriMonths();
@@ -778,13 +779,13 @@ export const payForMember = async (req, res) => {
     }
 
     // Verify beneficiary exists
-    const { data: beneficiary, error: beneficiaryError } = await supabase
+    const { data: beneficiary, error: _beneficiaryError } = await supabase
       .from('members')
       .select('id, full_name, membership_status')
       .eq('id', beneficiary_id)
       .single();
 
-    if (beneficiaryError || !beneficiary) {
+    if (_beneficiaryError || !beneficiary) {
       return res.status(404).json({
         success: false,
         error: 'المستفيد غير موجود'
@@ -859,14 +860,14 @@ export const uploadPaymentReceipt = async (req, res) => {
     }
 
     // Verify payment belongs to this member
-    const { data: payment, error: paymentError } = await supabase
+    const { data: payment, error: _paymentError } = await supabase
       .from('payments')
       .select('*')
       .eq('id', paymentId)
       .eq('payer_id', memberId)
       .single();
 
-    if (paymentError || !payment) {
+    if (_paymentError || !payment) {
       return res.status(404).json({
         success: false,
         error: 'الدفعة غير موجودة أو غير مخولة'
@@ -884,14 +885,14 @@ export const uploadPaymentReceipt = async (req, res) => {
       updated_at: new Date().toISOString()
     };
 
-    const { data: updatedPayment, error: updateError } = await supabase
+    const { data: updatedPayment, error: _updateError } = await supabase
       .from('payments')
       .update(receiptData)
       .eq('id', paymentId)
       .select()
       .single();
 
-    if (updateError) {throw updateError;}
+    if (_updateError) {throw _updateError;}
 
     res.json({
       success: true,

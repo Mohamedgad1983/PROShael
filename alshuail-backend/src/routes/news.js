@@ -17,13 +17,13 @@ const router = express.Router();
 // Helper function to check if user is admin
 const isAdmin = async (userId) => {
     try {
-        const { data, error } = await supabase
+        const { data: _data, error: _error } = await supabase
             .from('users')
             .select('role')
             .eq('id', userId)
             .single();
 
-        return data?.role === 'admin' || data?.role === 'super_admin';
+        return _data?.role === 'admin' || _data?.role === 'super_admin';
     } catch (error) {
         log.error('Error checking admin status', { error: error.message });
         return false;
@@ -130,17 +130,17 @@ router.post('/', authenticateToken, adminOnly, upload.array('media', 10), async 
             status: (is_published === 'true' || is_published === true) ? 'published' : 'draft'
         };
 
-        const { data, error } = await supabase
+        const { data: _data, error: _error } = await supabase
             .from('news_announcements')
             .insert([newsData])
             .select()
             .single();
 
-        if (error) {throw error;}
+        if (_error) {throw _error;}
 
         res.status(201).json({
             message: 'News post created successfully',
-            news: data
+            news: _data
         });
     } catch (error) {
         log.error('Create news error', { error: error.message });
@@ -184,27 +184,27 @@ router.put('/:id', authenticateToken, adminOnly, upload.array('media', 10), asyn
         log.info('[UPDATE NEWS] Updating news ID', { id });
         log.info('[UPDATE NEWS] Updates', { updates });
 
-        const { data, error } = await supabase
+        const { data: _data, error: _error } = await supabase
             .from('news_announcements')
             .update(updates)
             .eq('id', id)
             .select();
 
-        if (error) {
-            log.error('[UPDATE NEWS] Error', { error: error.message });
-            throw error;
+        if (_error) {
+            log.error('[UPDATE NEWS] Error', { error: _error.message });
+            throw _error;
         }
 
-        if (!data || data.length === 0) {
+        if (!_data || _data.length === 0) {
             log.error('[UPDATE NEWS] No news found with ID', { id });
             return res.status(404).json({ error: 'News not found' });
         }
 
-        log.info('[UPDATE NEWS] Success! Updated', { newsId: data[0].id });
+        log.info('[UPDATE NEWS] Success! Updated', { newsId: _data[0].id });
 
         res.json({
             message: 'News post updated successfully',
-            news: data[0]
+            news: _data[0]
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -248,11 +248,11 @@ router.get('/admin/all', authenticateToken, adminOnly, async (req, res) => {
             query = query.eq('is_published', published === 'true');
         }
 
-        const { data, error } = await query;
+        const { data: _data, error: _error } = await query;
 
-        if (error) {throw error;}
+        if (_error) {throw _error;}
 
-        res.json({ news: data });
+        res.json({ news: _data });
     } catch (error) {
         log.error('GET /admin/all error', { error: error.message });
         res.status(500).json({ error: error.message });
@@ -263,20 +263,20 @@ router.get('/admin/all', authenticateToken, adminOnly, async (req, res) => {
 router.post('/:id/push-notification', authenticateToken, adminOnly, async (req, res) => {
     try {
         const { id } = req.params;
-        const { custom_message } = req.body; // Optional custom notification text
+        const { custom_message: _custom_message } = req.body; // Optional custom notification text
 
         log.info('[Push Notification] Starting for news ID', { id });
 
         // Get news post
-        const { data: news, error: newsError } = await supabase
+        const { data: news, error: _newsError } = await supabase
             .from('news_announcements')
             .select('*')
             .eq('id', id)
             .single();
 
-        if (newsError) {
-            log.error('[Push Notification] News not found', { error: newsError.message });
-            throw newsError;
+        if (_newsError) {
+            log.error('[Push Notification] News not found', { error: _newsError.message });
+            throw _newsError;
         }
 
         if (!news.is_published) {
@@ -288,15 +288,15 @@ router.post('/:id/push-notification', authenticateToken, adminOnly, async (req, 
         }
 
         // Get all members from members table (not users table)
-        const { data: members, error: membersError } = await supabase
+        const { data: members, error: _membersError } = await supabase
             .from('members')
             .select('id, member_id, email, phone, full_name')
             .eq('is_active', true)
             .eq('membership_status', 'active');
 
-        if (membersError) {
-            log.error('[Push Notification] Error fetching members', { error: membersError.message });
-            throw membersError;
+        if (_membersError) {
+            log.error('[Push Notification] Error fetching members', { error: _membersError.message });
+            throw _membersError;
         }
 
         log.info('[Push Notification] Found active members', { count: members.length });
@@ -326,13 +326,13 @@ router.post('/:id/push-notification', authenticateToken, adminOnly, async (req, 
             }
         };
 
-        const { error: notifError } = await supabase
+        const { error: _notifError } = await supabase
             .from('notifications')
             .insert([adminNotification]);
 
-        if (notifError) {
-            log.error('[Push Notification] Error inserting admin notification', { error: notifError.message });
-            throw notifError;
+        if (_notifError) {
+            log.error('[Push Notification] Error inserting admin notification', { error: _notifError.message });
+            throw _notifError;
         }
 
         log.info('[Push Notification] Broadcast notification sent to members', { count: members.length });
@@ -432,22 +432,22 @@ router.get('/:id/stats', authenticateToken, adminOnly, async (req, res) => {
         const { id } = req.params;
 
         // Get news
-        const { data: news, error: newsError } = await supabase
+        const { data: news, error: _newsError } = await supabase
             .from('news_announcements')
             .select('*')
             .eq('id', id)
             .single();
 
-        if (newsError) {throw newsError;}
+        if (_newsError) {throw _newsError;}
 
         // Get notification stats
-        const { data: notifStats, error: notifError } = await supabase
+        const { data: notifStats, error: _notifError } = await supabase
             .from('notifications')
             .select('is_read')
             .eq('related_id', id)
             .eq('related_type', 'news');
 
-        if (notifError) {throw notifError;}
+        if (_notifError) {throw _notifError;}
 
         const totalNotifications = notifStats.length;
         const readNotifications = notifStats.filter(n => n.is_read).length;
@@ -456,12 +456,12 @@ router.get('/:id/stats', authenticateToken, adminOnly, async (req, res) => {
             : 0;
 
         // Get reactions count
-        const { data: reactions, error: reactError } = await supabase
+        const { data: reactions, error: _reactError } = await supabase
             .from('news_reactions')
             .select('reaction_type')
             .eq('news_id', id);
 
-        if (reactError) {throw reactError;}
+        if (_reactError) {throw _reactError;}
 
         const reactionCounts = reactions.reduce((acc, r) => {
             acc[r.reaction_type] = (acc[r.reaction_type] || 0) + 1;
@@ -508,11 +508,11 @@ router.get('/', authenticateToken, async (req, res) => {
             query = query.limit(parseInt(limit));
         }
 
-        const { data, error } = await query;
+        const { data: _data, error: _error } = await query;
 
-        if (error) {throw error;}
+        if (_error) {throw _error;}
 
-        res.json({ news: data });
+        res.json({ news: _data });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -535,14 +535,14 @@ router.get('/:id', authenticateToken, async (req, res) => {
         }
 
         // Get news
-        const { data, error } = await supabase
+        const { data: _data, error: _error } = await supabase
             .from('news_announcements')
             .select('*, reactions:news_reactions(reaction_type)')
             .eq('id', id)
             .eq('is_published', true)
             .single();
 
-        if (error) {throw error;}
+        if (_error) {throw _error;}
 
         // Get user's member_id
         const { data: userData } = await supabase
@@ -562,7 +562,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
                 .is('read_at', null);
         }
 
-        res.json({ news: data });
+        res.json({ news: _data });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -636,11 +636,11 @@ router.get('/notifications/my', authenticateToken, async (req, res) => {
             query = query.eq('is_read', false);
         }
 
-        const { data, error } = await query;
+        const { data: _data, error: _error } = await query;
 
-        if (error) {throw error;}
+        if (_error) {throw _error;}
 
-        res.json({ notifications: data });
+        res.json({ notifications: _data });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -720,26 +720,26 @@ router.get('/notifications/unread-count', authenticateToken, async (req, res) =>
 
         // Try RPC first
         try {
-            const { data, error } = await supabase
+            const { data: _data, error: _error } = await supabase
                 .rpc('get_unread_count', { member_uuid: userData.member_id });
 
-            if (!error) {
-                return res.json({ unread_count: data });
+            if (!_error) {
+                return res.json({ unread_count: _data });
             }
         } catch (e) {
             // Fallback to direct query
         }
 
         // Fallback: Direct query
-        const { data, error } = await supabase
+        const { data: _data2, error: _error2 } = await supabase
             .from('notifications')
             .select('id')
             .eq('member_id', userData.member_id)
             .eq('is_read', false);
 
-        if (error) {throw error;}
+        if (_error2) {throw _error2;}
 
-        res.json({ unread_count: data.length });
+        res.json({ unread_count: _data2.length });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -785,7 +785,7 @@ router.post('/notifications/register-device', authenticateToken, async (req, res
 // ============================================
 // HELPER FUNCTION: Send actual push notifications
 // ============================================
-async function sendPushNotifications(members, news) {
+async function sendPushNotifications(members, _news) {
     // TODO: Implement Firebase Cloud Messaging (FCM) integration
     // This is where you'd send actual push notifications to devices
 

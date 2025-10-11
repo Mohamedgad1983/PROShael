@@ -7,13 +7,13 @@ export const getCrisisDashboard = async (req, res) => {
     const minimumBalance = 3000; // Required minimum balance
 
     // Get all members with their current balance
-    const { data: members, error: membersError } = await supabase
+    const { data: members, error: _membersError } = await supabase
       .from('members')
       .select('*')
       .order('full_name');
 
-    if (membersError) {
-      log.error('Error fetching members', { error: membersError.message });
+    if (_membersError) {
+      log.error('Error fetching members', { error: _membersError.message });
       // Return mock data if database is not ready
       return res.json(getMockCrisisData());
     }
@@ -21,7 +21,7 @@ export const getCrisisDashboard = async (req, res) => {
     // Calculate balances for each member
     const memberBalances = await Promise.all(members.map(async (member) => {
       // Get total payments for this member
-      const { data: payments, error: paymentsError } = await supabase
+      const { data: payments, error: __paymentsError } = await supabase
         .from('payments')
         .select('amount')
         .eq('payer_id', member.id)
@@ -87,7 +87,7 @@ export const updateMemberBalance = async (req, res) => {
     const { memberId, amount, type } = req.body;
 
     // Record the payment
-    const { data: payment, error: paymentError } = await supabase
+    const { data: payment, error: _paymentError } = await supabase
       .from('payments')
       .insert({
         payer_id: memberId,
@@ -101,12 +101,12 @@ export const updateMemberBalance = async (req, res) => {
       .select()
       .single();
 
-    if (paymentError) {
-      throw paymentError;
+    if (_paymentError) {
+      throw _paymentError;
     }
 
     // Get updated balance for this member
-    const { data: allPayments, error: fetchError } = await supabase
+    const { data: allPayments, error: __fetchError } = await supabase
       .from('payments')
       .select('amount')
       .eq('payer_id', memberId)

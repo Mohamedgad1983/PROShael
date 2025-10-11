@@ -1,0 +1,739 @@
+
+D:\PROShael\alshuail-backend\src\config\documentStorage.js
+  132:12  error  'data' is not defined  no-undef
+
+D:\PROShael\alshuail-backend\src\config\env.js
+  50:17  warning  Unexpected string concatenation  prefer-template
+  54:16  warning  Unexpected string concatenation  prefer-template
+
+D:\PROShael\alshuail-backend\src\config\supabase.js
+   70:12  error  'data' is not defined  no-undef
+   82:12  error  'data' is not defined  no-undef
+  107:12  error  'data' is not defined  no-undef
+
+D:\PROShael\alshuail-backend\src\controllers\crisisController.js
+   15:9   error  'membersError' is not defined  no-undef
+   16:52  error  'membersError' is not defined  no-undef
+  104:9   error  'paymentError' is not defined  no-undef
+  105:13  error  'paymentError' is not defined  no-undef
+
+D:\PROShael\alshuail-backend\src\controllers\diyasController.js
+  190:9  error  'payerError' is not defined   no-undef
+  262:9  error  'checkError' is not defined   no-undef
+  328:9  error  'checkError' is not defined   no-undef
+  397:9  error  'checkError' is not defined   no-undef
+  570:9  error  'memberError' is not defined  no-undef
+
+D:\PROShael\alshuail-backend\src\controllers\expensesController.js
+   408:9   error    'fetchError' is not defined                     no-undef
+   449:9   error    'updateError' is not defined                    no-undef
+   449:29  error    'updateError' is not defined                    no-undef
+   536:9   error    'fetchError' is not defined                     no-undef
+   573:9   error    'updateError' is not defined                    no-undef
+   573:29  error    'updateError' is not defined                    no-undef
+   746:9   error    'fetchError' is not defined                     no-undef
+   767:9   error    'deleteError' is not defined                    no-undef
+   767:29  error    'deleteError' is not defined                    no-undef
+  1018:57  warning  Async arrow function has no 'await' expression  require-await
+  1024:63  warning  Async arrow function has no 'await' expression  require-await
+
+D:\PROShael\alshuail-backend\src\controllers\expensesControllerSimple.js
+   10:45  warning  Async arrow function has no 'await' expression  require-await
+  128:47  warning  Async arrow function has no 'await' expression  require-await
+  168:54  warning  Async arrow function has no 'await' expression  require-await
+  211:48  warning  Async arrow function has no 'await' expression  require-await
+  262:47  warning  Async arrow function has no 'await' expression  require-await
+  292:48  warning  Async arrow function has no 'await' expression  require-await
+  323:47  warning  Async arrow function has no 'await' expression  require-await
+
+D:\PROShael\alshuail-backend\src\controllers\initiativesController.js
+  243:11  error  'organizerError' is not defined         no-undef
+  327:9   error  'initiativeError' is not defined        no-undef
+  356:9   error  'memberError' is not defined            no-undef
+  398:11  error  'updateError' is not defined            no-undef
+  398:31  error  'updateError' is not defined            no-undef
+  440:9   error  'contributionError' is not defined      no-undef
+  454:9   error  'initiativeError' is not defined        no-undef
+  475:9   error  'updateError' is not defined            no-undef
+  475:29  error  'updateError' is not defined            no-undef
+  494:11  error  'updateInitiativeError' is not defined  no-undef
+  494:41  error  'updateInitiativeError' is not defined  no-undef
+  537:9   error  'checkError' is not defined             no-undef
+  616:9   error  'totalError' is not defined             no-undef
+  616:28  error  'totalError' is not defined             no-undef
+  624:9   error  'activeError' is not defined            no-undef
+  624:29  error  'activeError' is not defined            no-undef
+  631:9   error  'contributionsError' is not defined     no-undef
+  631:36  error  'contributionsError' is not defined     no-undef
+  639:9   error  'confirmedError' is not defined         no-undef
+  639:32  error  'confirmedError' is not defined         no-undef
+  648:9   error  'statusError' is not defined            no-undef
+  648:29  error  'statusError' is not defined            no-undef
+  661:9   error  'contributorsError' is not defined      no-undef
+  661:35  error  'contributorsError' is not defined      no-undef
+
+D:\PROShael\alshuail-backend\src\controllers\memberController.js
+   20:10  error  'data' is not defined  no-undef
+   24:14  error  'data' is not defined  no-undef
+  110:14  error  'data' is not defined  no-undef
+  152:16  error  'data' is not defined  no-undef
+  183:14  error  'data' is not defined  no-undef
+  222:42  error  'data' is not defined  no-undef
+
+D:\PROShael\alshuail-backend\src\controllers\memberImportController.js
+  134:9   error  'batchError' is not defined        no-undef
+  134:28  error  'batchError' is not defined        no-undef
+  219:13  error  'memberError' is not defined       no-undef
+  219:33  error  'memberError' is not defined       no-undef
+  251:13  error  'tokenError' is not defined        no-undef
+  251:32  error  'tokenError' is not defined        no-undef
+  284:9   error  'updateBatchError' is not defined  no-undef
+  285:57  error  'updateBatchError' is not defined  no-undef
+  370:9   error  'batchError' is not defined        no-undef
+  370:28  error  'batchError' is not defined        no-undef
+  386:9   error  'membersError' is not defined      no-undef
+  386:30  error  'membersError' is not defined      no-undef
+
+D:\PROShael\alshuail-backend\src\controllers\memberMonitoringController.js
+    2:8   warning  'ExcelJS' is defined but never used. Allowed unused vars must match /^_/u                 no-unused-vars
+   89:59  warning  'totalCount' is assigned a value but never used. Allowed unused vars must match /^_/u     no-unused-vars
+  329:9   error    'updateError' is not defined                                                              no-undef
+  330:53  error    'updateError' is not defined                                                              no-undef
+  334:18  error    'updateError' is not defined                                                              no-undef
+  407:9   error    'memberError' is not defined                                                              no-undef
+  531:11  warning  'monitoringReq' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  585:9   error    'membersError' is not defined                                                             no-undef
+  589:18  error    'membersError' is not defined                                                             no-undef
+
+D:\PROShael\alshuail-backend\src\controllers\memberMonitoringControllerOptimized.js
+  254:9   error  'updateError' is not defined  no-undef
+  255:53  error  'updateError' is not defined  no-undef
+  310:9   error  'updateError' is not defined  no-undef
+  311:55  error  'updateError' is not defined  no-undef
+  377:13  error  'memberError' is not defined  no-undef
+  398:15  error  'notifError' is not defined   no-undef
+  399:74  error  'notifError' is not defined   no-undef
+  417:15  error  'smsError' is not defined     no-undef
+  418:62  error  'smsError' is not defined     no-undef
+
+D:\PROShael\alshuail-backend\src\controllers\memberRegistrationController.js
+  101:9   error  'tokenError' is not defined        no-undef
+  225:9   error  'tokenError' is not defined        no-undef
+  309:9   error  'updateError' is not defined       no-undef
+  309:29  error  'updateError' is not defined       no-undef
+  320:9   error  'tokenUpdateError' is not defined  no-undef
+  321:57  error  'tokenUpdateError' is not defined  no-undef
+  359:9   error  'memberError' is not defined       no-undef
+  380:9   error  'deactivateError' is not defined   no-undef
+  381:59  error  'deactivateError' is not defined   no-undef
+  429:9   error  'tokenError' is not defined        no-undef
+  429:28  error  'tokenError' is not defined        no-undef
+
+D:\PROShael\alshuail-backend\src\controllers\memberStatementController.js
+   35:17  error  'data' is not defined          no-undef
+   46:17  error  'data' is not defined          no-undef
+   60:13  error  'paymentError' is not defined  no-undef
+   61:57  error  'paymentError' is not defined  no-undef
+  125:9   error  'memberError' is not defined   no-undef
+  140:9   error  'paymentError' is not defined  no-undef
+  140:30  error  'paymentError' is not defined  no-undef
+  207:9   error  'memberError' is not defined   no-undef
+  207:29  error  'memberError' is not defined   no-undef
+  215:9   error  'paymentError' is not defined  no-undef
+  215:30  error  'paymentError' is not defined  no-undef
+
+D:\PROShael\alshuail-backend\src\controllers\membersController.js
+    4:10  warning  'sanitizeJSON' is defined but never used. Allowed unused vars must match /^_/u                no-unused-vars
+  332:9   error    'totalError' is not defined                                                                   no-undef
+  332:28  error    'totalError' is not defined                                                                   no-undef
+  340:9   error    'activeError' is not defined                                                                  no-undef
+  340:29  error    'activeError' is not defined                                                                  no-undef
+  348:9   error    'completedError' is not defined                                                               no-undef
+  348:32  error    'completedError' is not defined                                                               no-undef
+  356:9   error    'pendingError' is not defined                                                                 no-undef
+  356:30  error    'pendingError' is not defined                                                                 no-undef
+  365:9   error    'socialSecurityError' is not defined                                                          no-undef
+  365:37  error    'socialSecurityError' is not defined                                                          no-undef
+  377:9   error    'thisMonthError' is not defined                                                               no-undef
+  377:32  error    'thisMonthError' is not defined                                                               no-undef
+  386:9   error    'importsError' is not defined                                                                 no-undef
+  386:30  error    'importsError' is not defined                                                                 no-undef
+  441:9   error    'membersError' is not defined                                                                 no-undef
+  441:30  error    'membersError' is not defined                                                                 no-undef
+  602:9   error    'memberError' is not defined                                                                  no-undef
+  602:29  error    'memberError' is not defined                                                                  no-undef
+  630:9   error    'tokenError' is not defined                                                                   no-undef
+  631:63  error    'tokenError' is not defined                                                                   no-undef
+  641:9   error    'updateError' is not defined                                                                  no-undef
+  642:70  error    'updateError' is not defined                                                                  no-undef
+  707:13  warning  'temp_password' is assigned a value but never used. Allowed unused vars must match /^_/u      no-unused-vars
+  707:28  warning  'password_hash' is assigned a value but never used. Allowed unused vars must match /^_/u      no-unused-vars
+  734:9   error    'paymentsError' is not defined                                                                no-undef
+  734:31  error    'paymentsError' is not defined                                                                no-undef
+  746:9   error    'memberError' is not defined                                                                  no-undef
+  746:29  error    'memberError' is not defined                                                                  no-undef
+  861:7   warning  'id' is assigned a value but never used. Allowed unused vars must match /^_/u                 no-unused-vars
+  862:7   warning  'membership_number' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  863:7   warning  'temp_password' is assigned a value but never used. Allowed unused vars must match /^_/u      no-unused-vars
+  864:7   warning  'password_hash' is assigned a value but never used. Allowed unused vars must match /^_/u      no-unused-vars
+  865:7   warning  'membership_status' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  866:7   warning  'created_at' is assigned a value but never used. Allowed unused vars must match /^_/u         no-unused-vars
+  867:7   warning  'updated_at' is assigned a value but never used. Allowed unused vars must match /^_/u         no-unused-vars
+
+D:\PROShael\alshuail-backend\src\controllers\notificationController.js
+  190:10  error  'data' is not defined  no-undef
+  237:14  error  'data' is not defined  no-undef
+
+D:\PROShael\alshuail-backend\src\controllers\notificationsController.js
+  199:11  error  'memberError' is not defined   no-undef
+  253:11  error  'membersError' is not defined  no-undef
+  253:32  error  'membersError' is not defined  no-undef
+  321:9   error  'checkError' is not defined    no-undef
+  433:9   error  'checkError' is not defined    no-undef
+  483:9   error  'memberError' is not defined   no-undef
+
+D:\PROShael\alshuail-backend\src\controllers\occasionsController.js
+  173:11  error  'organizerError' is not defined       no-undef
+  248:9   error  'occasionError' is not defined        no-undef
+  269:9   error  'memberError' is not defined          no-undef
+  309:11  error  'updateError' is not defined          no-undef
+  309:31  error  'updateError' is not defined          no-undef
+  332:11  error  'createError' is not defined          no-undef
+  332:31  error  'createError' is not defined          no-undef
+  351:11  error  'updateAttendeeError' is not defined  no-undef
+  351:39  error  'updateAttendeeError' is not defined  no-undef
+  395:9   error  'checkError' is not defined           no-undef
+  469:9   error  'checkError' is not defined           no-undef
+  509:9   error  'totalError' is not defined           no-undef
+  509:28  error  'totalError' is not defined           no-undef
+  519:9   error  'upcomingError' is not defined        no-undef
+  519:31  error  'upcomingError' is not defined        no-undef
+  527:9   error  'statusError' is not defined          no-undef
+  527:29  error  'statusError' is not defined          no-undef
+  539:9   error  'rsvpError' is not defined            no-undef
+  539:27  error  'rsvpError' is not defined            no-undef
+  546:9   error  'rsvpStatusError' is not defined      no-undef
+  546:33  error  'rsvpStatusError' is not defined      no-undef
+
+D:\PROShael\alshuail-backend\src\controllers\paymentsController.js
+    5:28   warning  'convertToHijriString' is defined but never used. Allowed unused vars must match /^_/u     no-unused-vars
+    5:50   warning  'convertToHijriYear' is defined but never used. Allowed unused vars must match /^_/u       no-unused-vars
+    5:70   warning  'convertToHijriMonth' is defined but never used. Allowed unused vars must match /^_/u      no-unused-vars
+    5:91   warning  'convertToHijriDay' is defined but never used. Allowed unused vars must match /^_/u        no-unused-vars
+    5:110  warning  'convertToHijriMonthName' is defined but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  135:13   warning  'period' is assigned a value but never used. Allowed unused vars must match /^_/u          no-unused-vars
+  453:54   warning  Async arrow function has no 'await' expression                                             require-await
+  787:9    error    'beneficiaryError' is not defined                                                          no-undef
+  869:9    error    'paymentError' is not defined                                                              no-undef
+  894:9    error    'updateError' is not defined                                                               no-undef
+  894:29   error    'updateError' is not defined                                                               no-undef
+
+D:\PROShael\alshuail-backend\src\controllers\statementController.js
+  182:9   error  'memberError' is not defined  no-undef
+  182:29  error  'memberError' is not defined  no-undef
+
+D:\PROShael\alshuail-backend\src\controllers\statementControllerOptimized.js
+   48:19  error  'data' is not defined  no-undef
+   57:17  error  'data' is not defined  no-undef
+   58:17  error  'data' is not defined  no-undef
+   59:14  error  'data' is not defined  no-undef
+   60:14  error  'data' is not defined  no-undef
+   61:20  error  'data' is not defined  no-undef
+   62:23  error  'data' is not defined  no-undef
+   64:18  error  'data' is not defined  no-undef
+   65:27  error  'data' is not defined  no-undef
+   66:19  error  'data' is not defined  no-undef
+   67:20  error  'data' is not defined  no-undef
+   68:37  error  'data' is not defined  no-undef
+   68:55  error  'data' is not defined  no-undef
+   69:27  error  'data' is not defined  no-undef
+   71:24  error  'data' is not defined  no-undef
+   72:26  error  'data' is not defined  no-undef
+  116:10  error  'data' is not defined  no-undef
+  116:18  error  'data' is not defined  no-undef
+  124:24  error  'data' is not defined  no-undef
+  169:19  error  'data' is not defined  no-undef
+  178:17  error  'data' is not defined  no-undef
+  179:17  error  'data' is not defined  no-undef
+  180:14  error  'data' is not defined  no-undef
+  181:14  error  'data' is not defined  no-undef
+  182:20  error  'data' is not defined  no-undef
+  183:23  error  'data' is not defined  no-undef
+  185:18  error  'data' is not defined  no-undef
+  186:27  error  'data' is not defined  no-undef
+  187:19  error  'data' is not defined  no-undef
+  188:20  error  'data' is not defined  no-undef
+  189:37  error  'data' is not defined  no-undef
+  189:55  error  'data' is not defined  no-undef
+  190:27  error  'data' is not defined  no-undef
+  192:24  error  'data' is not defined  no-undef
+  193:26  error  'data' is not defined  no-undef
+  224:13  error  'data' is not defined  no-undef
+  253:13  error  'data' is not defined  no-undef
+  254:14  error  'data' is not defined  no-undef
+  280:16  error  'data' is not defined  no-undef
+
+D:\PROShael\alshuail-backend\src\controllers\subscriptionController.js
+  335:9   error  'subError' is not defined           no-undef
+  368:9   error  'paymentError' is not defined       no-undef
+  368:30  error  'paymentError' is not defined       no-undef
+  390:9   error  'updateError' is not defined        no-undef
+  390:29  error  'updateError' is not defined        no-undef
+  400:9   error  'memberUpdateError' is not defined  no-undef
+  400:35  error  'memberUpdateError' is not defined  no-undef
+
+D:\PROShael\alshuail-backend\src\middleware\auth.js
+    7:52  warning  Async arrow function has no 'await' expression  require-await
+   79:13  error    'memberError' is not defined                    no-undef
+  120:52  warning  Async arrow function has no 'await' expression  require-await
+  187:57  warning  Async arrow function has no 'await' expression  require-await
+
+D:\PROShael\alshuail-backend\src\middleware\authMiddleware.js
+  7:27  warning  'roles' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+D:\PROShael\alshuail-backend\src\middleware\rateLimiter.js
+  229:11  warning  'clientId' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+D:\PROShael\alshuail-backend\src\middleware\rbacMiddleware.js
+   82:7   warning  'ROLE_HIERARCHY' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+   93:16  warning  'getUserRole' is defined but never used. Allowed unused vars must match /^_/u              no-unused-vars
+  104:12  error    'data' is not defined                                                                      no-undef
+  114:16  warning  'hasPermission' is defined but never used. Allowed unused vars must match /^_/u            no-unused-vars
+  126:12  error    'data' is not defined                                                                      no-undef
+  137:33  warning  Async arrow function has no 'await' expression                                             require-await
+  232:33  warning  Async arrow function has no 'await' expression                                             require-await
+  419:62  warning  Async arrow function has no 'await' expression                                             require-await
+
+D:\PROShael\alshuail-backend\src\routes\auth.js
+  110:7   warning  'parsePermissions' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  303:18  error    'queryError' is not defined                                                                  no-undef
+  308:13  error    'queryError' is not defined                                                                  no-undef
+  516:41  warning  Async arrow function has no 'await' expression                                               require-await
+  589:13  warning  'current_password' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  612:11  error    'updateError' is not defined                                                                 no-undef
+  613:53  error    'updateError' is not defined                                                                 no-undef
+  642:42  warning  Async arrow function has no 'await' expression                                               require-await
+
+D:\PROShael\alshuail-backend\src\routes\diyaDashboard.js
+   25:13  error  'activitiesError' is not defined  no-undef
+   25:37  error  'activitiesError' is not defined  no-undef
+   35:17  error  'contribError' is not defined     no-undef
+   36:69  error  'contribError' is not defined     no-undef
+   92:13  error  'contribError' is not defined     no-undef
+   92:34  error  'contribError' is not defined     no-undef
+  103:13  error  'membersError' is not defined     no-undef
+  103:34  error  'membersError' is not defined     no-undef
+  155:13  error  'activityError' is not defined    no-undef
+  155:35  error  'activityError' is not defined    no-undef
+  170:13  error  'contribError' is not defined     no-undef
+  170:34  error  'contribError' is not defined     no-undef
+  232:13  error  'activitiesError' is not defined  no-undef
+  232:37  error  'activitiesError' is not defined  no-undef
+  242:13  error  'contribError' is not defined     no-undef
+  242:34  error  'contribError' is not defined     no-undef
+
+D:\PROShael\alshuail-backend\src\routes\documents.js
+  270:9   error  'fetchError' is not defined   no-undef
+  293:9   error  'updateError' is not defined  no-undef
+  293:29  error  'updateError' is not defined  no-undef
+
+D:\PROShael\alshuail-backend\src\routes\expenses.js
+  20:49  warning  Async arrow function has no 'await' expression  require-await
+
+D:\PROShael\alshuail-backend\src\routes\familyTree.js
+   22:9  error  'memberError' is not defined  no-undef
+  185:9  error  'memberError' is not defined  no-undef
+  350:7  error  'data' is not defined         no-undef
+  382:7  error  'data' is not defined         no-undef
+  446:7  error  'data' is not defined         no-undef
+
+D:\PROShael\alshuail-backend\src\routes\financialReports.js
+  16:49  warning  Async arrow function has no 'await' expression  require-await
+
+D:\PROShael\alshuail-backend\src\routes\initiativesEnhanced.js
+   17:30  warning  'error' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+   24:16  error    'data' is not defined                                                             no-undef
+   24:42  error    'data' is not defined                                                             no-undef
+  107:25  error    'data' is not defined                                                             no-undef
+  135:25  error    'data' is not defined                                                             no-undef
+  158:25  error    'data' is not defined                                                             no-undef
+  199:25  error    'data' is not defined                                                             no-undef
+  224:33  error    'data' is not defined                                                             no-undef
+  242:13  error    'initError' is not defined                                                        no-undef
+  242:31  error    'initError' is not defined                                                        no-undef
+  254:13  error    'donError' is not defined                                                         no-undef
+  254:30  error    'donError' is not defined                                                         no-undef
+  299:23  error    'data' is not defined                                                             no-undef
+  320:13  error    'membersError' is not defined                                                     no-undef
+  321:77  error    'membersError' is not defined                                                     no-undef
+  322:19  error    'membersError' is not defined                                                     no-undef
+  331:13  error    'donError' is not defined                                                         no-undef
+  332:79  error    'donError' is not defined                                                         no-undef
+  333:19  error    'donError' is not defined                                                         no-undef
+  380:13  error    'initError' is not defined                                                        no-undef
+  381:82  error    'initError' is not defined                                                        no-undef
+  382:19  error    'initError' is not defined                                                        no-undef
+  392:13  error    'membersError' is not defined                                                     no-undef
+  392:34  error    'membersError' is not defined                                                     no-undef
+  399:13  error    'donError' is not defined                                                         no-undef
+  399:30  error    'donError' is not defined                                                         no-undef
+  439:13  error    'notifError' is not defined                                                       no-undef
+  440:89  error    'notifError' is not defined                                                       no-undef
+  441:19  error    'notifError' is not defined                                                       no-undef
+  474:13  error    'initError' is not defined                                                        no-undef
+  475:76  error    'initError' is not defined                                                        no-undef
+  476:19  error    'initError' is not defined                                                        no-undef
+  493:13  error    'membersError' is not defined                                                     no-undef
+  494:78  error    'membersError' is not defined                                                     no-undef
+  495:19  error    'membersError' is not defined                                                     no-undef
+  533:13  error    'notifError' is not defined                                                       no-undef
+  534:89  error    'notifError' is not defined                                                       no-undef
+  535:19  error    'notifError' is not defined                                                       no-undef
+  572:41  error    'data' is not defined                                                             no-undef
+  595:33  error    'data' is not defined                                                             no-undef
+  625:13  error    'initError' is not defined                                                        no-undef
+  625:31  error    'initError' is not defined                                                        no-undef
+  660:13  error    'donError' is not defined                                                         no-undef
+  660:30  error    'donError' is not defined                                                         no-undef
+  696:35  error    'data' is not defined                                                             no-undef
+
+D:\PROShael\alshuail-backend\src\routes\memberMonitoringOptimized.js
+  155:26  warning  'error' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+D:\PROShael\alshuail-backend\src\routes\memberStatementRoutes.js
+   3:23  warning  'requireOwnershipOrAdmin' is defined but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  13:26  warning  Async arrow function has no 'await' expression                                             require-await
+
+D:\PROShael\alshuail-backend\src\routes\members.js
+  31:23  warning  'requirePermission' is defined but never used. Allowed unused vars must match /^_/u         no-unused-vars
+  65:7   warning  'isAuthenticated' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+D:\PROShael\alshuail-backend\src\routes\news.js
+   20:30  warning  'error' is assigned a value but never used. Allowed unused vars must match /^_/u           no-unused-vars
+   26:16  error    'data' is not defined                                                                      no-undef
+   26:42  error    'data' is not defined                                                                      no-undef
+  143:19  error    'data' is not defined                                                                      no-undef
+  198:14  error    'data' is not defined                                                                      no-undef
+  198:22  error    'data' is not defined                                                                      no-undef
+  203:62  error    'data' is not defined                                                                      no-undef
+  207:19  error    'data' is not defined                                                                      no-undef
+  255:26  error    'data' is not defined                                                                      no-undef
+  266:17  warning  'custom_message' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  277:13  error    'newsError' is not defined                                                                 no-undef
+  278:70  error    'newsError' is not defined                                                                 no-undef
+  279:19  error    'newsError' is not defined                                                                 no-undef
+  297:13  error    'membersError' is not defined                                                              no-undef
+  298:78  error    'membersError' is not defined                                                              no-undef
+  299:19  error    'membersError' is not defined                                                              no-undef
+  333:13  error    'notifError' is not defined                                                                no-undef
+  334:90  error    'notifError' is not defined                                                                no-undef
+  335:19  error    'notifError' is not defined                                                                no-undef
+  441:13  error    'newsError' is not defined                                                                 no-undef
+  441:31  error    'newsError' is not defined                                                                 no-undef
+  450:13  error    'notifError' is not defined                                                                no-undef
+  450:32  error    'notifError' is not defined                                                                no-undef
+  464:13  error    'reactError' is not defined                                                                no-undef
+  464:32  error    'reactError' is not defined                                                                no-undef
+  515:26  error    'data' is not defined                                                                      no-undef
+  565:26  error    'data' is not defined                                                                      no-undef
+  643:35  error    'data' is not defined                                                                      no-undef
+  727:49  error    'data' is not defined                                                                      no-undef
+  742:34  error    'data' is not defined                                                                      no-undef
+  788:47  warning  'news' is defined but never used. Allowed unused args must match /^_/u                     no-unused-vars
+
+D:\PROShael\alshuail-backend\src\routes\notifications.js
+  22:26  warning  Async arrow function has no 'await' expression  require-await
+  49:26  warning  Async arrow function has no 'await' expression  require-await
+
+D:\PROShael\alshuail-backend\src\routes\payments.js
+  73:26  warning  Async arrow function has no 'await' expression  require-await
+
+D:\PROShael\alshuail-backend\src\routes\rbacRoutes.js
+   44:16  error  'data' is not defined         no-undef
+   73:11  error  'roleError' is not defined    no-undef
+   96:11  error  'assignError' is not defined  no-undef
+   96:31  error  'assignError' is not defined  no-undef
+  146:15  error  'data' is not defined         no-undef
+  338:15  error  'data' is not defined         no-undef
+
+D:\PROShael\alshuail-backend\src\routes\settings.js
+  152:16  error    'data' is not defined                           no-undef
+  165:16  error    'data' is not defined                           no-undef
+  402:64  warning  Async arrow function has no 'await' expression  require-await
+  448:64  warning  Async arrow function has no 'await' expression  require-await
+
+D:\PROShael\alshuail-backend\src\routes\statementRoutes.js
+  16:26  warning  Async arrow function has no 'await' expression  require-await
+
+D:\PROShael\alshuail-backend\src\scripts\add-member-columns.js
+   5:8   warning  'fs' is defined but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  72:10  error    'queryError' is not defined                                           no-undef
+
+D:\PROShael\alshuail-backend\src\scripts\add-payments.js
+   39:9   error    'memberError' is not defined                                             no-undef
+   40:46  error    'memberError' is not defined                                             no-undef
+   50:30  warning  'index' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+   86:11  error    'paymentError' is not defined                                            no-undef
+   87:47  error    'paymentError' is not defined                                            no-undef
+  102:10  error    'fetchError' is not defined                                              no-undef
+
+D:\PROShael\alshuail-backend\src\scripts\apply-member-monitoring-optimizations.js
+    8:8   warning  'fs' is defined but never used. Allowed unused vars must match /^_/u                 no-unused-vars
+  203:10  error    'testError' is not defined                                                           no-undef
+  207:42  error    'testError' is not defined                                                           no-undef
+  241:16  warning  Redundant use of `await` on a return value                                           no-return-await
+  256:25  warning  'payments' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  267:16  warning  Redundant use of `await` on a return value                                           no-return-await
+
+D:\PROShael\alshuail-backend\src\scripts\check-member-balances.js
+   43:9   error  'memberError' is not defined       no-undef
+   44:44  error  'memberError' is not defined       no-undef
+   67:10  error  'balanceError' is not defined      no-undef
+  138:10  error  'allMembersError' is not defined   no-undef
+  145:12  error  'allPaymentsError' is not defined  no-undef
+  237:14  error  'statusError' is not defined       no-undef
+
+D:\PROShael\alshuail-backend\src\scripts\complete-setup.js
+   39:9   error    'memberError' is not defined                                                no-undef
+   40:46  error    'memberError' is not defined                                                no-undef
+   70:9   error    'subError' is not defined                                                   no-undef
+   71:52  error    'subError' is not defined                                                   no-undef
+   78:12  error    'fetchError' is not defined                                                 no-undef
+  149:11  error    'paymentError' is not defined                                               no-undef
+  150:78  error    'paymentError' is not defined                                               no-undef
+  168:10  error    'fetchError' is not defined                                                 no-undef
+  189:48  warning  'memberId' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+D:\PROShael\alshuail-backend\src\scripts\create-subscriptions-and-upload.js
+    3:8   warning  'fs' is defined but never used. Allowed unused vars must match /^_/u                   no-unused-vars
+   40:9   error    'memberError' is not defined                                                           no-undef
+   41:46  error    'memberError' is not defined                                                           no-undef
+   98:9   error    'subError' is not defined                                                              no-undef
+   99:52  error    'subError' is not defined                                                              no-undef
+  142:13  warning  'memberName' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  194:20  error    'data' is not defined                                                                  no-undef
+  195:27  error    'data' is not defined                                                                  no-undef
+  196:72  error    'data' is not defined                                                                  no-undef
+
+D:\PROShael\alshuail-backend\src\scripts\create-tables.js
+  44:9  error  'membersError' is not defined  no-undef
+
+D:\PROShael\alshuail-backend\src\scripts\database-assessment.js
+   43:21  warning  'testData' is assigned a value but never used. Allowed unused vars must match /^_/u       no-unused-vars
+   48:11  error    'testError' is not defined                                                                no-undef
+   50:31  error    'testError' is not defined                                                                no-undef
+   70:9   error    'countError' is not defined                                                               no-undef
+   71:46  error    'countError' is not defined                                                               no-undef
+   93:9   error    'schemaError' is not defined                                                              no-undef
+   94:48  error    'schemaError' is not defined                                                              no-undef
+  127:9   error    'integrityError' is not defined                                                           no-undef
+  128:45  error    'integrityError' is not defined                                                           no-undef
+  149:10  error    'phoneError' is not defined                                                               no-undef
+  167:19  warning  'simpleQuery' is assigned a value but never used. Allowed unused vars must match /^_/u    no-unused-vars
+  173:10  error    'simpleError' is not defined                                                              no-undef
+  182:19  warning  'filteredQuery' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  189:10  error    'filteredError' is not defined                                                            no-undef
+  198:13  warning  'count' is assigned a value but never used. Allowed unused vars must match /^_/u          no-unused-vars
+  203:10  error    'countPerfError' is not defined                                                           no-undef
+  244:9   error    'balanceError' is not defined                                                             no-undef
+  263:9   error    'sectionError' is not defined                                                             no-undef
+
+D:\PROShael\alshuail-backend\src\scripts\direct-upload.js
+  117:53  error    'createError' is not defined                                                                no-undef
+  165:19  warning  'description' is assigned a value but never used. Allowed unused vars must match /^_/u      no-unused-vars
+  165:32  warning  'payment_type' is assigned a value but never used. Allowed unused vars must match /^_/u     no-unused-vars
+  165:46  warning  'subscription_id' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  165:63  warning  'title' is assigned a value but never used. Allowed unused vars must match /^_/u            no-unused-vars
+  176:20  error    'data' is not defined                                                                       no-undef
+  177:27  error    'data' is not defined                                                                       no-undef
+  178:63  error    'data' is not defined                                                                       no-undef
+
+D:\PROShael\alshuail-backend\src\scripts\final-setup.js
+   46:9   error    'memberError' is not defined                                                no-undef
+   47:46  error    'memberError' is not defined                                                no-undef
+   76:9   error    'subError' is not defined                                                   no-undef
+   77:52  error    'subError' is not defined                                                   no-undef
+   84:12  error    'fetchError' is not defined                                                 no-undef
+  150:11  error    'paymentError' is not defined                                               no-undef
+  151:71  error    'paymentError' is not defined                                               no-undef
+  168:10  error    'fetchError' is not defined                                                 no-undef
+  193:48  warning  'memberId' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+D:\PROShael\alshuail-backend\src\scripts\final-upload.js
+    3:8   warning  'fs' is defined but never used. Allowed unused vars must match /^_/u                   no-unused-vars
+  145:11  warning  'errorCount' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  153:20  error    'data' is not defined                                                                  no-undef
+  154:27  error    'data' is not defined                                                                  no-undef
+  155:72  error    'data' is not defined                                                                  no-undef
+
+D:\PROShael\alshuail-backend\src\scripts\import-members-simple.js
+  107:13  error  'memberError' is not defined  no-undef
+  108:62  error  'memberError' is not defined  no-undef
+
+D:\PROShael\alshuail-backend\src\scripts\import-members.js
+   80:13  error  'memberError' is not defined   no-undef
+   81:17  error  'memberError' is not defined   no-undef
+  118:15  error  'paymentError' is not defined  no-undef
+  119:71  error  'paymentError' is not defined  no-undef
+  139:15  error  'subError' is not defined      no-undef
+  140:76  error  'subError' is not defined      no-undef
+
+D:\PROShael\alshuail-backend\src\scripts\import-new-excel.js
+   80:11  warning  'headers' is assigned a value but never used. Allowed unused vars must match /^_/u     no-unused-vars
+  100:13  warning  'fullNameEn' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  214:28  error    'data' is not defined                                                                  no-undef
+  215:74  error    'data' is not defined                                                                  no-undef
+  280:28  warning  'error' is assigned a value but never used. Allowed unused vars must match /^_/u       no-unused-vars
+  285:29  error    'data' is not defined                                                                  no-undef
+  340:33  error    'data' is not defined                                                                  no-undef
+  341:81  error    'data' is not defined                                                                  no-undef
+
+D:\PROShael\alshuail-backend\src\scripts\initializeDatabase.js
+  14:19  warning  'testData' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  19:9   error    'testError' is not defined                                                           no-undef
+  20:50  error    'testError' is not defined                                                           no-undef
+
+D:\PROShael\alshuail-backend\src\scripts\scan-secrets.js
+  150:3   warning  Async method 'scanFile' has no 'await' expression                               require-await
+  158:19  warning  'key' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+D:\PROShael\alshuail-backend\src\scripts\simple-import.js
+   3:8   warning  'fs' is defined but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  60:13  error    'memberError' is not defined                                          no-undef
+  68:15  error    'insertError' is not defined                                          no-undef
+  69:19  error    'insertError' is not defined                                          no-undef
+
+D:\PROShael\alshuail-backend\src\scripts\simple-payment-upload.js
+    3:8   warning  'fs' is defined but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  132:20  error    'data' is not defined                                                 no-undef
+  133:27  error    'data' is not defined                                                 no-undef
+  134:72  error    'data' is not defined                                                 no-undef
+
+D:\PROShael\alshuail-backend\src\scripts\simple-upload.js
+  118:9   error  'memberError' is not defined   no-undef
+  119:47  error  'memberError' is not defined   no-undef
+  131:11  error  'paymentError' is not defined  no-undef
+  132:50  error  'paymentError' is not defined  no-undef
+  144:9   error  'balanceError' is not defined  no-undef
+  145:48  error  'balanceError' is not defined  no-undef
+
+D:\PROShael\alshuail-backend\src\scripts\upload-to-existing-tables.js
+   85:9   error  'memberError' is not defined   no-undef
+   86:47  error  'memberError' is not defined   no-undef
+   95:11  error  'upsertError' is not defined   no-undef
+   96:44  error  'upsertError' is not defined   no-undef
+  131:11  error  'paymentError' is not defined  no-undef
+  132:47  error  'paymentError' is not defined  no-undef
+
+D:\PROShael\alshuail-backend\src\scripts\upload-to-supabase.js
+  134:17  warning  'memberData' is assigned a value but never used. Allowed unused vars must match /^_/u   no-unused-vars
+  138:7   error    'memberError' is not defined                                                            no-undef
+  139:45  error    'memberError' is not defined                                                            no-undef
+  147:19  warning  'paymentData' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  151:9   error    'paymentError' is not defined                                                           no-undef
+  152:48  error    'paymentError' is not defined                                                           no-undef
+  160:17  warning  'balanceData' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  164:7   error    'balanceError' is not defined                                                           no-undef
+  165:46  error    'balanceError' is not defined                                                           no-undef
+  187:1   warning  Async function 'createDatabaseViews' has no 'await' expression                          require-await
+  215:1   warning  Async function 'setupRealtimeSubscriptions' has no 'await' expression                   require-await
+  234:11  warning  'result' is assigned a value but never used. Allowed unused vars must match /^_/u       no-unused-vars
+
+D:\PROShael\alshuail-backend\src\scripts\working-upload.js
+    3:8   warning  'fs' is defined but never used. Allowed unused vars must match /^_/u                  no-unused-vars
+  209:11  warning  'failCount' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  211:20  error    'data' is not defined                                                                 no-undef
+  212:27  error    'data' is not defined                                                                 no-undef
+  213:72  error    'data' is not defined                                                                 no-undef
+
+D:\PROShael\alshuail-backend\src\services\arabicPdfExporter.js
+  126:3   warning  Async method 'generateFinancialReportPDF' has no 'await' expression       require-await
+  430:25  warning  'charts' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+D:\PROShael\alshuail-backend\src\services\cacheService.js
+  245:12  warning  Redundant use of `await` on a return value  no-return-await
+  265:14  warning  Redundant use of `await` on a return value  no-return-await
+
+D:\PROShael\alshuail-backend\src\services\databaseOptimizationService.js
+  299:15  error  'data' is not defined  no-undef
+  514:15  error  'data' is not defined  no-undef
+
+D:\PROShael\alshuail-backend\src\services\financialAnalyticsService.js
+  464:9  warning  'includeCharts' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+D:\PROShael\alshuail-backend\src\services\memberMonitoringQueryService.js
+  120:11  error  'paymentsError' is not defined       no-undef
+  121:68  error  'paymentsError' is not defined       no-undef
+  322:9   error  'membersError' is not defined        no-undef
+  323:51  error  'membersError' is not defined        no-undef
+  330:9   error  'paymentError' is not defined        no-undef
+  331:57  error  'paymentError' is not defined        no-undef
+  456:9   error  'memberError' is not defined         no-undef
+  457:44  error  'memberError' is not defined         no-undef
+  467:9   error  'paymentsError' is not defined       no-undef
+  468:55  error  'paymentsError' is not defined       no-undef
+  478:9   error  'subscriptionsError' is not defined  no-undef
+  479:60  error  'subscriptionsError' is not defined  no-undef
+
+D:\PROShael\alshuail-backend\src\services\optimizedReportQueries.js
+  136:12  warning  Redundant use of `await` on a return value  no-return-await
+
+D:\PROShael\alshuail-backend\src\services\paymentProcessingService.js
+  100:11  error    'fetchError' is not defined                                            no-undef
+  126:11  error    'updateError' is not defined                                           no-undef
+  126:31  error    'updateError' is not defined                                           no-undef
+  213:3   warning  Static async method 'validatePaymentAmount' has no 'await' expression  require-await
+
+D:\PROShael\alshuail-backend\src\services\receiptService.js
+    1:10  warning  'supabase' is defined but never used. Allowed unused vars must match /^_/u         no-unused-vars
+   67:3   warning  Static async method 'generateReceiptData' has no 'await' expression                require-await
+  136:3   warning  Static async method 'generatePDFReceipt' has no 'await' expression                 require-await
+  154:46  warning  'footer' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+D:\PROShael\alshuail-backend\src\services\reportExportService.js
+   71:3   warning  Static async method 'generateArabicPDFReport' has no 'await' expression       require-await
+  174:12  warning  Redundant use of `await` on a return value                                    no-return-await
+  202:40  warning  'reportData' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  235:48  warning  'reportData' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  637:37  warning  'reportData' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  645:45  warning  'reportData' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  657:38  warning  'reportData' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+  664:46  warning  'reportData' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+D:\PROShael\alshuail-backend\src\services\supabaseService.js
+   19:7   warning  'supabaseAnonKey' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+   77:14  error    'data' is not defined                                                                       no-undef
+   99:14  error    'data' is not defined                                                                       no-undef
+  123:14  error    'data' is not defined                                                                       no-undef
+  148:14  error    'data' is not defined                                                                       no-undef
+  171:14  error    'data' is not defined                                                                       no-undef
+
+D:\PROShael\alshuail-backend\src\utils\accessControl.js
+  341:9   error  'failedError' is not defined    no-undef
+  341:29  error  'failedError' is not defined    no-undef
+  351:9   error  'activityError' is not defined  no-undef
+  351:31  error  'activityError' is not defined  no-undef
+
+D:\PROShael\alshuail-backend\src\utils\errorCodes.js
+  301:45  warning  'next' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+D:\PROShael\alshuail-backend\src\utils\initializeTestData.js
+   29:9   error  'membersError' is not defined        no-undef
+   29:26  error  'membersError' is not defined        no-undef
+   30:48  error  'membersError' is not defined        no-undef
+   81:9   error  'eventsError' is not defined         no-undef
+   81:25  error  'eventsError' is not defined         no-undef
+   82:42  error  'eventsError' is not defined         no-undef
+  114:9   error  'activitiesError' is not defined     no-undef
+  114:29  error  'activitiesError' is not defined     no-undef
+  115:46  error  'activitiesError' is not defined     no-undef
+  145:9   error  'diyasError' is not defined          no-undef
+  145:24  error  'diyasError' is not defined          no-undef
+  146:41  error  'diyasError' is not defined          no-undef
+  172:9   error  'notificationsError' is not defined  no-undef
+  172:32  error  'notificationsError' is not defined  no-undef
+  173:49  error  'notificationsError' is not defined  no-undef
+
+✖ 581 problems (461 errors, 120 warnings)
+  0 errors and 2 warnings potentially fixable with the `--fix` option.
+

@@ -232,7 +232,7 @@ class CacheService {
   /**
    * Invalidate cache for specific report types
    */
-  async invalidateReportCache(reportType) {
+  invalidateReportCache(reportType) {
     const patterns = {
       financial: 'alshuail:financial:*',
       members: 'alshuail:members:*',
@@ -242,7 +242,7 @@ class CacheService {
     };
 
     const pattern = patterns[reportType] || patterns.all;
-    return await this.clearPattern(pattern);
+    return this.clearPattern(pattern);
   }
 }
 
@@ -254,6 +254,7 @@ export const cacheableReport = (namespace, ttl = 300) => {
   return function (target, propertyKey, descriptor) {
     const originalMethod = descriptor.value;
 
+    // eslint-disable-next-line require-await
     descriptor.value = async function (...args) {
       const [req] = args;
       const cacheKey = cacheService.generateKey(namespace, {
@@ -262,7 +263,7 @@ export const cacheableReport = (namespace, ttl = 300) => {
         role: req.user?.role
       });
 
-      return await cacheService.cacheable(
+      return cacheService.cacheable(
         cacheKey,
         () => originalMethod.apply(this, args),
         ttl

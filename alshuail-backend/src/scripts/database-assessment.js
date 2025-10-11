@@ -7,6 +7,7 @@ import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
+import { log } from '../utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -39,14 +40,14 @@ async function assessDatabase() {
     log.info('1. DATABASE CONNECTION STATUS');
     log.info('------------------------------');
     try {
-      const { data: testData, error: testError } = await supabase
+      const { data: _testData, error: _testError } = await supabase
         .from('members')
         .select('id')
         .limit(1);
 
-      if (testError) {
+      if (_testError) {
         log.info('❌ Connection Status: FAILED');
-        log.info('   Error:', testError.message);
+        log.info('   Error:', _testError.message);
       } else {
         log.info('✅ Connection Status: ACTIVE');
         log.info('   Supabase URL:', supabaseUrl);
@@ -62,12 +63,12 @@ async function assessDatabase() {
     log.info('------------------------------');
 
     // Get total member count
-    const { count: totalMembers, error: countError } = await supabase
+    const { count: totalMembers, error: _countError } = await supabase
       .from('members')
       .select('*', { count: 'exact', head: true });
 
-    if (countError) {
-      log.info('❌ Unable to count members:', countError.message);
+    if (_countError) {
+      log.info('❌ Unable to count members:', _countError.message);
     } else {
       log.info(`✅ Total Members in Database: ${totalMembers}`);
       if (totalMembers === 288) {
@@ -83,14 +84,14 @@ async function assessDatabase() {
     log.info('\n3. MEMBER TABLE SCHEMA');
     log.info('------------------------------');
 
-    const { data: sampleMember, error: schemaError } = await supabase
+    const { data: sampleMember, error: _schemaError } = await supabase
       .from('members')
       .select('*')
       .limit(1)
       .single();
 
-    if (schemaError) {
-      log.info('❌ Unable to retrieve schema:', schemaError.message);
+    if (_schemaError) {
+      log.info('❌ Unable to retrieve schema:', _schemaError.message);
     } else if (sampleMember) {
       log.info('✅ Member Table Columns:');
       const columns = Object.keys(sampleMember);
@@ -118,13 +119,13 @@ async function assessDatabase() {
     log.info('------------------------------');
 
     // Check for members with missing required fields
-    const { data: membersWithIssues, error: integrityError } = await supabase
+    const { data: membersWithIssues, error: _integrityError } = await supabase
       .from('members')
       .select('id, full_name, phone, membership_number')
       .or('full_name.is.null,phone.is.null,membership_number.is.null');
 
-    if (integrityError) {
-      log.info('❌ Integrity check failed:', integrityError.message);
+    if (_integrityError) {
+      log.info('❌ Integrity check failed:', _integrityError.message);
     } else {
       if (membersWithIssues && membersWithIssues.length > 0) {
         log.info(`⚠️ Found ${membersWithIssues.length} members with missing required fields`);
@@ -141,11 +142,11 @@ async function assessDatabase() {
 
     // Check for duplicate phone numbers
     let duplicates = 0;
-    const { data: allPhones, error: phoneError } = await supabase
+    const { data: allPhones, error: _phoneError } = await supabase
       .from('members')
       .select('phone');
 
-    if (!phoneError && allPhones) {
+    if (!_phoneError && allPhones) {
       const phones = allPhones.map(m => m.phone).filter(p => p);
       const uniquePhones = new Set(phones);
       duplicates = phones.length - uniquePhones.size;
@@ -163,13 +164,13 @@ async function assessDatabase() {
 
     // Test simple query performance
     const startSimple = Date.now();
-    const { data: simpleQuery, error: simpleError } = await supabase
+    const { data: _simpleQuery, error: _simpleError } = await supabase
       .from('members')
       .select('id, full_name, phone')
       .limit(100);
     const simpleTime = Date.now() - startSimple;
 
-    if (!simpleError) {
+    if (!_simpleError) {
       log.info(`✅ Simple query (100 records): ${simpleTime}ms`);
       if (simpleTime > 1000) {
         log.info('   ⚠️ Query time exceeds 1 second - indexing may be needed');
@@ -178,14 +179,14 @@ async function assessDatabase() {
 
     // Test filtered query performance
     const startFiltered = Date.now();
-    const { data: filteredQuery, error: filteredError } = await supabase
+    const { data: _filteredQuery, error: _filteredError } = await supabase
       .from('members')
       .select('*')
       .ilike('full_name', '%أحمد%')
       .limit(50);
     const filteredTime = Date.now() - startFiltered;
 
-    if (!filteredError) {
+    if (!_filteredError) {
       log.info(`✅ Filtered query (name search): ${filteredTime}ms`);
       if (filteredTime > 2000) {
         log.info('   ⚠️ Filtered query slow - consider adding full-text search index');
@@ -194,12 +195,12 @@ async function assessDatabase() {
 
     // Test count query performance
     const startCount = Date.now();
-    const { count, error: countPerfError } = await supabase
+    const { count: _count, error: _countPerfError } = await supabase
       .from('members')
       .select('*', { count: 'exact', head: true });
     const countTime = Date.now() - startCount;
 
-    if (!countPerfError) {
+    if (!_countPerfError) {
       log.info(`✅ Count query: ${countTime}ms`);
       if (countTime > 500) {
         log.info('   ⚠️ Count query slow - consider caching counts');
@@ -233,14 +234,14 @@ async function assessDatabase() {
     log.info('\n7. MEMBER BALANCE ANALYSIS');
     log.info('------------------------------');
 
-    const { data: memberBalances, error: balanceError } = await supabase
+    const { data: memberBalances, error: _balanceError } = await supabase
       .from('members')
       .select('id, full_name, balance')
       .not('balance', 'is', null)
       .order('balance', { ascending: false })
       .limit(10);
 
-    if (balanceError) {
+    if (_balanceError) {
       log.info('ℹ️ Balance field not found or not accessible');
     } else if (memberBalances && memberBalances.length > 0) {
       log.info('✅ Top 10 Member Balances:');
@@ -255,11 +256,11 @@ async function assessDatabase() {
     log.info('\n8. TRIBAL SECTION DISTRIBUTION');
     log.info('------------------------------');
 
-    const { data: sections, error: sectionError } = await supabase
+    const { data: sections, error: _sectionError } = await supabase
       .from('members')
       .select('tribal_section');
 
-    if (sectionError) {
+    if (_sectionError) {
       log.info('ℹ️ Tribal section field not found');
     } else if (sections) {
       const sectionCounts = {};

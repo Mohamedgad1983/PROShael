@@ -1,9 +1,10 @@
 import XLSX from 'xlsx';
 import { createClient } from '@supabase/supabase-js';
-import fs from 'fs';
+import _fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+import { log } from '../utils/logger.js';
 
 dotenv.config();
 
@@ -34,7 +35,7 @@ async function uploadRealData() {
     log.info('📖 Reading YOUR Excel file with REAL data...');
     const excelPath = path.join(__dirname, '../../../AlShuail_Members_Prefilled_Import.xlsx');
 
-    if (!fs.existsSync(excelPath)) {
+    if (!_fs.existsSync(excelPath)) {
       log.error('❌ Excel file not found at:', excelPath);
       return;
     }
@@ -84,7 +85,7 @@ async function uploadRealData() {
       log.info(`\n👤 Member ${i}: ${memberName}`);
 
       // Check if this member exists in database
-      const { data: existingMember, error: memberError } = await supabase
+      const { data: existingMember, error: _memberError } = await supabase
         .from('members')
         .select('id')
         .or(`phone.eq.${phone},membership_number.eq.${memberId}`)
@@ -97,7 +98,7 @@ async function uploadRealData() {
         log.info(`   ✅ Found in database with ID: ${dbMemberId}`);
       } else {
         // Create member if not exists
-        const { data: newMember, error: createError } = await supabase
+        const { data: newMember, error: _createError } = await supabase
           .from('members')
           .insert({
             membership_number: memberId,
@@ -113,7 +114,7 @@ async function uploadRealData() {
           dbMemberId = newMember.id;
           log.info(`   ✅ Created new member with ID: ${dbMemberId}`);
         } else {
-          log.info(`   ❌ Could not create member:`, createError?.message);
+          log.info(`   ❌ Could not create member:`, _createError?.message);
           continue;
         }
       }
@@ -161,20 +162,20 @@ async function uploadRealData() {
 
         // Remove any fields that don't exist in your table
         const cleanBatch = batch.map(payment => {
-          const { description, payment_type, subscription_id, title, ...cleanPayment } = payment;
+          const { description: _description, payment_type: _payment_type, subscription_id: _subscription_id, title: _title, ...cleanPayment } = payment;
           return cleanPayment;
         });
 
-        const { data, error } = await supabase
+        const { data: _data, error } = await supabase
           .from('payments')
           .insert(cleanBatch)
           .select();
 
         if (error) {
           log.error(`❌ Batch ${Math.floor(i/batchSize) + 1} error:`, error.message);
-        } else if (data) {
-          successCount += data.length;
-          log.info(`✅ Batch ${Math.floor(i/batchSize) + 1}: ${data.length} payments uploaded`);
+        } else if (_data) {
+          successCount += _data.length;
+          log.info(`✅ Batch ${Math.floor(i/batchSize) + 1}: ${_data.length} payments uploaded`);
         }
       }
 

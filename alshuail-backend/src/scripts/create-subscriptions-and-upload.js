@@ -1,9 +1,10 @@
 import XLSX from 'xlsx';
 import { createClient } from '@supabase/supabase-js';
-import fs from 'fs';
+import _fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+import { log } from '../utils/logger.js';
 
 dotenv.config();
 
@@ -32,12 +33,12 @@ async function createSubscriptionsAndUpload() {
   try {
     // STEP 1: Get all members that need subscriptions
     log.info('📖 Getting all members...');
-    const { data: members, error: memberError } = await supabase
+    const { data: members, error: _memberError } = await supabase
       .from('members')
       .select('id, full_name, membership_number');
 
-    if (memberError) {
-      log.error('❌ Error fetching members:', memberError);
+    if (_memberError) {
+      log.error('❌ Error fetching members:', _memberError);
       return;
     }
 
@@ -90,12 +91,12 @@ async function createSubscriptionsAndUpload() {
 
     // STEP 3: Get all subscriptions with member mapping
     log.info('\n📖 Getting subscription IDs...');
-    const { data: allSubs, error: subError } = await supabase
+    const { data: allSubs, error: _subError } = await supabase
       .from('subscriptions')
       .select('id, member_id');
 
-    if (subError) {
-      log.error('❌ Error fetching subscriptions:', subError);
+    if (_subError) {
+      log.error('❌ Error fetching subscriptions:', _subError);
       return;
     }
 
@@ -138,7 +139,7 @@ async function createSubscriptionsAndUpload() {
       const row = rawData[i];
       if (!row || row.length === 0) {continue;}
 
-      const memberName = row[1];
+      const _memberName = row[1];
       const phone = row[3] || `050${String(1000000 + i).padStart(7, '0')}`;
       const memberId = row[0] || `SH-${10000 + i}`;
 
@@ -183,16 +184,16 @@ async function createSubscriptionsAndUpload() {
       for (let i = 0; i < payments.length; i += batchSize) {
         const batch = payments.slice(i, i + batchSize);
 
-        const { data, error } = await supabase
+        const { data: _data, error } = await supabase
           .from('payments')
           .insert(batch)
           .select();
 
         if (error) {
           log.error(`❌ Batch ${Math.floor(i/batchSize) + 1} error:`, error.message);
-        } else if (data) {
-          successCount += data.length;
-          log.info(`✅ Uploaded batch ${Math.floor(i/batchSize) + 1}: ${data.length} payments`);
+        } else if (_data) {
+          successCount += _data.length;
+          log.info(`✅ Uploaded batch ${Math.floor(i/batchSize) + 1}: ${_data.length} payments`);
         }
       }
 

@@ -1,4 +1,3 @@
-import { supabase } from '../config/database.js';
 import { PaymentProcessingService } from './paymentProcessingService.js';
 
 /**
@@ -64,7 +63,7 @@ export class ReceiptService {
    * @param {string} language - Language (ar/en)
    * @returns {Object} Receipt data
    */
-  static async generateReceiptData(payment, language = 'ar') {
+  static generateReceiptData(payment, language = 'ar') {
     const now = new Date();
     const isArabic = language === 'ar';
 
@@ -133,7 +132,7 @@ export class ReceiptService {
    * @param {string} language - Language
    * @returns {Buffer} PDF buffer
    */
-  static async generatePDFReceipt(receiptData, language = 'ar') {
+  static generatePDFReceipt(receiptData, language = 'ar') {
     // This is a placeholder implementation
     // In a real implementation, you would use a library like puppeteer, jsPDF, or pdfkit
 
@@ -151,7 +150,7 @@ export class ReceiptService {
    */
   static generateHTMLReceipt(receiptData, language = 'ar') {
     const isRTL = language === 'ar';
-    const { header, payer, payment, details, footer } = receiptData;
+    const { header, payer, payment, details, footer: _footer } = receiptData;
 
     return `<!DOCTYPE html>
 <html dir="${isRTL ? 'rtl' : 'ltr'}" lang="${language}">

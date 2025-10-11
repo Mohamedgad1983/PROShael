@@ -123,7 +123,7 @@ class ArabicPDFExporter {
   /**
    * Generate financial report PDF with Arabic support
    */
-  async generateFinancialReportPDF(reportData, outputPath) {
+  generateFinancialReportPDF(reportData, outputPath) {
     return new Promise((resolve, reject) => {
       try {
         const doc = this.createDocument();
@@ -427,7 +427,7 @@ class ArabicPDFExporter {
   /**
    * Add charts section (placeholder for chart images)
    */
-  addChartsSection(doc, charts) {
+  addChartsSection(doc, _charts) {
     if (doc.y > doc.page.height - 300) {
       doc.addPage();
     }

@@ -1,3 +1,4 @@
+/* eslint-disable require-await */
 /**
  * Simplified Expenses Controller for Testing
  * Returns mock data to test the frontend functionality

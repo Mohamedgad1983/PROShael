@@ -2,6 +2,7 @@ import { supabase } from '../config/database.js';
 import XLSX from 'xlsx';
 import fs from 'fs';
 import path from 'path';
+import { log } from '../utils/logger.js';
 
 const importMembers = async () => {
   log.info('🚀 Starting Member Import Process...\n');
@@ -65,7 +66,7 @@ const importMembers = async () => {
 
       try {
         // 1. Insert member
-        const { data: member, error: memberError } = await supabase
+        const { data: member, error: _memberError } = await supabase
           .from('members')
           .upsert({
             ...memberData,
@@ -76,8 +77,8 @@ const importMembers = async () => {
           .select()
           .single();
 
-        if (memberError) {
-          throw memberError;
+        if (_memberError) {
+          throw _memberError;
         }
 
         // 2. Create payment records for each year
@@ -108,20 +109,20 @@ const importMembers = async () => {
 
         // Insert all payments
         if (payments.length > 0) {
-          const { error: paymentError } = await supabase
+          const { error: _paymentError } = await supabase
             .from('payments')
             .upsert(payments, {
               onConflict: 'reference_number'
             });
 
-          if (paymentError) {
-            log.warn(`⚠️ Payment error for ${memberData.full_name}:`, paymentError.message);
+          if (_paymentError) {
+            log.warn(`⚠️ Payment error for ${memberData.full_name}:`, _paymentError.message);
           }
         }
 
         // 3. Create subscription record
         if (additionalData.subscription_quantity > 0) {
-          const { error: subError } = await supabase
+          const { error: _subError } = await supabase
             .from('subscriptions')
             .upsert({
               member_id: member.id,
@@ -135,8 +136,8 @@ const importMembers = async () => {
               onConflict: 'member_id'
             });
 
-          if (subError) {
-            log.warn(`⚠️ Subscription error for ${memberData.full_name}:`, subError.message);
+          if (_subError) {
+            log.warn(`⚠️ Subscription error for ${memberData.full_name}:`, _subError.message);
           }
         }
 

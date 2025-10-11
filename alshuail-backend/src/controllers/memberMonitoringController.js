@@ -1,5 +1,5 @@
 import { supabase } from '../config/database.js';
-import ExcelJS from 'exceljs';
+import _ExcelJS from 'exceljs'; // Prefixed with _ as currently unused (reserved for future Excel generation)
 import { log } from '../utils/logger.js';
 
 // All 8 tribal sections in the Al-Shuail family
@@ -86,7 +86,7 @@ export const getMemberMonitoring = async (req, res) => {
     }
 
     // Get all members first (we need to calculate balances)
-    const { data: allMembers, error: membersError, count: totalCount } = await membersQuery;
+    const { data: allMembers, error: membersError, count: _totalCount } = await membersQuery;
 
     if (membersError) {
       log.error('Error fetching members', { error: membersError.message });
@@ -313,7 +313,7 @@ export const suspendMember = async (req, res) => {
     }
 
     // Update member status
-    const { data: updatedMember, error: updateError } = await supabase
+    const { data: updatedMember, error: _updateError } = await supabase
       .from('members')
       .update({
         is_suspended: true,
@@ -326,12 +326,12 @@ export const suspendMember = async (req, res) => {
       .select()
       .single();
 
-    if (updateError) {
-      log.error('Error suspending member', { error: updateError.message });
+    if (_updateError) {
+      log.error('Error suspending member', { error: _updateError.message });
       return res.status(500).json({
         success: false,
         error: 'فشل إيقاف العضو',
-        message: updateError.message
+        message: _updateError.message
       });
     }
 
@@ -398,13 +398,13 @@ export const notifyMember = async (req, res) => {
     }
 
     // Get member details
-    const { data: member, error: memberError } = await supabase
+    const { data: member, error: _memberError } = await supabase
       .from('members')
       .select('*')
       .eq('id', id)
       .single();
 
-    if (memberError || !member) {
+    if (_memberError || !member) {
       return res.status(404).json({
         success: false,
         error: 'العضو غير موجود'
@@ -414,7 +414,7 @@ export const notifyMember = async (req, res) => {
     const notifications = [];
 
     // Create in-app notification (always created)
-    const { data: notification, error: notifError } = await supabase
+    const { data: notification, error: _notifError } = await supabase
       .from('notifications')
       .insert({
         member_id: id,
@@ -436,7 +436,7 @@ export const notifyMember = async (req, res) => {
     if ((channel === 'sms' || channel === 'all') && (member.phone || member.mobile)) {
       const phoneNumber = member.phone || member.mobile;
 
-      const { data: smsRecord, error: smsError } = await supabase
+      const { data: smsRecord, error: _smsError } = await supabase
         .from('sms_queue')
         .insert({
           phone_number: phoneNumber,
@@ -456,7 +456,7 @@ export const notifyMember = async (req, res) => {
 
     // Send Email if requested
     if ((channel === 'email' || channel === 'all') && member.email) {
-      const { data: emailRecord, error: emailError } = await supabase
+      const { data: emailRecord, error: _emailError } = await supabase
         .from('email_queue')
         .insert({
           to_email: member.email,
@@ -528,7 +528,7 @@ export const notifyMember = async (req, res) => {
 export const exportMembers = async (req, res) => {
   try {
     // First get the filtered data using the same logic as getMemberMonitoring
-    const monitoringReq = { ...req, query: { ...req.query, limit: 10000 } }; // Get all records
+    const _monitoringReq = { ...req, query: { ...req.query, limit: 10000 } }; // Get all records (future use)
 
     // Reuse the getMemberMonitoring logic to get filtered data
     const minimumBalance = 3000;
@@ -580,13 +580,13 @@ export const exportMembers = async (req, res) => {
       membersQuery = membersQuery.eq('tribal_section', tribalSection);
     }
 
-    const { data: allMembers, error: membersError } = await membersQuery;
+    const { data: allMembers, error: _membersError } = await membersQuery;
 
-    if (membersError) {
+    if (_membersError) {
       return res.status(500).json({
         success: false,
         error: 'Failed to fetch members for export',
-        message: membersError.message
+        message: _membersError.message
       });
     }
 

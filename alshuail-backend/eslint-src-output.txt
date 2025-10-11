@@ -1,0 +1,262 @@
+
+D:\PROShael\alshuail-backend\src\config\database.js
+   18:13  warning  'data' is assigned a value but never used. Allowed unused vars must match /^_/u                no-unused-vars
+   39:20  warning  'membersError' is assigned a value but never used. Allowed unused vars must match /^_/u        no-unused-vars
+   56:20  warning  'paymentsError' is assigned a value but never used. Allowed unused vars must match /^_/u       no-unused-vars
+   75:20  warning  'subscriptionsError' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+   93:20  warning  'eventsError' is assigned a value but never used. Allowed unused vars must match /^_/u         no-unused-vars
+  117:20  warning  'rsvpsError' is assigned a value but never used. Allowed unused vars must match /^_/u          no-unused-vars
+  132:20  warning  'activitiesError' is assigned a value but never used. Allowed unused vars must match /^_/u     no-unused-vars
+  152:20  warning  'contributionsError' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  169:20  warning  'diyasError' is assigned a value but never used. Allowed unused vars must match /^_/u          no-unused-vars
+  189:20  warning  'notificationsError' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+D:\PROShael\alshuail-backend\src\config\documentStorage.js
+  83:13  warning  'data' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+D:\PROShael\alshuail-backend\src\config\env.js
+  50:17  warning  Unexpected string concatenation  prefer-template
+  54:16  warning  Unexpected string concatenation  prefer-template
+
+D:\PROShael\alshuail-backend\src\config\supabase.js
+  159:13  warning  'data' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+D:\PROShael\alshuail-backend\src\controllers\crisisController.js
+   24:38  warning  'paymentsError' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  109:39  warning  'fetchError' is assigned a value but never used. Allowed unused vars must match /^_/u     no-unused-vars
+
+D:\PROShael\alshuail-backend\src\controllers\expensesController.js
+  1018:57  warning  Async arrow function has no 'await' expression  require-await
+  1024:63  warning  Async arrow function has no 'await' expression  require-await
+
+D:\PROShael\alshuail-backend\src\controllers\expensesControllerSimple.js
+   10:45  warning  Async arrow function has no 'await' expression  require-await
+  128:47  warning  Async arrow function has no 'await' expression  require-await
+  168:54  warning  Async arrow function has no 'await' expression  require-await
+  211:48  warning  Async arrow function has no 'await' expression  require-await
+  262:47  warning  Async arrow function has no 'await' expression  require-await
+  292:48  warning  Async arrow function has no 'await' expression  require-await
+  323:47  warning  Async arrow function has no 'await' expression  require-await
+
+D:\PROShael\alshuail-backend\src\controllers\memberController.js
+  324:13  warning  'data' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+D:\PROShael\alshuail-backend\src\controllers\memberMonitoringController.js
+    2:8   warning  'ExcelJS' is defined but never used. Allowed unused vars must match /^_/u                 no-unused-vars
+   89:59  warning  'totalCount' is assigned a value but never used. Allowed unused vars must match /^_/u     no-unused-vars
+  417:40  warning  'notifError' is assigned a value but never used. Allowed unused vars must match /^_/u     no-unused-vars
+  439:39  warning  'smsError' is assigned a value but never used. Allowed unused vars must match /^_/u       no-unused-vars
+  459:41  warning  'emailError' is assigned a value but never used. Allowed unused vars must match /^_/u     no-unused-vars
+  531:11  warning  'monitoringReq' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+D:\PROShael\alshuail-backend\src\controllers\membersController.js
+    4:10  warning  'sanitizeJSON' is defined but never used. Allowed unused vars must match /^_/u                no-unused-vars
+  707:13  warning  'temp_password' is assigned a value but never used. Allowed unused vars must match /^_/u      no-unused-vars
+  707:28  warning  'password_hash' is assigned a value but never used. Allowed unused vars must match /^_/u      no-unused-vars
+  861:7   warning  'id' is assigned a value but never used. Allowed unused vars must match /^_/u                 no-unused-vars
+  862:7   warning  'membership_number' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  863:7   warning  'temp_password' is assigned a value but never used. Allowed unused vars must match /^_/u      no-unused-vars
+  864:7   warning  'password_hash' is assigned a value but never used. Allowed unused vars must match /^_/u      no-unused-vars
+  865:7   warning  'membership_status' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  866:7   warning  'created_at' is assigned a value but never used. Allowed unused vars must match /^_/u         no-unused-vars
+  867:7   warning  'updated_at' is assigned a value but never used. Allowed unused vars must match /^_/u         no-unused-vars
+
+D:\PROShael\alshuail-backend\src\controllers\paymentsController.js
+    5:28   warning  'convertToHijriString' is defined but never used. Allowed unused vars must match /^_/u     no-unused-vars
+    5:50   warning  'convertToHijriYear' is defined but never used. Allowed unused vars must match /^_/u       no-unused-vars
+    5:70   warning  'convertToHijriMonth' is defined but never used. Allowed unused vars must match /^_/u      no-unused-vars
+    5:91   warning  'convertToHijriDay' is defined but never used. Allowed unused vars must match /^_/u        no-unused-vars
+    5:110  warning  'convertToHijriMonthName' is defined but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  135:13   warning  'period' is assigned a value but never used. Allowed unused vars must match /^_/u          no-unused-vars
+  453:54   warning  Async arrow function has no 'await' expression                                             require-await
+
+D:\PROShael\alshuail-backend\src\middleware\auth.js
+    7:52  warning  Async arrow function has no 'await' expression  require-await
+  120:52  warning  Async arrow function has no 'await' expression  require-await
+  187:57  warning  Async arrow function has no 'await' expression  require-await
+
+D:\PROShael\alshuail-backend\src\middleware\authMiddleware.js
+  7:27  warning  'roles' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+D:\PROShael\alshuail-backend\src\middleware\rateLimiter.js
+  229:11  warning  'clientId' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+D:\PROShael\alshuail-backend\src\middleware\rbacMiddleware.js
+   82:7   warning  'ROLE_HIERARCHY' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+   93:16  warning  'getUserRole' is defined but never used. Allowed unused vars must match /^_/u              no-unused-vars
+  114:16  warning  'hasPermission' is defined but never used. Allowed unused vars must match /^_/u            no-unused-vars
+  137:33  warning  Async arrow function has no 'await' expression                                             require-await
+  232:33  warning  Async arrow function has no 'await' expression                                             require-await
+  419:62  warning  Async arrow function has no 'await' expression                                             require-await
+
+D:\PROShael\alshuail-backend\src\routes\auth.js
+  110:7   warning  'parsePermissions' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  516:41  warning  Async arrow function has no 'await' expression                                               require-await
+  589:13  warning  'current_password' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  642:42  warning  Async arrow function has no 'await' expression                                               require-await
+
+D:\PROShael\alshuail-backend\src\routes\expenses.js
+  20:49  warning  Async arrow function has no 'await' expression  require-await
+
+D:\PROShael\alshuail-backend\src\routes\financialReports.js
+  16:49  warning  Async arrow function has no 'await' expression  require-await
+
+D:\PROShael\alshuail-backend\src\routes\initiativesEnhanced.js
+  17:23  warning  'error' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+D:\PROShael\alshuail-backend\src\routes\memberMonitoringOptimized.js
+  155:13  warning  'data' is assigned a value but never used. Allowed unused vars must match /^_/u   no-unused-vars
+  155:19  warning  'error' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+D:\PROShael\alshuail-backend\src\routes\memberStatementRoutes.js
+   3:23  warning  'requireOwnershipOrAdmin' is defined but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  13:26  warning  Async arrow function has no 'await' expression                                             require-await
+
+D:\PROShael\alshuail-backend\src\routes\members.js
+  31:23  warning  'requirePermission' is defined but never used. Allowed unused vars must match /^_/u         no-unused-vars
+  65:7   warning  'isAuthenticated' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+D:\PROShael\alshuail-backend\src\routes\news.js
+   20:23  warning  'error' is assigned a value but never used. Allowed unused vars must match /^_/u           no-unused-vars
+  266:17  warning  'custom_message' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  788:47  warning  'news' is defined but never used. Allowed unused args must match /^_/u                     no-unused-vars
+
+D:\PROShael\alshuail-backend\src\routes\notifications.js
+  22:26  warning  Async arrow function has no 'await' expression  require-await
+  49:26  warning  Async arrow function has no 'await' expression  require-await
+
+D:\PROShael\alshuail-backend\src\routes\payments.js
+  73:26  warning  Async arrow function has no 'await' expression  require-await
+
+D:\PROShael\alshuail-backend\src\routes\settings.js
+  402:64  warning  Async arrow function has no 'await' expression  require-await
+  448:64  warning  Async arrow function has no 'await' expression  require-await
+
+D:\PROShael\alshuail-backend\src\routes\statementRoutes.js
+  16:26  warning  Async arrow function has no 'await' expression  require-await
+
+D:\PROShael\alshuail-backend\src\scripts\add-member-columns.js
+  5:8  warning  'fs' is defined but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+D:\PROShael\alshuail-backend\src\scripts\add-payments.js
+  50:30  warning  'index' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+D:\PROShael\alshuail-backend\src\scripts\apply-member-monitoring-optimizations.js
+    8:8   warning  'fs' is defined but never used. Allowed unused vars must match /^_/u                 no-unused-vars
+  241:16  warning  Redundant use of `await` on a return value                                           no-return-await
+  256:25  warning  'payments' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  267:16  warning  Redundant use of `await` on a return value                                           no-return-await
+
+D:\PROShael\alshuail-backend\src\scripts\complete-setup.js
+  189:48  warning  'memberId' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+D:\PROShael\alshuail-backend\src\scripts\create-subscriptions-and-upload.js
+    3:8   warning  'fs' is defined but never used. Allowed unused vars must match /^_/u                   no-unused-vars
+  142:13  warning  'memberName' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+D:\PROShael\alshuail-backend\src\scripts\create-super-admin.js
+  58:15  warning  'data' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  87:15  warning  'data' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+D:\PROShael\alshuail-backend\src\scripts\create-tables.js
+  51:20  warning  'paymentsError' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  70:20  warning  'balancesError' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+D:\PROShael\alshuail-backend\src\scripts\database-assessment.js
+   43:21  warning  'testData' is assigned a value but never used. Allowed unused vars must match /^_/u       no-unused-vars
+  167:19  warning  'simpleQuery' is assigned a value but never used. Allowed unused vars must match /^_/u    no-unused-vars
+  182:19  warning  'filteredQuery' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  198:13  warning  'count' is assigned a value but never used. Allowed unused vars must match /^_/u          no-unused-vars
+
+D:\PROShael\alshuail-backend\src\scripts\direct-upload.js
+   88:44  warning  'memberError' is assigned a value but never used. Allowed unused vars must match /^_/u      no-unused-vars
+  165:19  warning  'description' is assigned a value but never used. Allowed unused vars must match /^_/u      no-unused-vars
+  165:32  warning  'payment_type' is assigned a value but never used. Allowed unused vars must match /^_/u     no-unused-vars
+  165:46  warning  'subscription_id' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  165:63  warning  'title' is assigned a value but never used. Allowed unused vars must match /^_/u            no-unused-vars
+
+D:\PROShael\alshuail-backend\src\scripts\final-setup.js
+  193:48  warning  'memberId' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+D:\PROShael\alshuail-backend\src\scripts\final-upload.js
+    3:8   warning  'fs' is defined but never used. Allowed unused vars must match /^_/u                   no-unused-vars
+  145:11  warning  'errorCount' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+D:\PROShael\alshuail-backend\src\scripts\import-new-excel.js
+   80:11  warning  'headers' is assigned a value but never used. Allowed unused vars must match /^_/u     no-unused-vars
+  100:13  warning  'fullNameEn' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  280:21  warning  'error' is assigned a value but never used. Allowed unused vars must match /^_/u       no-unused-vars
+
+D:\PROShael\alshuail-backend\src\scripts\initializeDatabase.js
+  14:19  warning  'testData' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+D:\PROShael\alshuail-backend\src\scripts\scan-secrets.js
+  150:3   warning  Async method 'scanFile' has no 'await' expression                               require-await
+  158:19  warning  'key' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+D:\PROShael\alshuail-backend\src\scripts\simple-import.js
+  3:8  warning  'fs' is defined but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+D:\PROShael\alshuail-backend\src\scripts\simple-payment-upload.js
+  3:8  warning  'fs' is defined but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+D:\PROShael\alshuail-backend\src\scripts\upload-to-supabase.js
+  134:17  warning  'memberData' is assigned a value but never used. Allowed unused vars must match /^_/u   no-unused-vars
+  147:19  warning  'paymentData' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  160:17  warning  'balanceData' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  187:1   warning  Async function 'createDatabaseViews' has no 'await' expression                          require-await
+  215:1   warning  Async function 'setupRealtimeSubscriptions' has no 'await' expression                   require-await
+  234:11  warning  'result' is assigned a value but never used. Allowed unused vars must match /^_/u       no-unused-vars
+
+D:\PROShael\alshuail-backend\src\scripts\working-upload.js
+    3:8   warning  'fs' is defined but never used. Allowed unused vars must match /^_/u                  no-unused-vars
+  209:11  warning  'failCount' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+D:\PROShael\alshuail-backend\src\services\arabicPdfExporter.js
+  126:3   warning  Async method 'generateFinancialReportPDF' has no 'await' expression       require-await
+  430:25  warning  'charts' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+D:\PROShael\alshuail-backend\src\services\cacheService.js
+  245:12  warning  Redundant use of `await` on a return value  no-return-await
+  265:14  warning  Redundant use of `await` on a return value  no-return-await
+
+D:\PROShael\alshuail-backend\src\services\databaseOptimizationService.js
+   61:19  warning  'data' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  201:19  warning  'data' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  361:19  warning  'data' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+D:\PROShael\alshuail-backend\src\services\financialAnalyticsService.js
+  464:9  warning  'includeCharts' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+D:\PROShael\alshuail-backend\src\services\optimizedReportQueries.js
+  136:12  warning  Redundant use of `await` on a return value  no-return-await
+
+D:\PROShael\alshuail-backend\src\services\paymentProcessingService.js
+  213:3  warning  Static async method 'validatePaymentAmount' has no 'await' expression  require-await
+
+D:\PROShael\alshuail-backend\src\services\receiptService.js
+    1:10  warning  'supabase' is defined but never used. Allowed unused vars must match /^_/u         no-unused-vars
+   67:3   warning  Static async method 'generateReceiptData' has no 'await' expression                require-await
+  136:3   warning  Static async method 'generatePDFReceipt' has no 'await' expression                 require-await
+  154:46  warning  'footer' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+D:\PROShael\alshuail-backend\src\services\reportExportService.js
+   42:15  warning  'data' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+   71:3   warning  Static async method 'generateArabicPDFReport' has no 'await' expression          require-await
+  174:12  warning  Redundant use of `await` on a return value                                       no-return-await
+  202:40  warning  'reportData' is defined but never used. Allowed unused args must match /^_/u     no-unused-vars
+  235:48  warning  'reportData' is defined but never used. Allowed unused args must match /^_/u     no-unused-vars
+  637:37  warning  'reportData' is defined but never used. Allowed unused args must match /^_/u     no-unused-vars
+  645:45  warning  'reportData' is defined but never used. Allowed unused args must match /^_/u     no-unused-vars
+  657:38  warning  'reportData' is defined but never used. Allowed unused args must match /^_/u     no-unused-vars
+  664:46  warning  'reportData' is defined but never used. Allowed unused args must match /^_/u     no-unused-vars
+
+D:\PROShael\alshuail-backend\src\services\supabaseService.js
+  19:7  warning  'supabaseAnonKey' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+D:\PROShael\alshuail-backend\src\utils\errorCodes.js
+  301:45  warning  'next' is defined but never used. Allowed unused args must match /^_/u  no-unused-vars
+
+✖ 148 problems (0 errors, 148 warnings)
+  0 errors and 2 warnings potentially fixable with the `--fix` option.
+

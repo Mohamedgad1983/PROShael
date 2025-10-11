@@ -13,13 +13,13 @@ router.get('/member/:memberId', authenticateToken, async (req, res) => {
     const { memberId } = req.params;
 
     // 1. Get the member details
-    const { data: member, error: memberError } = await supabase
+    const { data: member, error: _memberError } = await supabase
       .from('members')
       .select('*')
       .eq('id', memberId)
       .single();
 
-    if (memberError) {
+    if (_memberError) {
       return res.status(404).json({
         success: false,
         message: 'Member not found'
@@ -176,13 +176,13 @@ router.get('/visualization/:memberId', authenticateToken, async (req, res) => {
     const { depth = 2 } = req.query; // How many generations to fetch
 
     // Get member
-    const { data: member, error: memberError } = await supabase
+    const { data: member, error: _memberError } = await supabase
       .from('members')
       .select('id, full_name, full_name_en, photo_url')
       .eq('id', memberId)
       .single();
 
-    if (memberError) {
+    if (_memberError) {
       return res.status(404).json({
         success: false,
         message: 'Member not found'
@@ -327,7 +327,7 @@ router.post('/relationship', authenticateToken, async (req, res) => {
     }
 
     // Create the relationship
-    const { data, error } = await supabase
+    const { data: _data, error: _error } = await supabase
       .from('family_relationships')
       .insert({
         member_from,
@@ -342,12 +342,12 @@ router.post('/relationship', authenticateToken, async (req, res) => {
       .select()
       .single();
 
-    if (error) {throw error;}
+    if (_error) {throw _error;}
 
     res.status(201).json({
       success: true,
       message: 'Relationship created successfully',
-      data
+      data: _data
     });
 
   } catch (error) {
@@ -367,19 +367,19 @@ router.put('/relationship/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
     const updates = req.body;
 
-    const { data, error } = await supabase
+    const { data: _data, error: _error } = await supabase
       .from('family_relationships')
       .update(updates)
       .eq('id', id)
       .select()
       .single();
 
-    if (error) {throw error;}
+    if (_error) {throw _error;}
 
     res.json({
       success: true,
       message: 'Relationship updated successfully',
-      data
+      data: _data
     });
 
   } catch (error) {
@@ -433,17 +433,17 @@ router.get('/search', authenticateToken, async (req, res) => {
       });
     }
 
-    const { data, error } = await supabase
+    const { data: _data, error: _error } = await supabase
       .from('members')
       .select('id, full_name, full_name_en, phone, email')
       .or(`full_name.ilike.%${query}%,full_name_en.ilike.%${query}%,phone.ilike.%${query}%`)
       .limit(20);
 
-    if (error) {throw error;}
+    if (_error) {throw _error;}
 
     res.json({
       success: true,
-      data
+      data: _data
     });
 
   } catch (error) {

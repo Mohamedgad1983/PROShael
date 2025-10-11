@@ -68,9 +68,9 @@ router.get('/contributions', requireRole(['super_admin', 'financial_manager']), 
 router.get('/overdue', requireRole(['super_admin', 'financial_manager']), getOverduePayments);
 
 // Member-specific Operations - members can view their own, admins can view all
-router.get('/member/:memberId', 
+router.get('/member/:memberId',
   requireRole(['super_admin', 'financial_manager', 'member']),
-  async (req, res, next) => {
+  (req, res, next) => {
     // For members, only allow access to their own payments
     if (req.user.role === 'member') {
       if (req.user.id !== req.params.memberId && req.user.membershipNumber !== req.params.memberId) {

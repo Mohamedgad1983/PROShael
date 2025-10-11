@@ -127,13 +127,13 @@ export const getAggregatedSummary = async (dateFilter) => {
 
     if (error) {
       // Fallback to manual aggregation if RPC not available
-      return await getFallbackAggregation(dateFilter);
+      return getFallbackAggregation(dateFilter);
     }
 
     return summary;
   } catch (error) {
     log.error('Aggregation error:', { error: error.message });
-    return await getFallbackAggregation(dateFilter);
+    return getFallbackAggregation(dateFilter);
   }
 };
 

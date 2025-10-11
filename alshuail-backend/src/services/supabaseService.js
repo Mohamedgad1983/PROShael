@@ -16,7 +16,7 @@ if (!process.env.SUPABASE_SERVICE_KEY) {
 }
 
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+const _supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 
 // Create client with service key for backend operations
@@ -67,14 +67,14 @@ export const dbHelpers = {
   // Get single member by ID
   async getMemberById(memberId) {
     try {
-      const { data, error } = await supabase
+      const { data: _data, error } = await supabase
         .from('members')
         .select('*')
         .eq('id', memberId)
         .single();
 
       if (error) {throw error;}
-      return data;
+      return _data;
     } catch (error) {
       log.error('Error fetching member:', { error: error.message });
       throw error;
@@ -84,7 +84,7 @@ export const dbHelpers = {
   // Update member status
   async updateMemberStatus(memberId, status, updatedBy) {
     try {
-      const { data, error } = await supabase
+      const { data: _data, error } = await supabase
         .from('members')
         .update({
           status,
@@ -96,7 +96,7 @@ export const dbHelpers = {
         .single();
 
       if (error) {throw error;}
-      return data;
+      return _data;
     } catch (error) {
       log.error('Error updating member status:', { error: error.message });
       throw error;
@@ -106,7 +106,7 @@ export const dbHelpers = {
   // Log audit action
   async logAuditAction(action, targetId, targetType, details, performedBy) {
     try {
-      const { data, error } = await supabase
+      const { data: _data, error } = await supabase
         .from('audit_log')
         .insert({
           action,
@@ -120,7 +120,7 @@ export const dbHelpers = {
         .single();
 
       if (error) {throw error;}
-      return data;
+      return _data;
     } catch (error) {
       log.error('Error logging audit action:', { error: error.message });
       throw error;
@@ -130,7 +130,7 @@ export const dbHelpers = {
   // Create notification
   async createNotification(memberId, type, title, message, createdBy) {
     try {
-      const { data, error } = await supabase
+      const { data: _data, error } = await supabase
         .from('notifications')
         .insert({
           member_id: memberId,
@@ -145,7 +145,7 @@ export const dbHelpers = {
         .single();
 
       if (error) {throw error;}
-      return data;
+      return _data;
     } catch (error) {
       log.error('Error creating notification:', { error: error.message });
       throw error;
@@ -155,7 +155,7 @@ export const dbHelpers = {
   // Queue SMS message
   async queueSMS(phoneNumber, message, notificationId = null) {
     try {
-      const { data, error } = await supabase
+      const { data: _data, error } = await supabase
         .from('sms_queue')
         .insert({
           phone_number: phoneNumber,
@@ -168,7 +168,7 @@ export const dbHelpers = {
         .single();
 
       if (error) {throw error;}
-      return data;
+      return _data;
     } catch (error) {
       log.error('Error queuing SMS:', { error: error.message });
       throw error;

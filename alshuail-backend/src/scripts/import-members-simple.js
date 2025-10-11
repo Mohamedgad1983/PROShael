@@ -3,6 +3,7 @@ import xlsx from 'xlsx-populate';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { log } from '../utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -87,7 +88,7 @@ async function importMembersFromExcel() {
     for (const member of members) {
       try {
         // First, insert the member
-        const { data: memberData, error: memberError } = await supabase
+        const { data: memberData, error: _memberError } = await supabase
           .from('members')
           .upsert({
             member_id: member.member_id,
@@ -103,8 +104,8 @@ async function importMembersFromExcel() {
           .select()
           .single();
 
-        if (memberError) {
-          log.info(`❌ Error inserting ${member.full_name}:`, memberError.message);
+        if (_memberError) {
+          log.info(`❌ Error inserting ${member.full_name}:`, _memberError.message);
           errorCount++;
           continue;
         }

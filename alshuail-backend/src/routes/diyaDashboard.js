@@ -16,24 +16,24 @@ const router = express.Router();
 router.get('/dashboard', async (req, res) => {
     try {
         // Get all diya activities
-        const { data: activities, error: activitiesError } = await supabaseAdmin
+        const { data: activities, error: _activitiesError } = await supabaseAdmin
             .from('activities')
             .select('*')
             .or('title_ar.ilike.%دية%,title_en.ilike.%Diya%')
             .order('created_at', { ascending: false });
 
-        if (activitiesError) {throw activitiesError;}
+        if (_activitiesError) {throw _activitiesError;}
 
         // Get statistics for each activity
         const diyaStats = await Promise.all(activities.map(async (activity) => {
             // Get contribution stats
-            const { data: contributions, error: contribError } = await supabaseAdmin
+            const { data: contributions, error: _contribError } = await supabaseAdmin
                 .from('financial_contributions')
                 .select('contribution_amount, contributor_id')
                 .eq('activity_id', activity.id);
 
-            if (contribError) {
-                log.error('Error fetching contributions:', { error: contribError.message });
+            if (_contribError) {
+                log.error('Error fetching contributions:', { error: _contribError.message });
                 return {
                     ...activity,
                     total_contributors: 0,
@@ -83,24 +83,24 @@ router.get('/:id/contributors', async (req, res) => {
         const { id } = req.params;
 
         // Get contributions first
-        const { data: contributions, error: contribError } = await supabaseAdmin
+        const { data: contributions, error: _contribError } = await supabaseAdmin
             .from('financial_contributions')
             .select('*')
             .eq('activity_id', id)
             .order('contribution_date', { ascending: false });
 
-        if (contribError) {throw contribError;}
+        if (_contribError) {throw _contribError;}
 
         // Get all member IDs
         const memberIds = [...new Set(contributions.map(c => c.contributor_id))];
 
         // Get member details separately
-        const { data: members, error: membersError } = await supabaseAdmin
+        const { data: members, error: _membersError } = await supabaseAdmin
             .from('members')
             .select('id, full_name, membership_number, tribal_section, phone')
             .in('id', memberIds);
 
-        if (membersError) {throw membersError;}
+        if (_membersError) {throw _membersError;}
 
         // Create a member lookup map
         const memberMap = {};
@@ -146,16 +146,16 @@ router.get('/:id/stats', async (req, res) => {
         const { id } = req.params;
 
         // Get activity details
-        const { data: activity, error: activityError } = await supabaseAdmin
+        const { data: activity, error: _activityError } = await supabaseAdmin
             .from('activities')
             .select('*')
             .eq('id', id)
             .single();
 
-        if (activityError) {throw activityError;}
+        if (_activityError) {throw _activityError;}
 
         // Get contributions
-        const { data: contributions, error: contribError } = await supabaseAdmin
+        const { data: contributions, error: _contribError } = await supabaseAdmin
             .from('financial_contributions')
             .select(`
                 contribution_amount,
@@ -167,7 +167,7 @@ router.get('/:id/stats', async (req, res) => {
             `)
             .eq('activity_id', id);
 
-        if (contribError) {throw contribError;}
+        if (_contribError) {throw _contribError;}
 
         // Calculate statistics
         const uniqueContributors = new Set(contributions?.map(c => c.contributor_id) || []);
@@ -224,22 +224,22 @@ router.get('/:id/stats', async (req, res) => {
 router.get('/summary', async (req, res) => {
     try {
         // Get all diya activities
-        const { data: activities, error: activitiesError } = await supabaseAdmin
+        const { data: activities, error: _activitiesError } = await supabaseAdmin
             .from('activities')
             .select('id')
             .or('title_ar.ilike.%دية%,title_en.ilike.%Diya%');
 
-        if (activitiesError) {throw activitiesError;}
+        if (_activitiesError) {throw _activitiesError;}
 
         const activityIds = activities.map(a => a.id);
 
         // Get all contributions for diya activities
-        const { data: contributions, error: contribError } = await supabaseAdmin
+        const { data: contributions, error: _contribError } = await supabaseAdmin
             .from('financial_contributions')
             .select('contribution_amount, contributor_id')
             .in('activity_id', activityIds);
 
-        if (contribError) {throw contribError;}
+        if (_contribError) {throw _contribError;}
 
         // Calculate summary statistics
         const uniqueContributors = new Set(contributions?.map(c => c.contributor_id) || []);

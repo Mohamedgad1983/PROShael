@@ -1,1 +1,56 @@
-import { DatabaseOptimizationService } from '../services/databaseOptimizationService.js';\nimport { supabase } from '../config/database.js';\n\n/**\n * Database Initialization Script\n * Run this script to set up all database optimizations\n */\nasync function initializeDatabase() {\n  log.info('🚀 Starting database initialization...');\n  \n  try {\n    // Test connection first\n    const { data: testData, error: testError } = await supabase\n      .from('payments')\n      .select('id')\n      .limit(1);\n    \n    if (testError) {\n      log.error('❌ Database connection failed:', testError.message);\n      return false;\n    }\n    \n    log.info('✅ Database connection successful');\n    \n    // Run full optimization\n    const result = await DatabaseOptimizationService.runFullOptimization();\n    \n    if (result.success) {\n      log.info('✅ Database initialization completed successfully!');\n      log.info('📊 Results:', JSON.stringify(result.data, null, 2));\n    } else {\n      log.error('❌ Database initialization failed:', result.error);\n    }\n    \n    return result.success;\n    \n  } catch (error) {\n    log.error('❌ Database initialization error:', error.message);\n    return false;\n  }\n}\n\n// Run if called directly\nif (import.meta.url === `file://${process.argv[1]}`) {\n  initializeDatabase()\n    .then(success => {\n      process.exit(success ? 0 : 1);\n    })\n    .catch(error => {\n      log.error('Fatal error:', error);\n      process.exit(1);\n    });\n}\n\nexport { initializeDatabase };
+import { DatabaseOptimizationService } from '../services/databaseOptimizationService.js';
+import { supabase } from '../config/database.js';
+import { log } from '../utils/logger.js';
+
+/**
+ * Database Initialization Script
+ * Run this script to set up all database optimizations
+ */
+async function initializeDatabase() {
+  log.info('🚀 Starting database initialization...');
+
+  try {
+    // Test connection first
+    const { data: _testData, error: _testError } = await supabase
+      .from('payments')
+      .select('id')
+      .limit(1);
+
+    if (_testError) {
+      log.error('❌ Database connection failed:', _testError.message);
+      return false;
+    }
+
+    log.info('✅ Database connection successful');
+
+    // Run full optimization
+    const result = await DatabaseOptimizationService.runFullOptimization();
+
+    if (result.success) {
+      log.info('✅ Database initialization completed successfully!');
+      log.info('📊 Results:', JSON.stringify(result.data, null, 2));
+    } else {
+      log.error('❌ Database initialization failed:', result.error);
+    }
+
+    return result.success;
+
+  } catch (error) {
+    log.error('❌ Database initialization error:', error.message);
+    return false;
+  }
+}
+
+// Run if called directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  initializeDatabase()
+    .then(success => {
+      process.exit(success ? 0 : 1);
+    })
+    .catch(error => {
+      log.error('Fatal error:', error);
+      process.exit(1);
+    });
+}
+
+export { initializeDatabase };

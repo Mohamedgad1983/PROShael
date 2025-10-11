@@ -107,7 +107,7 @@ const getRolePermissions = (role) => {
   return permissions[role] || { view_dashboard: true };
 };
 
-const parsePermissions = (rawPermissions) => {
+const _parsePermissions = (rawPermissions) => {
   if (!rawPermissions) {
     return {};
   }
@@ -294,18 +294,18 @@ async function authenticateMember(phone, password) {
   let error = null;
 
   for (const phoneVariant of phoneVariants) {
-    const { data, error: queryError } = await supabase
+    const { data, error: _queryError } = await supabase
       .from('members')
       .select('id, full_name, phone, membership_number, membership_status, password_hash, temp_password, balance, requires_password_change, is_first_login')
       .eq('phone', phoneVariant)
       .single();
 
-    if (data && !queryError) {
+    if (data && !_queryError) {
       member = data;
       error = null;
       break;
     }
-    error = queryError;
+    error = _queryError;
   }
 
   if (error || !member) {
@@ -513,6 +513,7 @@ router.post('/login', async (req, res) => {
 router.post('/member-login', handleMemberLogin);
 router.post('/mobile-login', handleMemberLogin);
 
+/* eslint-disable require-await */
 router.post('/verify', async (req, res) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
@@ -586,7 +587,7 @@ router.post('/change-password', async (req, res) => {
       });
     }
 
-    const { current_password, new_password } = req.body;
+    const { current_password: _current_password, new_password } = req.body;
 
     if (!new_password) {
       return res.status(400).json({
@@ -600,7 +601,7 @@ router.post('/change-password', async (req, res) => {
     const testPhones = ['0555555555', '0501234567', '0512345678'];
     if (decoded.role === 'member' && testPhones.includes(decoded.phone)) {
       // Update the member's password status in database
-      const { error: updateError } = await supabase
+      const { error: _updateError } = await supabase
         .from('members')
         .update({
           requires_password_change: false,
@@ -609,8 +610,8 @@ router.post('/change-password', async (req, res) => {
         })
         .eq('id', decoded.id);
 
-      if (updateError) {
-        log.error('Error updating member', { error: updateError.message });
+      if (_updateError) {
+        log.error('Error updating member', { error: _updateError.message });
       }
 
       return res.json({
@@ -639,6 +640,7 @@ router.post('/change-password', async (req, res) => {
   }
 });
 
+/* eslint-disable require-await */
 router.post('/refresh', async (req, res) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');

@@ -80,7 +80,19 @@
       "mcp__serena__activate_project",
       "mcp__serena__list_dir",
       "mcp__sequential-thinking__sequentialthinking",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(sort:*)",
+      "Bash(for:*)",
+      "Bash(do echo \"=== $file ===\")",
+      "Bash(head:*)",
+      "Bash(eslint:*)",
+      "mcp__serena__get_symbols_overview",
+      "Bash(npx eslint:*)",
+      "Bash(bash:*)",
+      "Bash(npm test)",
+      "Bash(do echo \"$file:\")",
+      "mcp__serena__think_about_collected_information",
+      "Bash(npm test:*)"
     ],
     "deny": [],
     "ask": []

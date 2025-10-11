@@ -4,6 +4,7 @@
  */
 
 import express from 'express';
+import { supabase } from '../config/database.js';
 import {
   getMemberMonitoring,
   getDashboardStatistics,
@@ -151,7 +152,7 @@ router.get('/health', async (req, res) => {
     const startTime = Date.now();
 
     // Test database connection
-    const { data, error } = await supabase
+    const { data: _data, error: _error } = await supabase
       .from('members')
       .select('count')
       .limit(1);

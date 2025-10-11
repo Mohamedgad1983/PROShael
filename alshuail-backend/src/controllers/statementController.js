@@ -10,7 +10,7 @@ const validatePhone = (phone) => {
   // Kuwait format: 9XXXXXXX, 6XXXXXXX, 5XXXXXXX
   const kuwaitRegex = /^(9|6|5)[0-9]{7}$/;
 
-  const cleaned = phone.replace(/[\s\-\+]/g, '');
+  const cleaned = phone.replace(/[\s\-+]/g, '');
   return saudiRegex.test(cleaned) || kuwaitRegex.test(cleaned);
 };
 
@@ -172,17 +172,24 @@ export const searchByMemberId = async (req, res) => {
 // Get comprehensive member statement using materialized view
 async function getMemberStatement(memberId) {
   try {
-    // Use the materialized view for instant results
-    const { data: statement, error } = await supabase
-      .from('member_statement_view')
+    // Get member data
+    const { data: member, error: _memberError } = await supabase
+      .from('members')
       .select('*')
       .eq('id', memberId)
       .single();
 
-    if (error) {throw error;}
+    if (_memberError) {throw _memberError;}
 
-    // Already have all calculated data from the view
-    const totalPaid = statement.current_balance || 0;
+    // Get payments data
+    const { data: payments } = await supabase
+      .from('payments')
+      .select('*')
+      .eq('payer_id', memberId)
+      .eq('status', 'paid')
+      .order('created_at', { ascending: false });
+
+    const totalPaid = payments?.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0) || 0;
 
     // Get subscription info
     const { data: subscription } = await supabase

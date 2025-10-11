@@ -4,7 +4,7 @@ export const authenticateToken = (req, res, next) => {
   next();
 };
 
-export const authorize = (roles) => {
+export const authorize = (_roles) => {
   return (req, res, next) => {
     // For development, we'll allow all roles
     next();

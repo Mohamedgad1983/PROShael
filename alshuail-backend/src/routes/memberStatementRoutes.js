@@ -1,6 +1,6 @@
 import express from 'express';
 import { searchMemberStatement, getMemberStatement, getAllMembersWithBalances } from '../controllers/memberStatementController.js';
-import { requireRole, requireOwnershipOrAdmin } from '../middleware/rbacMiddleware.js';
+import { requireRole } from '../middleware/rbacMiddleware.js';
 
 const router = express.Router();
 
@@ -8,9 +8,9 @@ const router = express.Router();
 router.get('/search', requireRole(['super_admin', 'financial_manager', 'member']), searchMemberStatement);
 
 // Get specific member statement - requires ownership or admin privileges
-router.get('/member/:memberId', 
+router.get('/member/:memberId',
   requireRole(['super_admin', 'financial_manager', 'member']),
-  async (req, res, next) => {
+  (req, res, next) => {
     // For members, only allow access to their own statement
     if (req.user.role === 'member') {
       if (req.user.id !== req.params.memberId && req.user.membershipNumber !== req.params.memberId) {

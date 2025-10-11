@@ -137,7 +137,7 @@ router.put('/system', authenticateToken, requireRole(['super_admin']), async (re
     let result;
     if (existing) {
       // Update existing settings
-      const { data, error } = await supabase
+      const { data: _data, error: _error } = await supabase
         .from('system_settings')
         .update({
           ...req.body,
@@ -148,11 +148,11 @@ router.put('/system', authenticateToken, requireRole(['super_admin']), async (re
         .select()
         .single();
 
-      if (error) {throw error;}
-      result = data;
+      if (_error) {throw _error;}
+      result = _data;
     } else {
       // Create new settings
-      const { data, error } = await supabase
+      const { data: _data, error: _error } = await supabase
         .from('system_settings')
         .insert({
           ...req.body,
@@ -161,8 +161,8 @@ router.put('/system', authenticateToken, requireRole(['super_admin']), async (re
         .select()
         .single();
 
-      if (error) {throw error;}
-      result = data;
+      if (_error) {throw _error;}
+      result = _data;
     }
 
     // Log the settings change
@@ -399,7 +399,7 @@ router.get('/audit-logs', authenticateToken, requireRole(['super_admin']), async
 });
 
 // Get user preferences by role
-router.get('/preferences', authenticateToken, async (req, res) => {
+router.get('/preferences', authenticateToken, (req, res) => {
   try {
     const userRole = req.user.role || 'user_member';
 
@@ -445,7 +445,7 @@ router.get('/preferences', authenticateToken, async (req, res) => {
 });
 
 // Update user preferences
-router.put('/preferences', authenticateToken, async (req, res) => {
+router.put('/preferences', authenticateToken, (req, res) => {
   try {
     // Here you would update user-specific preferences in database
     // For now, return success

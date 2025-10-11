@@ -181,13 +181,13 @@ export const createDiya = async (req, res) => {
     }
 
     // Check if payer exists
-    const { data: payer, error: payerError } = await supabase
+    const { data: payer, error: _payerError } = await supabase
       .from('members')
       .select('id, full_name')
       .eq('id', payer_id)
       .single();
 
-    if (payerError || !payer) {
+    if (_payerError || !payer) {
       return res.status(400).json({
         success: false,
         error: 'الدافع المحدد غير موجود'
@@ -252,14 +252,14 @@ export const updateDiyaStatus = async (req, res) => {
     }
 
     // Check if diya exists
-    const { data: existingDiya, error: checkError } = await supabase
+    const { data: existingDiya, error: _checkError } = await supabase
       .from('payments')
       .select('*')
       .eq('id', id)
       .eq('category', 'diya')
       .single();
 
-    if (checkError || !existingDiya) {
+    if (_checkError || !existingDiya) {
       return res.status(404).json({
         success: false,
         error: 'قضية الدية غير موجودة'
@@ -318,14 +318,14 @@ export const updateDiya = async (req, res) => {
     } = req.body;
 
     // Check if diya exists
-    const { data: existingDiya, error: checkError } = await supabase
+    const { data: existingDiya, error: _checkError } = await supabase
       .from('payments')
       .select('*')
       .eq('id', id)
       .eq('category', 'diya')
       .single();
 
-    if (checkError || !existingDiya) {
+    if (_checkError || !existingDiya) {
       return res.status(404).json({
         success: false,
         error: 'قضية الدية غير موجودة'
@@ -387,14 +387,14 @@ export const deleteDiya = async (req, res) => {
     const { id } = req.params;
 
     // Check if diya exists
-    const { data: existingDiya, error: checkError } = await supabase
+    const { data: existingDiya, error: _checkError } = await supabase
       .from('payments')
       .select('*')
       .eq('id', id)
       .eq('category', 'diya')
       .single();
 
-    if (checkError || !existingDiya) {
+    if (_checkError || !existingDiya) {
       return res.status(404).json({
         success: false,
         error: 'قضية الدية غير موجودة'
@@ -561,13 +561,13 @@ export const getMemberDiyas = async (req, res) => {
     const { limit = 50, offset = 0 } = req.query;
 
     // Check if member exists
-    const { data: member, error: memberError } = await supabase
+    const { data: member, error: _memberError } = await supabase
       .from('members')
       .select('id, full_name')
       .eq('id', memberId)
       .single();
 
-    if (memberError || !member) {
+    if (_memberError || !member) {
       return res.status(404).json({
         success: false,
         error: 'العضو غير موجود'

@@ -39,7 +39,7 @@ export class ReportExportService {
       }
 
       // Upload to Supabase storage
-      const { data, error } = await supabase.storage
+      const { data: _data, error } = await supabase.storage
         .from('reports')
         .upload(`reports/${fileName}`, fileBuffer, {
           contentType: format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -68,6 +68,7 @@ export class ReportExportService {
    * @param {string} reportType - Type of report
    * @returns {Buffer} PDF buffer
    */
+  /* eslint-disable require-await */
   static async generateArabicPDFReport(reportData, reportType) {
     return new Promise((resolve, reject) => {
       try {
@@ -171,7 +172,7 @@ export class ReportExportService {
       this.addFinancialCharts(workbook, worksheet, reportData.chartData);
     }
 
-    return await workbook.xlsx.writeBuffer();
+    return workbook.xlsx.writeBuffer();
   }
 
   /**
@@ -199,7 +200,7 @@ export class ReportExportService {
   /**
    * Add PDF header with Arabic title and dates
    */
-  static addPDFHeader(doc, reportType, reportData) {
+  static addPDFHeader(doc, reportType, _reportData) {
     const title = this.getReportTitle(reportType);
     const currentDate = new Date();
     const hijriDate = this.getHijriDate(currentDate);
@@ -232,7 +233,7 @@ export class ReportExportService {
   /**
    * Add Excel header with Arabic formatting
    */
-  static addExcelHeader(worksheet, reportType, reportData) {
+  static addExcelHeader(worksheet, reportType, _reportData) {
     const title = this.getReportTitle(reportType);
     const currentDate = new Date();
     const hijriDate = this.getHijriDate(currentDate);
@@ -634,7 +635,7 @@ export class ReportExportService {
   /**
    * Add member content to PDF and Excel (placeholder)
    */
-  static addMemberContentToPDF(doc, reportData) {
+  static addMemberContentToPDF(doc, _reportData) {
     // Implementation for member reports
     const yPosition = 180;
     doc.fontSize(16)
@@ -642,7 +643,7 @@ export class ReportExportService {
        .text('تقرير الأعضاء', 50, yPosition, { align: 'right', width: 500 });
   }
 
-  static addMemberContentToExcel(worksheet, reportData) {
+  static addMemberContentToExcel(worksheet, _reportData) {
     // Implementation for member reports in Excel
     const currentRow = 5;
     worksheet.mergeCells(`A${currentRow}:H${currentRow}`);
@@ -654,14 +655,14 @@ export class ReportExportService {
   /**
    * Add general content (fallback)
    */
-  static addGeneralContentToPDF(doc, reportData) {
+  static addGeneralContentToPDF(doc, _reportData) {
     const yPosition = 180;
     doc.fontSize(16)
        .fillColor('#9b59b6')
        .text('تقرير عام', 50, yPosition, { align: 'right', width: 500 });
   }
 
-  static addGeneralContentToExcel(worksheet, reportData) {
+  static addGeneralContentToExcel(worksheet, _reportData) {
     const currentRow = 5;
     worksheet.mergeCells(`A${currentRow}:H${currentRow}`);
     const headerCell = worksheet.getCell(`A${currentRow}`);

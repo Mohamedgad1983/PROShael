@@ -25,40 +25,40 @@ export const searchMemberStatement = async (req, res) => {
 
     if (isPhone) {
       // Search by phone number
-      const { data, error } = await supabaseService.client
+      const { data: _data, error } = await supabaseService.client
         .from('members')
         .select('*')
         .ilike('phone', `%${query}%`)
         .limit(10);
 
       if (error) {throw error;}
-      members = data;
+      members = _data;
 
     } else {
       // Search by name (Arabic)
-      const { data, error } = await supabaseService.client
+      const { data: _data, error } = await supabaseService.client
         .from('members')
         .select('*')
         .ilike('full_name', `%${query}%`)
         .limit(10);
 
       if (error) {throw error;}
-      members = data;
+      members = _data;
     }
 
     // For each member, get their payment history
     const membersWithPayments = await Promise.all(
       members.map(async (member) => {
         // Get all payments for this member
-        const { data: payments, error: paymentError } = await supabaseService.client
+        const { data: payments, error: _paymentError } = await supabaseService.client
           .from('payments')
           .select('amount, payment_date')
           .eq('payer_id', member.id)
           .eq('status', 'completed')
           .order('payment_date', { ascending: true });
 
-        if (paymentError) {
-          log.error('Error fetching payments', { error: paymentError.message });
+        if (_paymentError) {
+          log.error('Error fetching payments', { error: _paymentError.message });
         }
 
         // Organize payments by year
@@ -116,13 +116,13 @@ export const getMemberStatement = async (req, res) => {
     const { memberId } = req.params;
 
     // Get member details
-    const { data: member, error: memberError } = await supabaseService.client
+    const { data: member, error: _memberError } = await supabaseService.client
       .from('members')
       .select('*')
       .eq('id', memberId)
       .single();
 
-    if (memberError || !member) {
+    if (_memberError || !member) {
       return res.status(404).json({
         success: false,
         message: 'العضو غير موجود'
@@ -130,14 +130,14 @@ export const getMemberStatement = async (req, res) => {
     }
 
     // Get payment history
-    const { data: payments, error: paymentError } = await supabaseService.client
+    const { data: payments, error: _paymentError } = await supabaseService.client
       .from('payments')
       .select('*')
       .eq('payer_id', memberId)
       .eq('status', 'completed')
       .order('payment_date', { ascending: false });
 
-    if (paymentError) {throw paymentError;}
+    if (_paymentError) {throw _paymentError;}
 
     // Organize by year
     const paymentsByYear = {
@@ -199,20 +199,20 @@ export const getMemberStatement = async (req, res) => {
 export const getAllMembersWithBalances = async (req, res) => {
   try {
     // Get all members
-    const { data: members, error: memberError } = await supabaseService.client
+    const { data: members, error: _memberError } = await supabaseService.client
       .from('members')
       .select('*')
       .order('full_name');
 
-    if (memberError) {throw memberError;}
+    if (_memberError) {throw _memberError;}
 
     // Get all payments
-    const { data: payments, error: paymentError } = await supabaseService.client
+    const { data: payments, error: _paymentError } = await supabaseService.client
       .from('payments')
       .select('payer_id, amount')
       .eq('status', 'completed');
 
-    if (paymentError) {throw paymentError;}
+    if (_paymentError) {throw _paymentError;}
 
     // Calculate balances
     const balanceMap = {};

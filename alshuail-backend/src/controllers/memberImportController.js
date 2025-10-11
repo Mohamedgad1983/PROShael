@@ -122,7 +122,7 @@ export const importMembersFromExcel = async (req, res) => {
 
     // Create import batch record
     batchId = uuidv4();
-    const { error: batchError } = await supabase
+    const { error: _batchError } = await supabase
       .from('excel_import_batches')
       .insert({
         id: batchId,
@@ -131,7 +131,7 @@ export const importMembersFromExcel = async (req, res) => {
         status: 'processing'
       });
 
-    if (batchError) {throw batchError;}
+    if (_batchError) {throw _batchError;}
 
     let successfulImports = 0;
     let failedImports = 0;
@@ -210,13 +210,13 @@ export const importMembersFromExcel = async (req, res) => {
           membership_date: new Date().toISOString().split('T')[0]
         };
 
-        const { data: newMember, error: memberError } = await supabase
+        const { data: newMember, error: _memberError } = await supabase
           .from('members')
           .insert(memberData)
           .select()
           .single();
 
-        if (memberError) {throw memberError;}
+        if (_memberError) {throw _memberError;}
 
         // Generate registration token
         let registrationToken;
@@ -238,7 +238,7 @@ export const importMembersFromExcel = async (req, res) => {
         const expiryDate = new Date();
         expiryDate.setDate(expiryDate.getDate() + 30); // 30 days expiry
 
-        const { error: tokenError } = await supabase
+        const { error: _tokenError } = await supabase
           .from('member_registration_tokens')
           .insert({
             member_id: newMember.id,
@@ -248,7 +248,7 @@ export const importMembersFromExcel = async (req, res) => {
             is_used: false
           });
 
-        if (tokenError) {throw tokenError;}
+        if (_tokenError) {throw _tokenError;}
 
         importedMembers.push({
           ...newMember,
@@ -270,7 +270,7 @@ export const importMembersFromExcel = async (req, res) => {
 
     // Update batch status
     const batchStatus = failedImports > 0 ? 'completed_with_errors' : 'completed';
-    const { error: updateBatchError } = await supabase
+    const { error: _updateBatchError } = await supabase
       .from('excel_import_batches')
       .update({
         successful_imports: successfulImports,
@@ -281,8 +281,8 @@ export const importMembersFromExcel = async (req, res) => {
       })
       .eq('id', batchId);
 
-    if (updateBatchError) {
-      log.error('Error updating batch status', { error: updateBatchError.message });
+    if (_updateBatchError) {
+      log.error('Error updating batch status', { error: _updateBatchError.message });
     }
 
     // Return response
@@ -361,13 +361,13 @@ export const getImportBatchDetails = async (req, res) => {
   try {
     const { batchId } = req.params;
 
-    const { data: batch, error: batchError } = await supabase
+    const { data: batch, error: _batchError } = await supabase
       .from('excel_import_batches')
       .select('*')
       .eq('id', batchId)
       .single();
 
-    if (batchError) {throw batchError;}
+    if (_batchError) {throw _batchError;}
 
     if (!batch) {
       return res.status(404).json({
@@ -377,13 +377,13 @@ export const getImportBatchDetails = async (req, res) => {
     }
 
     // Get members imported in this batch
-    const { data: members, error: membersError } = await supabase
+    const { data: members, error: _membersError } = await supabase
       .from('members')
       .select('id, full_name, phone, membership_number, profile_completed, created_at')
       .eq('excel_import_batch', batchId)
       .order('created_at', { ascending: false });
 
-    if (membersError) {throw membersError;}
+    if (_membersError) {throw _membersError;}
 
     res.json({
       success: true,

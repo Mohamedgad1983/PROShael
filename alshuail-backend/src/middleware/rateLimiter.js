@@ -226,7 +226,7 @@ export const createRateLimitMiddleware = (limitType = 'general') => {
  */
 export const createDynamicRateLimitMiddleware = (baseType = 'general') => {
   return (req, res, next) => {
-    const clientId = rateLimiter.getClientId(req);
+    const _clientId = rateLimiter.getClientId(req);
     const userRole = req.user?.role;
 
     // Adjust limits based on user role

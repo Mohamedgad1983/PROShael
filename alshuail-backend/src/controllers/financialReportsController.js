@@ -1,13 +1,14 @@
+/* eslint-disable require-await */
 /**
  * Financial Reports Controller with Forensic Analysis
  * Handles comprehensive financial reporting and deep analytics
  */
 
-import { supabase } from '../config/database.js';
+import { supabase as _supabase } from '../config/database.js';
 import {
   hasFinancialAccess,
   logFinancialAccess,
-  validateFinancialOperation,
+  validateFinancialOperation as _validateFinancialOperation,
   createFinancialAuditTrail
 } from '../utils/accessControl.js';
 import { HijriDateManager } from '../utils/hijriDateUtils.js';
@@ -21,9 +22,9 @@ import {
 } from '../services/forensicAnalysis.js';
 import ReportExportService from '../services/reportExportService.js';
 import {
-  getOptimizedFinancialData,
-  getBatchedReportData,
-  getAggregatedSummary,
+  getOptimizedFinancialData as _getOptimizedFinancialData,
+  getBatchedReportData as _getBatchedReportData,
+  getAggregatedSummary as _getAggregatedSummary,
   getCachedQuery,
   streamReportData
 } from '../services/optimizedReportQueries.js';

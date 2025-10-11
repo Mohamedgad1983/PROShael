@@ -1,7 +1,7 @@
 import { supabase } from '../config/database.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { sanitizeJSON, prepareUpdateData } from '../utils/jsonSanitizer.js';
+import { sanitizeJSON as _sanitizeJSON, prepareUpdateData } from '../utils/jsonSanitizer.js';
 import { log } from '../utils/logger.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'alshuail-super-secure-jwt-secret-key-2024-production-ready-32chars';
@@ -325,65 +325,65 @@ export const deleteMember = async (req, res) => {
 export const getMemberStatistics = async (req, res) => {
   try {
     // Get total members count
-    const { count: totalMembers, error: totalError } = await supabase
+    const { count: totalMembers, error: _totalError } = await supabase
       .from('members')
       .select('*', { count: 'exact', head: true });
 
-    if (totalError) {throw totalError;}
+    if (_totalError) {throw _totalError;}
 
     // Get active members count
-    const { count: activeMembers, error: activeError } = await supabase
+    const { count: activeMembers, error: _activeError } = await supabase
       .from('members')
       .select('*', { count: 'exact', head: true })
       .eq('membership_status', 'active');
 
-    if (activeError) {throw activeError;}
+    if (_activeError) {throw _activeError;}
 
     // Get completed profiles count
-    const { count: completedProfiles, error: completedError } = await supabase
+    const { count: completedProfiles, error: _completedError } = await supabase
       .from('members')
       .select('*', { count: 'exact', head: true })
       .eq('profile_completed', true);
 
-    if (completedError) {throw completedError;}
+    if (_completedError) {throw _completedError;}
 
     // Get pending profiles count
-    const { count: pendingProfiles, error: pendingError } = await supabase
+    const { count: pendingProfiles, error: _pendingError } = await supabase
       .from('members')
       .select('*', { count: 'exact', head: true })
       .eq('profile_completed', false);
 
-    if (pendingError) {throw pendingError;}
+    if (_pendingError) {throw _pendingError;}
 
     // Get social security beneficiaries count
-    const { count: socialSecurityBeneficiaries, error: socialSecurityError } = await supabase
+    const { count: socialSecurityBeneficiaries, error: _socialSecurityError } = await supabase
       .from('members')
       .select('*', { count: 'exact', head: true })
       .eq('social_security_beneficiary', true)
       .eq('profile_completed', true);
 
-    if (socialSecurityError) {throw socialSecurityError;}
+    if (_socialSecurityError) {throw _socialSecurityError;}
 
     // Get members joined this month
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
 
-    const { count: thisMonthMembers, error: thisMonthError } = await supabase
+    const { count: thisMonthMembers, error: _thisMonthError } = await supabase
       .from('members')
       .select('*', { count: 'exact', head: true })
       .gte('created_at', startOfMonth.toISOString());
 
-    if (thisMonthError) {throw thisMonthError;}
+    if (_thisMonthError) {throw _thisMonthError;}
 
     // Get recent imports
-    const { data: recentImports, error: importsError } = await supabase
+    const { data: recentImports, error: _importsError } = await supabase
       .from('excel_import_batches')
       .select('*')
       .order('created_at', { ascending: false })
       .limit(5);
 
-    if (importsError) {throw importsError;}
+    if (_importsError) {throw _importsError;}
 
     res.json({
       success: true,
@@ -419,7 +419,7 @@ export const sendRegistrationReminders = async (req, res) => {
     }
 
     // Get members with incomplete profiles and their registration tokens
-    const { data: membersData, error: membersError } = await supabase
+    const { data: membersData, error: __membersError } = await supabase
       .from('members')
       .select(`
         id,
@@ -438,7 +438,7 @@ export const sendRegistrationReminders = async (req, res) => {
       .eq('member_registration_tokens.is_used', false)
       .order('member_registration_tokens.created_at', { ascending: false });
 
-    if (membersError) {throw membersError;}
+    if (__membersError) {throw __membersError;}
 
     if (!membersData || membersData.length === 0) {
       return res.status(404).json({
@@ -593,13 +593,13 @@ export const addMemberManually = async (req, res) => {
       created_at: new Date().toISOString()
     };
 
-    const { data: newMember, error: memberError } = await supabase
+    const { data: newMember, error: _memberError } = await supabase
       .from('members')
       .insert([memberData])
       .select()
       .single();
 
-    if (memberError) {throw memberError;}
+    if (_memberError) {throw _memberError;}
 
     // Generate registration token and temporary password
     const chars = 'ABCDEFGHIJKLMNPQRSTUVWXYZ123456789';
@@ -616,7 +616,7 @@ export const addMemberManually = async (req, res) => {
     const expiryDate = new Date();
     expiryDate.setDate(expiryDate.getDate() + 30);
 
-    const { error: tokenError } = await supabase
+    const { error: _tokenError } = await supabase
       .from('member_registration_tokens')
       .insert([{
         member_id: newMember.id,
@@ -627,19 +627,19 @@ export const addMemberManually = async (req, res) => {
         created_at: new Date().toISOString()
       }]);
 
-    if (tokenError) {
-      log.error('Error creating registration token', { error: tokenError.message });
+    if (_tokenError) {
+      log.error('Error creating registration token', { error: _tokenError.message });
       // Don't fail the whole operation if token creation fails
     }
 
     // Store temporary password in member record
-    const { error: updateError } = await supabase
+    const { error: _updateError } = await supabase
       .from('members')
       .update({ temp_password: hashedPassword })
       .eq('id', newMember.id);
 
-    if (updateError) {
-      log.error('Error updating member with temp password', { error: updateError.message });
+    if (_updateError) {
+      log.error('Error updating member with temp password', { error: _updateError.message });
     }
 
     // Prepare response
@@ -704,7 +704,7 @@ export const getMemberProfile = async (req, res) => {
     }
 
     // Remove sensitive data
-    const { temp_password, password_hash, ...profileData } = member;
+    const { temp_password: _temp_password, password_hash: _password_hash, ...profileData } = member;
 
     res.json({
       success: true,
@@ -725,25 +725,25 @@ export const getMemberBalance = async (req, res) => {
     const memberId = decoded.id;
 
     // Get member balance from payments table using correct column names
-    const { data: payments, error: paymentsError } = await supabase
+    const { data: payments, error: __paymentsError } = await supabase
       .from('payments')
       .select('amount, category, status')
       .eq('payer_id', memberId)
       .eq('status', 'completed');
 
-    if (paymentsError) {throw paymentsError;}
+    if (__paymentsError) {throw __paymentsError;}
 
     // Calculate total payments
     const totalPaid = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
 
     // Get member details for minimum balance
-    const { data: member, error: memberError } = await supabase
+    const { data: member, error: _memberError } = await supabase
       .from('members')
       .select('membership_status, full_name')
       .eq('id', memberId)
       .single();
 
-    if (memberError) {throw memberError;}
+    if (_memberError) {throw _memberError;}
 
     // Calculate minimum required balance (example: 1000 SAR)
     const minimumBalance = 1000;
@@ -858,13 +858,13 @@ export const updateMemberProfile = async (req, res) => {
 
     // Remove sensitive fields that shouldn't be updated via mobile
     const {
-      id,
-      membership_number,
-      temp_password,
-      password_hash,
-      membership_status,
-      created_at,
-      updated_at,
+      id: _id,
+      membership_number: _membership_number,
+      temp_password: _temp_password,
+      password_hash: _password_hash,
+      membership_status: _membership_status,
+      created_at: _created_at,
+      updated_at: _updated_at,
       ...allowedUpdates
     } = updateData;
 

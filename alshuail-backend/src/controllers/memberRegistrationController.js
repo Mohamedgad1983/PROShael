@@ -81,7 +81,7 @@ export const verifyRegistrationToken = async (req, res) => {
     }
 
     // Get token data with member information
-    const { data: tokenData, error: tokenError } = await supabase
+    const { data: tokenData, error: _tokenError } = await supabase
       .from('member_registration_tokens')
       .select(`
         *,
@@ -98,7 +98,7 @@ export const verifyRegistrationToken = async (req, res) => {
       .eq('is_used', false)
       .single();
 
-    if (tokenError || !tokenData) {
+    if (_tokenError || !tokenData) {
       return res.status(404).json({
         success: false,
         error: 'رمز التسجيل غير موجود أو تم استخدامه مسبقاً'
@@ -208,7 +208,7 @@ export const completeProfile = async (req, res) => {
     }
 
     // Get and verify token
-    const { data: tokenData, error: tokenError } = await supabase
+    const { data: tokenData, error: _tokenError } = await supabase
       .from('member_registration_tokens')
       .select(`
         *,
@@ -222,7 +222,7 @@ export const completeProfile = async (req, res) => {
       .eq('is_used', false)
       .single();
 
-    if (tokenError || !tokenData) {
+    if (_tokenError || !tokenData) {
       return res.status(404).json({
         success: false,
         error: 'رمز التسجيل غير موجود أو تم استخدامه مسبقاً'
@@ -299,17 +299,17 @@ export const completeProfile = async (req, res) => {
       updated_at: new Date().toISOString()
     };
 
-    const { data: updatedMember, error: updateError } = await supabase
+    const { data: updatedMember, error: _updateError } = await supabase
       .from('members')
       .update(updateData)
       .eq('id', tokenData.members.id)
       .select()
       .single();
 
-    if (updateError) {throw updateError;}
+    if (_updateError) {throw _updateError;}
 
     // Mark token as used
-    const { error: tokenUpdateError } = await supabase
+    const { error: _tokenUpdateError } = await supabase
       .from('member_registration_tokens')
       .update({
         is_used: true,
@@ -317,8 +317,8 @@ export const completeProfile = async (req, res) => {
       })
       .eq('id', tokenData.id);
 
-    if (tokenUpdateError) {
-      log.error('Error updating token status', { error: tokenUpdateError.message });
+    if (_tokenUpdateError) {
+      log.error('Error updating token status', { error: _tokenUpdateError.message });
     }
 
     // Return success response
@@ -350,13 +350,13 @@ export const resendRegistrationToken = async (req, res) => {
     const { memberId } = req.params;
 
     // Get member data
-    const { data: member, error: memberError } = await supabase
+    const { data: member, error: _memberError } = await supabase
       .from('members')
       .select('id, full_name, phone, profile_completed')
       .eq('id', memberId)
       .single();
 
-    if (memberError || !member) {
+    if (_memberError || !member) {
       return res.status(404).json({
         success: false,
         error: 'العضو غير موجود'
@@ -371,14 +371,14 @@ export const resendRegistrationToken = async (req, res) => {
     }
 
     // Deactivate old tokens
-    const { error: deactivateError } = await supabase
+    const { error: _deactivateError } = await supabase
       .from('member_registration_tokens')
       .update({ is_used: true })
       .eq('member_id', memberId)
       .eq('is_used', false);
 
-    if (deactivateError) {
-      log.error('Error deactivating old tokens', { error: deactivateError.message });
+    if (_deactivateError) {
+      log.error('Error deactivating old tokens', { error: _deactivateError.message });
     }
 
     // Generate new token
@@ -416,7 +416,7 @@ export const resendRegistrationToken = async (req, res) => {
     const expiryDate = new Date();
     expiryDate.setDate(expiryDate.getDate() + 30);
 
-    const { error: tokenError } = await supabase
+    const { error: _tokenError } = await supabase
       .from('member_registration_tokens')
       .insert({
         member_id: memberId,
@@ -426,7 +426,7 @@ export const resendRegistrationToken = async (req, res) => {
         is_used: false
       });
 
-    if (tokenError) {throw tokenError;}
+    if (_tokenError) {throw _tokenError;}
 
     res.json({
       success: true,

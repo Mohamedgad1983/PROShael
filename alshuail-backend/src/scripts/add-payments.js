@@ -31,13 +31,13 @@ async function addPayments() {
   try {
     // Get all existing members
     log.info('📖 Fetching existing members...');
-    const { data: members, error: memberError } = await supabase
+    const { data: members, error: _memberError } = await supabase
       .from('members')
       .select('*')
       .order('created_at');
 
-    if (memberError) {
-      log.error('❌ Error fetching members:', memberError);
+    if (_memberError) {
+      log.error('❌ Error fetching members:', _memberError);
       return;
     }
 
@@ -47,7 +47,7 @@ async function addPayments() {
     log.info('💳 Adding payment history for each member...');
     const payments = [];
 
-    members.forEach((member, index) => {
+    members.forEach((member, _index) => {
       // Generate realistic payment history for 2021-2025
       const years = [2021, 2022, 2023, 2024, 2025];
 
@@ -79,12 +79,12 @@ async function addPayments() {
     const batchSize = 50;
     for (let i = 0; i < payments.length; i += batchSize) {
       const batch = payments.slice(i, i + batchSize);
-      const { error: paymentError } = await supabase
+      const { error: _paymentError } = await supabase
         .from('payments')
         .insert(batch);
 
-      if (paymentError) {
-        log.error('❌ Error uploading batch:', paymentError);
+      if (_paymentError) {
+        log.error('❌ Error uploading batch:', _paymentError);
       } else {
         log.info(`✅ Uploaded batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(payments.length/batchSize)}`);
       }
@@ -95,11 +95,11 @@ async function addPayments() {
     log.info('=====================');
 
     // Get all payments to calculate balances
-    const { data: allPayments, error: fetchError } = await supabase
+    const { data: allPayments, error: _fetchError } = await supabase
       .from('payments')
       .select('*');
 
-    if (!fetchError && allPayments) {
+    if (!_fetchError && allPayments) {
       // Calculate balance for each member
       const memberBalances = {};
       allPayments.forEach(payment => {

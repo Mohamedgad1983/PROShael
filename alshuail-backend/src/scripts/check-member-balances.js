@@ -7,6 +7,7 @@ import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
+import { log } from '../utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -33,14 +34,14 @@ async function checkBalances() {
     log.info('1. CHECKING BALANCE FIELDS IN MEMBERS TABLE');
     log.info('--------------------------------------------');
 
-    const { data: sampleMember, error: memberError } = await supabase
+    const { data: sampleMember, error: _memberError } = await supabase
       .from('members')
       .select('*')
       .limit(1)
       .single();
 
-    if (memberError) {
-      log.info('❌ Error fetching member:', memberError.message);
+    if (_memberError) {
+      log.info('❌ Error fetching member:', _memberError.message);
       return;
     }
 
@@ -57,13 +58,13 @@ async function checkBalances() {
     log.info('\n2. MEMBER BALANCE DATA ANALYSIS');
     log.info('--------------------------------------------');
 
-    const { data: membersWithBalance, error: balanceError } = await supabase
+    const { data: membersWithBalance, error: _balanceError } = await supabase
       .from('members')
       .select('id, full_name, phone, membership_number, tribal_section, total_balance, balance_status')
       .order('total_balance', { ascending: false })
       .limit(20);
 
-    if (!balanceError && membersWithBalance) {
+    if (!_balanceError && membersWithBalance) {
       log.info(`✅ Found ${membersWithBalance.length} members with balance data`);
 
       // Group by balance status
@@ -130,18 +131,18 @@ async function checkBalances() {
     log.info('--------------------------------------------');
 
     // Get all members
-    const { data: allMembers, error: allMembersError } = await supabase
+    const { data: allMembers, error: _allMembersError } = await supabase
       .from('members')
       .select('id, full_name, membership_number, tribal_section');
 
-    if (!allMembersError && allMembers) {
+    if (!_allMembersError && allMembers) {
       // Get all payments
-      const { data: allPayments, error: allPaymentsError } = await supabase
+      const { data: allPayments, error: _allPaymentsError } = await supabase
         .from('payments')
         .select('payer_id, amount, status, category')
         .eq('status', 'completed');
 
-      if (!allPaymentsError && allPayments) {
+      if (!_allPaymentsError && allPayments) {
         // Calculate balances
         const memberBalances = {};
 
@@ -229,11 +230,11 @@ async function checkBalances() {
         log.info(`   Subscription fields: ${subFields.join(', ')}`);
 
         // Check subscription statuses
-        const { data: subStatuses, error: statusError } = await supabase
+        const { data: subStatuses, error: _statusError } = await supabase
           .from('subscriptions')
           .select('status');
 
-        if (!statusError && subStatuses) {
+        if (!_statusError && subStatuses) {
           const statusCounts = {};
           subStatuses.forEach(sub => {
             const status = sub.status || 'Unknown';

@@ -28,7 +28,7 @@ import {
   completeProfile,
   resendRegistrationToken
 } from '../controllers/memberRegistrationController.js';
-import { requireRole, requirePermission } from '../middleware/rbacMiddleware.js';
+import { requireRole } from '../middleware/rbacMiddleware.js';
 
 // Configure multer for file uploads
 const upload = multer({
@@ -59,10 +59,10 @@ router.get('/', async (req, res) => {
   try {
     // Check if request has auth header (optional authentication)
     const authHeader = req.headers.authorization;
-    let isAuthenticated = false;
+    let _isAuthenticated = false;
 
     if (authHeader && authHeader.startsWith('Bearer ')) {
-      isAuthenticated = true;
+      _isAuthenticated = true;
     }
 
     // Call the controller

@@ -14,14 +14,14 @@ const router = express.Router();
 // Helper function to check if user is admin
 const isAdmin = async (userId) => {
     try {
-        const { data, error } = await supabase
+        const { data: _data, error: _error } = await supabase
             .from('users')
             .select('role')
             .eq('id', userId)
             .single();
 
         // Accept both 'admin' and 'super_admin' roles
-        return data?.role === 'admin' || data?.role === 'super_admin';
+        return _data?.role === 'admin' || _data?.role === 'super_admin';
     } catch (error) {
         log.error('Error checking admin status', { error: error.message });
         return false;
@@ -78,7 +78,7 @@ router.post('/', authenticateToken, adminOnly, async (req, res) => {
         const startDate = start_date && start_date.trim() !== '' ? start_date : null;
         const endDate = end_date && end_date.trim() !== '' ? end_date : null;
 
-        const { data, error} = await supabase
+        const { data: _data, error: _error } = await supabase
             .from('initiatives')
             .insert([{
                 title: title_ar || title_en || 'بدون عنوان', // Use title_ar as primary title, fallback to title_en or default
@@ -100,11 +100,11 @@ router.post('/', authenticateToken, adminOnly, async (req, res) => {
             .select()
             .single();
 
-        if (error) {throw error;}
+        if (_error) {throw _error;}
 
         res.status(201).json({
             message: 'Initiative created successfully',
-            initiative: data
+            initiative: _data
         });
     } catch (error) {
         log.error('Create initiative error', { error: error.message });
@@ -121,18 +121,18 @@ router.put('/:id', authenticateToken, adminOnly, async (req, res) => {
         // Don't allow updating current_amount directly (calculated by trigger)
         delete updates.current_amount;
 
-        const { data, error } = await supabase
+        const { data: _data, error: _error } = await supabase
             .from('initiatives')
             .update(updates)
             .eq('id', id)
             .select()
             .single();
 
-        if (error) {throw error;}
+        if (_error) {throw _error;}
 
         res.json({
             message: 'Initiative updated successfully',
-            initiative: data
+            initiative: _data
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -144,18 +144,18 @@ router.delete('/:id', authenticateToken, adminOnly, async (req, res) => {
     try {
         const { id } = req.params;
 
-        const { data, error } = await supabase
+        const { data: _data, error: _error } = await supabase
             .from('initiatives')
             .delete()
             .eq('id', id)
             .select()
             .single();
 
-        if (error) {throw error;}
+        if (_error) {throw _error;}
 
         res.json({
             message: 'Initiative deleted successfully',
-            initiative: data
+            initiative: _data
         });
     } catch (error) {
         log.error('Delete initiative error', { error: error.message });
@@ -185,18 +185,18 @@ router.patch('/:id/status', authenticateToken, adminOnly, async (req, res) => {
             updateData.completion_notes = completion_notes;
         }
 
-        const { data, error } = await supabase
+        const { data: _data, error: _error } = await supabase
             .from('initiatives')
             .update(updateData)
             .eq('id', id)
             .select()
             .single();
 
-        if (error) {throw error;}
+        if (_error) {throw _error;}
 
         res.json({
             message: `Initiative ${status} successfully`,
-            initiative: data
+            initiative: _data
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -217,11 +217,11 @@ router.get('/admin/all', authenticateToken, adminOnly, async (req, res) => {
             query = query.eq('status', status);
         }
 
-        const { data, error } = await query;
+        const { data: _data, error: _error } = await query;
 
-        if (error) {throw error;}
+        if (_error) {throw _error;}
 
-        res.json({ initiatives: data });
+        res.json({ initiatives: _data });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -233,16 +233,16 @@ router.get('/:id/details', authenticateToken, adminOnly, async (req, res) => {
         const { id } = req.params;
 
         // Get initiative
-        const { data: initiative, error: initError } = await supabase
+        const { data: initiative, error: _initError } = await supabase
             .from('initiatives')
             .select('*')
             .eq('id', id)
             .single();
 
-        if (initError) {throw initError;}
+        if (_initError) {throw _initError;}
 
         // Get all donations for this initiative
-        const { data: donations, error: donError} = await supabase
+        const { data: donations, error: _donError} = await supabase
             .from('initiative_donations')
             .select(`
                 *,
@@ -251,7 +251,7 @@ router.get('/:id/details', authenticateToken, adminOnly, async (req, res) => {
             .eq('initiative_id', id)
             .order('created_at', { ascending: false });
 
-        if (donError) {throw donError;}
+        if (_donError) {throw _donError;}
 
         // Calculate stats
         const totalDonations = donations.length;
@@ -280,7 +280,7 @@ router.patch('/donations/:donationId/approve', authenticateToken, adminOnly, asy
     try {
         const { donationId } = req.params;
 
-        const { data, error } = await supabase
+        const { data: _data, error: _error } = await supabase
             .from('initiative_donations')
             .update({
                 approved_by: req.user.id,
@@ -290,13 +290,13 @@ router.patch('/donations/:donationId/approve', authenticateToken, adminOnly, asy
             .select()
             .single();
 
-        if (error) {throw error;}
+        if (_error) {throw _error;}
 
         // Trigger will auto-update initiative current_amount
 
         res.json({
             message: 'Donation approved successfully',
-            donation: data
+            donation: _data
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -311,26 +311,26 @@ router.get('/:id/non-contributors', authenticateToken, adminOnly, async (req, re
         log.info('[Non-Contributors] Fetching for initiative ID', { id });
 
         // Get all active members
-        const { data: allMembers, error: membersError } = await supabase
+        const { data: allMembers, error: _membersError } = await supabase
             .from('members')
             .select('id, member_id, full_name, full_name_en, email, phone, membership_number')
             .eq('is_active', true)
             .eq('membership_status', 'active');
 
-        if (membersError) {
-            log.error('[Non-Contributors] Error fetching members', { error: membersError.message });
-            throw membersError;
+        if (_membersError) {
+            log.error('[Non-Contributors] Error fetching members', { error: _membersError.message });
+            throw _membersError;
         }
 
         // Get all donors for this initiative
-        const { data: donations, error: donError } = await supabase
+        const { data: donations, error: _donError } = await supabase
             .from('initiative_donations')
             .select('donor_member_id')
             .eq('initiative_id', id);
 
-        if (donError) {
-            log.error('[Non-Contributors] Error fetching donations', { error: donError.message });
-            throw donError;
+        if (_donError) {
+            log.error('[Non-Contributors] Error fetching donations', { error: _donError.message });
+            throw _donError;
         }
 
         // Create set of donor member IDs for fast lookup
@@ -371,32 +371,32 @@ router.post('/:id/notify-non-contributors', authenticateToken, adminOnly, async 
         log.info('[Notify Non-Contributors] Starting for initiative ID', { id });
 
         // Get initiative details
-        const { data: initiative, error: initError } = await supabase
+        const { data: initiative, error: _initError } = await supabase
             .from('initiatives')
             .select('*')
             .eq('id', id)
             .single();
 
-        if (initError) {
-            log.error('[Notify Non-Contributors] Initiative not found', { error: initError.message });
-            throw initError;
+        if (_initError) {
+            log.error('[Notify Non-Contributors] Initiative not found', { error: _initError.message });
+            throw _initError;
         }
 
         // Get non-contributors using the same logic
-        const { data: allMembers, error: membersError } = await supabase
+        const { data: allMembers, error: _membersError } = await supabase
             .from('members')
             .select('id, member_id, full_name, full_name_en, email, phone, membership_number')
             .eq('is_active', true)
             .eq('membership_status', 'active');
 
-        if (membersError) {throw membersError;}
+        if (_membersError) {throw _membersError;}
 
-        const { data: donations, error: donError } = await supabase
+        const { data: donations, error: _donError } = await supabase
             .from('initiative_donations')
             .select('donor_member_id')
             .eq('initiative_id', id);
 
-        if (donError) {throw donError;}
+        if (_donError) {throw _donError;}
 
         const donorIds = new Set(donations.map(d => d.donor_member_id));
         const nonContributors = allMembers.filter(member => !donorIds.has(member.id));
@@ -432,13 +432,13 @@ router.post('/:id/notify-non-contributors', authenticateToken, adminOnly, async 
             }
         };
 
-        const { error: notifError } = await supabase
+        const { error: _notifError } = await supabase
             .from('notifications')
             .insert([adminNotification]);
 
-        if (notifError) {
-            log.error('[Notify Non-Contributors] Error creating notification', { error: notifError.message });
-            throw notifError;
+        if (_notifError) {
+            log.error('[Notify Non-Contributors] Error creating notification', { error: _notifError.message });
+            throw _notifError;
         }
 
         log.info('[Notify Non-Contributors] Admin notification created successfully');
@@ -465,15 +465,15 @@ router.post('/:id/push-notification', authenticateToken, adminOnly, async (req, 
         log.info('[Push Notification] Starting for initiative ID', { id });
 
         // Get initiative details
-        const { data: initiative, error: initError } = await supabase
+        const { data: initiative, error: _initError } = await supabase
             .from('initiatives')
             .select('*')
             .eq('id', id)
             .single();
 
-        if (initError) {
-            log.error('[Push Notification] Initiative not found', { error: initError.message });
-            throw initError;
+        if (_initError) {
+            log.error('[Push Notification] Initiative not found', { error: _initError.message });
+            throw _initError;
         }
 
         if (!initiative) {
@@ -484,15 +484,15 @@ router.post('/:id/push-notification', authenticateToken, adminOnly, async (req, 
         }
 
         // Get all active members
-        const { data: members, error: membersError } = await supabase
+        const { data: members, error: _membersError } = await supabase
             .from('members')
             .select('id, member_id, email, phone, full_name')
             .eq('is_active', true)
             .eq('membership_status', 'active');
 
-        if (membersError) {
-            log.error('[Push Notification] Error fetching members', { error: membersError.message });
-            throw membersError;
+        if (_membersError) {
+            log.error('[Push Notification] Error fetching members', { error: _membersError.message });
+            throw _membersError;
         }
 
         log.info('[Push Notification] Found active members', { count: members.length });
@@ -526,13 +526,13 @@ router.post('/:id/push-notification', authenticateToken, adminOnly, async (req, 
             }
         };
 
-        const { error: notifError } = await supabase
+        const { error: _notifError } = await supabase
             .from('notifications')
             .insert([adminNotification]);
 
-        if (notifError) {
-            log.error('[Push Notification] Error creating admin notification', { error: notifError.message });
-            throw notifError;
+        if (_notifError) {
+            log.error('[Push Notification] Error creating admin notification', { error: _notifError.message });
+            throw _notifError;
         }
 
         log.info('[Push Notification] Admin notification created successfully');
@@ -560,16 +560,16 @@ router.post('/:id/push-notification', authenticateToken, adminOnly, async (req, 
 // 7. GET ACTIVE INITIATIVES (Members)
 router.get('/active', authenticateToken, async (req, res) => {
     try {
-        const { data, error } = await supabase
+        const { data: _data, error: _error } = await supabase
             .from('initiatives')
             .select('*')
             .eq('status', 'active')
             .order('start_date', { ascending: false });
 
-        if (error) {throw error;}
+        if (_error) {throw _error;}
 
         // Calculate progress for each
-        const initiativesWithProgress = data.map(init => ({
+        const initiativesWithProgress = _data.map(init => ({
             ...init,
             progress_percentage: (parseFloat(init.current_amount) / parseFloat(init.target_amount) * 100).toFixed(2)
         }));
@@ -583,7 +583,7 @@ router.get('/active', authenticateToken, async (req, res) => {
 // 8. GET PREVIOUS INITIATIVES (Members - Completed/Archived)
 router.get('/previous', authenticateToken, async (req, res) => {
     try {
-        const { data, error } = await supabase
+        const { data: _data, error } = await supabase
             .from('initiatives')
             .select('*')
             .in('status', ['completed', 'archived'])
@@ -592,7 +592,7 @@ router.get('/previous', authenticateToken, async (req, res) => {
 
         if (error) {throw error;}
 
-        res.json({ initiatives: data });
+        res.json({ initiatives: _data });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -616,13 +616,13 @@ router.post('/:id/contribute', authenticateToken, async (req, res) => {
         }
 
         // Get initiative details
-        const { data: initiative, error: initError } = await supabase
+        const { data: initiative, error: _initError } = await supabase
             .from('initiatives')
             .select('*')
             .eq('id', id)
             .single();
 
-        if (initError) {throw initError;}
+        if (_initError) {throw _initError;}
 
         // Validation
         if (initiative.status !== 'active') {
@@ -644,7 +644,7 @@ router.post('/:id/contribute', authenticateToken, async (req, res) => {
         }
 
         // Create donation record
-        const { data: donation, error: donError } = await supabase
+        const { data: donation, error: _donError } = await supabase
             .from('initiative_donations')
             .insert([{
                 initiative_id: id,
@@ -657,7 +657,7 @@ router.post('/:id/contribute', authenticateToken, async (req, res) => {
             .select()
             .single();
 
-        if (donError) {throw donError;}
+        if (_donError) {throw _donError;}
 
         res.status(201).json({
             message: 'Contribution submitted successfully. Pending approval.',
@@ -682,7 +682,7 @@ router.get('/my-contributions', authenticateToken, async (req, res) => {
             return res.status(400).json({ error: 'User not associated with a member' });
         }
 
-        const { data, error } = await supabase
+        const { data: _data, error } = await supabase
             .from('initiative_donations')
             .select(`
                 *,
@@ -693,7 +693,7 @@ router.get('/my-contributions', authenticateToken, async (req, res) => {
 
         if (error) {throw error;}
 
-        res.json({ contributions: data });
+        res.json({ contributions: _data });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

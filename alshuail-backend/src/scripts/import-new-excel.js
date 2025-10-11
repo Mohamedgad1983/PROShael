@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+import { log } from '../utils/logger.js';
 
 dotenv.config();
 
@@ -76,7 +77,7 @@ async function importNewExcel() {
     }
 
     // STEP 4: Process Excel data
-    const headers = rawData[0];
+    const _headers = rawData[0];
     const membersToInsert = [];
     const membersToUpdate = [];
     const paymentsToInsert = [];
@@ -96,7 +97,7 @@ async function importNewExcel() {
       // Extract data from row (based on column positions from analysis)
       const membershipNumber = row[0]?.toString() || '';
       const fullNameAr = row[1] || '';
-      const fullNameEn = row[2] || ''; // We'll skip this as requested
+      const _fullNameEn = row[2] || ''; // We'll skip this as requested
       const phone = row[3]?.toString() || '';
       const country = row[4] || 'SA';
       const tribalSection = row[5] || '';
@@ -202,7 +203,7 @@ async function importNewExcel() {
 
       for (let i = 0; i < membersToInsert.length; i += batchSize) {
         const batch = membersToInsert.slice(i, i + batchSize);
-        const { data, error } = await supabase
+        const { data: _data, error } = await supabase
           .from('members')
           .insert(batch)
           .select();
@@ -210,8 +211,8 @@ async function importNewExcel() {
         if (error) {
           log.error(`❌ Error inserting batch ${Math.floor(i/batchSize) + 1}:`, error.message);
         } else {
-          insertedCount += data.length;
-          log.info(`  ✅ Batch ${Math.floor(i/batchSize) + 1}: Inserted ${data.length} members`);
+          insertedCount += _data.length;
+          log.info(`  ✅ Batch ${Math.floor(i/batchSize) + 1}: Inserted ${_data.length} members`);
         }
       }
       log.info(`✅ Successfully inserted ${insertedCount} new members\n`);
@@ -276,12 +277,12 @@ async function importNewExcel() {
     }
 
     if (subscriptionsCreated.length > 0) {
-      const { data, error } = await supabase
+      const { data: _data, error: _error } = await supabase
         .from('subscriptions')
         .insert(subscriptionsCreated)
         .select();
 
-      log.info(`✅ Created ${data?.length || 0} new subscriptions\n`);
+      log.info(`✅ Created ${_data?.length || 0} new subscriptions\n`);
     }
 
     // STEP 9: Get all subscriptions
@@ -321,13 +322,14 @@ async function importNewExcel() {
       }
     }
 
+    let paymentInsertCount = 0;
+
     if (finalPayments.length > 0) {
       const batchSize = 10;
-      let paymentInsertCount = 0;
 
       for (let i = 0; i < finalPayments.length; i += batchSize) {
         const batch = finalPayments.slice(i, i + batchSize);
-        const { data, error } = await supabase
+        const { data: _data, error } = await supabase
           .from('payments')
           .insert(batch)
           .select();
@@ -335,8 +337,8 @@ async function importNewExcel() {
         if (error) {
           log.error(`❌ Payment batch error:`, error.message);
         } else {
-          paymentInsertCount += data.length;
-          log.info(`  ✅ Payment batch ${Math.floor(i/batchSize) + 1}: Created ${data.length} payments`);
+          paymentInsertCount += _data.length;
+          log.info(`  ✅ Payment batch ${Math.floor(i/batchSize) + 1}: Created ${_data.length} payments`);
         }
       }
       log.info(`✅ Successfully created ${paymentInsertCount} payment records\n`);

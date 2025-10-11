@@ -80,7 +80,7 @@ export const uploadToSupabase = async (file, userId, category) => {
   try {
     const filePath = generateFilePath(userId, category, file.originalname);
 
-    const { data, error } = await supabase.storage
+    const { data: _data, error } = await supabase.storage
       .from(BUCKET_NAME)
       .upload(filePath, file.buffer, {
         contentType: file.mimetype,
@@ -124,12 +124,12 @@ export const deleteFromSupabase = async (filePath) => {
 // Get signed URL for secure download
 export const getSignedUrl = async (filePath, expiresIn = 3600) => {
   try {
-    const { data, error } = await supabase.storage
+    const { data: _data, error: _error } = await supabase.storage
       .from(BUCKET_NAME)
       .createSignedUrl(filePath, expiresIn);
 
-    if (error) {throw error;}
-    return data.signedUrl;
+    if (_error) {throw _error;}
+    return _data.signedUrl;
   } catch (error) {
     log.error('Error generating signed URL', { error: error.message });
     throw error;

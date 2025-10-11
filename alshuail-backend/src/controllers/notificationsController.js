@@ -190,13 +190,13 @@ export const createNotification = async (req, res) => {
 
     // Validate member if targeting specific member
     if (target_audience === 'specific' && member_id) {
-      const { data: member, error: memberError } = await supabase
+      const { data: member, error: _memberError } = await supabase
         .from('members')
         .select('id')
         .eq('id', member_id)
         .single();
 
-      if (memberError || !member) {
+      if (_memberError || !member) {
         return res.status(400).json({
           success: false,
           error: 'العضو المحدد غير موجود'
@@ -248,9 +248,9 @@ export const createNotification = async (req, res) => {
           break;
       }
 
-      const { data: targetMembers, error: membersError } = await memberQuery;
+      const { data: targetMembers, error: _membersError } = await memberQuery;
 
-      if (membersError) {throw membersError;}
+      if (_membersError) {throw _membersError;}
 
       if (!targetMembers || targetMembers.length === 0) {
         return res.status(400).json({
@@ -312,13 +312,13 @@ export const markAsRead = async (req, res) => {
     const { member_id } = req.body;
 
     // Check if notification exists
-    const { data: existingNotification, error: checkError } = await supabase
+    const { data: existingNotification, error: _checkError } = await supabase
       .from('notifications')
       .select('*')
       .eq('id', id)
       .single();
 
-    if (checkError || !existingNotification) {
+    if (_checkError || !existingNotification) {
       return res.status(404).json({
         success: false,
         error: 'الإشعار غير موجود'
@@ -424,13 +424,13 @@ export const deleteNotification = async (req, res) => {
     const { id } = req.params;
 
     // Check if notification exists
-    const { data: existingNotification, error: checkError } = await supabase
+    const { data: existingNotification, error: _checkError } = await supabase
       .from('notifications')
       .select('*')
       .eq('id', id)
       .single();
 
-    if (checkError || !existingNotification) {
+    if (_checkError || !existingNotification) {
       return res.status(404).json({
         success: false,
         error: 'الإشعار غير موجود'
@@ -474,13 +474,13 @@ export const getMemberNotifications = async (req, res) => {
     } = req.query;
 
     // Check if member exists
-    const { data: member, error: memberError } = await supabase
+    const { data: member, error: _memberError } = await supabase
       .from('members')
       .select('id, full_name')
       .eq('id', memberId)
       .single();
 
-    if (memberError || !member) {
+    if (_memberError || !member) {
       return res.status(404).json({
         success: false,
         error: 'العضو غير موجود'

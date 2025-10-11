@@ -7,11 +7,9 @@
 import jwt from 'jsonwebtoken';
 import { supabase } from '../config/database.js';
 import { log } from '../utils/logger.js';
+import { config } from '../config/env.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'alshuail-dev-secret-2024-very-long-and-secure';
-if (!process.env.JWT_SECRET) {
-  log.warn('JWT_SECRET not set in environment. Using fallback for development.');
-}
+const JWT_SECRET = config.jwt.secret;
 
 /**
  * Get Arabic role name
@@ -81,7 +79,7 @@ const getRolePermissions = (role) => {
 /**
  * Role hierarchy for permission inheritance
  */
-const ROLE_HIERARCHY = {
+const _ROLE_HIERARCHY = {
   super_admin: 100,
   financial_manager: 80,
   family_tree_admin: 70,
@@ -92,9 +90,9 @@ const ROLE_HIERARCHY = {
 /**
  * Get user's role from database
  */
-async function getUserRole(userId) {
+async function _getUserRole(userId) {
   try {
-    const { data, error } = await supabase.rpc('get_user_role', {
+    const { data: _data, error } = await supabase.rpc('get_user_role', {
       p_user_id: userId
     });
 
@@ -103,7 +101,7 @@ async function getUserRole(userId) {
       return null;
     }
 
-    return data?.[0] || null;
+    return _data?.[0] || null;
   } catch (err) {
     log.error('Error in getUserRole', { error: err.message });
     return null;
@@ -113,9 +111,9 @@ async function getUserRole(userId) {
 /**
  * Check if user has specific permission
  */
-async function hasPermission(userId, permissionName) {
+async function _hasPermission(userId, permissionName) {
   try {
-    const { data, error } = await supabase.rpc('has_permission', {
+    const { data: _data, error } = await supabase.rpc('has_permission', {
       p_user_id: userId,
       p_permission_name: permissionName
     });
@@ -125,7 +123,7 @@ async function hasPermission(userId, permissionName) {
       return false;
     }
 
-    return data === true;
+    return _data === true;
   } catch (err) {
     log.error('Error in hasPermission', { error: err.message });
     return false;
@@ -136,6 +134,7 @@ async function hasPermission(userId, permissionName) {
  * Main RBAC middleware
  */
 export const requireRole = (allowedRoles) => {
+  /* eslint-disable require-await */
   return async (req, res, next) => {
     try {
       // Get token from header
@@ -231,6 +230,7 @@ export const requireRole = (allowedRoles) => {
  * Middleware to check specific permission
  */
 export const requirePermission = (permissionName) => {
+  /* eslint-disable require-await */
   return async (req, res, next) => {
     try {
       // First check if user is authenticated
@@ -418,6 +418,7 @@ export function getRoleDataFilter(user) {
  * Validate role assignment
  * Only super admin can assign roles, and they must be valid
  */
+/* eslint-disable require-await */
 export const validateRoleAssignment = async (req, res, next) => {
   try {
     // Check if user is super admin

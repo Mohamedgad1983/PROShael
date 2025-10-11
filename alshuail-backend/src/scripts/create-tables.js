@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { log } from '../utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,7 +23,7 @@ async function createTables() {
   try {
     // Create members table
     log.info('Creating members table...');
-    const { error: membersError } = await supabase.rpc('exec_sql', {
+    const { error: _membersError } = await supabase.rpc('exec_sql', {
       sql: `
         CREATE TABLE IF NOT EXISTS members (
           id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -40,14 +41,14 @@ async function createTables() {
       `
     });
 
-    if (membersError) {
+    if (_membersError) {
       // Try alternative approach
       log.info('Using direct table creation...');
     }
 
     // Create payments table
     log.info('Creating payments table...');
-    const { error: paymentsError } = await supabase.rpc('exec_sql', {
+    const { error: _paymentsError } = await supabase.rpc('exec_sql', {
       sql: `
         CREATE TABLE IF NOT EXISTS payments (
           id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -66,7 +67,7 @@ async function createTables() {
 
     // Create member_balances table
     log.info('Creating member_balances table...');
-    const { error: balancesError } = await supabase.rpc('exec_sql', {
+    const { error: _balancesError } = await supabase.rpc('exec_sql', {
       sql: `
         CREATE TABLE IF NOT EXISTS member_balances (
           id UUID DEFAULT gen_random_uuid() PRIMARY KEY,

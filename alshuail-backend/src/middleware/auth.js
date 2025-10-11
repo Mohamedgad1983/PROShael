@@ -1,8 +1,10 @@
 import jwt from 'jsonwebtoken';
 import { supabase } from '../config/database.js';
 import { log } from '../utils/logger.js';
+import { config } from '../config/env.js';
 
 // Export both names for compatibility
+// eslint-disable-next-line require-await
 export const authenticate = async (req, res, next) => {
   try {
     const authHeader = req.headers['authorization'];
@@ -26,12 +28,7 @@ export const authenticate = async (req, res, next) => {
     }
 
     // CRITICAL: Use consistent JWT_SECRET across all files
-    const jwtSecret = process.env.JWT_SECRET || 'alshuail-universal-jwt-secret-2024-production-32chars';
-
-    if (!process.env.JWT_SECRET) {
-      log.warn('JWT_SECRET not set, using fallback');
-      process.env.JWT_SECRET = jwtSecret;
-    }
+    const jwtSecret = config.jwt.secret;
 
     // Verify JWT token with better error handling
     jwt.verify(token, jwtSecret, async (err, decoded) => {
@@ -74,13 +71,13 @@ export const authenticate = async (req, res, next) => {
 
       // If it's a member, get their data from members table
       if (decoded.role === 'member') {
-        const { data: member, error: memberError } = await supabase
+        const { data: member, error: _memberError } = await supabase
           .from('members')
           .select('*')
           .eq('id', decoded.id)
           .single();
 
-        if (memberError || !member) {
+        if (_memberError || !member) {
           log.debug('Member not found in database', { memberId: decoded.id });
           // Still allow the request with token data
           req.user = {
@@ -121,7 +118,7 @@ export const authenticate = async (req, res, next) => {
   }
 };
 
-export const requireAdmin = async (req, res, next) => {
+export const requireAdmin = (req, res, next) => {
   try {
     // Check if user is authenticated first
     if (!req.user) {
@@ -188,7 +185,7 @@ export const requireAdmin = async (req, res, next) => {
 // Export authenticateToken as alias for compatibility
 export const authenticateToken = authenticate;
 
-export const requireSuperAdmin = async (req, res, next) => {
+export const requireSuperAdmin = (req, res, next) => {
   try {
     // Check if user is authenticated first
     if (!req.user) {

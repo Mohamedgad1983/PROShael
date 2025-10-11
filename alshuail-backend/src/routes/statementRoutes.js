@@ -11,9 +11,9 @@ router.get('/search/name', requireRole(['super_admin', 'financial_manager', 'mem
 router.get('/search/member-id', requireRole(['super_admin', 'financial_manager', 'member']), statementController.searchByMemberId);
 
 // Statement generation - requires ownership or admin privileges
-router.get('/generate/:memberId', 
+router.get('/generate/:memberId',
   requireRole(['super_admin', 'financial_manager', 'member']),
-  async (req, res, next) => {
+  (req, res, next) => {
     // For members, only allow access to their own statement
     if (req.user.role === 'member') {
       if (req.user.id !== req.params.memberId && req.user.membershipNumber !== req.params.memberId) {

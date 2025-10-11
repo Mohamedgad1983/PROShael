@@ -7,9 +7,12 @@
   "scripts": {
     "start": "node --env-file=.env.production server.js",
     "dev": "node --watch server.js",
-    "test": "node --test",
-    "test:ci": "node --test --reporter=spec",
-    "test:coverage": "c8 node --test",
+    "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest",
+    "test:watch": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --watch",
+    "test:ci": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --ci --coverage --maxWorkers=2",
+    "test:coverage": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --coverage",
+    "test:unit": "cross-env NODE_OPTIONS=--experimental-vm-modules jest __tests__/unit",
+    "test:integration": "cross-env NODE_OPTIONS=--experimental-vm-modules jest __tests__/integration",
     "lint": "eslint . --ext .js,.mjs --format=stylish",
     "lint:fix": "eslint . --ext .js,.mjs --fix",
     "security-audit": "npm audit --audit-level=moderate",
@@ -72,10 +75,14 @@
     "xlsx-populate": "^1.21.0"
   },
   "devDependencies": {
+    "@jest/globals": "^30.2.0",
     "c8": "^8.0.1",
+    "cross-env": "^10.1.0",
     "eslint": "^8.57.0",
     "husky": "^9.1.7",
-    "nodemon": "^3.0.1"
+    "jest": "^30.2.0",
+    "nodemon": "^3.0.1",
+    "supertest": "^7.1.4"
   },
   "author": "Al-Shuail",
   "license": "MIT"

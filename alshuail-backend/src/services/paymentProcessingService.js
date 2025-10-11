@@ -91,13 +91,13 @@ export class PaymentProcessingService {
       }
 
       // Get current payment
-      const { data: currentPayment, error: fetchError } = await supabase
+      const { data: currentPayment, error: _fetchError } = await supabase
         .from('payments')
         .select('*')
         .eq('id', paymentId)
         .single();
 
-      if (fetchError) {throw new Error('المدفوع غير موجود');}
+      if (_fetchError) {throw new Error('المدفوع غير موجود');}
 
       if (currentPayment.status === 'paid') {
         throw new Error('المدفوع مدفوع مسبقاً');
@@ -108,7 +108,7 @@ export class PaymentProcessingService {
       }
 
       // Update payment status and method
-      const { data: updatedPayment, error: updateError } = await supabase
+      const { data: updatedPayment, error: _updateError } = await supabase
         .from('payments')
         .update({
           status: 'paid',
@@ -123,7 +123,7 @@ export class PaymentProcessingService {
         `)
         .single();
 
-      if (updateError) {throw updateError;}
+      if (_updateError) {throw _updateError;}
 
       // If subscription payment, update member's subscription
       if (currentPayment.category === 'subscription') {
@@ -210,7 +210,7 @@ export class PaymentProcessingService {
    * @param {string} category - Payment category
    * @returns {Object} Validation result
    */
-  static async validatePaymentAmount(amount, category) {
+  static validatePaymentAmount(amount, category) {
     try {
       const numAmount = parseFloat(amount);
 

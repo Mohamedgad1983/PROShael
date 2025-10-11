@@ -4,23 +4,13 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import dotenv from 'dotenv';
 import { log } from '../utils/logger.js';
+import { config } from './env.js';
 
-dotenv.config();
-
-// Supabase configuration from environment variables with fallbacks
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://oneiggrfzagqjbkdinin.supabase.co';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9uZWlnZ3JmemFncWpia2RpbmluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ3Mzc5MDMsImV4cCI6MjA3MDMxMzkwM30.AqaBlip7Dwd0DIMQ0DbhtlHk9jUd9MEZJND9J5GbEmk';
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9uZWlnZ3JmemFncWpia2RpbmluIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NDczNzkwMywiZXhwIjoyMDcwMzEzOTAzfQ.rBZIRsifsQiR3j5OgViWLjaBi_W8Jp0gD7HPf9fS5vI';
-
-// Log warnings if using defaults
-if (!process.env.SUPABASE_URL) {
-  log.warn('SUPABASE_URL not set, using default value');
-}
-if (!process.env.SUPABASE_ANON_KEY) {
-  log.warn('SUPABASE_ANON_KEY not set, using default value');
-}
+// Use centralized configuration
+const SUPABASE_URL = config.supabase.url;
+const SUPABASE_ANON_KEY = config.supabase.anonKey;
+const SUPABASE_SERVICE_KEY = config.supabase.serviceKey;
 
 // Create Supabase client for public operations
 export const supabase = createClient(
@@ -71,25 +61,25 @@ export const TABLES = {
 export const dbHelpers = {
   // Get all records from a table
   async getAll(table, options = {}) {
-    const { data, error } = await supabaseAdmin
+    const { data: _data, error: _error } = await supabaseAdmin
       .from(table)
       .select(options.select || '*')
       .order(options.orderBy || 'created_at', { ascending: false });
 
-    if (error) {throw error;}
-    return data;
+    if (_error) {throw _error;}
+    return _data;
   },
 
   // Get single record by ID
   async getById(table, id) {
-    const { data, error } = await supabaseAdmin
+    const { data: _data, error: _error } = await supabaseAdmin
       .from(table)
       .select('*')
       .eq('id', id)
       .single();
 
-    if (error) {throw error;}
-    return data;
+    if (_error) {throw _error;}
+    return _data;
   },
 
   // Create new record
@@ -106,15 +96,15 @@ export const dbHelpers = {
 
   // Update record
   async update(table, id, updates) {
-    const { data, error } = await supabaseAdmin
+    const { data: _data, error: _error } = await supabaseAdmin
       .from(table)
       .update(updates)
       .eq('id', id)
       .select()
       .single();
 
-    if (error) {throw error;}
-    return data;
+    if (_error) {throw _error;}
+    return _data;
   },
 
   // Delete record
@@ -166,7 +156,7 @@ export const dbHelpers = {
 // Connection test function
 export async function testConnection() {
   try {
-    const { data, error } = await supabaseAdmin
+    const { data: _data, error } = await supabaseAdmin
       .from('members')
       .select('count')
       .limit(1);

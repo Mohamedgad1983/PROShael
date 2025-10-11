@@ -167,7 +167,7 @@ export const markNotificationAsRead = async (req, res) => {
     log.debug('Marking notification as read', { notificationId: id, memberId });
 
     // Update notification
-    const { data, error } = await supabase
+    const { data: _data, error } = await supabase
       .from('notifications')
       .update({
         is_read: true,
@@ -187,7 +187,7 @@ export const markNotificationAsRead = async (req, res) => {
       });
     }
 
-    if (!data) {
+    if (!_data) {
       return res.status(404).json({
         success: false,
         error: 'Notification not found',
@@ -219,7 +219,7 @@ export const markAllNotificationsAsRead = async (req, res) => {
 
     log.debug('Marking all notifications as read', { memberId });
 
-    const { data, error } = await supabase
+    const { data: _data, error } = await supabase
       .from('notifications')
       .update({
         is_read: true,
@@ -234,7 +234,7 @@ export const markAllNotificationsAsRead = async (req, res) => {
       success: true,
       message: 'All notifications marked as read',
       messageAr: 'تم تحديث جميع الإشعارات',
-      count: data?.length || 0
+      count: _data?.length || 0
     });
 
   } catch (error) {

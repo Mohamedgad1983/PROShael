@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { log } from '../utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -30,13 +31,13 @@ async function completeSetup() {
   try {
     // STEP 1: Get all existing members
     log.info('📖 Step 1: Fetching existing members...');
-    const { data: members, error: memberError } = await supabase
+    const { data: members, error: _memberError } = await supabase
       .from('members')
       .select('*')
       .order('created_at');
 
-    if (memberError) {
-      log.error('❌ Error fetching members:', memberError);
+    if (_memberError) {
+      log.error('❌ Error fetching members:', _memberError);
       return;
     }
 
@@ -60,20 +61,21 @@ async function completeSetup() {
     }
 
     // Insert subscriptions
-    const { data: createdSubs, error: subError } = await supabase
+    let createdSubs;
+    const { data: subsData, error: _subError } = await supabase
       .from('subscriptions')
       .insert(subscriptions)
       .select();
 
-    if (subError) {
-      log.error('❌ Error creating subscriptions:', subError);
+    if (_subError) {
+      log.error('❌ Error creating subscriptions:', _subError);
 
       // Try to get existing subscriptions if they already exist
-      const { data: existingSubs, error: fetchError } = await supabase
+      const { data: existingSubs, error: _fetchError } = await supabase
         .from('subscriptions')
         .select('*');
 
-      if (!fetchError && existingSubs && existingSubs.length > 0) {
+      if (!_fetchError && existingSubs && existingSubs.length > 0) {
         log.info(`✅ Using ${existingSubs.length} existing subscriptions`);
         createdSubs = existingSubs;
       } else {
@@ -81,6 +83,7 @@ async function completeSetup() {
         return;
       }
     } else {
+      createdSubs = subsData;
       log.info(`✅ Created ${createdSubs.length} subscriptions\n`);
     }
 
@@ -138,13 +141,13 @@ async function completeSetup() {
 
     for (let i = 0; i < payments.length; i += batchSize) {
       const batch = payments.slice(i, i + batchSize);
-      const { data: insertedPayments, error: paymentError } = await supabase
+      const { data: insertedPayments, error: _paymentError } = await supabase
         .from('payments')
         .insert(batch)
         .select();
 
-      if (paymentError) {
-        log.error(`❌ Error uploading batch ${Math.floor(i/batchSize) + 1}:`, paymentError.message);
+      if (_paymentError) {
+        log.error(`❌ Error uploading batch ${Math.floor(i/batchSize) + 1}:`, _paymentError.message);
       } else {
         successCount += insertedPayments.length;
         log.info(`✅ Uploaded batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(payments.length/batchSize)}`);
@@ -157,12 +160,12 @@ async function completeSetup() {
     log.info('📊 Step 4: Calculating statistics...');
 
     // Get all payments to calculate balances
-    const { data: allPayments, error: fetchError } = await supabase
+    const { data: allPayments, error: _fetchError2 } = await supabase
       .from('payments')
       .select('*')
       .eq('status', 'completed');
 
-    if (!fetchError && allPayments) {
+    if (!_fetchError2 && allPayments) {
       // Calculate balance for each member
       const memberBalances = {};
 
@@ -183,7 +186,7 @@ async function completeSetup() {
       let totalShortfall = 0;
       let totalCollected = 0;
 
-      Object.entries(memberBalances).forEach(([memberId, data]) => {
+      Object.entries(memberBalances).forEach(([_memberId, data]) => {
         totalCollected += data.total;
         if (data.total >= 3000) {
           sufficientCount++;

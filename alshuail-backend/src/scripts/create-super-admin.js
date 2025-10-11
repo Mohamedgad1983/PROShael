@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcrypt';
 import readline from 'readline';
+import { log } from '../utils/logger.js';
 
 dotenv.config();
 
@@ -54,7 +55,7 @@ async function createSuperAdmin() {
       log.info('User already exists, updating...\n');
 
       // Update existing user to super admin
-      const { data, error } = await supabase
+      const { data: _data, error } = await supabase
         .from('members')
         .update({
           full_name: fullName,
@@ -83,7 +84,7 @@ async function createSuperAdmin() {
       }
     } else {
       // Create new super admin
-      const { data, error } = await supabase
+      const { data: _data, error } = await supabase
         .from('members')
         .insert([{
           phone: phone,

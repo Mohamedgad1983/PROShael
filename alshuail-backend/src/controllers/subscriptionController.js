@@ -326,13 +326,13 @@ export const recordPayment = async (req, res) => {
     }
 
     // Get subscription
-    const { data: subscription, error: subError } = await supabase
+    const { data: subscription, error: _subError } = await supabase
       .from('subscriptions')
       .select('*')
       .eq('member_id', member_id)
       .single();
 
-    if (subError || !subscription) {
+    if (_subError || !subscription) {
       return res.status(404).json({
         success: false,
         message: 'لم يتم العثور على اشتراك لهذا العضو'
@@ -347,7 +347,7 @@ export const recordPayment = async (req, res) => {
       .single();
 
     // Start transaction: Record payment
-    const { data: payment, error: paymentError } = await supabase
+    const { data: payment, error: _paymentError } = await supabase
       .from('payments')
       .insert({
         subscription_id: subscription.id,
@@ -365,7 +365,7 @@ export const recordPayment = async (req, res) => {
       .select()
       .single();
 
-    if (paymentError) {throw paymentError;}
+    if (_paymentError) {throw _paymentError;}
 
     // Calculate new values
     const new_balance = (subscription.current_balance || 0) + amount;
@@ -374,7 +374,7 @@ export const recordPayment = async (req, res) => {
     next_payment_due.setMonth(next_payment_due.getMonth() + months_paid_ahead);
 
     // Update subscription
-    const { error: updateError } = await supabase
+    const { error: _updateError } = await supabase
       .from('subscriptions')
       .update({
         current_balance: new_balance,
@@ -387,17 +387,17 @@ export const recordPayment = async (req, res) => {
       })
       .eq('id', subscription.id);
 
-    if (updateError) {throw updateError;}
+    if (_updateError) {throw _updateError;}
 
     // Update member balance
-    const { error: memberUpdateError } = await supabase
+    const { error: _memberUpdateError } = await supabase
       .from('members')
       .update({
         balance: new_balance
       })
       .eq('id', member_id);
 
-    if (memberUpdateError) {throw memberUpdateError;}
+    if (_memberUpdateError) {throw _memberUpdateError;}
 
     // Create notification
     if (member?.user_id) {

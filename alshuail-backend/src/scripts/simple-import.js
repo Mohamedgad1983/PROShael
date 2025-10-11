@@ -1,7 +1,8 @@
 import { supabase } from '../config/database.js';
 import XLSX from 'xlsx';
-import fs from 'fs';
+import _fs from 'fs';
 import path from 'path';
+import { log } from '../utils/logger.js';
 
 const simpleImport = async () => {
   log.info('🚀 Starting Simple Member Import...\n');
@@ -47,7 +48,8 @@ const simpleImport = async () => {
 
       try {
         // Insert or update member
-        const { data: member, error: memberError } = await supabase
+        let member;
+        const { data: memberData1, error: _memberError } = await supabase
           .from('members')
           .upsert(memberData, {
             onConflict: 'membership_number'
@@ -55,18 +57,20 @@ const simpleImport = async () => {
           .select()
           .single();
 
-        if (memberError) {
+        if (_memberError) {
           // Try insert without conflict resolution
-          const { data: newMember, error: insertError } = await supabase
+          const { data: newMember, error: _insertError } = await supabase
             .from('members')
             .insert(memberData)
             .select()
             .single();
 
-          if (insertError) {
-            throw insertError;
+          if (_insertError) {
+            throw _insertError;
           }
           member = newMember;
+        } else {
+          member = memberData1;
         }
 
         // Create payment records if member was successfully created

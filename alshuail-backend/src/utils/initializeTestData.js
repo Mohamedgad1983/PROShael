@@ -6,7 +6,7 @@ export async function initializeTestData() {
     log.info('🚀 Initializing test data...');
 
     // Create test members first
-    const { data: members, error: membersError } = await supabase
+    const { data: members, error: _membersError } = await supabase
       .from('members')
       .insert([
         {
@@ -26,8 +26,8 @@ export async function initializeTestData() {
       ])
       .select();
 
-    if (membersError && !membersError.message.includes('duplicate')) {
-      log.info('Members might already exist:', membersError.message);
+    if (_membersError && !_membersError.message.includes('duplicate')) {
+      log.info('Members might already exist:', _membersError.message);
     } else if (members) {
       log.info('✅ Test members created:', members.length);
     }
@@ -46,7 +46,7 @@ export async function initializeTestData() {
     const memberId2 = existingMembers[1]?.id || memberId1;
 
     // Create test occasions/events
-    const { data: events, error: eventsError } = await supabase
+    const { data: events, error: _eventsError } = await supabase
       .from('events')
       .insert([
         {
@@ -78,14 +78,14 @@ export async function initializeTestData() {
       ])
       .select();
 
-    if (eventsError && !eventsError.message.includes('duplicate')) {
-      log.info('Events creation error:', eventsError.message);
+    if (_eventsError && !_eventsError.message.includes('duplicate')) {
+      log.info('Events creation error:', _eventsError.message);
     } else if (events) {
       log.info('✅ Test events created:', events.length);
     }
 
     // Create test initiatives
-    const { data: activities, error: activitiesError } = await supabase
+    const { data: activities, error: _activitiesError } = await supabase
       .from('activities')
       .insert([
         {
@@ -111,14 +111,14 @@ export async function initializeTestData() {
       ])
       .select();
 
-    if (activitiesError && !activitiesError.message.includes('duplicate')) {
-      log.info('Activities creation error:', activitiesError.message);
+    if (_activitiesError && !_activitiesError.message.includes('duplicate')) {
+      log.info('Activities creation error:', _activitiesError.message);
     } else if (activities) {
       log.info('✅ Test activities created:', activities.length);
     }
 
     // Create test diyas
-    const { data: diyas, error: diyasError } = await supabase
+    const { data: diyas, error: _diyasError } = await supabase
       .from('diyas')
       .insert([
         {
@@ -142,14 +142,14 @@ export async function initializeTestData() {
       ])
       .select();
 
-    if (diyasError && !diyasError.message.includes('duplicate')) {
-      log.info('Diyas creation error:', diyasError.message);
+    if (_diyasError && !_diyasError.message.includes('duplicate')) {
+      log.info('Diyas creation error:', _diyasError.message);
     } else if (diyas) {
       log.info('✅ Test diyas created:', diyas.length);
     }
 
     // Create test notifications
-    const { data: notifications, error: notificationsError } = await supabase
+    const { data: notifications, error: _notificationsError } = await supabase
       .from('notifications')
       .insert([
         {
@@ -169,8 +169,8 @@ export async function initializeTestData() {
       ])
       .select();
 
-    if (notificationsError && !notificationsError.message.includes('duplicate')) {
-      log.info('Notifications creation error:', notificationsError.message);
+    if (_notificationsError && !_notificationsError.message.includes('duplicate')) {
+      log.info('Notifications creation error:', _notificationsError.message);
     } else if (notifications) {
       log.info('✅ Test notifications created:', notifications.length);
     }

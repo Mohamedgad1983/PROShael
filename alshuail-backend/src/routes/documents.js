@@ -261,13 +261,13 @@ router.delete('/:documentId', authenticateToken, async (req, res) => {
     const { documentId } = req.params;
 
     // Get document details
-    const { data: document, error: fetchError } = await supabase
+    const { data: document, error: _fetchError } = await supabase
       .from('documents_metadata')
       .select('*')
       .eq('id', documentId)
       .single();
 
-    if (fetchError || !document) {
+    if (_fetchError || !document) {
       return res.status(404).json({
         success: false,
         message: 'المستند غير موجود',
@@ -285,12 +285,12 @@ router.delete('/:documentId', authenticateToken, async (req, res) => {
     }
 
     // Soft delete in database
-    const { error: updateError } = await supabase
+    const { error: _updateError } = await supabase
       .from('documents_metadata')
       .update({ status: 'deleted', deleted_at: new Date().toISOString() })
       .eq('id', documentId);
 
-    if (updateError) {throw updateError;}
+    if (_updateError) {throw _updateError;}
 
     // Delete from storage
     await deleteFromSupabase(document.file_path);

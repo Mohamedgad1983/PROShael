@@ -164,13 +164,13 @@ export const createOccasion = async (req, res) => {
 
     // Validate organizer exists if provided
     if (organizer) {
-      const { data: organizerData, error: organizerError } = await supabase
+      const { data: organizerData, error: _organizerError } = await supabase
         .from('members')
         .select('id')
         .eq('id', organizer)
         .single();
 
-      if (organizerError || !organizerData) {
+      if (_organizerError || !organizerData) {
         return res.status(400).json({
           success: false,
           error: 'المنظم المحدد غير موجود'
@@ -239,13 +239,13 @@ export const updateRSVP = async (req, res) => {
     }
 
     // Check if occasion exists
-    const { data: occasion, error: occasionError } = await supabase
+    const { data: occasion, error: _occasionError } = await supabase
       .from('events')
       .select('id, max_attendees, current_attendees, status')
       .eq('id', id)
       .single();
 
-    if (occasionError || !occasion) {
+    if (_occasionError || !occasion) {
       return res.status(404).json({
         success: false,
         error: 'المناسبة غير موجودة'
@@ -260,13 +260,13 @@ export const updateRSVP = async (req, res) => {
     }
 
     // Check if member exists
-    const { data: member, error: memberError } = await supabase
+    const { data: member, error: _memberError } = await supabase
       .from('members')
       .select('id')
       .eq('id', member_id)
       .single();
 
-    if (memberError || !member) {
+    if (_memberError || !member) {
       return res.status(400).json({
         success: false,
         error: 'العضو المحدد غير موجود'
@@ -295,7 +295,7 @@ export const updateRSVP = async (req, res) => {
 
     if (existingRsvp) {
       // Update existing RSVP
-      const { data: updatedRsvp, error: updateError } = await supabase
+      const { data: updatedRsvp, error: _updateError } = await supabase
         .from('event_rsvps')
         .update({
           status,
@@ -306,7 +306,7 @@ export const updateRSVP = async (req, res) => {
         .select('*')
         .single();
 
-      if (updateError) {throw updateError;}
+      if (_updateError) {throw _updateError;}
       rsvpResult = updatedRsvp;
 
       // Calculate attendee change
@@ -317,7 +317,7 @@ export const updateRSVP = async (req, res) => {
       }
     } else {
       // Create new RSVP
-      const { data: newRsvp, error: createError } = await supabase
+      const { data: newRsvp, error: _createError } = await supabase
         .from('event_rsvps')
         .insert([{
           event_id: id,
@@ -329,7 +329,7 @@ export const updateRSVP = async (req, res) => {
         .select('*')
         .single();
 
-      if (createError) {throw createError;}
+      if (_createError) {throw _createError;}
       rsvpResult = newRsvp;
 
       // Calculate attendee change
@@ -340,7 +340,7 @@ export const updateRSVP = async (req, res) => {
 
     // Update current attendees count if needed
     if (attendeeChange !== 0) {
-      const { error: updateAttendeeError } = await supabase
+      const { error: _updateAttendeeError } = await supabase
         .from('events')
         .update({
           current_attendees: Math.max(0, occasion.current_attendees + attendeeChange),
@@ -348,7 +348,7 @@ export const updateRSVP = async (req, res) => {
         })
         .eq('id', id);
 
-      if (updateAttendeeError) {throw updateAttendeeError;}
+      if (_updateAttendeeError) {throw _updateAttendeeError;}
     }
 
     res.json({
@@ -386,13 +386,13 @@ export const updateOccasion = async (req, res) => {
     } = req.body;
 
     // Check if occasion exists
-    const { data: existingOccasion, error: checkError } = await supabase
+    const { data: existingOccasion, error: _checkError } = await supabase
       .from('events')
       .select('*')
       .eq('id', id)
       .single();
 
-    if (checkError || !existingOccasion) {
+    if (_checkError || !existingOccasion) {
       return res.status(404).json({
         success: false,
         error: 'المناسبة غير موجودة'
@@ -460,13 +460,13 @@ export const deleteOccasion = async (req, res) => {
     const { id } = req.params;
 
     // Check if occasion exists
-    const { data: existingOccasion, error: checkError } = await supabase
+    const { data: existingOccasion, error: _checkError } = await supabase
       .from('events')
       .select('*')
       .eq('id', id)
       .single();
 
-    if (checkError || !existingOccasion) {
+    if (_checkError || !existingOccasion) {
       return res.status(404).json({
         success: false,
         error: 'المناسبة غير موجودة'
@@ -502,29 +502,29 @@ export const deleteOccasion = async (req, res) => {
 export const getOccasionStats = async (req, res) => {
   try {
     // Get total occasions
-    const { count: totalOccasions, error: totalError } = await supabase
+    const { count: totalOccasions, error: _totalError } = await supabase
       .from('events')
       .select('*', { count: 'exact', head: true });
 
-    if (totalError) {throw totalError;}
+    if (_totalError) {throw _totalError;}
 
     // Get upcoming occasions
     const today = new Date().toISOString().split('T')[0];
-    const { count: upcomingOccasions, error: upcomingError } = await supabase
+    const { count: upcomingOccasions, error: _upcomingError } = await supabase
       .from('events')
       .select('*', { count: 'exact', head: true })
       .eq('status', 'active')
       .gte('event_date', today);
 
-    if (upcomingError) {throw upcomingError;}
+    if (_upcomingError) {throw _upcomingError;}
 
     // Get occasions by status
-    const { data: statusData, error: statusError } = await supabase
+    const { data: statusData, error: _statusError } = await supabase
       .from('events')
       .select('status')
       .not('status', 'is', null);
 
-    if (statusError) {throw statusError;}
+    if (_statusError) {throw _statusError;}
 
     const statusStats = statusData?.reduce((acc, item) => {
       acc[item.status] = (acc[item.status] || 0) + 1;
@@ -532,18 +532,18 @@ export const getOccasionStats = async (req, res) => {
     }, {}) || {};
 
     // Get total RSVPs
-    const { count: totalRsvps, error: rsvpError } = await supabase
+    const { count: totalRsvps, error: _rsvpError } = await supabase
       .from('event_rsvps')
       .select('*', { count: 'exact', head: true });
 
-    if (rsvpError) {throw rsvpError;}
+    if (_rsvpError) {throw _rsvpError;}
 
     // Get RSVPs by status
-    const { data: rsvpStatusData, error: rsvpStatusError } = await supabase
+    const { data: rsvpStatusData, error: _rsvpStatusError } = await supabase
       .from('event_rsvps')
       .select('status');
 
-    if (rsvpStatusError) {throw rsvpStatusError;}
+    if (_rsvpStatusError) {throw _rsvpStatusError;}
 
     const rsvpStatusStats = rsvpStatusData?.reduce((acc, item) => {
       acc[item.status] = (acc[item.status] || 0) + 1;

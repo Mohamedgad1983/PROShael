@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import { log } from '../utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -130,12 +131,12 @@ async function uploadMembers(excelData) {
 
   // Upload members
   log.info(`📤 Uploading ${members.length} members...`);
-  const { data: memberData, error: memberError } = await supabase
+  const { data: _memberData, error: _memberError } = await supabase
     .from('members')
     .upsert(members, { onConflict: 'member_id' });
 
-  if (memberError) {
-    log.error('❌ Error uploading members:', memberError);
+  if (_memberError) {
+    log.error('❌ Error uploading members:', _memberError);
   } else {
     log.info('✅ Members uploaded successfully');
   }
@@ -143,12 +144,12 @@ async function uploadMembers(excelData) {
   // Upload payments
   if (payments.length > 0) {
     log.info(`📤 Uploading ${payments.length} payment records...`);
-    const { data: paymentData, error: paymentError } = await supabase
+    const { data: _paymentData, error: _paymentError } = await supabase
       .from('payments')
       .upsert(payments, { onConflict: 'member_id,year' });
 
-    if (paymentError) {
-      log.error('❌ Error uploading payments:', paymentError);
+    if (_paymentError) {
+      log.error('❌ Error uploading payments:', _paymentError);
     } else {
       log.info('✅ Payments uploaded successfully');
     }
@@ -156,12 +157,12 @@ async function uploadMembers(excelData) {
 
   // Upload balance summaries
   log.info(`📤 Uploading ${balances.length} balance records...`);
-  const { data: balanceData, error: balanceError } = await supabase
+  const { data: _balanceData, error: _balanceError } = await supabase
     .from('member_balances')
     .upsert(balances, { onConflict: 'member_id' });
 
-  if (balanceError) {
-    log.error('❌ Error uploading balances:', balanceError);
+  if (_balanceError) {
+    log.error('❌ Error uploading balances:', _balanceError);
   } else {
     log.info('✅ Balances uploaded successfully');
   }
@@ -183,7 +184,7 @@ async function uploadMembers(excelData) {
 }
 
 // Function to create views for easy access
-async function createDatabaseViews() {
+function createDatabaseViews() {
   log.info('\n📌 Step 4: Creating database views...');
 
   // This would typically be done in Supabase SQL editor
@@ -211,7 +212,7 @@ GROUP BY m.member_id, m.full_name, m.phone, mb.total_balance, mb.status, mb.shor
 }
 
 // Function to set up real-time subscriptions
-async function setupRealtimeSubscriptions() {
+function setupRealtimeSubscriptions() {
   log.info('\n📌 Step 5: Setting up real-time subscriptions...');
   log.info('✅ Real-time updates will be handled by the frontend components');
 }
@@ -230,13 +231,13 @@ async function main() {
     }
 
     // Upload data
-    const result = await uploadMembers(excelData);
+    const _result = await uploadMembers(excelData);
 
     // Create views
-    await createDatabaseViews();
+    createDatabaseViews();
 
     // Set up real-time
-    await setupRealtimeSubscriptions();
+    setupRealtimeSubscriptions();
 
     log.info('\n✅ Data upload completed successfully!');
     log.info('=====================================');

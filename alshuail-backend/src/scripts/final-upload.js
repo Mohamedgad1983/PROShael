@@ -1,9 +1,10 @@
 import XLSX from 'xlsx';
 import { createClient } from '@supabase/supabase-js';
-import fs from 'fs';
+import _fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+import { log } from '../utils/logger.js';
 
 dotenv.config();
 
@@ -130,18 +131,18 @@ async function finalUpload() {
     if (payments.length > 0) {
       const batchSize = 5;
       let successCount = 0;
-      let errorCount = 0;
+      let _errorCount = 0;
 
       for (let i = 0; i < payments.length; i += batchSize) {
         const batch = payments.slice(i, i + batchSize);
 
-        const { data, error } = await supabase
+        const { data: _data, error } = await supabase
           .from('payments')
           .insert(batch)
           .select();
 
         if (error) {
-          errorCount++;
+          _errorCount++;
           log.error(`❌ Batch ${Math.floor(i/batchSize) + 1} failed:`, error.message);
 
           // If first batch fails, show sample payment structure for debugging
@@ -149,9 +150,9 @@ async function finalUpload() {
             log.info('\nSample payment being sent:');
             log.info(JSON.stringify(batch[0], null, 2));
           }
-        } else if (data) {
-          successCount += data.length;
-          log.info(`✅ Batch ${Math.floor(i/batchSize) + 1}: Uploaded ${data.length} payments`);
+        } else if (_data) {
+          successCount += _data.length;
+          log.info(`✅ Batch ${Math.floor(i/batchSize) + 1}: Uploaded ${_data.length} payments`);
         }
       }
 

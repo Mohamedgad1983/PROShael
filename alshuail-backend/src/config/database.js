@@ -1,19 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
-import dotenv from 'dotenv';
 import { log } from '../utils/logger.js';
+import { config } from './env.js';
 
-dotenv.config();
-
-const supabaseUrl = process.env.SUPABASE_URL || 'https://oneiggrfzagqjbkdinin.supabase.co';
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9uZWlnZ3JmemFncWpia2RpbmluIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NDczNzkwMywiZXhwIjoyMDcwMzEzOTAzfQ.rBZIRsifsQiR3j5OgViWLjaBi_W8Jp0gD7HPf9fS5vI';
-
-// Log warning if using defaults
-if (!process.env.SUPABASE_URL) {
-  log.warn('SUPABASE_URL not set, using default');
-}
-if (!process.env.SUPABASE_SERVICE_KEY) {
-  log.warn('SUPABASE_SERVICE_KEY not set, using default');
-}
+// Use centralized configuration
+const supabaseUrl = config.supabase.url;
+const supabaseServiceKey = config.supabase.serviceKey;
 
 export const supabase = createClient(supabaseUrl, supabaseServiceKey, {
   auth: {
@@ -24,7 +15,7 @@ export const supabase = createClient(supabaseUrl, supabaseServiceKey, {
 
 export const testConnection = async () => {
   try {
-    const { data, error } = await supabase
+    const { data: _data, error } = await supabase
       .from('members')
       .select('*')
       .limit(1);
@@ -45,7 +36,7 @@ export const testConnection = async () => {
 
 async function createTablesIfNotExist() {
   try {
-    const { error: membersError } = await supabase.rpc('create_members_table_if_not_exists', {
+    const { error: _membersError } = await supabase.rpc('create_members_table_if_not_exists', {
       definition: `
         CREATE TABLE IF NOT EXISTS members (
           id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -62,7 +53,7 @@ async function createTablesIfNotExist() {
       `
     }).single();
 
-    const { error: paymentsError } = await supabase.rpc('create_payments_table_if_not_exists', {
+    const { error: _paymentsError } = await supabase.rpc('create_payments_table_if_not_exists', {
       definition: `
         CREATE TABLE IF NOT EXISTS payments (
           id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -81,7 +72,7 @@ async function createTablesIfNotExist() {
       `
     }).single();
 
-    const { error: subscriptionsError } = await supabase.rpc('create_subscriptions_table_if_not_exists', {
+    const { error: _subscriptionsError } = await supabase.rpc('create_subscriptions_table_if_not_exists', {
       definition: `
         CREATE TABLE IF NOT EXISTS subscriptions (
           id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -99,7 +90,7 @@ async function createTablesIfNotExist() {
     }).single();
 
     // Events table for occasions
-    const { error: eventsError } = await supabase.rpc('create_events_table_if_not_exists', {
+    const { error: _eventsError } = await supabase.rpc('create_events_table_if_not_exists', {
       definition: `
         CREATE TABLE IF NOT EXISTS events (
           id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -123,7 +114,7 @@ async function createTablesIfNotExist() {
     }).single();
 
     // Event RSVPs table
-    const { error: rsvpsError } = await supabase.rpc('create_rsvps_table_if_not_exists', {
+    const { error: _rsvpsError } = await supabase.rpc('create_rsvps_table_if_not_exists', {
       definition: `
         CREATE TABLE IF NOT EXISTS event_rsvps (
           id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -138,7 +129,7 @@ async function createTablesIfNotExist() {
     }).single();
 
     // Activities table for initiatives
-    const { error: activitiesError } = await supabase.rpc('create_activities_table_if_not_exists', {
+    const { error: _activitiesError } = await supabase.rpc('create_activities_table_if_not_exists', {
       definition: `
         CREATE TABLE IF NOT EXISTS activities (
           id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -158,7 +149,7 @@ async function createTablesIfNotExist() {
     }).single();
 
     // Activity contributions table
-    const { error: contributionsError } = await supabase.rpc('create_contributions_table_if_not_exists', {
+    const { error: _contributionsError } = await supabase.rpc('create_contributions_table_if_not_exists', {
       definition: `
         CREATE TABLE IF NOT EXISTS activity_contributions (
           id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -175,7 +166,7 @@ async function createTablesIfNotExist() {
     }).single();
 
     // Diyas table
-    const { error: diyasError } = await supabase.rpc('create_diyas_table_if_not_exists', {
+    const { error: _diyasError } = await supabase.rpc('create_diyas_table_if_not_exists', {
       definition: `
         CREATE TABLE IF NOT EXISTS diyas (
           id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -195,7 +186,7 @@ async function createTablesIfNotExist() {
     }).single();
 
     // Notifications table
-    const { error: notificationsError } = await supabase.rpc('create_notifications_table_if_not_exists', {
+    const { error: _notificationsError } = await supabase.rpc('create_notifications_table_if_not_exists', {
       definition: `
         CREATE TABLE IF NOT EXISTS notifications (
           id UUID DEFAULT gen_random_uuid() PRIMARY KEY,

@@ -10,6 +10,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import chalk from 'chalk';
+import { log } from '../utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -88,7 +89,7 @@ class PreCommitScanner {
     this.filesScanned = 0;
   }
 
-  async scan() {
+  scan() {
     log.info(chalk.blue.bold('\n🔒 Pre-commit Security Check\n'));
 
     const stagedFiles = this.getStagedFiles();
@@ -102,7 +103,7 @@ class PreCommitScanner {
 
     for (const file of stagedFiles) {
       if (this.shouldScanFile(file)) {
-        await this.scanFile(file);
+        this.scanFile(file);
       }
     }
 
@@ -146,7 +147,7 @@ class PreCommitScanner {
     return true;
   }
 
-  async scanFile(filePath) {
+  scanFile(filePath) {
     try {
       this.filesScanned++;
 
@@ -154,7 +155,7 @@ class PreCommitScanner {
       const stagedContent = this.getStagedContent(filePath);
       const lines = stagedContent.split('\n');
 
-      for (const [key, config] of Object.entries(SECURITY_PATTERNS)) {
+      for (const [_key, config] of Object.entries(SECURITY_PATTERNS)) {
         const matches = [...stagedContent.matchAll(config.pattern)];
 
         if (matches.length > 0) {
@@ -298,9 +299,9 @@ class PreCommitScanner {
 }
 
 // Main execution
-async function main() {
+function main() {
   const scanner = new PreCommitScanner();
-  const isClean = await scanner.scan();
+  const isClean = scanner.scan();
 
   if (!isClean) {
     log.info(chalk.red('Use --no-verify to bypass this check (NOT RECOMMENDED)\n'));
@@ -312,10 +313,12 @@ async function main() {
 
 // Run if called directly
 if (import.meta.url === `file://${__filename}`) {
-  main().catch(error => {
+  try {
+    main();
+  } catch (error) {
     log.error(chalk.red(`Fatal error: ${error.message}`));
     process.exit(1);
-  });
+  }
 }
 
 export default PreCommitScanner;

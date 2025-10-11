@@ -6,7 +6,7 @@ export const getMemberProfile = async (req, res) => {
   try {
     const memberId = req.user.id;
 
-    const { data, error } = await supabase
+    const { data: _data, error } = await supabase
       .from('members')
       .select('*')
       .eq('id', memberId)
@@ -17,11 +17,11 @@ export const getMemberProfile = async (req, res) => {
       return res.status(500).json({ message: 'خطأ في جلب البيانات' });
     }
 
-    if (!data) {
+    if (!_data) {
       return res.status(404).json({ message: 'العضو غير موجود' });
     }
 
-    res.json(data);
+    res.json(_data);
   } catch (error) {
     log.error('Error in getMemberProfile', { error: error.message });
     res.status(500).json({ message: 'خطأ في الخادم' });
@@ -100,14 +100,14 @@ export const getMemberPayments = async (req, res) => {
                    .lte('date', endDate.toISOString());
     }
 
-    const { data, error } = await query;
+    const { data: _data, error } = await query;
 
     if (error) {
       log.error('Error fetching payments', { error: error.message });
       return res.status(500).json({ message: 'خطأ في جلب البيانات' });
     }
 
-    res.json(data || []);
+    res.json(_data || []);
   } catch (error) {
     log.error('Error in getMemberPayments', { error: error.message });
     res.status(500).json({ message: 'خطأ في الخادم' });
@@ -136,7 +136,7 @@ export const createPayment = async (req, res) => {
       on_behalf_of: on_behalf_of || null
     };
 
-    const { data, error } = await supabase
+    const { data: _data, error } = await supabase
       .from('payments')
       .insert([paymentData])
       .select()
@@ -149,7 +149,7 @@ export const createPayment = async (req, res) => {
 
     res.status(201).json({
       message: 'تم إرسال الدفعة بنجاح',
-      payment: data
+      payment: _data
     });
   } catch (error) {
     log.error('Error in createPayment', { error: error.message });
@@ -168,7 +168,7 @@ export const searchMembers = async (req, res) => {
     }
 
     // Search by name, phone, or membership number
-    const { data, error } = await supabase
+    const { data: _data, error } = await supabase
       .from('members')
       .select('id, full_name, membership_number, phone, tribal_section')
       .neq('id', currentUserId) // Exclude current user
@@ -180,7 +180,7 @@ export const searchMembers = async (req, res) => {
       return res.status(500).json({ message: 'خطأ في البحث' });
     }
 
-    res.json(data || []);
+    res.json(_data || []);
   } catch (error) {
     log.error('Error in searchMembers', { error: error.message });
     res.status(500).json({ message: 'خطأ في الخادم' });
@@ -204,7 +204,7 @@ export const getMemberNotifications = async (req, res) => {
       query = query.eq('type', type);
     }
 
-    const { data, error } = await query;
+    const { data: _data, error } = await query;
 
     if (error) {
       log.error('Error fetching notifications', { error: error.message });
@@ -219,7 +219,7 @@ export const getMemberNotifications = async (req, res) => {
 
     const readIds = new Set(readNotifications?.map(r => r.notification_id) || []);
 
-    const notificationsWithReadStatus = (data || []).map(notification => ({
+    const notificationsWithReadStatus = (_data || []).map(notification => ({
       ...notification,
       is_read: readIds.has(notification.id)
     }));
@@ -321,7 +321,7 @@ export const uploadReceipt = async (req, res) => {
     const fileName = `receipts/${memberId}/${Date.now()}-${file.originalname}`;
 
     // Upload to Supabase Storage
-    const { data, error } = await supabase.storage
+    const { data: _data, error } = await supabase.storage
       .from('receipts')
       .upload(fileName, file.buffer, {
         contentType: file.mimetype,

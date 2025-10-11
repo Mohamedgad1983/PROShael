@@ -331,24 +331,24 @@ export const checkSuspiciousActivity = async (userId) => {
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
     // Check for excessive failed attempts
-    const { data: failedAttempts, error: failedError } = await supabase
+    const { data: failedAttempts, error: _failedError } = await supabase
       .from('financial_access_logs')
       .select('*')
       .eq('user_id', userId)
       .eq('access_result', 'DENIED')
       .gte('timestamp', oneHourAgo);
 
-    if (failedError) {throw failedError;}
+    if (_failedError) {throw _failedError;}
 
     // Check for unusual patterns
-    const { data: recentActivity, error: activityError } = await supabase
+    const { data: recentActivity, error: _activityError } = await supabase
       .from('financial_access_logs')
       .select('*')
       .eq('user_id', userId)
       .gte('timestamp', oneHourAgo)
       .order('timestamp', { ascending: false });
 
-    if (activityError) {throw activityError;}
+    if (_activityError) {throw _activityError;}
 
     const isSuspicious = (failedAttempts?.length || 0) > 5 ||
                         (recentActivity?.length || 0) > 50;

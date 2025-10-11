@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcrypt';
+import { log } from '../utils/logger.js';
 
 dotenv.config();
 

@@ -6,7 +6,7 @@ import { log } from '../utils/logger.js';
 const validatePhone = (phone) => {
   const saudiRegex = /^(05|5)(5|0|3|6|4|9|1|8|7)[0-9]{7}$/;
   const kuwaitRegex = /^(9|6|5)[0-9]{7}$/;
-  const cleaned = phone.replace(/[\s\-\+]/g, '');
+  const cleaned = phone.replace(/[\s\-+]/g, '');
   return saudiRegex.test(cleaned) || kuwaitRegex.test(cleaned);
 };
 
@@ -39,13 +39,13 @@ export const searchByPhone = async (req, res) => {
     }
 
     // Use materialized view for instant results
-    const { data, error } = await supabase
+    const { data: _data, error } = await supabase
       .from('member_statement_view')
       .select('*')
       .eq('phone', phone)
       .single();
 
-    if (error || !data) {
+    if (error || !_data) {
       return res.status(404).json({
         success: false,
         error: 'لم يتم العثور على عضو بهذا الرقم'
@@ -54,22 +54,22 @@ export const searchByPhone = async (req, res) => {
 
     // Format the response
     const statement = {
-      memberId: data.membership_number,
-      fullName: data.full_name,
-      phone: data.phone,
-      email: data.email,
-      memberSince: data.member_since,
-      currentBalance: data.current_balance,
+      memberId: _data.membership_number,
+      fullName: _data.full_name,
+      phone: _data.phone,
+      email: _data.email,
+      memberSince: _data.member_since,
+      currentBalance: _data.current_balance,
       targetBalance: 3000,
-      shortfall: data.shortfall,
-      percentageComplete: data.percentage_complete,
-      alertLevel: data.alert_level,
-      statusColor: data.status_color,
-      alertMessage: getAlertMessage(data.alert_level, data.shortfall),
-      recentTransactions: data.recent_transactions || [],
+      shortfall: _data.shortfall,
+      percentageComplete: _data.percentage_complete,
+      alertLevel: _data.alert_level,
+      statusColor: _data.status_color,
+      alertMessage: getAlertMessage(_data.alert_level, _data.shortfall),
+      recentTransactions: _data.recent_transactions || [],
       statistics: {
-        totalPayments: data.total_payments || 0,
-        lastPaymentDate: data.last_payment_date,
+        totalPayments: _data.total_payments || 0,
+        lastPaymentDate: _data.last_payment_date,
         currentYear: new Date().getFullYear()
       }
     };
@@ -103,7 +103,7 @@ export const searchByName = async (req, res) => {
     const normalizedName = normalizeArabic(name);
 
     // Use materialized view for fast search
-    const { data, error } = await supabase
+    const { data: _data, error } = await supabase
       .from('member_statement_view')
       .select('*')
       .ilike('full_name', `%${normalizedName}%`)
@@ -113,7 +113,7 @@ export const searchByName = async (req, res) => {
       throw error;
     }
 
-    if (!data || data.length === 0) {
+    if (!_data || _data.length === 0) {
       return res.status(404).json({
         success: false,
         error: 'لم يتم العثور على أعضاء بهذا الاسم'
@@ -121,7 +121,7 @@ export const searchByName = async (req, res) => {
     }
 
     // Format statements
-    const statements = data.map(member => ({
+    const statements = _data.map(member => ({
       memberId: member.membership_number,
       fullName: member.full_name,
       phone: member.phone,
@@ -160,13 +160,13 @@ export const searchByMemberId = async (req, res) => {
     }
 
     // Use materialized view
-    const { data, error } = await supabase
+    const { data: _data, error } = await supabase
       .from('member_statement_view')
       .select('*')
       .eq('membership_number', memberId)
       .single();
 
-    if (error || !data) {
+    if (error || !_data) {
       return res.status(404).json({
         success: false,
         error: 'لم يتم العثور على عضو بهذا الرقم'
@@ -175,22 +175,22 @@ export const searchByMemberId = async (req, res) => {
 
     // Format the response
     const statement = {
-      memberId: data.membership_number,
-      fullName: data.full_name,
-      phone: data.phone,
-      email: data.email,
-      memberSince: data.member_since,
-      currentBalance: data.current_balance,
+      memberId: _data.membership_number,
+      fullName: _data.full_name,
+      phone: _data.phone,
+      email: _data.email,
+      memberSince: _data.member_since,
+      currentBalance: _data.current_balance,
       targetBalance: 3000,
-      shortfall: data.shortfall,
-      percentageComplete: data.percentage_complete,
-      alertLevel: data.alert_level,
-      statusColor: data.status_color,
-      alertMessage: getAlertMessage(data.alert_level, data.shortfall),
-      recentTransactions: data.recent_transactions || [],
+      shortfall: _data.shortfall,
+      percentageComplete: _data.percentage_complete,
+      alertLevel: _data.alert_level,
+      statusColor: _data.status_color,
+      alertMessage: getAlertMessage(_data.alert_level, _data.shortfall),
+      recentTransactions: _data.recent_transactions || [],
       statistics: {
-        totalPayments: data.total_payments || 0,
-        lastPaymentDate: data.last_payment_date
+        totalPayments: _data.total_payments || 0,
+        lastPaymentDate: _data.last_payment_date
       }
     };
 
@@ -212,7 +212,7 @@ export const searchByMemberId = async (req, res) => {
 export const getDashboardStatistics = async (req, res) => {
   try {
     // Call the database function
-    const { data, error } = await supabase
+    const { data: _data, error } = await supabase
       .rpc('get_dashboard_stats');
 
     if (error) {
@@ -221,7 +221,7 @@ export const getDashboardStatistics = async (req, res) => {
 
     res.json({
       success: true,
-      data: data[0] // Function returns array with one row
+      data: _data[0] // Function returns array with one row
     });
 
   } catch (error) {
@@ -239,7 +239,7 @@ export const getCriticalMembers = async (req, res) => {
     const limit = parseInt(req.query.limit) || 50;
 
     // Use the critical members view
-    const { data, error } = await supabase
+    const { data: _data, error } = await supabase
       .from('critical_members_view')
       .select('*')
       .limit(limit);
@@ -250,8 +250,8 @@ export const getCriticalMembers = async (req, res) => {
 
     res.json({
       success: true,
-      data: data || [],
-      count: data?.length || 0
+      data: _data || [],
+      count: _data?.length || 0
     });
 
   } catch (error) {
@@ -267,7 +267,7 @@ export const getCriticalMembers = async (req, res) => {
 export const refreshViews = async (req, res) => {
   try {
     // Call the refresh function
-    const { data, error } = await supabase
+    const { data: _data, error } = await supabase
       .rpc('refresh_all_views');
 
     if (error) {
@@ -277,7 +277,7 @@ export const refreshViews = async (req, res) => {
     res.json({
       success: true,
       message: 'تم تحديث البيانات بنجاح',
-      details: data
+      details: _data
     });
 
   } catch (error) {

@@ -17,7 +17,7 @@ const router = express.Router();
  * Authentication middleware to verify JWT token and attach user to request
  * Checks for Bearer token in Authorization header
  */
-const authenticateUser = async (req, res, next) => {
+const authenticateUser = (req, res, next) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
 

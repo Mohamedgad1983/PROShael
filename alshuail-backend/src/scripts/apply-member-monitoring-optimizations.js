@@ -5,7 +5,7 @@
 
 import { supabase } from '../config/database.js';
 import { log } from '../utils/logger.js';
-import fs from 'fs';
+import _fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -193,18 +193,18 @@ async function applyOptimizations() {
     const startTime = Date.now();
 
     // Test query with filters
-    const { data: testData, error: testError } = await supabase
+    const { data: testData, error: _testError } = await supabase
       .from('members')
       .select('*', { count: 'exact' })
       .limit(50);
 
     const queryTime = Date.now() - startTime;
 
-    if (!testError) {
+    if (!_testError) {
       log.info(`  ✅ Test query successful in ${queryTime}ms`);
       log.info(`  📊 Found ${testData.length} members`);
     } else {
-      log.info(`  ❌ Test query failed: ${testError.message}`);
+      log.info(`  ❌ Test query failed: ${_testError.message}`);
     }
 
     // 7. Get statistics
@@ -237,8 +237,8 @@ async function performanceTest() {
   const tests = [
     {
       name: 'Simple member fetch',
-      query: async () => {
-        return await supabase
+      query: () => {
+        return supabase
           .from('members')
           .select('*')
           .limit(50);
@@ -253,7 +253,7 @@ async function performanceTest() {
           .limit(10);
 
         if (members && members.length > 0) {
-          const { data: payments } = await supabase
+          const { data: _payments } = await supabase
             .from('payments')
             .select('amount')
             .eq('payer_id', members[0].id)
@@ -263,8 +263,8 @@ async function performanceTest() {
     },
     {
       name: 'Text search (Arabic)',
-      query: async () => {
-        return await supabase
+      query: () => {
+        return supabase
           .from('members')
           .select('*')
           .ilike('full_name', '%محمد%')

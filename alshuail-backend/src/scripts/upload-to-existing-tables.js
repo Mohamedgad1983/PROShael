@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import { log } from '../utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -76,23 +77,23 @@ async function uploadData() {
     }
 
     // Upload members
-    const { data: uploadedMembers, error: memberError } = await supabase
+    const { data: uploadedMembers, error: _memberError } = await supabase
       .from('members')
       .insert(membersToUpload)
       .select();
 
-    if (memberError) {
-      log.error('❌ Error uploading members:', memberError.message);
+    if (_memberError) {
+      log.error('❌ Error uploading members:', _memberError.message);
       log.info('\nTrying upsert instead...');
 
       // Try upsert if insert fails
-      const { data: upsertedMembers, error: upsertError } = await supabase
+      const { data: upsertedMembers, error: _upsertError } = await supabase
         .from('members')
         .upsert(membersToUpload, { onConflict: 'membership_number' })
         .select();
 
-      if (upsertError) {
-        log.error('❌ Upsert also failed:', upsertError.message);
+      if (_upsertError) {
+        log.error('❌ Upsert also failed:', _upsertError.message);
       } else {
         log.info(`✅ Successfully upserted ${upsertedMembers?.length || 0} members`);
       }
@@ -122,13 +123,13 @@ async function uploadData() {
         });
       }
 
-      const { data: payments, error: paymentError } = await supabase
+      const { data: payments, error: _paymentError } = await supabase
         .from('payments')
         .insert(paymentsToAdd)
         .select();
 
-      if (paymentError) {
-        log.error('❌ Error adding payments:', paymentError.message);
+      if (_paymentError) {
+        log.error('❌ Error adding payments:', _paymentError.message);
       } else {
         log.info(`✅ Added ${payments?.length || 0} sample payments`);
       }
