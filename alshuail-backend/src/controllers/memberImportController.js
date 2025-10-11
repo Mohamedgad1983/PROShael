@@ -1,5 +1,5 @@
 import { supabase } from '../config/database.js';
-import XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { log } from '../utils/logger.js';
@@ -107,11 +107,31 @@ export const importMembersFromExcel = async (req, res) => {
       });
     }
 
-    // Parse Excel file
-    const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+    // Parse Excel file with ExcelJS (secure alternative to xlsx)
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(req.file.buffer);
+    const worksheet = workbook.worksheets[0];
+
+    // Convert worksheet to JSON
+    const jsonData = [];
+    const headerRow = worksheet.getRow(1);
+    const headers = [];
+    headerRow.eachCell((cell, colNumber) => {
+      headers[colNumber] = cell.value;
+    });
+
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) {return;} // Skip header row
+      const rowData = {};
+      row.eachCell((cell, colNumber) => {
+        if (headers[colNumber]) {
+          rowData[headers[colNumber]] = cell.value;
+        }
+      });
+      if (Object.keys(rowData).length > 0) {
+        jsonData.push(rowData);
+      }
+    });
 
     if (!jsonData || jsonData.length === 0) {
       return res.status(400).json({
