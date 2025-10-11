@@ -55,4 +55,11 @@ export default {
 
   // Setup files
   setupFilesAfterEnv: ['<rootDir>/__tests__/setup.js'],
+
+  // Module name mapper for mocking
+  moduleNameMapper: {
+    '^../utils/accessControl.js$': '<rootDir>/__tests__/__mocks__/accessControlMocks.js',
+    '^../../utils/accessControl.js$': '<rootDir>/__tests__/__mocks__/accessControlMocks.js',
+    '^../../../utils/accessControl.js$': '<rootDir>/__tests__/__mocks__/accessControlMocks.js'
+  },
 };
