@@ -91,5 +91,5 @@ export default defineConfig({
   publicDir: 'public',
 
   // Base path for deployment
-  base: '/Mobile/',
+  base: '/',
 });
