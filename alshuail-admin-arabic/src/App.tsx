@@ -245,6 +245,11 @@ const App: React.FC = () => {
     console.log('🚀 App rendered, current path:', window.location.pathname);
   }, []);
 
+  // If accessing standalone Mobile PWA (not React mobile routes), don't render React app
+  if (window.location.pathname.startsWith('/Mobile/')) {
+    return null; // Let the static HTML files be served
+  }
+
   return (
     <AuthProvider>
       <RoleProvider>
