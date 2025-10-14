@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>لوحة التحكم - آل الشعيل</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/src/styles/variables.css">
+  <link rel="stylesheet" href="/src/styles/components.css">
+  <link rel="stylesheet" href="/src/styles/rtl-enhancements.css">
+  <link rel="stylesheet" href="/src/pages/dashboard.css">
+
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#667eea">
+  <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+</head>
+<body>
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-container">
+      <h1 class="header-title">مرحباً بك</h1>
+      <button class="header-action-btn" id="refreshBtn" aria-label="تحديث">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M1 4v6h6M23 20v-6h-6" />
+          <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15" />
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <div class="page-container">
+    <div class="page-content">
+
+      <!-- Welcome Card -->
+      <div class="card welcome-card fade-in">
+        <div class="welcome-content">
+          <div class="welcome-text">
+            <h2 class="welcome-title" id="welcomeTitle">مرحباً</h2>
+            <p class="welcome-subtitle" id="welcomeSubtitle">نتمنى لك يوماً سعيداً</p>
+          </div>
+          <div class="welcome-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+              <circle cx="12" cy="7" r="4" />
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Balance Card -->
+      <div class="card balance-card slide-up">
+        <div class="card-header">
+          <h3 class="card-title">رصيدك الحالي</h3>
+          <span class="badge badge-info" id="membershipBadge">عضوية نشطة</span>
+        </div>
+        <div class="balance-amount">
+          <span class="currency">ر.س</span>
+          <span class="amount" id="balanceAmount">0.00</span>
+        </div>
+        <div class="balance-status">
+          <div class="status-item">
+            <span class="status-label">آخر دفعة</span>
+            <span class="status-value" id="lastPayment">-</span>
+          </div>
+          <div class="status-item">
+            <span class="status-label">الحالة</span>
+            <span class="status-value status-active" id="accountStatus">نشط</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="quick-actions slide-up">
+        <h3 class="section-title">إجراءات سريعة</h3>
+        <div class="actions-grid">
+          <a href="/payment.html" class="action-btn" aria-label="دفع الاشتراك">
+            <div class="action-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="5" width="20" height="14" rx="2" />
+                <path d="M2 10h20" />
+              </svg>
+            </div>
+            <span class="action-label">دفع الاشتراك</span>
+          </a>
+
+          <a href="/events.html" class="action-btn" aria-label="الفعاليات">
+            <div class="action-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" />
+                <path d="M16 2v4M8 2v4M3 10h18" />
+              </svg>
+            </div>
+            <span class="action-label">الفعاليات</span>
+          </a>
+
+          <a href="/family-tree.html" class="action-btn" aria-label="شجرة العائلة">
+            <div class="action-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
+              </svg>
+            </div>
+            <span class="action-label">شجرة العائلة</span>
+          </a>
+
+          <a href="/statements.html" class="action-btn" aria-label="كشف الحساب">
+            <div class="action-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
+              </svg>
+            </div>
+            <span class="action-label">كشف الحساب</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Upcoming Events -->
+      <div class="section slide-up">
+        <div class="section-header">
+          <h3 class="section-title">الفعاليات القادمة</h3>
+          <a href="/events.html" class="section-link">عرض الكل</a>
+        </div>
+        <div id="upcomingEventsList">
+          <div class="loading-skeleton">
+            <div class="skeleton skeleton-card"></div>
+            <div class="skeleton skeleton-card"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Payments -->
+      <div class="section slide-up">
+        <div class="section-header">
+          <h3 class="section-title">آخر العمليات</h3>
+          <a href="/payment.html" class="section-link">عرض الكل</a>
+        </div>
+        <div id="recentPaymentsList">
+          <div class="loading-skeleton">
+            <div class="skeleton skeleton-text"></div>
+            <div class="skeleton skeleton-text"></div>
+            <div class="skeleton skeleton-text"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+    <div class="loading-spinner"></div>
+    <p class="loading-text">جاري التحميل...</p>
+  </div>
+
+  <!-- Scripts -->
+  <script type="module" src="/src/components/navigation.js"></script>
+  <script type="module" src="/src/pages/dashboard.js"></script>
+</body>
+</html>
