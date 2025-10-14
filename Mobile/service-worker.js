@@ -3,19 +3,40 @@
 // Enables offline functionality and caching
 // ========================================
 
-const CACHE_NAME = 'alshuail-v1.0.0';
-const RUNTIME_CACHE = 'alshuail-runtime';
+const CACHE_NAME = 'alshuail-v2.0.0-phase2';
+const RUNTIME_CACHE = 'alshuail-runtime-v2';
 
-// Files to cache on install
+// Files to cache on install - Phase 2 Complete
 const PRECACHE_URLS = [
-    '/mobile/',
-    '/mobile/login.html',
-    '/mobile/dashboard.html',
-    '/mobile/css/mobile.css',
-    '/mobile/js/app.js',
+    '/',
+    '/login.html',
+    '/dashboard.html',
+    '/payment.html',
+    '/events.html',
+    '/profile.html',
+    '/notifications.html',
+    '/statements.html',
+    '/crisis.html',
+    '/family-tree.html',
+    '/src/styles/variables.css',
+    '/src/styles/components.css',
+    '/src/pages/dashboard.css',
+    '/src/pages/payment.css',
+    '/src/pages/events.css',
+    '/src/pages/profile.css',
+    '/src/pages/notifications.css',
+    '/src/pages/statements.css',
+    '/src/pages/crisis.css',
+    '/src/pages/family-tree.css',
+    '/src/api/api-client.js',
+    '/src/state/state-manager.js',
+    '/src/state/user-store.js',
+    '/src/state/payment-store.js',
+    '/src/state/event-store.js',
+    '/src/components/navigation.js',
     '/manifest.json',
-    '/icons/icon-192.png',
-    '/icons/icon-512.png'
+    '/icons/icon-192x192.png',
+    '/icons/icon-512x512.png'
 ];
 
 // ========================================

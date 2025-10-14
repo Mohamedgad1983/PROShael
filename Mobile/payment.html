@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>الدفع - آل الشعيل</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/src/styles/variables.css">
+  <link rel="stylesheet" href="/src/styles/components.css">
+  <link rel="stylesheet" href="/src/styles/rtl-enhancements.css">
+  <link rel="stylesheet" href="/src/pages/payment.css">
+
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#667eea">
+  <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+</head>
+<body>
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-container">
+      <button class="header-back-btn" id="backBtn">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 19l-7-7 7-7" />
+        </svg>
+        رجوع
+      </button>
+      <h1 class="header-title">الدفع</h1>
+      <div style="width: 80px;"></div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <div class="page-container">
+    <div class="page-content">
+
+      <!-- Payment Form -->
+      <div class="payment-section" id="paymentSection">
+        <!-- Balance Card -->
+        <div class="card balance-summary">
+          <div class="balance-info">
+            <span class="balance-label">رصيدك الحالي</span>
+            <div class="balance-display">
+              <span class="currency">ر.س</span>
+              <span class="amount" id="currentBalance">0.00</span>
+            </div>
+          </div>
+          <div class="balance-status">
+            <span class="status-badge" id="statusBadge">نشط</span>
+          </div>
+        </div>
+
+        <!-- Payment Method Selection -->
+        <div class="card method-card">
+          <h3 class="section-title">اختر طريقة الدفع</h3>
+
+          <div class="payment-methods">
+            <label class="method-option" data-method="knet">
+              <input type="radio" name="paymentMethod" value="knet" checked>
+              <div class="method-content">
+                <div class="method-icon knet-icon">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="5" width="20" height="14" rx="2" />
+                    <path d="M2 10h20" />
+                  </svg>
+                </div>
+                <div class="method-details">
+                  <span class="method-name">كي نت</span>
+                  <span class="method-description">الدفع عبر بطاقة كي نت</span>
+                </div>
+              </div>
+              <div class="method-check">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+              </div>
+            </label>
+
+            <label class="method-option" data-method="card">
+              <input type="radio" name="paymentMethod" value="card">
+              <div class="method-content">
+                <div class="method-icon card-icon">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="1" y="4" width="22" height="16" rx="2" />
+                    <path d="M1 10h22" />
+                  </svg>
+                </div>
+                <div class="method-details">
+                  <span class="method-name">بطاقة ائتمان</span>
+                  <span class="method-description">Visa أو Mastercard</span>
+                </div>
+              </div>
+              <div class="method-check">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+              </div>
+            </label>
+
+            <label class="method-option" data-method="bank_transfer">
+              <input type="radio" name="paymentMethod" value="bank_transfer">
+              <div class="method-content">
+                <div class="method-icon bank-icon">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                    <path d="M9 22V12h6v10" />
+                  </svg>
+                </div>
+                <div class="method-details">
+                  <span class="method-name">تحويل بنكي</span>
+                  <span class="method-description">تحويل مباشر للحساب البنكي</span>
+                </div>
+              </div>
+              <div class="method-check">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 6L9 17l-5-5" />
+                </svg>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Amount Input -->
+        <div class="card amount-card">
+          <h3 class="section-title">المبلغ</h3>
+
+          <div class="amount-input-group">
+            <input
+              type="number"
+              id="amountInput"
+              class="amount-input"
+              placeholder="0.00"
+              min="0"
+              step="0.01"
+            >
+            <span class="currency-label">ر.س</span>
+          </div>
+
+          <div class="quick-amounts">
+            <button class="quick-amount-btn" data-amount="100">100</button>
+            <button class="quick-amount-btn" data-amount="500">500</button>
+            <button class="quick-amount-btn" data-amount="1000">1000</button>
+            <button class="quick-amount-btn" data-amount="3000">3000</button>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">وصف الدفعة (اختياري)</label>
+            <input
+              type="text"
+              id="descriptionInput"
+              class="form-input"
+              placeholder="مثال: اشتراك شهري"
+            >
+          </div>
+        </div>
+
+        <!-- Bank Transfer Details (Hidden by default) -->
+        <div class="card bank-details-card" id="bankDetailsCard" style="display: none;">
+          <h3 class="section-title">معلومات التحويل البنكي</h3>
+
+          <div class="bank-info">
+            <div class="info-item">
+              <span class="info-label">اسم البنك</span>
+              <span class="info-value">البنك الأهلي السعودي</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">رقم الحساب</span>
+              <span class="info-value">SA1234567890123456789012</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">اسم الحساب</span>
+              <span class="info-value">عائلة آل الشعيل</span>
+            </div>
+          </div>
+
+          <div class="alert alert-info">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 16v-4M12 8h.01" />
+            </svg>
+            <span>يرجى إرفاق إيصال التحويل بعد إتمام العملية</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">إرفاق إيصال التحويل</label>
+            <input
+              type="file"
+              id="receiptInput"
+              accept="image/*,application/pdf"
+              class="form-input"
+            >
+          </div>
+        </div>
+
+        <!-- Pay Button -->
+        <button class="btn btn-primary btn-lg btn-block" id="payButton">
+          <span>إتمام الدفع</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Payment History -->
+      <div class="section">
+        <div class="section-header">
+          <h3 class="section-title">سجل الدفعات</h3>
+          <div class="filter-buttons">
+            <button class="filter-btn active" data-filter="all">الكل</button>
+            <button class="filter-btn" data-filter="success">ناجحة</button>
+            <button class="filter-btn" data-filter="pending">قيد المعالجة</button>
+          </div>
+        </div>
+
+        <div id="paymentHistoryList">
+          <div class="loading-skeleton">
+            <div class="skeleton skeleton-card"></div>
+            <div class="skeleton skeleton-card"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Payment Confirmation Modal -->
+  <div class="modal-backdrop" id="confirmationModal" style="display: none;">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">تأكيد الدفع</h3>
+        <button class="modal-close" id="closeModalBtn">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="confirmation-details">
+          <div class="detail-item">
+            <span class="detail-label">طريقة الدفع</span>
+            <span class="detail-value" id="confirmMethod">-</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">المبلغ</span>
+            <span class="detail-value amount-value" id="confirmAmount">0.00 ر.س</span>
+          </div>
+          <div class="detail-item" id="confirmDescriptionItem" style="display: none;">
+            <span class="detail-label">الوصف</span>
+            <span class="detail-value" id="confirmDescription">-</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancelPaymentBtn">إلغاء</button>
+        <button class="btn btn-primary" id="confirmPaymentBtn">تأكيد الدفع</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+    <div class="loading-spinner"></div>
+    <p class="loading-text">جاري معالجة الدفع...</p>
+  </div>
+
+  <!-- Scripts -->
+  <script type="module" src="/src/components/navigation.js"></script>
+  <script type="module" src="/src/pages/payment.js"></script>
+</body>
+</html>

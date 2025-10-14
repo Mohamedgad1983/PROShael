@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
+  <defs>
+    <linearGradient id="grad192" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow192">
+      <feDropShadow dx="0" dy="1.92" stdDeviation="3.84" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  <!-- Rounded rectangle background -->
+  <rect width="192" height="192" rx="28.799999999999997" ry="28.799999999999997" fill="url(#grad192)"/>
+
+  <!-- Arabic text "الشعيل" -->
+  <text x="50%" y="40%" text-anchor="middle" dominant-baseline="middle"
+        fill="white" font-size="48" font-weight="bold"
+        font-family="Arial, sans-serif" filter="url(#shadow192)">الشعيل</text>
+
+  <!-- AS text -->
+  <text x="50%" y="65%" text-anchor="middle" dominant-baseline="middle"
+        fill="white" font-size="34.56" font-weight="bold"
+        font-family="Arial, sans-serif" filter="url(#shadow192)">AS</text>
+
+  <!-- Decorative line -->
+  <line x1="57.599999999999994" y1="153.60000000000002" x2="134.39999999999998" y2="153.60000000000002"
+        stroke="white" stroke-width="2.88" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <defs>
+    <style>
+      .blue-text { fill: #1976D2; font-family: Arial, sans-serif; font-weight: bold; }
+      .green-text { fill: #2E7D32; font-family: Arial, sans-serif; font-weight: bold; }
+      .blue-shape { fill: #1976D2; }
+      .green-shape { fill: #2E7D32; }
+      .teal-shape { fill: #00897B; }
+    </style>
+  </defs>
+
+  <!-- Blue Circle Border -->
+  <circle cx="200" cy="200" r="190" fill="none" stroke="#1976D2" stroke-width="12"/>
+
+  <!-- S.A.F Text at Top -->
+  <text x="95" y="90" class="blue-text" font-size="70">S</text>
+  <circle cx="155" cy="75" r="8" class="blue-shape"/>
+  <text x="175" y="90" class="blue-text" font-size="70">A</text>
+  <circle cx="245" cy="75" r="8" class="blue-shape"/>
+  <text x="265" y="90" class="blue-text" font-size="70">F</text>
+
+  <!-- Shuail Al-Anzi Fund text under S.A.F -->
+  <text x="200" y="115" class="green-text" font-size="14" text-anchor="middle">Shuail Al-Anzi Fund</text>
+
+  <!-- Green Family Figures (4 people) -->
+  <!-- Left person -->
+  <circle cx="140" cy="160" r="12" class="green-shape"/>
+  <path d="M 120 175 L 140 220 L 160 175 Z" class="green-shape"/>
+
+  <!-- Center-left person -->
+  <circle cx="180" cy="155" r="12" class="green-shape"/>
+  <path d="M 160 170 L 180 225 L 200 170 Z" class="teal-shape"/>
+
+  <!-- Center-right person -->
+  <circle cx="220" cy="155" r="12" class="green-shape"/>
+  <path d="M 200 170 L 220 225 L 240 170 Z" class="teal-shape"/>
+
+  <!-- Right person -->
+  <circle cx="260" cy="160" r="12" class="teal-shape"/>
+  <path d="M 240 175 L 260 220 L 280 175 Z" class="teal-shape"/>
+
+  <!-- Blue Supporting Hands -->
+  <!-- Left hand -->
+  <path d="M 80 240 Q 100 210 140 230 L 145 240 Q 105 220 85 250 Z" class="blue-shape"/>
+
+  <!-- Right hand -->
+  <path d="M 320 240 Q 300 210 260 230 L 255 240 Q 295 220 315 250 Z" class="blue-shape"/>
+
+  <!-- Hand base curves -->
+  <path d="M 85 250 Q 120 270 200 265" fill="none" stroke="#1976D2" stroke-width="15" stroke-linecap="round"/>
+  <path d="M 315 250 Q 280 270 200 265" fill="none" stroke="#1976D2" stroke-width="15" stroke-linecap="round"/>
+
+  <!-- Arabic Text Bottom -->
+  <text x="200" y="310" font-family="Arial" font-size="32" font-weight="bold" fill="#1976D2" text-anchor="middle">صندوق شعيل العنزي</text>
+
+  <!-- English Text Bottom -->
+  <text x="200" y="345" class="green-text" font-size="24" text-anchor="middle">Shuail Al-Anzi Fund</text>
+</svg>

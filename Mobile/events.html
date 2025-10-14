@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>الفعاليات - آل الشعيل</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="/src/styles/variables.css">
+  <link rel="stylesheet" href="/src/styles/components.css">
+  <link rel="stylesheet" href="/src/styles/rtl-enhancements.css">
+  <link rel="stylesheet" href="/src/pages/events.css">
+
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#667eea">
+  <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+</head>
+<body>
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-container">
+      <button class="header-back-btn" id="backBtn">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 19l-7-7 7-7" />
+        </svg>
+        رجوع
+      </button>
+      <h1 class="header-title">الفعاليات</h1>
+      <button class="header-action-btn" id="filterBtn" aria-label="تصفية">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 4h18M6 8h12M9 12h6M11 16h2" />
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <div class="page-container">
+    <div class="page-content">
+
+      <!-- Event Tabs -->
+      <div class="event-tabs">
+        <button class="tab-btn active" data-tab="upcoming">
+          <span>القادمة</span>
+          <span class="tab-badge" id="upcomingCount">0</span>
+        </button>
+        <button class="tab-btn" data-tab="past">
+          <span>السابقة</span>
+          <span class="tab-badge" id="pastCount">0</span>
+        </button>
+      </div>
+
+      <!-- Events List -->
+      <div id="eventsList">
+        <div class="loading-skeleton">
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+          <div class="skeleton skeleton-card"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Event Details Modal -->
+  <div class="modal-backdrop" id="eventModal" style="display: none;">
+    <div class="modal modal-large">
+      <div class="modal-header">
+        <h3 class="modal-title" id="eventTitle">تفاصيل الفعالية</h3>
+        <button class="modal-close" id="closeModalBtn">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <!-- Event Image -->
+        <div class="event-image" id="eventImage"></div>
+
+        <!-- Event Meta -->
+        <div class="event-meta-info">
+          <div class="meta-item">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" />
+              <path d="M16 2v4M8 2v4M3 10h18" />
+            </svg>
+            <span id="eventDate">-</span>
+          </div>
+          <div class="meta-item">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 6v6l4 2" />
+            </svg>
+            <span id="eventTime">-</span>
+          </div>
+          <div class="meta-item">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+            <span id="eventLocation">-</span>
+          </div>
+        </div>
+
+        <!-- Event Description -->
+        <div class="event-description" id="eventDescription"></div>
+
+        <!-- Attendees Count -->
+        <div class="attendees-summary">
+          <div class="summary-item">
+            <span class="summary-label">المؤكدين</span>
+            <span class="summary-value confirmed" id="confirmedCount">0</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">ربما</span>
+            <span class="summary-value maybe" id="maybeCount">0</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">معتذرين</span>
+            <span class="summary-value declined" id="declinedCount">0</span>
+          </div>
+        </div>
+
+        <!-- RSVP Form -->
+        <div class="rsvp-form" id="rsvpForm">
+          <h4 class="form-title">ردك على الدعوة</h4>
+
+          <div class="rsvp-options">
+            <label class="rsvp-option" data-response="yes">
+              <input type="radio" name="rsvpResponse" value="yes">
+              <div class="rsvp-content">
+                <div class="rsvp-icon yes-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 6L9 17l-5-5" />
+                  </svg>
+                </div>
+                <span class="rsvp-label">سأحضر</span>
+              </div>
+            </label>
+
+            <label class="rsvp-option" data-response="maybe">
+              <input type="radio" name="rsvpResponse" value="maybe">
+              <div class="rsvp-content">
+                <div class="rsvp-icon maybe-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M8 12h8M12 8v8" />
+                  </svg>
+                </div>
+                <span class="rsvp-label">ربما</span>
+              </div>
+            </label>
+
+            <label class="rsvp-option" data-response="no">
+              <input type="radio" name="rsvpResponse" value="no">
+              <div class="rsvp-content">
+                <div class="rsvp-icon no-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 6L6 18M6 6l12 12" />
+                  </svg>
+                </div>
+                <span class="rsvp-label">لن أحضر</span>
+              </div>
+            </label>
+          </div>
+
+          <div class="form-group" id="guestCountGroup" style="display: none;">
+            <label class="form-label">عدد المرافقين</label>
+            <input type="number" id="guestCount" class="form-input" min="0" max="10" value="0">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">ملاحظات (اختياري)</label>
+            <textarea id="rsvpNotes" class="form-textarea" rows="3" placeholder="أي ملاحظات أو طلبات خاصة"></textarea>
+          </div>
+
+          <button class="btn btn-primary btn-block" id="submitRsvpBtn">
+            إرسال الرد
+          </button>
+        </div>
+
+        <!-- Attendees List -->
+        <div class="attendees-section" id="attendeesSection" style="display: none;">
+          <h4 class="section-title">الحضور المؤكد</h4>
+          <div id="attendeesList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+    <div class="loading-spinner"></div>
+    <p class="loading-text">جاري التحميل...</p>
+  </div>
+
+  <!-- Scripts -->
+  <script type="module" src="/src/components/navigation.js"></script>
+  <script type="module" src="/src/pages/events.js"></script>
+</body>
+</html>

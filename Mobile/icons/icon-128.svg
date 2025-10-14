@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="grad128" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow128">
+      <feDropShadow dx="0" dy="1.28" stdDeviation="2.56" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  <!-- Rounded rectangle background -->
+  <rect width="128" height="128" rx="19.2" ry="19.2" fill="url(#grad128)"/>
+
+  <!-- Arabic text "الشعيل" -->
+  <text x="50%" y="40%" text-anchor="middle" dominant-baseline="middle"
+        fill="white" font-size="32" font-weight="bold"
+        font-family="Arial, sans-serif" filter="url(#shadow128)">الشعيل</text>
+
+  <!-- AS text -->
+  <text x="50%" y="65%" text-anchor="middle" dominant-baseline="middle"
+        fill="white" font-size="23.04" font-weight="bold"
+        font-family="Arial, sans-serif" filter="url(#shadow128)">AS</text>
+
+  <!-- Decorative line -->
+  <line x1="38.4" y1="102.4" x2="89.6" y2="102.4"
+        stroke="white" stroke-width="1.92" stroke-linecap="round"/>
+</svg>
