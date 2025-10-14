@@ -204,3 +204,6 @@ const csrfManager = new CSRFManager();
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = csrfManager;
 }
+
+// ES6 default export
+export default csrfManager;
