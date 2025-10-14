@@ -139,7 +139,10 @@ const DocumentManager = () => {
         fetchStats();
         alert('تم رفع المستند بنجاح');
       } else {
-        alert('فشل رفع المستند');
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || errorData.message || `فشل رفع المستند (${response.status})`;
+        console.error('Upload failed:', response.status, errorData);
+        alert(`فشل رفع المستند: ${errorMessage}`);
       }
     } catch (error) {
       console.error('Upload error:', error);
