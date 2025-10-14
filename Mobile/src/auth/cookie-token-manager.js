@@ -115,6 +115,18 @@ class CookieTokenManager {
   }
 
   /**
+   * Get authentication status (for compatibility with login.js)
+   * @returns {Object} - { isAuthenticated: boolean, user: Object|null }
+   */
+  getAuthStatus() {
+    const userData = this.getUserData();
+    return {
+      isAuthenticated: !!userData,
+      user: userData
+    };
+  }
+
+  /**
    * Verify token validity with backend
    * @returns {Promise<boolean>} - Token validity
    */
