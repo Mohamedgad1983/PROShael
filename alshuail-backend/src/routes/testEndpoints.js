@@ -1,6 +1,7 @@
 import express from 'express';
 import { supabase } from '../config/database.js';
 import { log } from '../utils/logger.js';
+import { config } from '../config/env.js';
 
 const router = express.Router();
 
@@ -50,7 +51,7 @@ router.get('/occasions', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'فشل في جلب المناسبات (test route)',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: config.isDevelopment ? error.message : undefined
     });
   }
 });
@@ -77,7 +78,7 @@ router.get('/initiatives', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'فشل في جلب المبادرات (test route)',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: config.isDevelopment ? error.message : undefined
     });
   }
 });
@@ -104,7 +105,7 @@ router.get('/notifications', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'فشل في جلب الإشعارات (test route)',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: config.isDevelopment ? error.message : undefined
     });
   }
 });

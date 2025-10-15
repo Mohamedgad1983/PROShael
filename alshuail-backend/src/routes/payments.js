@@ -27,6 +27,11 @@ import {
   uploadPaymentReceipt
 } from '../controllers/paymentsController.js';
 import { requireRole } from '../middleware/rbacMiddleware.js';
+import {
+  validatePaymentInitiation,
+  validatePaymentVerification,
+  validateBankTransfer
+} from '../../middleware/payment-validator.js';
 
 // Configure multer for receipt uploads
 const upload = multer({
@@ -54,10 +59,10 @@ const router = express.Router();
 
 // Basic CRUD Operations - require financial access
 router.get('/', requireRole(['super_admin', 'financial_manager']), getAllPayments);
-router.post('/', requireRole(['super_admin', 'financial_manager']), createPayment);
+router.post('/', requireRole(['super_admin', 'financial_manager']), validatePaymentInitiation, createPayment);
 router.get('/:id', requireRole(['super_admin', 'financial_manager', 'member']), getPaymentById);
-router.put('/:id/status', requireRole(['super_admin', 'financial_manager']), updatePaymentStatus);
-router.post('/:id/process', requireRole(['super_admin', 'financial_manager']), processPayment);
+router.put('/:id/status', requireRole(['super_admin', 'financial_manager']), validatePaymentVerification, updatePaymentStatus);
+router.post('/:id/process', requireRole(['super_admin', 'financial_manager']), validatePaymentVerification, processPayment);
 
 // Statistics and Analytics - require financial access
 router.get('/statistics', requireRole(['super_admin', 'financial_manager']), getPaymentStatistics);
@@ -98,11 +103,11 @@ router.get('/hijri-calendar', requireRole(['super_admin', 'financial_manager']),
 router.get('/grouped-hijri', requireRole(['super_admin', 'financial_manager']), getPaymentsGroupedByHijri);
 router.get('/hijri-stats', requireRole(['super_admin', 'financial_manager']), getHijriFinancialStats);
 
-// Mobile Payment Endpoints (require member authentication)
-router.post('/mobile/initiative', requireRole(['member']), payForInitiative);
-router.post('/mobile/diya', requireRole(['member']), payForDiya);
-router.post('/mobile/subscription', requireRole(['member']), paySubscription);
-router.post('/mobile/for-member', requireRole(['member']), payForMember);
-router.post('/mobile/upload-receipt/:paymentId', requireRole(['member']), upload.single('receipt'), uploadPaymentReceipt);
+// Mobile Payment Endpoints (require member authentication + payment validation)
+router.post('/mobile/initiative', requireRole(['member']), validatePaymentInitiation, payForInitiative);
+router.post('/mobile/diya', requireRole(['member']), validatePaymentInitiation, payForDiya);
+router.post('/mobile/subscription', requireRole(['member']), validatePaymentInitiation, paySubscription);
+router.post('/mobile/for-member', requireRole(['member']), validatePaymentInitiation, payForMember);
+router.post('/mobile/upload-receipt/:paymentId', requireRole(['member']), upload.single('receipt'), validateBankTransfer, uploadPaymentReceipt);
 
 export default router;

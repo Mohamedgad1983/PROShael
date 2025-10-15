@@ -98,6 +98,14 @@ const login = async (req, res) => {
         // Generate JWT token
         const token = generateToken(user);
 
+        // Set httpOnly cookie with JWT token (XSS-safe)
+        res.cookie('auth_token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        });
+
         // Prepare user data (exclude sensitive information)
         const userData = {
             id: user.id,
@@ -115,7 +123,7 @@ const login = async (req, res) => {
             message_ar: 'تم تسجيل الدخول بنجاح',
             message_en: 'Login successful',
             data: {
-                token,
+                token, // Still include token for backward compatibility during migration
                 user: userData,
                 expires_in: process.env.JWT_EXPIRES_IN || '24h'
             },
@@ -164,8 +172,15 @@ const getProfile = async (req, res) => {
     }
 };
 
-// Logout (client-side token removal)
+// Logout (clear httpOnly cookie)
 const logout = (req, res) => {
+    // Clear the auth_token cookie
+    res.clearCookie('auth_token', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict'
+    });
+
     res.json({
         status: 'success',
         message_ar: 'تم تسجيل الخروج بنجاح',

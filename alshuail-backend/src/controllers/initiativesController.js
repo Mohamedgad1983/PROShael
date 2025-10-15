@@ -1,5 +1,6 @@
 import { supabase } from '../config/database.js';
 import { log } from '../utils/logger.js';
+import { config } from '../config/env.js';
 
 /**
  * Generate reference number for contribution
@@ -92,7 +93,7 @@ export const getAllInitiatives = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'فشل في جلب المبادرات',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: config.isDevelopment ? error.message : undefined
     });
   }
 };
@@ -182,7 +183,7 @@ export const getInitiativeById = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'فشل في جلب بيانات المبادرة',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: config.isDevelopment ? error.message : undefined
     });
   }
 };
@@ -281,7 +282,7 @@ export const createInitiative = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'فشل في إنشاء المبادرة',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: config.isDevelopment ? error.message : undefined
     });
   }
 };
@@ -408,7 +409,7 @@ export const addContribution = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'فشل في إضافة المساهمة',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: config.isDevelopment ? error.message : undefined
     });
   }
 };
@@ -505,7 +506,7 @@ export const updateContributionStatus = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'فشل في تحديث حالة المساهمة',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: config.isDevelopment ? error.message : undefined
     });
   }
 };
@@ -597,7 +598,7 @@ export const updateInitiative = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'فشل في تحديث المبادرة',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: config.isDevelopment ? error.message : undefined
     });
   }
 };
@@ -680,7 +681,7 @@ export const getInitiativeStats = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'فشل في جلب إحصائيات المبادرات',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: config.isDevelopment ? error.message : undefined
     });
   }
 };

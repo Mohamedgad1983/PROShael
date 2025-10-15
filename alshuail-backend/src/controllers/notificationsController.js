@@ -1,5 +1,6 @@
 import { supabase } from '../config/database.js';
 import { log } from '../utils/logger.js';
+import { config } from '../config/env.js';
 
 /**
  * Get all notifications with pagination and filtering
@@ -96,7 +97,7 @@ export const getAllNotifications = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'فشل في جلب الإشعارات',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: config.isDevelopment ? error.message : undefined
     });
   }
 };
@@ -138,7 +139,7 @@ export const getNotificationById = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'فشل في جلب بيانات الإشعار',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: config.isDevelopment ? error.message : undefined
     });
   }
 };
@@ -297,7 +298,7 @@ export const createNotification = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'فشل في إنشاء الإشعار',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: config.isDevelopment ? error.message : undefined
     });
   }
 };
@@ -358,7 +359,7 @@ export const markAsRead = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'فشل في تحديث حالة الإشعار',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: config.isDevelopment ? error.message : undefined
     });
   }
 };
@@ -410,7 +411,7 @@ export const bulkMarkAsRead = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'فشل في تحديث حالة الإشعارات',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: config.isDevelopment ? error.message : undefined
     });
   }
 };
@@ -453,7 +454,7 @@ export const deleteNotification = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'فشل في حذف الإشعار',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: config.isDevelopment ? error.message : undefined
     });
   }
 };
@@ -536,7 +537,7 @@ export const getMemberNotifications = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'فشل في جلب إشعارات العضو',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: config.isDevelopment ? error.message : undefined
     });
   }
 };
@@ -653,7 +654,7 @@ export const getNotificationStats = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'فشل في جلب إحصائيات الإشعارات',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: config.isDevelopment ? error.message : undefined
     });
   }
 };

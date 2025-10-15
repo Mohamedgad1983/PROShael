@@ -37,6 +37,9 @@ import receiptsRoutes from "./src/routes/receipts.js";
 import { log } from './src/utils/logger.js';
 import { config } from './src/config/env.js';
 import { errorHandler } from './src/utils/errorCodes.js';
+import cookieParser from 'cookie-parser';
+import csrfRoutes from './src/routes/csrf.js';
+import { validateCSRFToken } from './src/middleware/csrf.js';
 
 // Environment check with Winston logging
 log.info('Environment Check on Start:', {
@@ -153,6 +156,8 @@ const limiter = rateLimit({
 app.use('/api', limiter);
 
 // Configure JSON parsing with UTF-8 support for Arabic text
+n// Cookie parser for CSRF tokens
+app.use(cookieParser());
 // JSON parser with better error handling
 app.use(express.json({
   limit: '10mb',
@@ -191,6 +196,27 @@ app.use((req, res, next) => {
 });
 
 app.use('/api/auth', authRoutes);
+
+// CSRF token endpoint (must be before CSRF validation)
+app.use('/api', csrfRoutes);
+
+// Apply CSRF validation to protected routes
+app.use('/api', (req, res, next) => {
+  // Skip CSRF for specific endpoints
+  const skipCSRF = [
+    '/api/auth/login',
+    '/api/auth/verify-otp',
+    '/api/health',
+    '/api/csrf-token',
+    '/api/csrf-token/validate'
+  ];
+
+  if (skipCSRF.some(path => req.path.startsWith(path)) || req.method === 'GET') {
+    return next();
+  }
+
+  validateCSRFToken(req, res, next);
+});
 app.use('/api/members', membersRoutes);
 // Add member monitoring routes under /api/member-monitoring to avoid conflict
 app.use('/api/member-monitoring', memberMonitoringRoutes);

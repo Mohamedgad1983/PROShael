@@ -1,5 +1,6 @@
 import { supabase } from '../config/database.js';
 import { log } from '../utils/logger.js';
+import { config } from '../config/env.js';
 
 // Get crisis dashboard data - members below minimum balance
 export const getCrisisDashboard = async (req, res) => {
@@ -181,7 +182,223 @@ function getMockCrisisData() {
   };
 }
 
+// Get active crisis alerts and history for mobile app
+export const getCrisisAlerts = async (req, res) => {
+  try {
+    // Get active crisis alert
+    const { data: activeCrisis, error: activeError } = await supabase
+      .from('crisis_alerts')
+      .select('*')
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    // Get crisis history (last 20 alerts)
+    const { data: historyData, error: historyError } = await supabase
+      .from('crisis_alerts')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    // Return data (active can be null if no active crisis)
+    res.json({
+      success: true,
+      data: {
+        active: activeCrisis || null,
+        history: historyData || []
+      },
+      message: 'تم جلب بيانات الطوارئ بنجاح'
+    });
+  } catch (error) {
+    log.error('Error fetching crisis alerts', { error: error.message });
+
+    // Return empty state if table doesn't exist yet (graceful fallback)
+    res.json({
+      success: true,
+      data: {
+        active: null,
+        history: []
+      },
+      message: 'لا توجد تنبيهات طوارئ حالياً'
+    });
+  }
+};
+
+// Member marks themselves safe during crisis
+export const markMemberSafe = async (req, res) => {
+  try {
+    const { crisis_id } = req.body;
+    const member_id = req.user?.id; // From auth middleware
+
+    if (!member_id) {
+      return res.status(401).json({
+        success: false,
+        error: 'غير مصرح',
+        message: 'يجب تسجيل الدخول أولاً'
+      });
+    }
+
+    if (!crisis_id) {
+      return res.status(400).json({
+        success: false,
+        error: 'معرف الطوارئ مطلوب',
+        message: 'يجب تحديد تنبيه الطوارئ'
+      });
+    }
+
+    // Verify crisis exists and is active
+    const { data: crisis, error: crisisError } = await supabase
+      .from('crisis_alerts')
+      .select('id, title, status')
+      .eq('id', crisis_id)
+      .single();
+
+    if (crisisError || !crisis) {
+      return res.status(404).json({
+        success: false,
+        error: 'تنبيه الطوارئ غير موجود',
+        message: 'لم يتم العثور على تنبيه الطوارئ'
+      });
+    }
+
+    // Check if member already marked safe
+    const { data: existing, error: existingError } = await supabase
+      .from('crisis_responses')
+      .select('id')
+      .eq('crisis_id', crisis_id)
+      .eq('member_id', member_id)
+      .single();
+
+    if (existing) {
+      return res.json({
+        success: true,
+        data: {
+          crisis_id,
+          member_id,
+          status: 'safe',
+          already_reported: true
+        },
+        message: 'تم تسجيل حالتك مسبقاً'
+      });
+    }
+
+    // Insert safe response
+    const { data: response, error: responseError } = await supabase
+      .from('crisis_responses')
+      .insert({
+        crisis_id,
+        member_id,
+        status: 'safe',
+        response_time: new Date().toISOString(),
+        created_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (responseError) {
+      throw responseError;
+    }
+
+    // Create notification for admin
+    await supabase
+      .from('notifications')
+      .insert({
+        member_id: 1, // Admin ID
+        title: 'رد على تنبيه طوارئ',
+        message: `أبلغ عضو أنه بخير في "${crisis.title}"`,
+        type: 'crisis_response',
+        created_at: new Date().toISOString()
+      });
+
+    res.json({
+      success: true,
+      data: {
+        response_id: response.id,
+        crisis_id,
+        member_id,
+        status: 'safe',
+        response_time: response.response_time
+      },
+      message: 'تم الإبلاغ عن حالتك بنجاح. شكراً لك على التواصل.'
+    });
+  } catch (error) {
+    log.error('Error marking member safe', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'خطأ في تسجيل حالتك',
+      message: config.isDevelopment ? error.message : 'حدث خطأ أثناء تسجيل حالتك'
+    });
+  }
+};
+
+// Get emergency contacts list
+export const getEmergencyContacts = async (req, res) => {
+  try {
+    // Get members marked as emergency contacts or family leadership
+    const { data: contacts, error: contactsError } = await supabase
+      .from('members')
+      .select('id, full_name, full_name_en, phone, email, role, photo_url')
+      .in('role', ['admin', 'board_member', 'emergency_contact'])
+      .eq('membership_status', 'active')
+      .order('role', { ascending: true });
+
+    if (contactsError) {
+      throw contactsError;
+    }
+
+    // Format contacts with priorities
+    const formattedContacts = contacts.map(contact => ({
+      id: contact.id,
+      name: contact.full_name,
+      name_en: contact.full_name_en,
+      phone: contact.phone,
+      email: contact.email,
+      role: contact.role,
+      photo_url: contact.photo_url,
+      priority: contact.role === 'admin' ? 1 : contact.role === 'board_member' ? 2 : 3,
+      role_label: contact.role === 'admin' ? 'رئيس العائلة' :
+                  contact.role === 'board_member' ? 'عضو مجلس الإدارة' :
+                  'جهة اتصال طوارئ'
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        contacts: formattedContacts,
+        total: formattedContacts.length
+      },
+      message: 'تم جلب جهات الاتصال الطارئة بنجاح'
+    });
+  } catch (error) {
+    log.error('Error fetching emergency contacts', { error: error.message });
+
+    // Fallback to mock data if table/roles not configured yet
+    res.json({
+      success: true,
+      data: {
+        contacts: [
+          {
+            id: 1,
+            name: 'رئيس العائلة',
+            phone: '+966501234567',
+            email: 'admin@alshuail.com',
+            role: 'admin',
+            priority: 1,
+            role_label: 'رئيس العائلة'
+          }
+        ],
+        total: 1
+      },
+      message: 'تم جلب جهات الاتصال الطارئة'
+    });
+  }
+};
+
 export default {
   getCrisisDashboard,
-  updateMemberBalance
+  updateMemberBalance,
+  getCrisisAlerts,
+  markMemberSafe,
+  getEmergencyContacts
 };

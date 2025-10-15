@@ -6,6 +6,7 @@ import winston from 'winston';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { mkdirSync, existsSync } from 'fs';
+import { config } from '../config/env.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -32,9 +33,7 @@ winston.addColors(colors);
 
 // Determine log level based on environment
 const level = () => {
-  const env = process.env.NODE_ENV || 'development';
-  const isDevelopment = env === 'development';
-  return isDevelopment ? 'debug' : 'info';
+  return config.isDevelopment ? 'debug' : 'info';
 };
 
 // Define log format
@@ -53,8 +52,7 @@ const transports = [
 ];
 
 // Only add file transports in development (not in production to improve performance)
-const isDevelopment = (process.env.NODE_ENV || 'development') === 'development';
-if (isDevelopment) {
+if (config.isDevelopment) {
   transports.push(
     // File transport for errors
     new winston.transports.File({
@@ -83,7 +81,7 @@ const logger = winston.createLogger({
 });
 
 // Create logs directory only in development (file logging disabled in production for performance)
-if (isDevelopment) {
+if (config.isDevelopment) {
   const logsDir = path.join(process.cwd(), 'logs');
   if (!existsSync(logsDir)) {
     mkdirSync(logsDir, { recursive: true });

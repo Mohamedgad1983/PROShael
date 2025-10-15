@@ -6,7 +6,8 @@ import {
   updateRSVP,
   updateOccasion,
   deleteOccasion,
-  getOccasionStats
+  getOccasionStats,
+  getOccasionAttendees
 } from '../controllers/occasionsController.js';
 
 const router = express.Router();
@@ -23,5 +24,6 @@ router.delete('/:id', deleteOccasion);
 
 // RSVP Management
 router.put('/:id/rsvp', updateRSVP);
+router.get('/:id/attendees', getOccasionAttendees);
 
 export default router;

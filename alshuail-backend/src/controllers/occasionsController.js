@@ -1,5 +1,6 @@
 import { supabase } from '../config/database.js';
 import { log } from '../utils/logger.js';
+import { config } from '../config/env.js';
 
 /**
  * Get all occasions with optional filters
@@ -70,7 +71,7 @@ export const getAllOccasions = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'فشل في جلب المناسبات',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: config.isDevelopment ? error.message : undefined
     });
   }
 };
@@ -119,7 +120,7 @@ export const getOccasionById = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'فشل في جلب بيانات المناسبة',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: config.isDevelopment ? error.message : undefined
     });
   }
 };
@@ -209,7 +210,7 @@ export const createOccasion = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'فشل في إنشاء المناسبة',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: config.isDevelopment ? error.message : undefined
     });
   }
 };
@@ -362,7 +363,7 @@ export const updateRSVP = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'فشل في تحديث حالة الحضور',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: config.isDevelopment ? error.message : undefined
     });
   }
 };
@@ -446,7 +447,7 @@ export const updateOccasion = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'فشل في تحديث المناسبة',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: config.isDevelopment ? error.message : undefined
     });
   }
 };
@@ -490,7 +491,109 @@ export const deleteOccasion = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'فشل في حذف المناسبة',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: config.isDevelopment ? error.message : undefined
+    });
+  }
+};
+
+/**
+ * Get occasion attendees
+ * GET /api/occasions/:id/attendees
+ */
+export const getOccasionAttendees = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status_filter } = req.query;
+
+    // Check if occasion exists
+    const { data: occasion, error: occasionError } = await supabase
+      .from('events')
+      .select('id, title, max_attendees, current_attendees')
+      .eq('id', id)
+      .single();
+
+    if (occasionError || !occasion) {
+      return res.status(404).json({
+        success: false,
+        error: 'المناسبة غير موجودة'
+      });
+    }
+
+    // Build query for attendees
+    let query = supabase
+      .from('event_rsvps')
+      .select(`
+        id,
+        status,
+        notes,
+        response_date,
+        member:member_id (
+          id,
+          full_name,
+          full_name_en,
+          phone,
+          email,
+          photo_url,
+          membership_status
+        )
+      `)
+      .eq('event_id', id)
+      .order('response_date', { ascending: false });
+
+    // Apply status filter if provided
+    if (status_filter && ['confirmed', 'pending', 'declined'].includes(status_filter)) {
+      query = query.eq('status', status_filter);
+    }
+
+    const { data: rsvps, error: rsvpError } = await query;
+
+    if (rsvpError) {
+      throw rsvpError;
+    }
+
+    // Format attendees data
+    const attendees = rsvps?.map(rsvp => ({
+      rsvp_id: rsvp.id,
+      status: rsvp.status,
+      notes: rsvp.notes,
+      response_date: rsvp.response_date,
+      member: rsvp.member
+    })) || [];
+
+    // Calculate statistics
+    const stats = {
+      total_responses: attendees.length,
+      confirmed: attendees.filter(a => a.status === 'confirmed').length,
+      pending: attendees.filter(a => a.status === 'pending').length,
+      declined: attendees.filter(a => a.status === 'declined').length,
+      attendance_rate: attendees.length > 0 ?
+        Math.round((attendees.filter(a => a.status === 'confirmed').length / attendees.length) * 100) : 0,
+      capacity_used: occasion.max_attendees ?
+        Math.round((occasion.current_attendees / occasion.max_attendees) * 100) : null,
+      spots_remaining: occasion.max_attendees ?
+        Math.max(0, occasion.max_attendees - occasion.current_attendees) : null
+    };
+
+    res.json({
+      success: true,
+      data: {
+        occasion: {
+          id: occasion.id,
+          title: occasion.title,
+          max_attendees: occasion.max_attendees,
+          current_attendees: occasion.current_attendees
+        },
+        attendees,
+        stats
+      },
+      message: 'تم جلب قائمة الحضور بنجاح'
+    });
+  } catch (error) {
+    log.error('Error fetching occasion attendees', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'فشل في جلب قائمة الحضور',
+      message: config.isDevelopment ? error.message : undefined
     });
   }
 };
@@ -568,7 +671,7 @@ export const getOccasionStats = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'فشل في جلب إحصائيات المناسبات',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: config.isDevelopment ? error.message : undefined
     });
   }
 };

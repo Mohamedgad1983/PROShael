@@ -3,11 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { sanitizeJSON as _sanitizeJSON, prepareUpdateData } from '../utils/jsonSanitizer.js';
 import { log } from '../utils/logger.js';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'alshuail-super-secure-jwt-secret-key-2024-production-ready-32chars';
-if (!process.env.JWT_SECRET) {
-  log.warn('JWT_SECRET not set in membersController, using fallback');
-}
+import { config } from '../config/env.js';
 
 export const getAllMembers = async (req, res) => {
   try {
@@ -281,7 +277,7 @@ export const updateMember = async (req, res) => {
     log.error('Member update failed', {
       error: error.message,
       name: error.name,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      stack: config.isDevelopment ? error.stack : undefined
     });
 
     // Send a more detailed error response for debugging
@@ -291,7 +287,7 @@ export const updateMember = async (req, res) => {
     res.status(statusCode).json({
       success: false,
       error: errorMessage,
-      details: process.env.NODE_ENV === 'development' ? {
+      details: config.isDevelopment ? {
         message: error.message,
         stack: error.stack
       } : undefined
@@ -684,7 +680,7 @@ export const getMemberProfile = async (req, res) => {
 
     if (!memberId) {
       const token = req.headers.authorization?.replace('Bearer ', '');
-      const decoded = jwt.verify(token, JWT_SECRET);
+      const decoded = jwt.verify(token, config.jwt.secret);
       memberId = decoded.id;
     }
 
@@ -721,7 +717,7 @@ export const getMemberProfile = async (req, res) => {
 export const getMemberBalance = async (req, res) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, config.jwt.secret);
     const memberId = decoded.id;
 
     // Get member balance from payments table using correct column names
@@ -772,7 +768,7 @@ export const getMemberBalance = async (req, res) => {
 export const getMemberTransactions = async (req, res) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, config.jwt.secret);
     const memberId = decoded.id;
 
     const { page = 1, limit = 20 } = req.query;
@@ -809,7 +805,7 @@ export const getMemberTransactions = async (req, res) => {
 export const getMemberNotifications = async (req, res) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, config.jwt.secret);
     const memberId = decoded.id;
 
     const { page = 1, limit = 20, unread_only = false } = req.query;
@@ -851,7 +847,7 @@ export const getMemberNotifications = async (req, res) => {
 export const updateMemberProfile = async (req, res) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, config.jwt.secret);
     const memberId = decoded.id;
 
     const updateData = req.body;

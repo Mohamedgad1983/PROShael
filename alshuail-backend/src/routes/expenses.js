@@ -10,6 +10,7 @@ import {
   deleteExpense
 } from '../controllers/expensesControllerSimple.js';
 import { log } from '../utils/logger.js';
+import { config } from '../config/env.js';
 
 const router = express.Router();
 
@@ -29,13 +30,8 @@ const authenticateUser = (req, res, next) => {
       });
     }
 
-    if (!process.env.JWT_SECRET) {
-      log.warn('JWT_SECRET not set in expenses route, using fallback');
-      process.env.JWT_SECRET = 'alshuail-super-secure-jwt-secret-key-2024-production-ready-32chars';
-    }
-
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, config.jwt.secret);
       req.user = decoded;
       next();
     } catch (error) {

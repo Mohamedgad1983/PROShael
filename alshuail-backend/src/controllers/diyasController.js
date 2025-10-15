@@ -1,5 +1,6 @@
 import { supabase } from '../config/database.js';
 import { log } from '../utils/logger.js';
+import { config } from '../config/env.js';
 
 /**
  * Generate reference number for diya case
@@ -100,7 +101,7 @@ export const getAllDiyas = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'فشل في جلب قضايا الديات',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: config.isDevelopment ? error.message : undefined
     });
   }
 };
@@ -143,7 +144,7 @@ export const getDiyaById = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'فشل في جلب بيانات قضية الدية',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: config.isDevelopment ? error.message : undefined
     });
   }
 };
@@ -230,7 +231,7 @@ export const createDiya = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'فشل في إنشاء قضية الدية',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: config.isDevelopment ? error.message : undefined
     });
   }
 };
@@ -297,7 +298,7 @@ export const updateDiyaStatus = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'فشل في تحديث حالة الدية',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: config.isDevelopment ? error.message : undefined
     });
   }
 };
@@ -373,7 +374,7 @@ export const updateDiya = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'فشل في تحديث قضية الدية',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: config.isDevelopment ? error.message : undefined
     });
   }
 };
@@ -425,7 +426,7 @@ export const deleteDiya = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'فشل في حذف قضية الدية',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: config.isDevelopment ? error.message : undefined
     });
   }
 };
@@ -546,7 +547,7 @@ export const getDiyaStats = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'فشل في جلب إحصائيات الديات',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: config.isDevelopment ? error.message : undefined
     });
   }
 };
@@ -613,7 +614,7 @@ export const getMemberDiyas = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'فشل في جلب تاريخ ديات العضو',
-      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: config.isDevelopment ? error.message : undefined
     });
   }
 };

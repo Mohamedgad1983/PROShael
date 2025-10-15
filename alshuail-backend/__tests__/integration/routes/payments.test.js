@@ -3,11 +3,58 @@
  * Tests payment CRUD operations, status updates, and processing
  */
 
-import { describe, test, expect, beforeAll, jest } from '@jest/globals';
+import { describe, test, expect, beforeAll, afterAll, jest } from '@jest/globals';
 import request from 'supertest';
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import paymentRoutes from '../../../src/routes/payments.js';
+
+// Mock the RBAC middleware to prevent authentication timeouts
+jest.unstable_mockModule('../../../src/middleware/rbacMiddleware.js', () => ({
+  requireRole: (allowedRoles) => {
+    return (req, res, next) => {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({
+          success: false,
+          message: 'الرجاء تسجيل الدخول للمتابعة'
+        });
+      }
+
+      const token = authHeader.substring(7);
+      const JWT_SECRET = process.env.JWT_SECRET || 'test-jwt-secret-key-for-testing-only';
+
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+
+        // Check role authorization
+        const isAllowed = allowedRoles.includes(decoded.role) || decoded.role === 'super_admin';
+        if (!isAllowed) {
+          return res.status(403).json({
+            success: false,
+            message: 'ليس لديك الصلاحية للوصول إلى هذا المورد'
+          });
+        }
+
+        // Attach user to request
+        req.user = {
+          id: decoded.id,
+          email: decoded.email,
+          phone: decoded.phone,
+          role: decoded.role,
+          permissions: decoded.permissions
+        };
+
+        next();
+      } catch (err) {
+        return res.status(401).json({
+          success: false,
+          message: 'جلسة غير صالحة، الرجاء تسجيل الدخول مجدداً'
+        });
+      }
+    };
+  }
+}));
 
 // Create test app
 const app = express();
@@ -75,6 +122,7 @@ describe('Payment Integration Tests', () => {
 
   let financialManagerToken;
   let memberToken;
+  let server;
 
   beforeAll(() => {
     // Use the same JWT_SECRET as setup.js
@@ -97,6 +145,21 @@ describe('Payment Integration Tests', () => {
       role: 'member',
       membershipNumber: 'SH001'
     }, JWT_SECRET, { expiresIn: '1h' });
+  });
+
+  afterAll(async () => {
+    // Cleanup: Close any open handles
+    if (server) {
+      await new Promise((resolve) => {
+        server.close(resolve);
+      });
+    }
+
+    // Clear all timers
+    jest.clearAllTimers();
+
+    // Wait for pending promises to resolve
+    await new Promise(resolve => setImmediate(resolve));
   });
 
   describe('POST /api/payments (Create Payment)', () => {
@@ -148,7 +211,8 @@ describe('Payment Integration Tests', () => {
         expect(response.body.payment.category).toBe('donation');
       } else {
         // If validation fails, should return proper error structure
-        expect(response.body).toHaveProperty('error');
+        expect(response.body).toHaveProperty('message');
+        expect(response.body.success).toBe(false);
       }
     });
 
@@ -163,7 +227,7 @@ describe('Payment Integration Tests', () => {
 
       expect(response.status).toBeGreaterThanOrEqual(400);
       expect(response.body.success).toBe(false);
-      expect(response.body.error).toBeTruthy();
+      expect(response.body.message || response.body.error_code).toBeTruthy();
     });
 
     test('should validate payment amount is positive', async () => {
@@ -359,7 +423,7 @@ describe('Payment Integration Tests', () => {
         });
 
       if (!response.body.success) {
-        expect(response.body.error).toBeTruthy();
+        expect(response.body.message || response.body.error_code).toBeTruthy();
       }
     });
   });
@@ -428,8 +492,8 @@ describe('Payment Integration Tests', () => {
 
       expect(response.body).toHaveProperty('success');
       expect(response.body.success).toBe(false);
-      expect(response.body).toHaveProperty('error');
-      expect(typeof response.body.error).toBe('string');
+      expect(response.body.message || response.body.error_code).toBeTruthy();
+      expect(typeof (response.body.message || response.body.error_code)).toBe('string');
     });
 
     test('should handle malformed JSON gracefully', async () => {

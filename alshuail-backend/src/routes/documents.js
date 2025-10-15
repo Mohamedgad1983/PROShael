@@ -31,8 +31,27 @@ router.post('/upload', authenticateToken, upload.single('document'), async (req,
       member_id
     } = req.body;
 
-    // Use member_id if provided, otherwise use authenticated user's ID
-    const targetMemberId = member_id || req.user.userId;
+    // Get the actual member_id from the authenticated user
+    // For members, req.user.id IS the member_id
+    // For admins, use the provided member_id or get it from users table
+    let targetMemberId;
+
+    if (req.user.role === 'member') {
+      // For members, use their own member ID (req.user.id)
+      targetMemberId = req.user.id;
+    } else if (member_id) {
+      // Admin can specify member_id
+      targetMemberId = member_id;
+    } else if (req.user.member_id) {
+      // Fallback: get from user's member_id field
+      targetMemberId = req.user.member_id;
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'معرف العضو مطلوب',
+        message_en: 'Member ID required'
+      });
+    }
 
     // Validate category
     if (!Object.values(DOCUMENT_CATEGORIES).includes(category)) {
@@ -58,7 +77,7 @@ router.post('/upload', authenticateToken, upload.single('document'), async (req,
         file_size: uploadResult.size,
         file_type: uploadResult.type,
         original_name: req.file.originalname,
-        uploaded_by: req.user.userId,
+        uploaded_by: req.user.id || req.user.userId,
         status: 'active'
       })
       .select()

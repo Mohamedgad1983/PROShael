@@ -5,11 +5,8 @@ import { ReceiptService } from '../services/receiptService.js';
 import { HijriDateManager, convertToHijriString as _convertToHijriString, convertToHijriYear as _convertToHijriYear, convertToHijriMonth as _convertToHijriMonth, convertToHijriDay as _convertToHijriDay, convertToHijriMonthName as _convertToHijriMonthName } from '../utils/hijriDateUtils.js';
 import jwt from 'jsonwebtoken';
 import { log } from '../utils/logger.js';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'alshuail-super-secure-jwt-secret-key-2024-production-ready-32chars';
-if (!process.env.JWT_SECRET) {
-  log.warn('JWT_SECRET not set in paymentsController, using fallback');
-}
+import { validatePayment } from '../validators/payment-validator.js';
+import { config } from '../config/env.js';
 
 export const getAllPayments = async (req, res) => {
   try {
@@ -82,6 +79,34 @@ export const getAllPayments = async (req, res) => {
 
 export const createPayment = async (req, res) => {
   try {
+    // Extract user ID from JWT token
+    let userId = null;
+    if (req.headers.authorization) {
+      try {
+        const token = req.headers.authorization.replace('Bearer ', '');
+        const decoded = jwt.verify(token, config.jwt.secret);
+        userId = decoded.id;
+      } catch (err) {
+        log.warn('Could not extract user ID from token for rate limiting');
+      }
+    }
+
+    // Validate payment data
+    const validation = validatePayment({
+      amount: req.body.amount,
+      currency: req.body.currency || 'SAR',
+      method: req.body.payment_method || req.body.method,
+      description: req.body.description
+    }, userId);
+
+    if (!validation.valid) {
+      return res.status(400).json({
+        success: false,
+        errors: validation.errors,
+        error: validation.errors[0].errorAr || validation.errors[0].error
+      });
+    }
+
     const currentDate = new Date();
     const hijriData = HijriDateManager.convertToHijri(currentDate);
 
@@ -325,7 +350,37 @@ export const generateReceipt = async (req, res) => {
 export const processPayment = async (req, res) => {
   try {
     const { id } = req.params;
-    const { method } = req.body;
+    const { method, amount } = req.body;
+
+    // Extract user ID for rate limiting
+    let userId = null;
+    if (req.headers.authorization) {
+      try {
+        const token = req.headers.authorization.replace('Bearer ', '');
+        const decoded = jwt.verify(token, config.jwt.secret);
+        userId = decoded.id;
+      } catch (err) {
+        log.warn('Could not extract user ID from token for rate limiting');
+      }
+    }
+
+    // Validate payment if amount is provided
+    if (amount !== undefined) {
+      const validation = validatePayment({
+        amount: amount,
+        currency: 'SAR',
+        method: method,
+        description: req.body.description
+      }, userId);
+
+      if (!validation.valid) {
+        return res.status(400).json({
+          success: false,
+          errors: validation.errors,
+          error: validation.errors[0].errorAr || validation.errors[0].error
+        });
+      }
+    }
 
     const result = await PaymentProcessingService.processPayment(id, method);
 
@@ -578,7 +633,7 @@ function generateReferenceNumber() {
 export const payForInitiative = async (req, res) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, config.jwt.secret);
     const memberId = decoded.id;
 
     const { initiative_id, amount, notes } = req.body;
@@ -650,7 +705,7 @@ export const payForInitiative = async (req, res) => {
 export const payForDiya = async (req, res) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, config.jwt.secret);
     const memberId = decoded.id;
 
     const { diya_id, amount, notes } = req.body;
@@ -708,7 +763,7 @@ export const payForDiya = async (req, res) => {
 export const paySubscription = async (req, res) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, config.jwt.secret);
     const memberId = decoded.id;
 
     const { amount, subscription_period, notes } = req.body;
@@ -766,7 +821,7 @@ export const paySubscription = async (req, res) => {
 export const payForMember = async (req, res) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, config.jwt.secret);
     const payerId = decoded.id;
 
     const { beneficiary_id, amount, payment_category, notes } = req.body;
@@ -848,7 +903,7 @@ export const payForMember = async (req, res) => {
 export const uploadPaymentReceipt = async (req, res) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, config.jwt.secret);
     const memberId = decoded.id;
     const { paymentId } = req.params;
 

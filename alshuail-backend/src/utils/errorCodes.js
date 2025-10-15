@@ -4,6 +4,7 @@
  */
 
 import { log } from './logger.js';
+import { config } from '../config/env.js';
 
 export const ErrorCodes = {
   // Authentication Errors (1000-1099)
@@ -326,7 +327,7 @@ export const errorHandler = (err, req, res, _next) => {
 
   // Default error response
   return res.status(500).json(createErrorResponse('SYSTEM_ERROR', {
-    details: process.env.NODE_ENV === 'development' ? err.message : undefined
+    details: config.isDevelopment ? err.message : undefined
   }));
 };
 

@@ -3,19 +3,14 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { supabase } from '../config/database.js';
 import { log } from '../utils/logger.js';
+import cookieParser from 'cookie-parser';
+import { setAuthCookie, clearAuthCookie } from '../middleware/cookie-auth.js';
+import { config } from '../config/env.js';
 
 const router = express.Router();
 
-// CRITICAL: Use consistent JWT_SECRET across all files
-const JWT_SECRET = process.env.JWT_SECRET || 'alshuail-universal-jwt-secret-2024-production-32chars';
-if (!process.env.JWT_SECRET) {
-  log.warn('JWT_SECRET not set in environment, using fallback secret');
-  // Set it in process.env for consistency
-  process.env.JWT_SECRET = JWT_SECRET;
-}
-
-const ADMIN_TOKEN_TTL = process.env.ADMIN_JWT_TTL || '7d';  // Extended from 12h to 7 days
-const MEMBER_TOKEN_TTL = process.env.MEMBER_JWT_TTL || '30d';
+const ADMIN_TOKEN_TTL = config.jwt.adminTtl;
+const MEMBER_TOKEN_TTL = config.jwt.memberTtl;
 const allowTestMemberLogin = process.env.ALLOW_TEST_MEMBER_LOGINS === 'true';
 
 const TEST_MEMBERS = {
@@ -47,7 +42,7 @@ if (!TEST_MEMBER_PASSWORD && allowTestMemberLogin) {
 const normalizeEmail = (email = '') => email.trim().toLowerCase();
 const normalizePhone = (phone = '') => phone.replace(/\s|-/g, '');
 
-const signToken = (payload, options = {}) => jwt.sign(payload, JWT_SECRET, options);
+const signToken = (payload, options = {}) => jwt.sign(payload, config.jwt.secret, options);
 
 const getArabicRoleName = (role) => {
   const roleNames = {
@@ -496,10 +491,14 @@ router.post('/login', async (req, res) => {
       });
     }
 
+    // Set token in httpOnly cookie
+    setAuthCookie(res, result.token);
+
     return res.json({
       success: true,
-      token: result.token,
-      user: result.user
+      // Don't send token in response body for security
+      user: result.user,
+      message: 'تم تسجيل الدخول بنجاح'
     });
   } catch (error) {
     log.error('Login error', { error: error.message });
@@ -525,7 +524,7 @@ router.post('/verify', async (req, res) => {
       });
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, config.jwt.secret);
 
     // Check if token is about to expire (within 24 hours)
     const now = Date.now() / 1000;
@@ -578,7 +577,7 @@ router.post('/change-password', async (req, res) => {
     // Verify token
     let decoded;
     try {
-      decoded = jwt.verify(token, JWT_SECRET);
+      decoded = jwt.verify(token, config.jwt.secret);
     } catch (error) {
       return res.status(401).json({
         success: false,
@@ -655,7 +654,7 @@ router.post('/refresh', async (req, res) => {
     // Verify the token (even if expired, we can still decode it)
     let decoded;
     try {
-      decoded = jwt.verify(token, JWT_SECRET);
+      decoded = jwt.verify(token, config.jwt.secret);
     } catch (error) {
       // If token is expired but otherwise valid, decode without verification
       if (error.name === 'TokenExpiredError') {
@@ -693,6 +692,16 @@ router.post('/refresh', async (req, res) => {
       error: 'فشل تجديد رمز المصادقة'
     });
   }
+});
+
+
+// Logout endpoint to clear auth cookie
+router.post('/logout', (req, res) => {
+  clearAuthCookie(res);
+  res.json({
+    success: true,
+    message: 'تم تسجيل الخروج بنجاح'
+  });
 });
 
 export default router;

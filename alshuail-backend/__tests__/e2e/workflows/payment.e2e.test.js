@@ -14,25 +14,23 @@
  * Total: 1 E2E workflow test (7 sequential steps)
  */
 
-import { describe, it, expect } from '@jest/globals';
+import { describe, it, expect, beforeAll, afterAll, jest } from '@jest/globals';
 import request from 'supertest';
 import express from 'express';
-import authRoutes from '../../../src/routes/auth.js';
-import paymentsRoutes from '../../../src/routes/payments.js';
-import receiptsRoutes from '../../../src/routes/receipts.js';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 
+// Load environment variables first
 dotenv.config();
 
-const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET = process.env.JWT_SECRET || 'test-jwt-secret-key-for-testing-only';
 
-// Create Express app
-const app = express();
-app.use(express.json());
-app.use('/api/auth', authRoutes);
-app.use('/api/payments', paymentsRoutes);
-app.use('/api/receipts', receiptsRoutes);
+// Import routes after environment setup
+let authRoutes, paymentsRoutes, receiptsRoutes;
+
+// Create Express app variable
+let app;
+let server;
 
 // Helper to create financial manager token
 const createFinancialManagerToken = () => {
@@ -45,7 +43,43 @@ const createFinancialManagerToken = () => {
 
 describe('E2E: Complete Payment Processing Workflow', () => {
   let paymentId = null;
-  const fmToken = createFinancialManagerToken();
+  let fmToken;
+
+  beforeAll(async () => {
+    // Import routes dynamically to avoid teardown issues
+    const authModule = await import('../../../src/routes/auth.js');
+    const paymentsModule = await import('../../../src/routes/payments.js');
+    const receiptsModule = await import('../../../src/routes/receipts.js');
+
+    authRoutes = authModule.default;
+    paymentsRoutes = paymentsModule.default;
+    receiptsRoutes = receiptsModule.default;
+
+    // Setup Express app
+    app = express();
+    app.use(express.json());
+    app.use('/api/auth', authRoutes);
+    app.use('/api/payments', paymentsRoutes);
+    app.use('/api/receipts', receiptsRoutes);
+
+    // Create test token
+    fmToken = createFinancialManagerToken();
+  });
+
+  afterAll(async () => {
+    // Cleanup: Close server if running
+    if (server) {
+      await new Promise((resolve) => {
+        server.close(resolve);
+      });
+    }
+
+    // Clear all timers and pending operations
+    jest.clearAllTimers();
+
+    // Wait for all pending promises to resolve
+    await new Promise(resolve => setImmediate(resolve));
+  });
 
   it('should complete full payment lifecycle', async () => {
     // ========================================
