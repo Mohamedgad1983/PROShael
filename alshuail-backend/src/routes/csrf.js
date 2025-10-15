@@ -3,9 +3,10 @@
  * Provides CSRF tokens to the frontend for form submissions
  */
 
-const express = require('express');
+import express from 'express';
+import { generateCSRFToken } from '../middleware/csrf.js';
+
 const router = express.Router();
-const { generateCSRFToken } = require('../middleware/csrf');
 
 /**
  * GET /api/csrf-token
@@ -45,4 +46,4 @@ router.post('/csrf-token/validate', (req, res) => {
   });
 });
 
-module.exports = router;
+export default router;
