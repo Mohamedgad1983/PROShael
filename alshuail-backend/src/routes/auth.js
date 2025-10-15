@@ -496,7 +496,7 @@ router.post('/login', async (req, res) => {
 
     return res.json({
       success: true,
-      // Don't send token in response body for security
+      token: result.token, // Include token for localStorage-based auth (matching member login)
       user: result.user,
       message: 'تم تسجيل الدخول بنجاح'
     });
