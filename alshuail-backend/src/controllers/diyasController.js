@@ -21,8 +21,7 @@ export const getAllDiyas = async (req, res) => {
   try {
     const {
       status,
-      payer_id,
-      payment_method,
+      payment_status,
       limit = 50,
       offset = 0,
       start_date,
@@ -32,9 +31,11 @@ export const getAllDiyas = async (req, res) => {
     } = req.query;
 
     let query = supabase
-      .from('payments')
-      .select('*')
-      .eq('category', 'diya')
+      .from('diya_cases')
+      .select(`
+        *,
+        financial_contributions(count)
+      `)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -43,30 +44,26 @@ export const getAllDiyas = async (req, res) => {
       query = query.eq('status', status);
     }
 
-    if (payer_id) {
-      query = query.eq('payer_id', payer_id);
-    }
-
-    if (payment_method) {
-      query = query.eq('payment_method', payment_method);
+    if (payment_status) {
+      query = query.eq('payment_status', payment_status);
     }
 
     // Date range filter
     if (start_date) {
-      query = query.gte('created_at', start_date);
+      query = query.gte('reported_date_gregorian', start_date);
     }
 
     if (end_date) {
-      query = query.lte('created_at', end_date);
+      query = query.lte('reported_date_gregorian', end_date);
     }
 
     // Amount range filter
     if (min_amount) {
-      query = query.gte('amount', min_amount);
+      query = query.gte('compensation_amount', min_amount);
     }
 
     if (max_amount) {
-      query = query.lte('amount', max_amount);
+      query = query.lte('compensation_amount', max_amount);
     }
 
     const { data: diyas, error, count } = await query;
@@ -74,9 +71,9 @@ export const getAllDiyas = async (req, res) => {
     if (error) {throw error;}
 
     // Calculate summary statistics
-    const totalAmount = diyas?.reduce((sum, diya) => sum + Number(diya.amount), 0) || 0;
-    const paidAmount = diyas?.filter(d => d.status === 'paid').reduce((sum, d) => sum + Number(d.amount), 0) || 0;
-    const pendingAmount = diyas?.filter(d => d.status === 'pending').reduce((sum, d) => sum + Number(d.amount), 0) || 0;
+    const totalAmount = diyas?.reduce((sum, diya) => sum + Number(diya.compensation_amount), 0) || 0;
+    const paidAmount = diyas?.filter(d => d.payment_status === 'paid').reduce((sum, d) => sum + Number(d.compensation_amount), 0) || 0;
+    const pendingAmount = diyas?.filter(d => d.payment_status === 'pending').reduce((sum, d) => sum + Number(d.compensation_amount), 0) || 0;
 
     res.json({
       success: true,
@@ -91,8 +88,8 @@ export const getAllDiyas = async (req, res) => {
         total_amount: totalAmount,
         paid_amount: paidAmount,
         pending_amount: pendingAmount,
-        paid_cases: diyas?.filter(d => d.status === 'paid').length || 0,
-        pending_cases: diyas?.filter(d => d.status === 'pending').length || 0
+        paid_cases: diyas?.filter(d => d.payment_status === 'paid').length || 0,
+        pending_cases: diyas?.filter(d => d.payment_status === 'pending').length || 0
       },
       message: 'تم جلب قضايا الديات بنجاح'
     });
@@ -115,13 +112,12 @@ export const getDiyaById = async (req, res) => {
     const { id } = req.params;
 
     const { data: diya, error } = await supabase
-      .from('payments')
+      .from('diya_cases')
       .select(`
         *,
-        *
+        financial_contributions(*)
       `)
       .eq('id', id)
-      .eq('category', 'diya')
       .single();
 
     if (error) {
