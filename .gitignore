@@ -14,7 +14,9 @@ dist/
 .env.development.local
 .env.test.local
 .env.production.local
-env.*
+.env.*
+# Allow env.js configuration files
+!**/config/env.js
 
 # Logs
 logs
