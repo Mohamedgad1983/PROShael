@@ -12,7 +12,6 @@
  */
 
 import dotenv from 'dotenv';
-import { log } from '../utils/logger.js';
 
 // Load environment variables from .env file
 dotenv.config();
@@ -47,12 +46,12 @@ function validateEnvironment(isProduction) {
     const errorMessage = `Missing required environment variables: ${missing.join(', ')}`;
 
     if (isProduction) {
-      log.error(`🚨 FATAL ERROR: ${errorMessage}`);
-      log.error('Application cannot start in production without these variables.');
+      console.error(`🚨 FATAL ERROR: ${errorMessage}`);
+      console.error('Application cannot start in production without these variables.');
       throw new Error(errorMessage);
     } else {
-      log.warn(`⚠️  WARNING: ${errorMessage}`);
-      log.warn('Some features may not work correctly in development mode.');
+      console.warn(`⚠️  WARNING: ${errorMessage}`);
+      console.warn('Some features may not work correctly in development mode.');
     }
   }
 }
@@ -174,7 +173,7 @@ export const config = {
 
 // Log configuration on startup (non-sensitive info only)
 if (isDevelopment) {
-  log.info('📋 Environment Configuration Loaded', {
+  console.log('📋 Environment Configuration Loaded', {
     env: config.env,
     port: config.port,
     supabaseConfigured: !!config.supabase.url,
@@ -187,10 +186,10 @@ if (isDevelopment) {
 // Warn about missing optional but recommended variables
 if (isProduction) {
   if (!config.redis.url) {
-    log.warn('⚠️  REDIS_URL not configured. Caching will be disabled.');
+    console.warn('⚠️  REDIS_URL not configured. Caching will be disabled.');
   }
   if (!config.frontend.corsOrigin) {
-    log.warn('⚠️  CORS_ORIGIN not configured. Using permissive CORS settings.');
+    console.warn('⚠️  CORS_ORIGIN not configured. Using permissive CORS settings.');
   }
 }
 
