@@ -97,32 +97,39 @@ const HijriDiyasManagement: React.FC = () => {
       const result = await response.json();
 
       if (result.success && result.data) {
-        // Transform database data to match component interface
+        // Transform activities table data to match component interface
         const transformedDiyas = result.data.map((diya: any) => ({
           id: diya.id,
-          caseNumber: diya.reference_number || `DY-${diya.id}`,
-          title: diya.title || 'دية',
-          description: diya.description || '',
-          totalAmount: Number(diya.amount) || 0,
-          collectedAmount: diya.status === 'paid' ? Number(diya.amount) : 0,
-          remainingAmount: diya.status === 'paid' ? 0 : Number(diya.amount),
-          status: diya.status === 'paid' ? 'completed' : diya.status === 'pending' ? 'active' : 'pending',
-          priority: 'medium',
-          startDate: diya.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
-          deadline: diya.updated_at?.split('T')[0] || new Date().toISOString().split('T')[0],
-          contributorsCount: 1,
-          beneficiary: diya.title?.split('-')[1]?.trim() || 'غير محدد',
+          caseNumber: diya.case_number || `DY-${diya.id.slice(0, 8)}`,
+          title: diya.title_ar || diya.title_en || 'دية',
+          description: diya.description_ar || diya.description_en || '',
+          totalAmount: Number(diya.target_amount) || 0,
+          collectedAmount: Number(diya.current_amount) || 0,
+          remainingAmount: (Number(diya.target_amount) || 0) - (Number(diya.current_amount) || 0),
+          status: diya.status === 'completed' ? 'completed' : diya.status === 'active' ? 'active' : 'pending',
+          priority: diya.urgency_level >= 4 ? 'high' : diya.urgency_level >= 2 ? 'medium' : 'low',
+          startDate: diya.collection_start_date || diya.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+          deadline: diya.collection_deadline || diya.collection_end_date || diya.updated_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+          contributorsCount: diya.contributor_count || diya.contribution_count || diya.financial_contributions?.length || 0,
+          beneficiary: diya.beneficiary_name_ar || diya.beneficiary_name_en || 'غير محدد',
           createdBy: 'الإدارة',
           category: 'other',
           documents: [],
-          payments: [],
+          payments: (diya.financial_contributions || []).slice(0, 10).map((contrib: any) => ({
+            id: contrib.id,
+            contributorName: contrib.contributor_name || 'عضو',
+            amount: Number(contrib.contribution_amount) || 0,
+            date: contrib.contribution_date || contrib.created_at,
+            paymentMethod: contrib.payment_method || 'cash',
+            receiptNumber: contrib.payment_reference
+          })),
           createdAt: diya.created_at,
           updatedAt: diya.updated_at,
-          notes: diya.notes || ''
+          notes: diya.internal_notes || diya.public_notes_ar || ''
         }));
 
         setDiyas(transformedDiyas);
-        console.log(`✅ Loaded ${transformedDiyas.length} real Diyas from database`);
+        console.log(`✅ Loaded ${transformedDiyas.length} real Diyas from database with ${transformedDiyas.reduce((sum, d) => sum + d.contributorsCount, 0)} total contributors`);
       }
     } catch (error) {
       console.error('Error fetching diyas:', error);
