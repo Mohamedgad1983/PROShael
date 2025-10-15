@@ -3,13 +3,14 @@ import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { log } from '../utils/logger.js';
+import { config } from './env.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Initialize Supabase client
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+const supabaseUrl = config.supabase.url;
+const supabaseServiceKey = config.supabase.serviceKey;
 
 export const supabase = createClient(supabaseUrl, supabaseServiceKey);
 

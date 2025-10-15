@@ -1,12 +1,19 @@
 import jwt from 'jsonwebtoken';
-import { supabase } from '../config/database.js';
+import { supabase } from '../src/config/database.js';
+import { config } from '../src/config/env.js';
 
-// Authentication middleware - FIXED VERSION
+// Authentication middleware - Supports both httpOnly cookies and Authorization header
 const authenticate = async (req, res, next) => {
     try {
+        // Try to get token from cookie first (httpOnly - XSS-safe), then fallback to Authorization header
+        let token = req.cookies?.auth_token;
         const authHeader = req.header('Authorization');
 
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        if (!token && authHeader && authHeader.startsWith('Bearer ')) {
+            token = authHeader.replace('Bearer ', '');
+        }
+
+        if (!token) {
             return res.status(401).json({
                 success: false,
                 message: 'رمز الوصول مطلوب',
@@ -14,10 +21,8 @@ const authenticate = async (req, res, next) => {
             });
         }
 
-        const token = authHeader.replace('Bearer ', '');
-        // CRITICAL: Use consistent JWT_SECRET with fallback
-        const jwtSecret = process.env.JWT_SECRET || 'alshuail-universal-jwt-secret-2024-production-32chars';
-        const decoded = jwt.verify(token, jwtSecret);
+        // Use centralized JWT configuration
+        const decoded = jwt.verify(token, config.jwt.secret);
 
         // Check if it's a member or admin based on the role in token
         let user;
@@ -123,13 +128,17 @@ const authorize = (roles = []) => {
 // Optional authentication (for public endpoints with user context)
 const optionalAuth = async (req, res, next) => {
     try {
+        // Try to get token from cookie first, then fallback to Authorization header
+        let token = req.cookies?.auth_token;
         const authHeader = req.header('Authorization');
 
-        if (authHeader && authHeader.startsWith('Bearer ')) {
-            const token = authHeader.replace('Bearer ', '');
-            // CRITICAL: Use consistent JWT_SECRET with fallback
-            const jwtSecret = process.env.JWT_SECRET || 'alshuail-universal-jwt-secret-2024-production-32chars';
-            const decoded = jwt.verify(token, jwtSecret);
+        if (!token && authHeader && authHeader.startsWith('Bearer ')) {
+            token = authHeader.replace('Bearer ', '');
+        }
+
+        if (token) {
+            // Use centralized JWT configuration
+            const decoded = jwt.verify(token, config.jwt.secret);
 
             let user;
             let error;
