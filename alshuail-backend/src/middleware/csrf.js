@@ -4,8 +4,8 @@
  * Uses double-submit cookie pattern for security
  */
 
-const { doubleCsrf } = require('csrf-csrf');
-const { config } = require('../config/env.js');
+import { doubleCsrf } from 'csrf-csrf';
+import { config } from '../config/env.js';
 
 // Configure CSRF protection options
 const csrfOptions = {
@@ -83,7 +83,7 @@ const validateCSRFToken = (req, res, next) => {
 // Combined middleware for easy application
 const csrfProtection = doubleCsrfProtection;
 
-module.exports = {
+export {
   generateCSRFToken,
   validateCSRFToken,
   csrfProtection,
