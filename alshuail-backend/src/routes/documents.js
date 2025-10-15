@@ -76,7 +76,7 @@ router.post('/upload', authenticateToken, upload.single('document'), async (req,
         file_size: uploadResult.size,
         file_type: uploadResult.type,
         original_name: req.file.originalname,
-        uploaded_by: req.user.id || req.user.userId,
+        uploaded_by: req.user.id,
         status: 'active'
       })
       .select()
@@ -108,7 +108,7 @@ router.post('/upload', authenticateToken, upload.single('document'), async (req,
 // Get all documents for a member
 router.get('/member/:memberId?', authenticateToken, async (req, res) => {
   try {
-    const memberId = req.params.memberId || req.user.userId;
+    const memberId = req.params.memberId || req.user.id;
     const { category, search, limit = 50, offset = 0 } = req.query;
 
     let query = supabase
@@ -184,7 +184,7 @@ router.get('/:documentId', authenticateToken, async (req, res) => {
     }
 
     // Check permission
-    if (document.member_id !== req.user.userId && req.user.role !== 'admin') {
+    if (document.member_id !== req.user.id && req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
         message: 'غير مصرح',
@@ -228,7 +228,7 @@ router.put('/:documentId', authenticateToken, async (req, res) => {
       .eq('id', documentId)
       .single();
 
-    if (!existing || (existing.member_id !== req.user.userId && req.user.role !== 'admin')) {
+    if (!existing || (existing.member_id !== req.user.id && req.user.role !== 'admin')) {
       return res.status(403).json({
         success: false,
         message: 'غير مصرح',
@@ -294,7 +294,7 @@ router.delete('/:documentId', authenticateToken, async (req, res) => {
     }
 
     // Check permission
-    if (document.member_id !== req.user.userId && req.user.role !== 'admin') {
+    if (document.member_id !== req.user.id && req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
         message: 'غير مصرح',
@@ -345,7 +345,7 @@ router.get('/config/categories', (req, res) => {
 // Get statistics
 router.get('/stats/overview', authenticateToken, async (req, res) => {
   try {
-    const memberId = req.query.member_id || req.user.userId;
+    const memberId = req.query.member_id || req.user.id;
 
     const { data: stats, error } = await supabase
       .from('documents_metadata')
