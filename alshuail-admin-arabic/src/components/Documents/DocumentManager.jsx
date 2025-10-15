@@ -50,6 +50,14 @@ const DocumentManager = () => {
         }
       });
 
+      // Handle authentication errors
+      if (response.status === 401 || response.status === 403) {
+        console.warn('🔑 Authentication error, redirecting to login...');
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+        return;
+      }
+
       if (response.ok) {
         const data = await response.json();
         setDocuments(data.data || []);
@@ -70,6 +78,14 @@ const DocumentManager = () => {
           'Authorization': `Bearer ${token}`
         }
       });
+
+      // Handle authentication errors
+      if (response.status === 401 || response.status === 403) {
+        console.warn('🔑 Authentication error, redirecting to login...');
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+        return;
+      }
 
       if (response.ok) {
         const data = await response.json();
