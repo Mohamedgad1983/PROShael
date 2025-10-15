@@ -33,24 +33,23 @@ router.post('/upload', authenticateToken, upload.single('document'), async (req,
 
     // Get the actual member_id from the authenticated user
     // For members, req.user.id IS the member_id
-    // For admins, use the provided member_id or get it from users table
+    // For admins, member_id MUST be provided in request body
     let targetMemberId;
 
     if (req.user.role === 'member') {
       // For members, use their own member ID (req.user.id)
       targetMemberId = req.user.id;
-    } else if (member_id) {
-      // Admin can specify member_id
-      targetMemberId = member_id;
-    } else if (req.user.member_id) {
-      // Fallback: get from user's member_id field
-      targetMemberId = req.user.member_id;
     } else {
-      return res.status(400).json({
-        success: false,
-        message: 'معرف العضو مطلوب',
-        message_en: 'Member ID required'
-      });
+      // For admin/super_admin, member_id must be provided
+      if (!member_id) {
+        return res.status(400).json({
+          success: false,
+          message: 'يجب تحديد معرف العضو عند الرفع كمسؤول',
+          message_en: 'Member ID is required when uploading as admin',
+          hint: 'Please provide member_id in the request body'
+        });
+      }
+      targetMemberId = member_id;
     }
 
     // Validate category
