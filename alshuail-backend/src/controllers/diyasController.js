@@ -30,12 +30,21 @@ export const getAllDiyas = async (req, res) => {
       max_amount
     } = req.query;
 
+    // Query activities table filtered for diya-related activities
+    // The activities link to financial_contributions via activity_id FK
     let query = supabase
-      .from('diya_cases')
+      .from('activities')
       .select(`
         *,
-        financial_contributions(count)
+        financial_contributions(
+          id,
+          contributor_id,
+          contribution_amount,
+          status,
+          contribution_date
+        )
       `)
+      .or('title_ar.ilike.%دية%,title_en.ilike.%diya%')
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -50,30 +59,41 @@ export const getAllDiyas = async (req, res) => {
 
     // Date range filter
     if (start_date) {
-      query = query.gte('reported_date_gregorian', start_date);
+      query = query.gte('created_at', start_date);
     }
 
     if (end_date) {
-      query = query.lte('reported_date_gregorian', end_date);
+      query = query.lte('created_at', end_date);
     }
 
     // Amount range filter
     if (min_amount) {
-      query = query.gte('compensation_amount', min_amount);
+      query = query.gte('target_amount', min_amount);
     }
 
     if (max_amount) {
-      query = query.lte('compensation_amount', max_amount);
+      query = query.lte('target_amount', max_amount);
     }
 
     const { data: diyas, error, count } = await query;
 
     if (error) {throw error;}
 
-    // Calculate summary statistics
-    const totalAmount = diyas?.reduce((sum, diya) => sum + Number(diya.compensation_amount), 0) || 0;
-    const paidAmount = diyas?.filter(d => d.payment_status === 'paid').reduce((sum, d) => sum + Number(d.compensation_amount), 0) || 0;
-    const pendingAmount = diyas?.filter(d => d.payment_status === 'pending').reduce((sum, d) => sum + Number(d.compensation_amount), 0) || 0;
+    // Calculate summary statistics from financial_contributions
+    const totalAmount = diyas?.reduce((sum, diya) => {
+      const collected = diya.financial_contributions?.reduce((s, c) => s + Number(c.contribution_amount), 0) || 0;
+      return sum + collected;
+    }, 0) || 0;
+
+    const paidAmount = diyas?.reduce((sum, diya) => {
+      const paid = diya.financial_contributions?.filter(c => c.status === 'approved').reduce((s, c) => s + Number(c.contribution_amount), 0) || 0;
+      return sum + paid;
+    }, 0) || 0;
+
+    const pendingAmount = diyas?.reduce((sum, diya) => {
+      const pending = diya.financial_contributions?.filter(c => c.status === 'pending').reduce((s, c) => s + Number(c.contribution_amount), 0) || 0;
+      return sum + pending;
+    }, 0) || 0;
 
     res.json({
       success: true,
@@ -88,8 +108,8 @@ export const getAllDiyas = async (req, res) => {
         total_amount: totalAmount,
         paid_amount: paidAmount,
         pending_amount: pendingAmount,
-        paid_cases: diyas?.filter(d => d.payment_status === 'paid').length || 0,
-        pending_cases: diyas?.filter(d => d.payment_status === 'pending').length || 0
+        paid_cases: diyas?.filter(d => d.status === 'completed').length || 0,
+        pending_cases: diyas?.filter(d => d.status === 'active').length || 0
       },
       message: 'تم جلب قضايا الديات بنجاح'
     });
