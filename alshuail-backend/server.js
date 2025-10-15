@@ -156,7 +156,7 @@ const limiter = rateLimit({
 app.use('/api', limiter);
 
 // Configure JSON parsing with UTF-8 support for Arabic text
-n// Cookie parser for CSRF tokens
+// Cookie parser for CSRF tokens
 app.use(cookieParser());
 // JSON parser with better error handling
 app.use(express.json({
