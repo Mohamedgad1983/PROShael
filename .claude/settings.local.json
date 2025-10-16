@@ -148,7 +148,9 @@
       "Bash(set NODE_OPTIONS=--max-old-space-size=8192)",
       "mcp__serena__think_about_whether_you_are_done",
       "mcp__chrome-devtools__performance_stop_trace",
-      "Bash(echo:*)"
+      "Bash(echo:*)",
+      "Bash(npx wrangler pages deployment list:*)",
+      "WebFetch(domain:alshuail-mobile-pwa.pages.dev)"
     ],
     "deny": [],
     "ask": []

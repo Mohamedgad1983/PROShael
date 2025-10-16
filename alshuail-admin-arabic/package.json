@@ -45,8 +45,8 @@
   },
   "scripts": {
     "start": "craco start",
-    "build": "set NODE_OPTIONS=--max-old-space-size=8192 && craco build && node scripts/copy-mobile.js",
-    "build:fast": "set NODE_OPTIONS=--max-old-space-size=8192 && set GENERATE_SOURCEMAP=false && craco build && node scripts/copy-mobile.js",
+    "build": "set NODE_OPTIONS=--max-old-space-size=8192 && craco build",
+    "build:fast": "set NODE_OPTIONS=--max-old-space-size=8192 && set GENERATE_SOURCEMAP=false && craco build",
     "test": "craco test",
     "eject": "react-scripts eject",
     "test:ci": "craco test --coverage --watchAll=false --testTimeout=10000",
