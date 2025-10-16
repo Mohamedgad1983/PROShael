@@ -196,11 +196,11 @@ const HijriDiyasManagement: React.FC = () => {
   }, []);
 
   // Fetch contributors for a specific diya with server-side pagination
-  const fetchContributors = async (diyaId: number | string, page: number = 1) => {
+  const fetchContributors = async (diyaId: number | string, page: number = 1, limit: number = contributorsPerPage) => {
     try {
       setContributorsLoading(true);
       const API_URL = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
-      const response = await fetch(`${API_URL}/api/diya/${diyaId}/contributors?page=${page}&limit=${contributorsPerPage}`, {
+      const response = await fetch(`${API_URL}/api/diya/${diyaId}/contributors?page=${page}&limit=${limit}`, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -235,9 +235,9 @@ const HijriDiyasManagement: React.FC = () => {
   // Handle page change in contributors modal
   const handleContributorsPageChange = useCallback((newPage: number) => {
     if (selectedDiya) {
-      fetchContributors(selectedDiya.id, newPage);
+      fetchContributors(selectedDiya.id, newPage, contributorsPerPage);
     }
-  }, [selectedDiya]);
+  }, [selectedDiya, contributorsPerPage, fetchContributors]);
 
   // Fetch ALL contributors for export
   const fetchAllContributorsForExport = async (diyaId: number | string) => {
@@ -329,9 +329,9 @@ const HijriDiyasManagement: React.FC = () => {
   const handleItemsPerPageChange = useCallback((newLimit: number) => {
     setContributorsPerPage(newLimit);
     if (selectedDiya) {
-      fetchContributors(selectedDiya.id, 1);
+      fetchContributors(selectedDiya.id, 1, newLimit);
     }
-  }, [selectedDiya]);
+  }, [selectedDiya, fetchContributors]);
 
   // Filter contributors by search term
   const filteredContributors = useMemo(() => {
@@ -970,14 +970,14 @@ const HijriDiyasManagement: React.FC = () => {
       {/* Add Diya Modal */}
       {showAddModal && <AddDiyaModal />}
 
-      {/* Professional Contributors Modal - Flexible Height */}
+      {/* Professional Contributors Modal - Full Screen NO FOOTER */}
       {showContributorsModal && selectedDiya && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm z-50 flex items-start justify-center p-2 overflow-y-auto"
+          className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm z-50"
           onClick={() => setShowContributorsModal(false)}
         >
           <div
-            className="bg-white rounded-lg w-full max-w-7xl my-auto shadow-2xl"
+            className="absolute inset-0 m-1 bg-white rounded-lg flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Professional Header with Logo */}
@@ -1089,19 +1089,19 @@ const HijriDiyasManagement: React.FC = () => {
               </div>
             </div>
 
-            {/* Flexible Table - Natural Height, No Footer */}
-            <div className="px-3 py-3">
+            {/* Full-Screen Table - Maximum Space, NO FOOTER */}
+            <div className="flex-1 overflow-y-auto px-2">
               {contributorsLoading ? (
-                <div className="flex items-center justify-center py-20">
+                <div className="flex items-center justify-center h-full">
                   <div className="text-center">
                     <div className="animate-spin w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-3"></div>
                     <p className="text-sm text-gray-600">جاري التحميل...</p>
                   </div>
                 </div>
               ) : filteredContributors.length > 0 ? (
-                <div className="w-full">
-                  {/* Table Header */}
-                  <div className="bg-gradient-to-r from-gray-800 to-gray-900 text-white grid grid-cols-5 gap-3 px-4 py-2.5 text-xs font-bold rounded-t-lg">
+                <div className="h-full flex flex-col">
+                  {/* Sticky Table Header */}
+                  <div className="bg-gradient-to-r from-gray-800 to-gray-900 text-white grid grid-cols-5 gap-2 px-3 py-2 text-xs font-bold sticky top-0 z-10">
                     <div className="text-right">المسلسل</div>
                     <div className="text-right">الاسم</div>
                     <div className="text-right">الفخذ</div>
@@ -1109,12 +1109,12 @@ const HijriDiyasManagement: React.FC = () => {
                     <div className="text-right">التاريخ</div>
                   </div>
 
-                  {/* Table Body - Natural Height */}
-                  <div className="bg-white border border-gray-200 rounded-b-lg">
+                  {/* Table Body - Fills Remaining Space */}
+                  <div className="flex-1 bg-white">
                     {filteredContributors.map((contributor, index) => (
                       <div
                         key={index}
-                        className="grid grid-cols-5 gap-3 px-4 py-2.5 border-b border-gray-100 hover:bg-blue-50 transition-colors items-center last:border-b-0"
+                        className="grid grid-cols-5 gap-2 px-3 py-2 border-b border-gray-100 hover:bg-blue-50 transition-colors items-center"
                       >
                         <div className="text-right text-xs font-medium text-gray-700">{contributor.membership_number}</div>
                         <div className="text-right text-sm font-semibold text-gray-900">{contributor.member_name}</div>
@@ -1128,20 +1128,24 @@ const HijriDiyasManagement: React.FC = () => {
                   </div>
                 </div>
               ) : contributorSearchTerm ? (
-                <div className="py-12 text-center text-gray-500">
-                  <MagnifyingGlassIcon className="w-16 h-16 mx-auto mb-3 text-gray-300" />
-                  <p className="text-sm font-medium">لا توجد نتائج للبحث "{contributorSearchTerm}"</p>
-                  <button
-                    onClick={() => setContributorSearchTerm('')}
-                    className="mt-3 px-4 py-2 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                  >
-                    مسح البحث
-                  </button>
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center text-gray-500">
+                    <MagnifyingGlassIcon className="w-16 h-16 mx-auto mb-3 text-gray-300" />
+                    <p className="text-sm font-medium">لا توجد نتائج للبحث "{contributorSearchTerm}"</p>
+                    <button
+                      onClick={() => setContributorSearchTerm('')}
+                      className="mt-3 px-4 py-2 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    >
+                      مسح البحث
+                    </button>
+                  </div>
                 </div>
               ) : (
-                <div className="py-12 text-center text-gray-500">
-                  <DocumentTextIcon className="w-16 h-16 mx-auto mb-3 text-gray-300" />
-                  <p>لا توجد مساهمات حالياً</p>
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center text-gray-500">
+                    <DocumentTextIcon className="w-16 h-16 mx-auto mb-3 text-gray-300" />
+                    <p>لا توجد مساهمات حالياً</p>
+                  </div>
                 </div>
               )}
             </div>
