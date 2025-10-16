@@ -129,7 +129,7 @@ const HijriDiyasManagement: React.FC = () => {
         }));
 
         setDiyas(transformedDiyas);
-        console.log(`✅ Loaded ${transformedDiyas.length} real Diyas from database with ${transformedDiyas.reduce((sum, d) => sum + d.contributorsCount, 0)} total contributors`);
+        console.log(`✅ Loaded ${transformedDiyas.length} real Diyas from database with ${transformedDiyas.reduce((sum: number, d: Diya) => sum + d.contributorsCount, 0)} total contributors`);
       }
     } catch (error) {
       console.error('Error fetching diyas:', error);

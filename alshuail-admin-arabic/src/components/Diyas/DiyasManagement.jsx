@@ -47,6 +47,9 @@ const DiyasManagement = () => {
   const [showDiyaModal, setShowDiyaModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
+  // API URL configuration
+  const API_URL = process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://proshael.onrender.com');
+
   // Mock diyas data
   const mockDiyas = [
     {
@@ -282,10 +285,66 @@ const DiyasManagement = () => {
   const loadDiyasData = async () => {
     setLoading(true);
     try {
-      // Load mock data - replace with actual API calls
-      setDiyas(mockDiyas);
+      // Fetch real data from API
+      const response = await fetch(`${API_URL}/api/diya/dashboard`);
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        // Transform API data to match component structure
+        // API returns activities table with: title_ar, target_amount, current_amount, contributor_count
+        const transformedDiyas = result.data.map(d => ({
+          id: d.id,
+          case_number: d.case_number || `DIYA-${d.id.substring(0, 8)}`,
+          title: d.title_ar || d.title_en || 'قضية دية',
+          description: d.description_ar || d.description_en || '',
+          type: 'traffic_accident', // Default type
+          status: d.status === 'completed' ? 'completed' : 'active',
+          priority: 'high',
+          payment_status: d.status === 'completed' ? 'paid' : 'partial',
+          diya_amount: d.target_amount || 0,
+          paid_amount: d.current_amount || 0,
+          remaining_amount: (d.target_amount || 0) - (d.current_amount || 0),
+          incident_date: d.created_at ? new Date(d.created_at).toLocaleDateString('ar-SA') : '',
+          creation_date: d.created_at ? new Date(d.created_at).toLocaleDateString('ar-SA') : '',
+          deadline: '',
+          hijri_incident: toHijri(new Date().getFullYear(), new Date().getMonth() + 1, new Date().getDate()),
+          hijri_creation: toHijri(new Date().getFullYear(), new Date().getMonth() + 1, new Date().getDate()),
+          hijri_deadline: toHijri(new Date().getFullYear(), new Date().getMonth() + 1, new Date().getDate()),
+          victim: {
+            name: d.description_ar || 'غير محدد',
+            age: 0,
+            relationship: '',
+            heirs: []
+          },
+          responsible_party: {
+            name: '',
+            phone: '',
+            insurance_company: null,
+            policy_number: null
+          },
+          mediator: 'إدارة الصندوق',
+          assigned_lawyer: '',
+          case_manager: '',
+          location: '',
+          court_reference: '',
+          contributors: d.financial_contributions || [],
+          contributors_count: d.contributor_count || d.contribution_count || 0,
+          total_family_contribution: d.current_amount || 0,
+          insurance_coverage: 0,
+          notes: '',
+          status_history: [],
+          documents: []
+        }));
+
+        setDiyas(transformedDiyas);
+      } else {
+        // Fallback to mock data
+        setDiyas(mockDiyas);
+      }
     } catch (error) {
       console.error('Error loading diyas data:', error);
+      // Fallback to mock data on error
+      setDiyas(mockDiyas);
     } finally {
       setLoading(false);
     }

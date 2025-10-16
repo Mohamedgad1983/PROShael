@@ -147,18 +147,20 @@ const AppleDiyasManagement = () => {
 
       if (result.success && result.data) {
         // Transform API data to match component structure
+        // API returns activities table with: title_ar, target_amount, current_amount, contributor_count
         const transformedDiyas = result.data.map(d => ({
-          id: d.activity_id,
-          title: d.title_ar || d.title_en,
+          id: d.id,
+          title: d.title_ar || d.title_en || 'دية',
           type: 'accident', // Default type
-          amount: d.target_amount || 100000,
-          beneficiaryName: d.description_ar || 'غير محدد',
-          paidAmount: d.total_collected || 0,
-          remainingAmount: (d.target_amount || 100000) - (d.total_collected || 0),
-          contributors: d.total_contributors || 0,
-          status: d.collection_status === 'completed' ? 'completed' : 'in_progress',
+          amount: d.target_amount || 0,
+          beneficiaryName: d.description_ar || d.description_en || 'غير محدد',
+          paidAmount: d.current_amount || 0,
+          remainingAmount: (d.target_amount || 0) - (d.current_amount || 0),
+          contributors: d.contributor_count || d.contribution_count || 0,
+          status: d.status === 'completed' ? 'completed' : 'in_progress',
           priority: 'high',
           collectorName: 'إدارة الصندوق',
+          incidentDate: d.created_at ? new Date(d.created_at).toLocaleDateString('ar-SA') : '',
           tags: ['دية']
         }));
 
