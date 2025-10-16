@@ -668,25 +668,19 @@ const HijriDiyasManagement: React.FC = () => {
   }
 
   return (
-    <div className="p-6" dir="rtl">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="icon-wrapper-gradient" style={{ background: 'var(--gradient-sunset)' }}>
-              <HandRaisedIcon className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">إدارة الديات</h1>
-              <p className="text-sm text-gray-600">إدارة حالات الديات والمساهمات المالية</p>
-            </div>
+    <div className="p-3" dir="rtl">
+      {/* Compact Header */}
+      <div className="mb-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">إدارة الديات</h1>
           </div>
           <button
             onClick={() => setShowAddModal(true)}
-            className="btn-gradient-premium flex items-center gap-2"
+            className="btn-gradient-premium flex items-center gap-1.5 text-sm px-3 py-1.5"
           >
-            <PlusIcon className="w-5 h-5" />
-            إضافة حالة جديدة
+            <PlusIcon className="w-4 h-4" />
+            إضافة
           </button>
         </div>
 
@@ -770,8 +764,8 @@ const HijriDiyasManagement: React.FC = () => {
         </div>
       </div>
 
-      {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+      {/* Compact Statistics */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-4">
         <StatCard
           title="إجمالي الحالات"
           value={statistics.totalDiyas}
@@ -811,8 +805,8 @@ const HijriDiyasManagement: React.FC = () => {
         />
       </div>
 
-      {/* Search and Filters */}
-      <div className="flex items-center gap-4 mb-6">
+      {/* Compact Search and Filters */}
+      <div className="flex items-center gap-2 mb-3">
         <div className="flex-1 relative">
           <input
             type="text"
@@ -872,29 +866,31 @@ const HijriDiyasManagement: React.FC = () => {
           onClick={() => setShowContributorsModal(false)}
         >
           <div
-            className="bg-white rounded-xl max-w-7xl w-full h-[95vh] flex flex-col"
+            className="bg-white rounded-xl w-[98vw] h-[98vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Compact Header - Fixed Height */}
-            <div className="flex justify-between items-center p-4 border-b flex-shrink-0">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">{selectedDiya.title} - قائمة المساهمين</h2>
-                <div className="flex gap-4 text-xs text-gray-600 mt-1">
-                  <span>الإجمالي: <strong>{contributorsTotal}</strong></span>
-                  <span>المبلغ: <strong className="text-green-600">{selectedDiya.collectedAmount.toLocaleString()} ر.س</strong></span>
-                  <span>المتوسط: <strong className="text-blue-600">{contributorsTotal > 0 ? (selectedDiya.collectedAmount / contributorsTotal).toFixed(0) : 0} ر.س</strong></span>
+            {/* Ultra-Compact Header with Statistics - Fixed Height */}
+            <div className="p-2 border-b flex-shrink-0 bg-gradient-to-r from-blue-50 to-purple-50">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-4">
+                  <h2 className="text-lg font-bold text-gray-900">{selectedDiya.title}</h2>
+                  <div className="flex gap-3 text-xs">
+                    <span className="bg-blue-600 text-white px-2 py-1 rounded font-bold">الإجمالي: {contributorsTotal}</span>
+                    <span className="bg-green-600 text-white px-2 py-1 rounded font-bold">المبلغ: {selectedDiya.collectedAmount.toLocaleString()} ر.س</span>
+                    <span className="bg-purple-600 text-white px-2 py-1 rounded font-bold">المتوسط: {contributorsTotal > 0 ? (selectedDiya.collectedAmount / contributorsTotal).toFixed(0) : 0} ر.س</span>
+                  </div>
                 </div>
+                <button
+                  onClick={() => setShowContributorsModal(false)}
+                  className="p-1 bg-red-100 hover:bg-red-200 rounded transition-colors"
+                >
+                  <XMarkIcon className="w-5 h-5 text-red-600" />
+                </button>
               </div>
-              <button
-                onClick={() => setShowContributorsModal(false)}
-                className="p-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-              >
-                <XMarkIcon className="w-5 h-5 text-gray-600" />
-              </button>
             </div>
 
-            {/* Table Container - Flexible Height */}
-            <div className="flex-1 overflow-hidden p-4">
+            {/* Table Container - Maximum Space */}
+            <div className="flex-1 overflow-hidden p-2">
               {contributorsLoading ? (
                 <div className="flex items-center justify-center h-full">
                   <div className="text-center">
@@ -903,28 +899,28 @@ const HijriDiyasManagement: React.FC = () => {
                   </div>
                 </div>
               ) : contributors.length > 0 ? (
-                <div className="h-full flex flex-col bg-gray-50 rounded-lg">
-                  {/* Compact Table Header */}
-                  <div className="bg-gray-900 text-white grid grid-cols-5 gap-3 p-2.5 rounded-t-lg text-sm font-medium flex-shrink-0">
-                    <div className="text-right">العضوية</div>
+                <div className="h-full flex flex-col">
+                  {/* Full-Width Table Header */}
+                  <div className="bg-gradient-to-r from-gray-800 to-gray-900 text-white grid grid-cols-5 gap-2 px-3 py-2 text-xs font-bold flex-shrink-0 sticky top-0 z-10">
+                    <div className="text-right">المسلسل</div>
                     <div className="text-right">الاسم</div>
                     <div className="text-right">الفخذ</div>
                     <div className="text-right">المبلغ</div>
                     <div className="text-right">التاريخ</div>
                   </div>
 
-                  {/* Table Body - Takes Remaining Space */}
-                  <div className="flex-1 overflow-y-auto">
+                  {/* Table Body - Full Width, Maximum Space */}
+                  <div className="flex-1 overflow-y-auto bg-white">
                     {contributors.map((contributor, index) => (
                       <div
                         key={index}
-                        className="grid grid-cols-5 gap-3 p-2.5 border-b border-gray-200 hover:bg-gray-100 transition-colors items-center bg-white"
+                        className="grid grid-cols-5 gap-2 px-3 py-2 border-b border-gray-100 hover:bg-blue-50 transition-colors items-center"
                       >
-                        <div className="text-right text-xs">{contributor.membership_number}</div>
-                        <div className="text-right text-sm font-medium truncate">{contributor.member_name}</div>
-                        <div className="text-right text-xs">{contributor.tribal_section || '-'}</div>
-                        <div className="text-right text-sm font-bold text-green-600">{contributor.amount.toLocaleString()}</div>
-                        <div className="text-right text-xs text-gray-600">
+                        <div className="text-right text-xs font-medium text-gray-700">{contributor.membership_number}</div>
+                        <div className="text-right text-sm font-semibold text-gray-900 truncate">{contributor.member_name}</div>
+                        <div className="text-right text-xs text-gray-600">{contributor.tribal_section || '-'}</div>
+                        <div className="text-right text-sm font-bold text-green-700">{contributor.amount.toLocaleString()}</div>
+                        <div className="text-right text-xs text-gray-500">
                           {new Date(contributor.contribution_date).toLocaleDateString('ar-SA')}
                         </div>
                       </div>
@@ -941,8 +937,8 @@ const HijriDiyasManagement: React.FC = () => {
               )}
             </div>
 
-            {/* Compact Footer with Pagination - Fixed Height */}
-            <div className="border-t p-3 flex-shrink-0">
+            {/* Ultra-Compact Footer with Pagination */}
+            <div className="border-t p-2 flex-shrink-0 bg-gray-50">
               {contributorsTotalPages > 1 && !contributorsLoading && (
                 <div className="flex items-center justify-between mb-2">
                   <div className="text-xs text-gray-600">
