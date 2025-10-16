@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-// Optimized imports - only icons actually used in this component
+// Optimized imports - only what's actually used
 import {
   HandRaisedIcon,
   ScaleIcon,
@@ -18,16 +18,14 @@ import {
   ShieldExclamationIcon,
   XMarkIcon,
   DocumentArrowDownIcon,
-  FunnelIcon,
   ArrowDownTrayIcon
 } from '@heroicons/react/24/outline';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import * as XLSX from 'xlsx';
-import { HijriDateDisplay, HijriDateFilter, HijriCalendarWidget } from '../Common/HijriDateDisplay';
+import { HijriDateDisplay } from '../Common/HijriDateDisplay';
 import { HijriDateInput } from '../Common/HijriDateInput';
-import { formatHijriDate, formatDualDate, formatTimeAgo, isOverdue, getDaysUntil } from '../../utils/hijriDateUtils';
-import { toHijri, toGregorian } from 'hijri-converter';
+import { isOverdue, getDaysUntil } from '../../utils/hijriDateUtils';
 import '../../styles/ultra-premium-islamic-design.css';
 
 // ========================================
@@ -106,7 +104,6 @@ interface Contributor {
 }
 
 const HijriDiyasManagement: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('overview');
   const [diyas, setDiyas] = useState<Diya[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -127,7 +124,6 @@ const HijriDiyasManagement: React.FC = () => {
   const [contributorsLoading, setContributorsLoading] = useState(false);
   const [contributorsPerPage, setContributorsPerPage] = useState(20);
   const [contributorSearchTerm, setContributorSearchTerm] = useState('');
-  const [allContributorsForExport, setAllContributorsForExport] = useState<Contributor[]>([]);
 
   // Fetch real Diyas data from database
   const fetchDiyas = async () => {
@@ -196,7 +192,7 @@ const HijriDiyasManagement: React.FC = () => {
   }, []);
 
   // Fetch contributors for a specific diya with server-side pagination
-  const fetchContributors = async (diyaId: number | string, page: number = 1, limit: number = contributorsPerPage) => {
+  const fetchContributors = useCallback(async (diyaId: number | string, page: number = 1, limit: number = contributorsPerPage) => {
     try {
       setContributorsLoading(true);
       const API_URL = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
@@ -224,13 +220,13 @@ const HijriDiyasManagement: React.FC = () => {
     } finally {
       setContributorsLoading(false);
     }
-  };
+  }, [contributorsPerPage]);
 
   // Handle viewing contributors (memoized)
   const handleViewContributors = useCallback((diya: Diya) => {
     setSelectedDiya(diya);
     fetchContributors(diya.id, 1);
-  }, []);
+  }, [fetchContributors]);
 
   // Handle page change in contributors modal
   const handleContributorsPageChange = useCallback((newPage: number) => {
@@ -251,7 +247,6 @@ const HijriDiyasManagement: React.FC = () => {
       });
       const result = await response.json();
       if (result.success && result.data) {
-        setAllContributorsForExport(result.data);
         return result.data;
       }
       return [];

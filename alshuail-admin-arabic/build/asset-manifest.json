@@ -1,7 +1,7 @@
 {
   "files": {
     "main.css": "/static/css/main.13e5e841.css",
-    "main.js": "/static/js/main.3a29c454.js",
+    "main.js": "/static/js/main.4808417d.js",
     "heroicons.js": "/static/js/heroicons.15682e5e.js",
     "charts.js": "/static/js/charts.38c96cb9.js",
     "react.js": "/static/js/react.791bfc9c.js",
@@ -17,6 +17,6 @@
     "static/js/libs.8adf3202.js",
     "static/js/vendor.80aa7408.js",
     "static/css/main.13e5e841.css",
-    "static/js/main.3a29c454.js"
+    "static/js/main.4808417d.js"
   ]
 }
