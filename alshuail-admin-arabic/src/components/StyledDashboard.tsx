@@ -24,54 +24,23 @@ import {
 } from '@heroicons/react/24/outline';
 
 // @ts-ignore
-
-import SubscriptionsManagement from './Subscriptions/SubscriptionsManagement.jsx';
-
-// @ts-ignore
-
 import PaymentsTracking from './Payments/PaymentsTracking.jsx';
 
 // @ts-ignore
-
-import AppleOccasionsManagement from './Occasions/AppleOccasionsManagement.jsx';
-
-// @ts-ignore
-
-import AppleInitiativesManagement from './Initiatives/AppleInitiativesManagement.jsx';
-
-// @ts-ignore
-
 import HijriDiyasManagement from './Diyas/HijriDiyasManagement';
-import DiyaDashboard from './DiyaDashboard.jsx';
 
 import { NotificationsCenter } from './Notifications';
 
 import FinancialReportsSimple from './Reports/FinancialReportsSimple';
 
 // @ts-ignore
-
-import AppleMembersManagement from './Members/AppleMembersManagement';
-
-// @ts-ignore
-
-import EnhancedMembersManagement from './Members/EnhancedMembersManagement.jsx';
-
-// @ts-ignore
-
 import TwoSectionMembers from './Members/TwoSectionMembers.jsx';
 
 // @ts-ignore
 
 import Settings from './Settings/Settings.jsx';
 
-// Crisis Recovery Components - CRITICAL PRIORITY
-
 // @ts-ignore
-
-import CrisisDashboard from './Crisis/CrisisDashboard';
-
-// @ts-ignore
-
 import MemberStatementSearch from './MemberStatement/MemberStatementSearch.jsx';
 
 // @ts-ignore
@@ -92,7 +61,6 @@ import SubscriptionDashboard from '../pages/admin/SubscriptionDashboard';
 import {
   formatHijriDate,
   getCurrentHijriDate,
-  formatDualDate,
 } from '../utils/hijriDateUtils';
 
 import { useDashboardData } from '../hooks/useApi';
@@ -873,10 +841,6 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
 
     return savedPlans ? JSON.parse(savedPlans) : [];
   });
-
-  const [subscriptionsLoading, setSubscriptionsLoading] = useState(false);
-
-  const [selectedMember, setSelectedMember] = useState<any>(null);
 
   const [showPlanModal, setShowPlanModal] = useState(false);
 

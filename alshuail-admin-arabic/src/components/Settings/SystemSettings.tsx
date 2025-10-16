@@ -7,12 +7,8 @@ import React, { useState } from 'react';
 import {
   ServerIcon,
   CpuChipIcon,
-  CloudArrowUpIcon,
   ShieldCheckIcon,
   ClockIcon,
-  GlobeAltIcon,
-  BellIcon,
-  DocumentTextIcon,
   CheckCircleIcon
 } from '@heroicons/react/24/outline';
 

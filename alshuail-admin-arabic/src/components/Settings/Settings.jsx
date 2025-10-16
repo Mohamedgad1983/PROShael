@@ -15,18 +15,13 @@ import {
   UsersIcon,
   ShieldCheckIcon,
   ServerIcon,
-  DocumentTextIcon,
   KeyIcon,
-  BellIcon,
-  PaintBrushIcon,
-  GlobeAltIcon,
   SparklesIcon,
-  ArrowLeftIcon,
   ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 
 const Settings = () => {
-  const { user, hasRole, hasPermission, loading } = useAuth();
+  const { user, hasRole, loading } = useAuth();
   const [activeTab, setActiveTab] = useState('user-management');
 
   // Settings tabs configuration with RBAC

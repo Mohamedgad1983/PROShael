@@ -3,29 +3,21 @@ import { useAuth } from '../../contexts/AuthContext';
 import { toHijri } from 'hijri-converter';
 import {
   BanknotesIcon,
-  CreditCardIcon,
   ChartBarIcon,
   ArrowTrendingUpIcon,
-  TrendingDownIcon,
   ClockIcon,
   CheckCircleIcon,
   XCircleIcon,
-  ExclamationTriangleIcon,
   MagnifyingGlassIcon,
-  FunnelIcon,
-  CalendarDaysIcon,
   DocumentTextIcon,
   ArrowDownTrayIcon,
   PlusIcon,
   EyeIcon,
   PencilIcon,
-  TrashIcon,
   ShieldExclamationIcon,
   CurrencyDollarIcon,
   ReceiptPercentIcon,
-  WalletIcon,
-  ArrowRightIcon,
-  ArrowLeftIcon
+  WalletIcon
 } from '@heroicons/react/24/outline';
 
 const PaymentsTracking = () => {

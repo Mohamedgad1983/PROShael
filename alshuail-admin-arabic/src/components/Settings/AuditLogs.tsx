@@ -8,9 +8,7 @@ import {
   ShieldCheckIcon,
   ClockIcon,
   UserIcon,
-  DocumentTextIcon,
   MagnifyingGlassIcon,
-  FunnelIcon,
   ArrowPathIcon,
   ExclamationTriangleIcon,
   CheckCircleIcon,
@@ -41,10 +39,6 @@ const AuditLogs: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedModule, setSelectedModule] = useState('all');
   const [selectedSeverity, setSelectedSeverity] = useState('all');
-  const [dateRange, setDateRange] = useState({
-    start: '',
-    end: ''
-  });
 
   // Mock data - replace with actual API call
   useEffect(() => {
