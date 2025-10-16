@@ -393,19 +393,23 @@ const HijriDiyasManagement: React.FC = () => {
     }));
 
     return (
-      <div className="modal-overlay-premium" onClick={() => setShowAddModal(false)}>
-        <div className="modal-content-premium" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '1700px', height: 'auto', maxHeight: '85vh', display: 'flex', flexDirection: 'column', padding: '0.75rem' }}>
-          {/* Modal Header - Minimal */}
-          <div className="flex items-center justify-between mb-1.5 flex-shrink-0">
-            <h2 className="text-sm font-bold text-gray-900">إضافة حالة دية جديدة</h2>
-            <button onClick={() => setShowAddModal(false)} className="p-0.5 rounded hover:bg-gray-100">
-              <XMarkIcon className="w-4 h-4 text-gray-600" />
+      <div className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm z-50" onClick={() => setShowAddModal(false)}>
+        <div className="absolute inset-0 m-1 bg-white rounded-lg flex flex-col" onClick={(e) => e.stopPropagation()}>
+          {/* Modal Header - Full Screen */}
+          <div className="flex items-center justify-between px-3 py-2 border-b bg-gradient-to-r from-blue-50 to-purple-50">
+            <div className="flex items-center gap-2">
+              <PlusIcon className="w-5 h-5 text-blue-600" />
+              <h2 className="text-base font-bold text-gray-900">إضافة حالة دية جديدة</h2>
+            </div>
+            <button onClick={() => setShowAddModal(false)} className="p-1 rounded hover:bg-red-100">
+              <XMarkIcon className="w-5 h-5 text-red-600" />
             </button>
           </div>
 
-          {/* Form - Maximum Compact 3-Row Layout */}
-          <form className="flex-shrink-0" style={{ padding: '0.5rem 0' }}>
-            <div className="grid grid-cols-12 gap-1.5">
+          {/* Form - Scrollable Content */}
+          <div className="flex-1 overflow-y-auto px-3 py-3">
+            <form>
+              <div className="grid grid-cols-12 gap-3">
               {/* Row 1: Title + Category + Priority + Amount */}
               <div className="col-span-6">
                 <label className="block text-xs text-gray-700" style={{ marginBottom: '2px' }}>عنوان الحالة *</label>
@@ -482,17 +486,18 @@ const HijriDiyasManagement: React.FC = () => {
                 <label className="block text-xs text-gray-700" style={{ marginBottom: '2px' }}>ملاحظات</label>
                 <input type="text" value={diyaData.notes} onChange={(e) => setDiyaData({ ...diyaData, notes: e.target.value })} style={{ padding: '4px 8px', fontSize: '13px', height: '32px' }} className="w-full rounded-lg border border-gray-300" placeholder="ملاحظات" />
               </div>
-            </div>
-          </form>
+              </div>
 
-          {/* Action Buttons - Minimal */}
-          <div className="flex items-center justify-end gap-2 pt-1.5 border-t flex-shrink-0 mt-1.5">
-            <button type="button" onClick={() => setShowAddModal(false)} style={{ padding: '6px 16px', fontSize: '13px' }} className="rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">
-              إلغاء
-            </button>
-            <button type="submit" style={{ padding: '6px 16px', fontSize: '13px' }} className="btn-gradient-premium" onClick={(e) => { e.preventDefault(); console.log('Diya Data:'); setShowAddModal(false); }}>
-              إضافة
-            </button>
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-3 mt-4 pt-3 border-t">
+                <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-2 text-sm rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100">
+                  إلغاء
+                </button>
+                <button type="submit" className="px-4 py-2 text-sm btn-gradient-premium" onClick={(e) => { e.preventDefault(); console.log('Diya Data:', diyaData); setShowAddModal(false); }}>
+                  إضافة
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       </div>
