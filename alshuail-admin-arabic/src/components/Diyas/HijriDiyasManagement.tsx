@@ -937,62 +937,60 @@ const HijriDiyasManagement: React.FC = () => {
               )}
             </div>
 
-            {/* Minimal Footer with Inline Pagination */}
-            <div className="border-t px-2 py-1 flex-shrink-0 bg-gray-50">
+            {/* Ultra-Minimal Footer - Absolute Minimum Height */}
+            <div className="border-t px-2 py-0.5 flex-shrink-0 bg-white">
               {contributorsTotalPages > 1 && !contributorsLoading ? (
-                <div className="flex items-center justify-between">
-                  <div className="text-xs text-gray-600 font-medium">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs text-gray-600 font-medium whitespace-nowrap">
                     {((contributorsPage - 1) * contributorsPerPage) + 1}-{Math.min(contributorsPage * contributorsPerPage, contributorsTotal)} من {contributorsTotal}
-                  </div>
-                  <div className="flex gap-1">
+                  </span>
+                  <div className="flex items-center gap-0.5">
                     <button
                       onClick={() => handleContributorsPageChange(contributorsPage - 1)}
                       disabled={contributorsPage === 1}
-                      className="px-2 py-1 bg-white hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed rounded text-xs"
+                      className="px-1.5 py-0.5 bg-gray-100 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed rounded text-xs"
                     >
                       السابق
                     </button>
-                    <div className="flex gap-0.5">
-                      {Array.from({ length: contributorsTotalPages }, (_, i) => i + 1)
-                        .filter(p => p === 1 || p === contributorsTotalPages || Math.abs(p - contributorsPage) <= 1)
-                        .map((pageNum, idx, arr) => (
-                          <React.Fragment key={pageNum}>
-                            {idx > 0 && arr[idx - 1] !== pageNum - 1 && <span className="px-1 text-gray-400 text-xs">...</span>}
-                            <button
-                              onClick={() => handleContributorsPageChange(pageNum)}
-                              className={`px-2 py-1 rounded text-xs font-medium ${
-                                pageNum === contributorsPage
-                                  ? 'bg-blue-600 text-white'
-                                  : 'bg-white hover:bg-gray-100 text-gray-700'
-                              }`}
-                            >
-                              {pageNum}
-                            </button>
-                          </React.Fragment>
-                        ))}
-                    </div>
+                    {Array.from({ length: contributorsTotalPages }, (_, i) => i + 1)
+                      .filter(p => p === 1 || p === contributorsTotalPages || Math.abs(p - contributorsPage) <= 1)
+                      .map((pageNum, idx, arr) => (
+                        <React.Fragment key={pageNum}>
+                          {idx > 0 && arr[idx - 1] !== pageNum - 1 && <span className="px-0.5 text-gray-400 text-xs">...</span>}
+                          <button
+                            onClick={() => handleContributorsPageChange(pageNum)}
+                            className={`px-1.5 py-0.5 rounded text-xs ${
+                              pageNum === contributorsPage
+                                ? 'bg-blue-600 text-white font-bold'
+                                : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        </React.Fragment>
+                      ))}
                     <button
                       onClick={() => handleContributorsPageChange(contributorsPage + 1)}
                       disabled={contributorsPage >= contributorsTotalPages}
-                      className="px-2 py-1 bg-white hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed rounded text-xs"
+                      className="px-1.5 py-0.5 bg-gray-100 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed rounded text-xs"
                     >
                       التالي
                     </button>
+                    <button
+                      onClick={() => setShowContributorsModal(false)}
+                      className="px-2 py-0.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded text-xs ml-1"
+                    >
+                      ✕
+                    </button>
                   </div>
-                  <button
-                    onClick={() => setShowContributorsModal(false)}
-                    className="px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 font-medium rounded text-xs"
-                  >
-                    إغلاق
-                  </button>
                 </div>
               ) : (
                 <div className="flex justify-end">
                   <button
                     onClick={() => setShowContributorsModal(false)}
-                    className="px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 font-medium rounded text-xs"
+                    className="px-2 py-0.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded text-xs"
                   >
-                    إغلاق
+                    ✕
                   </button>
                 </div>
               )}
