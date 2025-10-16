@@ -17,8 +17,13 @@ import {
   UserGroupIcon,
   ShieldExclamationIcon,
   XMarkIcon,
-  DocumentArrowDownIcon
+  DocumentArrowDownIcon,
+  FunnelIcon,
+  ArrowDownTrayIcon
 } from '@heroicons/react/24/outline';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 import { HijriDateDisplay, HijriDateFilter, HijriCalendarWidget } from '../Common/HijriDateDisplay';
 import { HijriDateInput } from '../Common/HijriDateInput';
 import { formatHijriDate, formatDualDate, formatTimeAgo, isOverdue, getDaysUntil } from '../../utils/hijriDateUtils';
@@ -120,7 +125,9 @@ const HijriDiyasManagement: React.FC = () => {
   const [contributorsTotalPages, setContributorsTotalPages] = useState(1);
   const [contributorsTotal, setContributorsTotal] = useState(0);
   const [contributorsLoading, setContributorsLoading] = useState(false);
-  const contributorsPerPage = 50;
+  const [contributorsPerPage, setContributorsPerPage] = useState(20);
+  const [contributorSearchTerm, setContributorSearchTerm] = useState('');
+  const [allContributorsForExport, setAllContributorsForExport] = useState<Contributor[]>([]);
 
   // Fetch real Diyas data from database
   const fetchDiyas = async () => {
@@ -231,6 +238,110 @@ const HijriDiyasManagement: React.FC = () => {
       fetchContributors(selectedDiya.id, newPage);
     }
   }, [selectedDiya]);
+
+  // Fetch ALL contributors for export
+  const fetchAllContributorsForExport = async (diyaId: number | string) => {
+    try {
+      const API_URL = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
+      const response = await fetch(`${API_URL}/api/diya/${diyaId}/contributors/all`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      const result = await response.json();
+      if (result.success && result.data) {
+        setAllContributorsForExport(result.data);
+        return result.data;
+      }
+      return [];
+    } catch (error) {
+      console.error('Error fetching all contributors:', error);
+      return [];
+    }
+  };
+
+  // Download PDF
+  const handleDownloadPDF = async () => {
+    if (!selectedDiya) return;
+
+    const allContribs = await fetchAllContributorsForExport(selectedDiya.id);
+
+    const doc = new jsPDF();
+
+    // Add header
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(18);
+    doc.text('Shuail Al-Anzi Fund', 105, 20, { align: 'center' });
+    doc.setFontSize(14);
+    doc.text(selectedDiya.title, 105, 30, { align: 'center' });
+    doc.setFontSize(10);
+    doc.text(`Total Contributors: ${allContribs.length} | Amount: ${selectedDiya.collectedAmount.toLocaleString()} SAR`, 105, 40, { align: 'center' });
+    doc.text(`Date: ${new Date().toLocaleDateString('en-GB')}`, 105, 48, { align: 'center' });
+
+    // Add table
+    (doc as any).autoTable({
+      startY: 55,
+      head: [['ID', 'Name', 'Section', 'Amount', 'Date']],
+      body: allContribs.map((c: Contributor) => [
+        c.membership_number,
+        c.member_name,
+        c.tribal_section || '-',
+        c.amount.toLocaleString(),
+        new Date(c.contribution_date).toLocaleDateString('en-GB')
+      ]),
+      styles: { fontSize: 8, font: 'Helvetica' },
+      headStyles: { fillColor: [59, 130, 246], textColor: 255 }
+    });
+
+    doc.save(`contributors-${selectedDiya.title}.pdf`);
+  };
+
+  // Download Excel
+  const handleDownloadExcel = async () => {
+    if (!selectedDiya) return;
+
+    const allContribs = await fetchAllContributorsForExport(selectedDiya.id);
+
+    const data = [
+      ['صندوق شعيل العنزي'],
+      [`قائمة مساهمي ${selectedDiya.title}`],
+      [`إجمالي المساهمين: ${allContribs.length} | المبلغ: ${selectedDiya.collectedAmount.toLocaleString()} ريال`],
+      [`التاريخ: ${new Date().toLocaleDateString('ar-SA')}`],
+      [],
+      ['المسلسل', 'الاسم', 'الفخذ', 'المبلغ', 'التاريخ'],
+      ...allContribs.map((c: Contributor) => [
+        c.membership_number,
+        c.member_name,
+        c.tribal_section || '-',
+        c.amount,
+        new Date(c.contribution_date).toLocaleDateString('ar-SA')
+      ])
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'المساهمون');
+    XLSX.writeFile(wb, `مساهمو-${selectedDiya.title}.xlsx`);
+  };
+
+  // Handle items per page change
+  const handleItemsPerPageChange = useCallback((newLimit: number) => {
+    setContributorsPerPage(newLimit);
+    if (selectedDiya) {
+      fetchContributors(selectedDiya.id, 1);
+    }
+  }, [selectedDiya]);
+
+  // Filter contributors by search term
+  const filteredContributors = useMemo(() => {
+    if (!contributorSearchTerm) return contributors;
+    const term = contributorSearchTerm.toLowerCase();
+    return contributors.filter(c =>
+      c.member_name.toLowerCase().includes(term) ||
+      c.membership_number.includes(term)
+    );
+  }, [contributors, contributorSearchTerm]);
 
   // Add Diya Modal
   const AddDiyaModal: React.FC = () => {

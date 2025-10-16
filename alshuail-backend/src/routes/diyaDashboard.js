@@ -161,6 +161,83 @@ router.get('/:id/contributors', async (req, res) => {
 });
 
 /**
+ * GET /api/diya/:id/contributors/all
+ * Get ALL contributors for export (no pagination)
+ * Used for PDF/Excel export functionality
+ */
+router.get('/:id/contributors/all', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Get ALL contributions (no pagination)
+        const { data: contributions, error: _contribError } = await supabaseAdmin
+            .from('financial_contributions')
+            .select('*')
+            .eq('activity_id', id)
+            .order('contribution_date', { ascending: false });
+
+        if (_contribError) {throw _contribError;}
+
+        // Get all member IDs
+        const memberIds = [...new Set(contributions.map(c => c.contributor_id))];
+
+        // Get member details
+        const { data: members, error: _membersError } = await supabaseAdmin
+            .from('members')
+            .select('id, full_name, membership_number, tribal_section, phone')
+            .in('id', memberIds);
+
+        if (_membersError) {throw _membersError;}
+
+        // Create member lookup map
+        const memberMap = {};
+        members.forEach(m => {
+            memberMap[m.id] = m;
+        });
+
+        // Format response with member details
+        const contributors = contributions.map(contrib => {
+            const member = memberMap[contrib.contributor_id] || {};
+            return {
+                member_id: contrib.contributor_id,
+                member_name: member.full_name || 'Unknown',
+                membership_number: member.membership_number || '',
+                tribal_section: member.tribal_section || '',
+                amount: contrib.contribution_amount || 0,
+                contribution_date: contrib.contribution_date,
+                payment_method: contrib.payment_method,
+                status: contrib.status
+            };
+        });
+
+        // Get diya details for export header
+        const { data: activity } = await supabaseAdmin
+            .from('activities')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+        res.json({
+            success: true,
+            data: contributors,
+            diya: {
+                id: activity?.id,
+                title: activity?.title_ar || activity?.title_en,
+                totalAmount: activity?.target_amount,
+                collectedAmount: activity?.current_amount,
+                totalContributors: contributors.length
+            }
+        });
+    } catch (error) {
+        log.error('Error fetching all contributors:', { error: error.message });
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch contributors for export'
+        });
+    }
+});
+
+/**
  * GET /api/diya/:id/stats
  * Get detailed statistics for a specific diya case
  */
