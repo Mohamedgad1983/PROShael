@@ -123,6 +123,9 @@ const HijriDiyasManagement: React.FC = () => {
   const [showContributorsModal, setShowContributorsModal] = useState(false);
   const [contributors, setContributors] = useState<Contributor[]>([]);
   const [contributorsPage, setContributorsPage] = useState(1);
+  const [contributorsTotalPages, setContributorsTotalPages] = useState(1);
+  const [contributorsTotal, setContributorsTotal] = useState(0);
+  const [contributorsLoading, setContributorsLoading] = useState(false);
   const contributorsPerPage = 50;
 
   // Fetch real Diyas data from database
@@ -191,11 +194,12 @@ const HijriDiyasManagement: React.FC = () => {
     fetchDiyas();
   }, []);
 
-  // Fetch contributors for a specific diya
-  const fetchContributors = async (diyaId: number | string) => {
+  // Fetch contributors for a specific diya with server-side pagination
+  const fetchContributors = async (diyaId: number | string, page: number = 1) => {
     try {
+      setContributorsLoading(true);
       const API_URL = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
-      const response = await fetch(`${API_URL}/api/diya/${diyaId}/contributors`, {
+      const response = await fetch(`${API_URL}/api/diya/${diyaId}/contributors?page=${page}&limit=${contributorsPerPage}`, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -205,19 +209,34 @@ const HijriDiyasManagement: React.FC = () => {
       const result = await response.json();
       if (result.success && result.data) {
         setContributors(result.data);
-        setContributorsPage(1); // Reset to page 1
-        setShowContributorsModal(true);
+        setContributorsPage(page);
+        setContributorsTotalPages(result.pagination?.totalPages || 1);
+        setContributorsTotal(result.pagination?.total || result.data.length);
+
+        // Only open modal on first fetch
+        if (page === 1) {
+          setShowContributorsModal(true);
+        }
       }
     } catch (error) {
       console.error('Error fetching contributors:', error);
+    } finally {
+      setContributorsLoading(false);
     }
   };
 
   // Handle viewing contributors (memoized)
   const handleViewContributors = useCallback((diya: Diya) => {
     setSelectedDiya(diya);
-    fetchContributors(diya.id);
+    fetchContributors(diya.id, 1);
   }, []);
+
+  // Handle page change in contributors modal
+  const handleContributorsPageChange = useCallback((newPage: number) => {
+    if (selectedDiya) {
+      fetchContributors(selectedDiya.id, newPage);
+    }
+  }, [selectedDiya]);
 
   // Add Diya Modal
   const AddDiyaModal: React.FC = () => {
@@ -843,9 +862,9 @@ const HijriDiyasManagement: React.FC = () => {
                   {selectedDiya.title} - قائمة المساهمين
                 </h2>
                 <div className="flex gap-6 text-sm text-gray-600">
-                  <span>إجمالي المساهمين: <strong className="text-gray-900">{contributors.length}</strong></span>
+                  <span>إجمالي المساهمين: <strong className="text-gray-900">{contributorsTotal}</strong></span>
                   <span>المبلغ الإجمالي: <strong className="text-green-600">{selectedDiya.collectedAmount.toLocaleString()} ر.س</strong></span>
-                  <span>متوسط المساهمة: <strong className="text-blue-600">{contributors.length > 0 ? (selectedDiya.collectedAmount / contributors.length).toFixed(0) : 0} ر.س</strong></span>
+                  <span>متوسط المساهمة: <strong className="text-blue-600">{contributorsTotal > 0 ? (selectedDiya.collectedAmount / contributorsTotal).toFixed(0) : 0} ر.س</strong></span>
                 </div>
               </div>
               <button
@@ -856,23 +875,28 @@ const HijriDiyasManagement: React.FC = () => {
               </button>
             </div>
 
-            {/* Contributors Table with Pagination */}
+            {/* Contributors Table with Server-Side Pagination */}
             <div className="bg-gray-50 rounded-xl p-4">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="bg-gray-900 text-white">
-                    <th className="p-3 text-right rounded-tr-lg">رقم العضوية</th>
-                    <th className="p-3 text-right">الاسم</th>
-                    <th className="p-3 text-right">الفخذ</th>
-                    <th className="p-3 text-right">المبلغ</th>
-                    <th className="p-3 text-right rounded-tl-lg">التاريخ</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {contributors.length > 0 ? (
-                    contributors
-                      .slice((contributorsPage - 1) * contributorsPerPage, contributorsPage * contributorsPerPage)
-                      .map((contributor, index) => (
+              {contributorsLoading && (
+                <div className="text-center py-8">
+                  <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-2"></div>
+                  <p className="text-sm text-gray-600">جاري التحميل...</p>
+                </div>
+              )}
+              {!contributorsLoading && (
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="bg-gray-900 text-white">
+                      <th className="p-3 text-right rounded-tr-lg">رقم العضوية</th>
+                      <th className="p-3 text-right">الاسم</th>
+                      <th className="p-3 text-right">الفخذ</th>
+                      <th className="p-3 text-right">المبلغ</th>
+                      <th className="p-3 text-right rounded-tl-lg">التاريخ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {contributors.length > 0 ? (
+                      contributors.map((contributor, index) => (
                         <tr key={index} className="border-b border-gray-200 hover:bg-gray-100 transition-colors">
                           <td className="p-3 text-right">{contributor.membership_number}</td>
                           <td className="p-3 text-right font-medium">{contributor.member_name}</td>
@@ -883,41 +907,42 @@ const HijriDiyasManagement: React.FC = () => {
                           </td>
                         </tr>
                       ))
-                  ) : (
-                    <tr>
-                      <td colSpan={5} className="p-8 text-center text-gray-500">
-                        لا توجد مساهمات حالياً
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="p-8 text-center text-gray-500">
+                          لا توجد مساهمات حالياً
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              )}
             </div>
 
-            {/* Pagination Controls */}
-            {contributors.length > contributorsPerPage && (
+            {/* Server-Side Pagination Controls */}
+            {contributorsTotalPages > 1 && !contributorsLoading && (
               <div className="flex items-center justify-between mt-4 px-4">
                 <div className="text-sm text-gray-600">
-                  عرض {((contributorsPage - 1) * contributorsPerPage) + 1} - {Math.min(contributorsPage * contributorsPerPage, contributors.length)} من {contributors.length}
+                  عرض {((contributorsPage - 1) * contributorsPerPage) + 1} - {Math.min(contributorsPage * contributorsPerPage, contributorsTotal)} من {contributorsTotal}
                 </div>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => setContributorsPage(p => Math.max(1, p - 1))}
+                    onClick={() => handleContributorsPageChange(contributorsPage - 1)}
                     disabled={contributorsPage === 1}
                     className="px-4 py-2 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors"
                   >
                     السابق
                   </button>
                   <div className="flex items-center gap-1">
-                    {Array.from({ length: Math.ceil(contributors.length / contributorsPerPage) }, (_, i) => i + 1)
-                      .filter(p => p === 1 || p === Math.ceil(contributors.length / contributorsPerPage) || Math.abs(p - contributorsPage) <= 1)
+                    {Array.from({ length: contributorsTotalPages }, (_, i) => i + 1)
+                      .filter(p => p === 1 || p === contributorsTotalPages || Math.abs(p - contributorsPage) <= 1)
                       .map((pageNum, idx, arr) => (
                         <React.Fragment key={pageNum}>
                           {idx > 0 && arr[idx - 1] !== pageNum - 1 && (
                             <span className="px-2 text-gray-400">...</span>
                           )}
                           <button
-                            onClick={() => setContributorsPage(pageNum)}
+                            onClick={() => handleContributorsPageChange(pageNum)}
                             className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                               pageNum === contributorsPage
                                 ? 'bg-blue-600 text-white'
@@ -930,8 +955,8 @@ const HijriDiyasManagement: React.FC = () => {
                       ))}
                   </div>
                   <button
-                    onClick={() => setContributorsPage(p => Math.min(Math.ceil(contributors.length / contributorsPerPage), p + 1))}
-                    disabled={contributorsPage >= Math.ceil(contributors.length / contributorsPerPage)}
+                    onClick={() => handleContributorsPageChange(contributorsPage + 1)}
+                    disabled={contributorsPage >= contributorsTotalPages}
                     className="px-4 py-2 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors"
                   >
                     التالي
