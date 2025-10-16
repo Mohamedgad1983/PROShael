@@ -859,38 +859,38 @@ const HijriDiyasManagement: React.FC = () => {
       {/* Add Diya Modal */}
       {showAddModal && <AddDiyaModal />}
 
-      {/* Contributors Modal - Optimized to Fit Viewport */}
+      {/* Contributors Modal - Maximized to Fill Viewport */}
       {showContributorsModal && selectedDiya && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center z-50"
           onClick={() => setShowContributorsModal(false)}
         >
           <div
-            className="bg-white rounded-xl w-[98vw] h-[98vh] flex flex-col"
+            className="bg-white rounded-lg w-[99vw] h-[99vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Ultra-Compact Header with Statistics - Fixed Height */}
-            <div className="p-2 border-b flex-shrink-0 bg-gradient-to-r from-blue-50 to-purple-50">
+            <div className="px-3 py-1.5 border-b flex-shrink-0 bg-gradient-to-r from-blue-50 to-purple-50">
               <div className="flex justify-between items-center">
-                <div className="flex items-center gap-4">
-                  <h2 className="text-lg font-bold text-gray-900">{selectedDiya.title}</h2>
-                  <div className="flex gap-3 text-xs">
-                    <span className="bg-blue-600 text-white px-2 py-1 rounded font-bold">الإجمالي: {contributorsTotal}</span>
-                    <span className="bg-green-600 text-white px-2 py-1 rounded font-bold">المبلغ: {selectedDiya.collectedAmount.toLocaleString()} ر.س</span>
-                    <span className="bg-purple-600 text-white px-2 py-1 rounded font-bold">المتوسط: {contributorsTotal > 0 ? (selectedDiya.collectedAmount / contributorsTotal).toFixed(0) : 0} ر.س</span>
+                <div className="flex items-center gap-3">
+                  <h2 className="text-base font-bold text-gray-900">{selectedDiya.title}</h2>
+                  <div className="flex gap-2 text-xs">
+                    <span className="bg-blue-600 text-white px-2 py-0.5 rounded font-bold">الإجمالي: {contributorsTotal}</span>
+                    <span className="bg-green-600 text-white px-2 py-0.5 rounded font-bold">المبلغ: {selectedDiya.collectedAmount.toLocaleString()} ر.س</span>
+                    <span className="bg-purple-600 text-white px-2 py-0.5 rounded font-bold">المتوسط: {contributorsTotal > 0 ? (selectedDiya.collectedAmount / contributorsTotal).toFixed(0) : 0} ر.س</span>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowContributorsModal(false)}
-                  className="p-1 bg-red-100 hover:bg-red-200 rounded transition-colors"
+                  className="p-0.5 hover:bg-red-100 rounded transition-colors"
                 >
-                  <XMarkIcon className="w-5 h-5 text-red-600" />
+                  <XMarkIcon className="w-4 h-4 text-red-600" />
                 </button>
               </div>
             </div>
 
             {/* Table Container - Maximum Space */}
-            <div className="flex-1 overflow-hidden p-2">
+            <div className="flex-1 overflow-hidden px-1">
               {contributorsLoading ? (
                 <div className="flex items-center justify-center h-full">
                   <div className="text-center">
@@ -900,8 +900,8 @@ const HijriDiyasManagement: React.FC = () => {
                 </div>
               ) : contributors.length > 0 ? (
                 <div className="h-full flex flex-col">
-                  {/* Full-Width Table Header */}
-                  <div className="bg-gradient-to-r from-gray-800 to-gray-900 text-white grid grid-cols-5 gap-2 px-3 py-2 text-xs font-bold flex-shrink-0 sticky top-0 z-10">
+                  {/* Full-Width Table Header - Sticky */}
+                  <div className="bg-gradient-to-r from-gray-800 to-gray-900 text-white grid grid-cols-5 gap-2 px-3 py-1.5 text-xs font-bold flex-shrink-0 sticky top-0 z-10">
                     <div className="text-right">المسلسل</div>
                     <div className="text-right">الاسم</div>
                     <div className="text-right">الفخذ</div>
@@ -914,7 +914,7 @@ const HijriDiyasManagement: React.FC = () => {
                     {contributors.map((contributor, index) => (
                       <div
                         key={index}
-                        className="grid grid-cols-5 gap-2 px-3 py-2 border-b border-gray-100 hover:bg-blue-50 transition-colors items-center"
+                        className="grid grid-cols-5 gap-2 px-3 py-1.5 border-b border-gray-100 hover:bg-blue-50 transition-colors items-center"
                       >
                         <div className="text-right text-xs font-medium text-gray-700">{contributor.membership_number}</div>
                         <div className="text-right text-sm font-semibold text-gray-900 truncate">{contributor.member_name}</div>
@@ -937,22 +937,22 @@ const HijriDiyasManagement: React.FC = () => {
               )}
             </div>
 
-            {/* Ultra-Compact Footer with Pagination */}
-            <div className="border-t p-2 flex-shrink-0 bg-gray-50">
-              {contributorsTotalPages > 1 && !contributorsLoading && (
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-xs text-gray-600">
-                    {((contributorsPage - 1) * contributorsPerPage) + 1} - {Math.min(contributorsPage * contributorsPerPage, contributorsTotal)} من {contributorsTotal}
+            {/* Minimal Footer with Inline Pagination */}
+            <div className="border-t px-2 py-1 flex-shrink-0 bg-gray-50">
+              {contributorsTotalPages > 1 && !contributorsLoading ? (
+                <div className="flex items-center justify-between">
+                  <div className="text-xs text-gray-600 font-medium">
+                    {((contributorsPage - 1) * contributorsPerPage) + 1}-{Math.min(contributorsPage * contributorsPerPage, contributorsTotal)} من {contributorsTotal}
                   </div>
-                  <div className="flex gap-1.5">
+                  <div className="flex gap-1">
                     <button
                       onClick={() => handleContributorsPageChange(contributorsPage - 1)}
                       disabled={contributorsPage === 1}
-                      className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded text-xs font-medium"
+                      className="px-2 py-1 bg-white hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed rounded text-xs"
                     >
                       السابق
                     </button>
-                    <div className="flex gap-1">
+                    <div className="flex gap-0.5">
                       {Array.from({ length: contributorsTotalPages }, (_, i) => i + 1)
                         .filter(p => p === 1 || p === contributorsTotalPages || Math.abs(p - contributorsPage) <= 1)
                         .map((pageNum, idx, arr) => (
@@ -960,10 +960,10 @@ const HijriDiyasManagement: React.FC = () => {
                             {idx > 0 && arr[idx - 1] !== pageNum - 1 && <span className="px-1 text-gray-400 text-xs">...</span>}
                             <button
                               onClick={() => handleContributorsPageChange(pageNum)}
-                              className={`px-2.5 py-1.5 rounded text-xs font-medium ${
+                              className={`px-2 py-1 rounded text-xs font-medium ${
                                 pageNum === contributorsPage
                                   ? 'bg-blue-600 text-white'
-                                  : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                                  : 'bg-white hover:bg-gray-100 text-gray-700'
                               }`}
                             >
                               {pageNum}
@@ -974,21 +974,28 @@ const HijriDiyasManagement: React.FC = () => {
                     <button
                       onClick={() => handleContributorsPageChange(contributorsPage + 1)}
                       disabled={contributorsPage >= contributorsTotalPages}
-                      className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded text-xs font-medium"
+                      className="px-2 py-1 bg-white hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed rounded text-xs"
                     >
                       التالي
                     </button>
                   </div>
+                  <button
+                    onClick={() => setShowContributorsModal(false)}
+                    className="px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 font-medium rounded text-xs"
+                  >
+                    إغلاق
+                  </button>
+                </div>
+              ) : (
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => setShowContributorsModal(false)}
+                    className="px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 font-medium rounded text-xs"
+                  >
+                    إغلاق
+                  </button>
                 </div>
               )}
-              <div className="flex justify-end">
-                <button
-                  onClick={() => setShowContributorsModal(false)}
-                  className="px-4 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg text-sm"
-                >
-                  إغلاق
-                </button>
-              </div>
             </div>
           </div>
         </div>
