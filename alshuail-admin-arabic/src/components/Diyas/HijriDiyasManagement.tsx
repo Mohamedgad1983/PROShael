@@ -859,14 +859,14 @@ const HijriDiyasManagement: React.FC = () => {
       {/* Add Diya Modal */}
       {showAddModal && <AddDiyaModal />}
 
-      {/* Contributors Modal - Maximized to Fill Viewport */}
+      {/* Contributors Modal - Full Screen */}
       {showContributorsModal && selectedDiya && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center z-50"
+          className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm z-50"
           onClick={() => setShowContributorsModal(false)}
         >
           <div
-            className="bg-white rounded-lg w-[99vw] h-[99vh] flex flex-col"
+            className="absolute inset-0 m-1 bg-white rounded-lg flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Ultra-Compact Header with Statistics - Fixed Height */}
