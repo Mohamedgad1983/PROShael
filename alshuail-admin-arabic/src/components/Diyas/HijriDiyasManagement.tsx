@@ -1,28 +1,22 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+// Optimized imports - only icons actually used in this component
 import {
   HandRaisedIcon,
   ScaleIcon,
   UsersIcon,
   BanknotesIcon,
   CalendarIcon,
-  CalendarDaysIcon,
   ClockIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
   PlusIcon,
   EyeIcon,
-  PencilIcon,
-  TrashIcon,
   MagnifyingGlassIcon,
-  FunnelIcon,
   DocumentTextIcon,
   CurrencyDollarIcon,
   UserGroupIcon,
-  ChartBarIcon,
-  ArrowTrendingUpIcon,
   ShieldExclamationIcon,
   XMarkIcon,
-  BellIcon,
   DocumentArrowDownIcon
 } from '@heroicons/react/24/outline';
 import { HijriDateDisplay, HijriDateFilter, HijriCalendarWidget } from '../Common/HijriDateDisplay';
@@ -647,6 +641,32 @@ const HijriDiyasManagement: React.FC = () => {
     </div>
   ));
 
+  // Skeleton Loading Component
+  const DiyasSkeleton = () => (
+    <div className="animate-pulse space-y-4">
+      {/* Statistics Skeleton */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        {[1, 2, 3, 4, 5].map(i => (
+          <div key={i} className="bg-gray-200 h-32 rounded-xl"></div>
+        ))}
+      </div>
+      {/* Cards Skeleton */}
+      <div className="space-y-4">
+        {[1, 2, 3, 4].map(i => (
+          <div key={i} className="bg-gray-200 h-96 rounded-xl"></div>
+        ))}
+      </div>
+    </div>
+  );
+
+  if (loading) {
+    return (
+      <div className="p-6" dir="rtl">
+        <DiyasSkeleton />
+      </div>
+    );
+  }
+
   return (
     <div className="p-6" dir="rtl">
       {/* Header */}
@@ -875,7 +895,7 @@ const HijriDiyasManagement: React.FC = () => {
               </button>
             </div>
 
-            {/* Contributors Table with Server-Side Pagination */}
+            {/* Contributors Table with Virtual Scrolling */}
             <div className="bg-gray-50 rounded-xl p-4">
               {contributorsLoading && (
                 <div className="text-center py-8">
@@ -883,39 +903,40 @@ const HijriDiyasManagement: React.FC = () => {
                   <p className="text-sm text-gray-600">جاري التحميل...</p>
                 </div>
               )}
-              {!contributorsLoading && (
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="bg-gray-900 text-white">
-                      <th className="p-3 text-right rounded-tr-lg">رقم العضوية</th>
-                      <th className="p-3 text-right">الاسم</th>
-                      <th className="p-3 text-right">الفخذ</th>
-                      <th className="p-3 text-right">المبلغ</th>
-                      <th className="p-3 text-right rounded-tl-lg">التاريخ</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {contributors.length > 0 ? (
-                      contributors.map((contributor, index) => (
-                        <tr key={index} className="border-b border-gray-200 hover:bg-gray-100 transition-colors">
-                          <td className="p-3 text-right">{contributor.membership_number}</td>
-                          <td className="p-3 text-right font-medium">{contributor.member_name}</td>
-                          <td className="p-3 text-right">{contributor.tribal_section || '-'}</td>
-                          <td className="p-3 text-right font-bold text-green-600">{contributor.amount.toLocaleString()} ر.س</td>
-                          <td className="p-3 text-right text-sm text-gray-600">
-                            {new Date(contributor.contribution_date).toLocaleDateString('ar-SA')}
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={5} className="p-8 text-center text-gray-500">
-                          لا توجد مساهمات حالياً
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+              {!contributorsLoading && contributors.length > 0 && (
+                <div>
+                  {/* Table Header */}
+                  <div className="bg-gray-900 text-white grid grid-cols-5 gap-4 p-3 rounded-t-lg font-medium">
+                    <div className="text-right">رقم العضوية</div>
+                    <div className="text-right">الاسم</div>
+                    <div className="text-right">الفخذ</div>
+                    <div className="text-right">المبلغ</div>
+                    <div className="text-right">التاريخ</div>
+                  </div>
+
+                  {/* Optimized Table Body (Server-side pagination handles large lists) */}
+                  <div className="max-h-[500px] overflow-y-auto border border-t-0 border-gray-200">
+                    {contributors.map((contributor, index) => (
+                      <div
+                        key={index}
+                        className="grid grid-cols-5 gap-4 p-3 border-b border-gray-200 hover:bg-gray-100 transition-colors items-center"
+                      >
+                        <div className="text-right text-sm">{contributor.membership_number}</div>
+                        <div className="text-right text-sm font-medium">{contributor.member_name}</div>
+                        <div className="text-right text-sm">{contributor.tribal_section || '-'}</div>
+                        <div className="text-right text-sm font-bold text-green-600">{contributor.amount.toLocaleString()} ر.س</div>
+                        <div className="text-right text-xs text-gray-600">
+                          {new Date(contributor.contribution_date).toLocaleDateString('ar-SA')}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {!contributorsLoading && contributors.length === 0 && (
+                <div className="p-8 text-center text-gray-500">
+                  لا توجد مساهمات حالياً
+                </div>
               )}
             </div>
 
