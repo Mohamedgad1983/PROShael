@@ -76,25 +76,38 @@ router.get('/dashboard', async (req, res) => {
 
 /**
  * GET /api/diya/:id/contributors
- * Get all contributors for a specific diya case
+ * Get contributors for a specific diya case with server-side pagination
+ * Query params: ?page=1&limit=50
  */
 router.get('/:id/contributors', async (req, res) => {
     try {
         const { id } = req.params;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 50;
+        const offset = (page - 1) * limit;
 
-        // Get contributions first
+        // Get total count first for pagination metadata
+        const { count, error: _countError } = await supabaseAdmin
+            .from('financial_contributions')
+            .select('*', { count: 'exact', head: true })
+            .eq('activity_id', id);
+
+        if (_countError) {throw _countError;}
+
+        // Get paginated contributions
         const { data: contributions, error: _contribError } = await supabaseAdmin
             .from('financial_contributions')
             .select('*')
             .eq('activity_id', id)
-            .order('contribution_date', { ascending: false });
+            .order('contribution_date', { ascending: false })
+            .range(offset, offset + limit - 1);
 
         if (_contribError) {throw _contribError;}
 
-        // Get all member IDs
+        // Get all member IDs for this page
         const memberIds = [...new Set(contributions.map(c => c.contributor_id))];
 
-        // Get member details separately
+        // Get member details for this page only
         const { data: members, error: _membersError } = await supabaseAdmin
             .from('members')
             .select('id, full_name, membership_number, tribal_section, phone')
@@ -123,10 +136,20 @@ router.get('/:id/contributors', async (req, res) => {
             };
         });
 
+        // Calculate pagination metadata
+        const totalPages = Math.ceil(count / limit);
+
         res.json({
             success: true,
             data: contributors,
-            total: contributors.length
+            pagination: {
+                page,
+                limit,
+                total: count,
+                totalPages,
+                hasMore: page < totalPages,
+                hasPrevious: page > 1
+            }
         });
     } catch (error) {
         log.error('Error fetching contributors:', { error: error.message });
