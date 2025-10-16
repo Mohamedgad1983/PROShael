@@ -31,32 +31,67 @@ module.exports = {
       );
 
 
-      // Optimize for production
+      // Phase 4: Optimize for production with aggressive bundle splitting
       if (process.env.NODE_ENV === 'production') {
-        // Disable ALL optimizations that might remove code
-        webpackConfig.optimization.usedExports = false;
-        webpackConfig.optimization.sideEffects = false;
-        webpackConfig.optimization.minimize = false; // Disable minification entirely
+        // Enable tree shaking and minification
+        webpackConfig.optimization.usedExports = true;
+        webpackConfig.optimization.sideEffects = true;
+        webpackConfig.optimization.minimize = true;
 
-        // Enable code splitting
+        // Advanced code splitting strategy
         webpackConfig.optimization.splitChunks = {
           chunks: 'all',
+          maxInitialRequests: Infinity,
+          minSize: 20000,
           cacheGroups: {
-            default: false,
-            vendors: false,
-            vendor: {
-              name: 'vendor',
-              chunks: 'all',
-              test: /node_modules/,
-              priority: 20
+            // Heroicons separate bundle
+            heroicons: {
+              test: /[\\/]node_modules[\\/]@heroicons/,
+              name: 'heroicons',
+              priority: 30,
+              reuseExistingChunk: true
             },
+            // Chart.js separate bundle
+            chartjs: {
+              test: /[\\/]node_modules[\\/](chart\.js|react-chartjs-2)/,
+              name: 'charts',
+              priority: 25,
+              reuseExistingChunk: true
+            },
+            // Recharts separate bundle
+            recharts: {
+              test: /[\\/]node_modules[\\/]recharts/,
+              name: 'recharts',
+              priority: 24,
+              reuseExistingChunk: true
+            },
+            // React and React-DOM
+            react: {
+              test: /[\\/]node_modules[\\/](react|react-dom)/,
+              name: 'react',
+              priority: 23,
+              reuseExistingChunk: true
+            },
+            // Other large libraries
+            libs: {
+              test: /[\\/]node_modules[\\/](axios|framer-motion|styled-components)/,
+              name: 'libs',
+              priority: 22,
+              reuseExistingChunk: true
+            },
+            // All other vendor code
+            vendor: {
+              test: /[\\/]node_modules[\\/]/,
+              name: 'vendor',
+              priority: 20,
+              reuseExistingChunk: true
+            },
+            // Common code used across multiple chunks
             common: {
-              name: 'common',
               minChunks: 2,
-              chunks: 'all',
+              name: 'common',
               priority: 10,
-              reuseExistingChunk: true,
-              enforce: true
+              reuseExistingChunk: true
             }
           }
         };
