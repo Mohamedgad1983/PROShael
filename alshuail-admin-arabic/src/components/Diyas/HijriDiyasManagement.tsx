@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   HandRaisedIcon,
   ScaleIcon,
@@ -30,6 +30,39 @@ import { HijriDateInput } from '../Common/HijriDateInput';
 import { formatHijriDate, formatDualDate, formatTimeAgo, isOverdue, getDaysUntil } from '../../utils/hijriDateUtils';
 import { toHijri, toGregorian } from 'hijri-converter';
 import '../../styles/ultra-premium-islamic-design.css';
+
+// ========================================
+// Helper Functions (Moved Outside Component for Performance)
+// ========================================
+
+const getStatusInfo = (status: string) => {
+  const statuses: Record<string, any> = {
+    active: { label: 'نشطة', color: '#007AFF', icon: CheckCircleIcon, bgColor: 'bg-blue-100' },
+    completed: { label: 'مكتملة', color: '#30D158', icon: CheckCircleIcon, bgColor: 'bg-green-100' },
+    urgent: { label: 'عاجلة', color: '#FF3B30', icon: ExclamationTriangleIcon, bgColor: 'bg-red-100' },
+    pending: { label: 'معلقة', color: '#FF9500', icon: ClockIcon, bgColor: 'bg-orange-100' }
+  };
+  return statuses[status] || statuses.active;
+};
+
+const getPriorityInfo = (priority: string) => {
+  const priorities: Record<string, any> = {
+    high: { label: 'عالية', color: '#FF3B30' },
+    medium: { label: 'متوسطة', color: '#FF9500' },
+    low: { label: 'منخفضة', color: '#8E8E93' }
+  };
+  return priorities[priority] || priorities.medium;
+};
+
+const getCategoryInfo = (category: string) => {
+  const categories: Record<string, any> = {
+    accident: { label: 'حادث', icon: ShieldExclamationIcon, gradient: 'from-red-500 to-orange-500' },
+    medical: { label: 'طبي', icon: HandRaisedIcon, gradient: 'from-blue-500 to-cyan-500' },
+    dispute: { label: 'خلاف', icon: ScaleIcon, gradient: 'from-purple-500 to-pink-500' },
+    other: { label: 'أخرى', icon: DocumentTextIcon, gradient: 'from-gray-500 to-gray-600' }
+  };
+  return categories[category] || categories.other;
+};
 
 interface Diya {
   id: number;
@@ -89,6 +122,8 @@ const HijriDiyasManagement: React.FC = () => {
   const [showDateFilter, setShowDateFilter] = useState(false);
   const [showContributorsModal, setShowContributorsModal] = useState(false);
   const [contributors, setContributors] = useState<Contributor[]>([]);
+  const [contributorsPage, setContributorsPage] = useState(1);
+  const contributorsPerPage = 50;
 
   // Fetch real Diyas data from database
   const fetchDiyas = async () => {
@@ -170,6 +205,7 @@ const HijriDiyasManagement: React.FC = () => {
       const result = await response.json();
       if (result.success && result.data) {
         setContributors(result.data);
+        setContributorsPage(1); // Reset to page 1
         setShowContributorsModal(true);
       }
     } catch (error) {
@@ -177,41 +213,11 @@ const HijriDiyasManagement: React.FC = () => {
     }
   };
 
-  // Handle viewing contributors
-  const handleViewContributors = (diya: Diya) => {
+  // Handle viewing contributors (memoized)
+  const handleViewContributors = useCallback((diya: Diya) => {
     setSelectedDiya(diya);
     fetchContributors(diya.id);
-  };
-
-  // Helper functions
-  const getStatusInfo = (status: string) => {
-    const statuses: Record<string, any> = {
-      active: { label: 'نشطة', color: '#007AFF', icon: CheckCircleIcon, bgColor: 'bg-blue-100' },
-      completed: { label: 'مكتملة', color: '#30D158', icon: CheckCircleIcon, bgColor: 'bg-green-100' },
-      urgent: { label: 'عاجلة', color: '#FF3B30', icon: ExclamationTriangleIcon, bgColor: 'bg-red-100' },
-      pending: { label: 'معلقة', color: '#FF9500', icon: ClockIcon, bgColor: 'bg-orange-100' }
-    };
-    return statuses[status] || statuses.active;
-  };
-
-  const getPriorityInfo = (priority: string) => {
-    const priorities: Record<string, any> = {
-      high: { label: 'عالية', color: '#FF3B30' },
-      medium: { label: 'متوسطة', color: '#FF9500' },
-      low: { label: 'منخفضة', color: '#8E8E93' }
-    };
-    return priorities[priority] || priorities.medium;
-  };
-
-  const getCategoryInfo = (category: string) => {
-    const categories: Record<string, any> = {
-      accident: { label: 'حادث', icon: ShieldExclamationIcon, gradient: 'from-red-500 to-orange-500' },
-      medical: { label: 'طبي', icon: HandRaisedIcon, gradient: 'from-blue-500 to-cyan-500' },
-      dispute: { label: 'خلاف', icon: ScaleIcon, gradient: 'from-purple-500 to-pink-500' },
-      other: { label: 'أخرى', icon: DocumentTextIcon, gradient: 'from-gray-500 to-gray-600' }
-    };
-    return categories[category] || categories.other;
-  };
+  }, []);
 
   // Add Diya Modal
   const AddDiyaModal: React.FC = () => {
@@ -394,18 +400,20 @@ const HijriDiyasManagement: React.FC = () => {
     setToGregorianDate('');
   };
 
-  // Apply filtering
-  const filteredDiyas = filterDiyasByHijriDate(diyas);
+  // Apply filtering (memoized)
+  const filteredDiyas = useMemo(() => filterDiyasByHijriDate(diyas), [diyas, fromGregorianDate, toGregorianDate]);
 
-  // Calculate statistics
-  const totalDiyas = filteredDiyas.length;
-  const activeDiyas = filteredDiyas.filter(d => d.status === 'active' || d.status === 'urgent').length;
-  const totalAmountNeeded = filteredDiyas.reduce((sum, d) => sum + d.totalAmount, 0);
-  const totalCollected = filteredDiyas.reduce((sum, d) => sum + d.collectedAmount, 0);
-  const totalRemaining = filteredDiyas.reduce((sum, d) => sum + d.remainingAmount, 0);
+  // Calculate statistics (memoized to prevent recalculation on every render)
+  const statistics = useMemo(() => ({
+    totalDiyas: filteredDiyas.length,
+    activeDiyas: filteredDiyas.filter(d => d.status === 'active' || d.status === 'urgent').length,
+    totalAmountNeeded: filteredDiyas.reduce((sum, d) => sum + d.totalAmount, 0),
+    totalCollected: filteredDiyas.reduce((sum, d) => sum + d.collectedAmount, 0),
+    totalRemaining: filteredDiyas.reduce((sum, d) => sum + d.remainingAmount, 0)
+  }), [filteredDiyas]);
 
-  // Diya Card Component
-  const DiyaCard: React.FC<{ diya: Diya }> = ({ diya }) => {
+  // Diya Card Component (Memoized for Performance)
+  const DiyaCard = React.memo<{ diya: Diya }>(({ diya }) => {
     const statusInfo = getStatusInfo(diya.status);
     const priorityInfo = getPriorityInfo(diya.priority);
     const categoryInfo = getCategoryInfo(diya.category);
@@ -587,17 +595,17 @@ const HijriDiyasManagement: React.FC = () => {
         </div>
       </div>
     );
-  };
+  });
 
-  // Statistics Cards
-  const StatCard: React.FC<{
+  // Statistics Cards (Memoized)
+  const StatCard = React.memo<{
     title: string;
     value: string | number;
     icon: any;
     gradient: string;
     subtitle?: string;
     trend?: string
-  }> = ({ title, value, icon: Icon, gradient, subtitle, trend }) => (
+  }>(({ title, value, icon: Icon, gradient, subtitle, trend }) => (
     <div className="glass-card-premium stat-badge-premium">
       <div className="flex items-start justify-between mb-4">
         <div
@@ -618,7 +626,7 @@ const HijriDiyasManagement: React.FC = () => {
         {subtitle && <p className="text-xs text-gray-700">{subtitle}</p>}
       </div>
     </div>
-  );
+  ));
 
   return (
     <div className="p-6" dir="rtl">
@@ -727,37 +735,37 @@ const HijriDiyasManagement: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         <StatCard
           title="إجمالي الحالات"
-          value={totalDiyas}
+          value={statistics.totalDiyas}
           icon={ScaleIcon}
           gradient="#FF9500, #F59E0B"
           subtitle="جميع الحالات المسجلة"
         />
         <StatCard
           title="الحالات النشطة"
-          value={activeDiyas}
+          value={statistics.activeDiyas}
           icon={HandRaisedIcon}
           gradient="#FF3B30, #FF2D92"
           subtitle="تحتاج إلى دعم"
-          trend={activeDiyas > 0 ? `${activeDiyas} نشطة` : ''}
+          trend={statistics.activeDiyas > 0 ? `${statistics.activeDiyas} نشطة` : ''}
         />
         <StatCard
           title="المبلغ المطلوب"
-          value={`${totalAmountNeeded.toLocaleString()} ريال`}
+          value={`${statistics.totalAmountNeeded.toLocaleString()} ريال`}
           icon={BanknotesIcon}
           gradient="#5856D6, #AF52DE"
           subtitle="إجمالي الديات"
         />
         <StatCard
           title="المبلغ المحصل"
-          value={`${totalCollected.toLocaleString()} ريال`}
+          value={`${statistics.totalCollected.toLocaleString()} ريال`}
           icon={CheckCircleIcon}
           gradient="#30D158, #34C759"
-          subtitle={`${((totalCollected / totalAmountNeeded) * 100).toFixed(1)}% من الهدف`}
+          subtitle={`${((statistics.totalCollected / statistics.totalAmountNeeded) * 100).toFixed(1)}% من الهدف`}
           trend="+25%"
         />
         <StatCard
           title="المبلغ المتبقي"
-          value={`${totalRemaining.toLocaleString()} ريال`}
+          value={`${statistics.totalRemaining.toLocaleString()} ريال`}
           icon={CurrencyDollarIcon}
           gradient="#007AFF, #5AC8FA"
           subtitle="يحتاج إلى جمع"
@@ -848,7 +856,7 @@ const HijriDiyasManagement: React.FC = () => {
               </button>
             </div>
 
-            {/* Contributors Table */}
+            {/* Contributors Table with Pagination */}
             <div className="bg-gray-50 rounded-xl p-4">
               <table className="w-full border-collapse">
                 <thead>
@@ -862,17 +870,19 @@ const HijriDiyasManagement: React.FC = () => {
                 </thead>
                 <tbody>
                   {contributors.length > 0 ? (
-                    contributors.map((contributor, index) => (
-                      <tr key={index} className="border-b border-gray-200 hover:bg-gray-100 transition-colors">
-                        <td className="p-3 text-right">{contributor.membership_number}</td>
-                        <td className="p-3 text-right font-medium">{contributor.member_name}</td>
-                        <td className="p-3 text-right">{contributor.tribal_section || '-'}</td>
-                        <td className="p-3 text-right font-bold text-green-600">{contributor.amount.toLocaleString()} ر.س</td>
-                        <td className="p-3 text-right text-sm text-gray-600">
-                          {new Date(contributor.contribution_date).toLocaleDateString('ar-SA')}
-                        </td>
-                      </tr>
-                    ))
+                    contributors
+                      .slice((contributorsPage - 1) * contributorsPerPage, contributorsPage * contributorsPerPage)
+                      .map((contributor, index) => (
+                        <tr key={index} className="border-b border-gray-200 hover:bg-gray-100 transition-colors">
+                          <td className="p-3 text-right">{contributor.membership_number}</td>
+                          <td className="p-3 text-right font-medium">{contributor.member_name}</td>
+                          <td className="p-3 text-right">{contributor.tribal_section || '-'}</td>
+                          <td className="p-3 text-right font-bold text-green-600">{contributor.amount.toLocaleString()} ر.س</td>
+                          <td className="p-3 text-right text-sm text-gray-600">
+                            {new Date(contributor.contribution_date).toLocaleDateString('ar-SA')}
+                          </td>
+                        </tr>
+                      ))
                   ) : (
                     <tr>
                       <td colSpan={5} className="p-8 text-center text-gray-500">
@@ -883,6 +893,52 @@ const HijriDiyasManagement: React.FC = () => {
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination Controls */}
+            {contributors.length > contributorsPerPage && (
+              <div className="flex items-center justify-between mt-4 px-4">
+                <div className="text-sm text-gray-600">
+                  عرض {((contributorsPage - 1) * contributorsPerPage) + 1} - {Math.min(contributorsPage * contributorsPerPage, contributors.length)} من {contributors.length}
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setContributorsPage(p => Math.max(1, p - 1))}
+                    disabled={contributorsPage === 1}
+                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors"
+                  >
+                    السابق
+                  </button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.ceil(contributors.length / contributorsPerPage) }, (_, i) => i + 1)
+                      .filter(p => p === 1 || p === Math.ceil(contributors.length / contributorsPerPage) || Math.abs(p - contributorsPage) <= 1)
+                      .map((pageNum, idx, arr) => (
+                        <React.Fragment key={pageNum}>
+                          {idx > 0 && arr[idx - 1] !== pageNum - 1 && (
+                            <span className="px-2 text-gray-400">...</span>
+                          )}
+                          <button
+                            onClick={() => setContributorsPage(pageNum)}
+                            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                              pageNum === contributorsPage
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        </React.Fragment>
+                      ))}
+                  </div>
+                  <button
+                    onClick={() => setContributorsPage(p => Math.min(Math.ceil(contributors.length / contributorsPerPage), p + 1))}
+                    disabled={contributorsPage >= Math.ceil(contributors.length / contributorsPerPage)}
+                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-sm font-medium transition-colors"
+                  >
+                    التالي
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Modal Footer */}
             <div className="flex justify-end gap-3 mt-6">
