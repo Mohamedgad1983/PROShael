@@ -970,7 +970,7 @@ const HijriDiyasManagement: React.FC = () => {
       {/* Add Diya Modal */}
       {showAddModal && <AddDiyaModal />}
 
-      {/* Professional Contributors Modal - Full Screen NO FOOTER */}
+      {/* FULL SCREEN Modal - NO CENTERING, NO FOOTER, PAGINATION IN TOOLBAR */}
       {showContributorsModal && selectedDiya && (
         <div
           className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm z-50"
@@ -1089,10 +1089,10 @@ const HijriDiyasManagement: React.FC = () => {
               </div>
             </div>
 
-            {/* Full-Screen Table - Maximum Space, NO FOOTER */}
+            {/* Table - Uses ALL Remaining Space */}
             <div className="flex-1 overflow-y-auto px-2">
               {contributorsLoading ? (
-                <div className="flex items-center justify-center h-full">
+                <div className="flex items-center justify-center py-20">
                   <div className="text-center">
                     <div className="animate-spin w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-3"></div>
                     <p className="text-sm text-gray-600">جاري التحميل...</p>
@@ -1109,7 +1109,7 @@ const HijriDiyasManagement: React.FC = () => {
                     <div className="text-right">التاريخ</div>
                   </div>
 
-                  {/* Table Body - Fills Remaining Space */}
+                  {/* Table Body - Uses Remaining Space */}
                   <div className="flex-1 bg-white">
                     {filteredContributors.map((contributor, index) => (
                       <div
