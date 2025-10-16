@@ -970,14 +970,14 @@ const HijriDiyasManagement: React.FC = () => {
       {/* Add Diya Modal */}
       {showAddModal && <AddDiyaModal />}
 
-      {/* Professional Contributors Modal - Full Screen with Toolbar */}
+      {/* Professional Contributors Modal - Flexible Height */}
       {showContributorsModal && selectedDiya && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm z-50"
+          className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm z-50 flex items-start justify-center p-2 overflow-y-auto"
           onClick={() => setShowContributorsModal(false)}
         >
           <div
-            className="absolute inset-0 m-1 bg-white rounded-lg flex flex-col"
+            className="bg-white rounded-lg w-full max-w-7xl my-auto shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Professional Header with Logo */}
@@ -999,72 +999,109 @@ const HijriDiyasManagement: React.FC = () => {
               </div>
             </div>
 
-            {/* Professional Toolbar - Search, Items Selector, Download, Statistics */}
-            <div className="px-3 py-2 border-b flex-shrink-0 bg-white flex items-center justify-between gap-2">
-              {/* Left: Search */}
-              <div className="relative flex-1 max-w-xs">
-                <input
-                  type="text"
-                  placeholder="بحث بالاسم أو الرقم..."
-                  value={contributorSearchTerm}
-                  onChange={(e) => setContributorSearchTerm(e.target.value)}
-                  className="w-full px-3 py-1.5 pr-8 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <MagnifyingGlassIcon className="w-4 h-4 absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              </div>
+            {/* Professional Toolbar - Search, Stats, Controls, Pagination */}
+            <div className="px-3 py-2 border-b bg-white">
+              <div className="flex items-center justify-between gap-3">
+                {/* Left: Search */}
+                <div className="relative w-64">
+                  <input
+                    type="text"
+                    placeholder="بحث بالاسم أو الرقم..."
+                    value={contributorSearchTerm}
+                    onChange={(e) => setContributorSearchTerm(e.target.value)}
+                    className="w-full px-3 py-1.5 pr-8 text-xs border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  />
+                  <MagnifyingGlassIcon className="w-4 h-4 absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                </div>
 
-              {/* Center: Statistics Badges */}
-              <div className="flex gap-2 text-xs">
-                <span className="bg-blue-600 text-white px-2 py-1 rounded font-bold">الإجمالي: {contributorsTotal}</span>
-                <span className="bg-green-600 text-white px-2 py-1 rounded font-bold">المبلغ: {selectedDiya.collectedAmount.toLocaleString()} ر.س</span>
-                <span className="bg-purple-600 text-white px-2 py-1 rounded font-bold">المتوسط: {contributorsTotal > 0 ? (selectedDiya.collectedAmount / contributorsTotal).toFixed(0) : 0} ر.س</span>
-              </div>
+                {/* Center: Statistics */}
+                <div className="flex gap-2 text-xs">
+                  <span className="bg-blue-600 text-white px-2 py-1 rounded font-bold whitespace-nowrap">الإجمالي: {contributorsTotal}</span>
+                  <span className="bg-green-600 text-white px-2 py-1 rounded font-bold whitespace-nowrap">المبلغ: {selectedDiya.collectedAmount.toLocaleString()} ر.س</span>
+                  <span className="bg-purple-600 text-white px-2 py-1 rounded font-bold whitespace-nowrap">المتوسط: {contributorsTotal > 0 ? (selectedDiya.collectedAmount / contributorsTotal).toFixed(0) : 0} ر.س</span>
+                </div>
 
-              {/* Right: Items Selector + Download */}
-              <div className="flex items-center gap-2">
-                <select
-                  value={contributorsPerPage}
-                  onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
-                  className="px-2 py-1.5 text-xs border border-gray-300 rounded-lg bg-white hover:bg-gray-50 focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value={20}>عرض 20</option>
-                  <option value={50}>عرض 50</option>
-                  <option value={100}>عرض 100</option>
-                </select>
+                {/* Right: Controls + Pagination */}
+                <div className="flex items-center gap-2">
+                  <select
+                    value={contributorsPerPage}
+                    onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                    className="px-2 py-1.5 text-xs border border-gray-300 rounded-lg bg-white hover:bg-gray-50"
+                  >
+                    <option value={20}>عرض 20</option>
+                    <option value={50}>عرض 50</option>
+                    <option value={100}>عرض 100</option>
+                  </select>
 
-                <button
-                  onClick={handleDownloadPDF}
-                  className="px-3 py-1.5 text-xs bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium flex items-center gap-1"
-                  title="تحميل PDF"
-                >
-                  <ArrowDownTrayIcon className="w-4 h-4" />
-                  PDF
-                </button>
+                  {/* Inline Pagination */}
+                  {contributorsTotalPages > 1 && !contributorSearchTerm && (
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleContributorsPageChange(contributorsPage - 1)}
+                        disabled={contributorsPage === 1}
+                        className="w-6 h-6 flex items-center justify-center text-xs bg-white hover:bg-gray-100 disabled:opacity-30 rounded border"
+                      >
+                        ‹
+                      </button>
+                      {Array.from({ length: contributorsTotalPages }, (_, i) => i + 1)
+                        .filter(p => p === 1 || p === contributorsTotalPages || Math.abs(p - contributorsPage) <= 1)
+                        .map((pageNum, idx, arr) => (
+                          <React.Fragment key={pageNum}>
+                            {idx > 0 && arr[idx - 1] !== pageNum - 1 && <span className="text-gray-400 text-xs">...</span>}
+                            <button
+                              onClick={() => handleContributorsPageChange(pageNum)}
+                              className={`w-6 h-6 flex items-center justify-center rounded text-xs font-medium ${
+                                pageNum === contributorsPage
+                                  ? 'bg-blue-600 text-white'
+                                  : 'bg-white hover:bg-gray-100 border'
+                              }`}
+                            >
+                              {pageNum}
+                            </button>
+                          </React.Fragment>
+                        ))}
+                      <button
+                        onClick={() => handleContributorsPageChange(contributorsPage + 1)}
+                        disabled={contributorsPage >= contributorsTotalPages}
+                        className="w-6 h-6 flex items-center justify-center text-xs bg-white hover:bg-gray-100 disabled:opacity-30 rounded border"
+                      >
+                        ›
+                      </button>
+                    </div>
+                  )}
 
-                <button
-                  onClick={handleDownloadExcel}
-                  className="px-3 py-1.5 text-xs bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium flex items-center gap-1"
-                  title="تحميل Excel"
-                >
-                  <ArrowDownTrayIcon className="w-4 h-4" />
-                  Excel
-                </button>
+                  <button
+                    onClick={handleDownloadPDF}
+                    className="px-2 py-1.5 text-xs bg-red-600 hover:bg-red-700 text-white rounded font-medium flex items-center gap-1"
+                  >
+                    <ArrowDownTrayIcon className="w-3 h-3" />
+                    PDF
+                  </button>
+
+                  <button
+                    onClick={handleDownloadExcel}
+                    className="px-2 py-1.5 text-xs bg-green-600 hover:bg-green-700 text-white rounded font-medium flex items-center gap-1"
+                  >
+                    <ArrowDownTrayIcon className="w-3 h-3" />
+                    Excel
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* Professional Table - No Scrolling, Flexible Height */}
-            <div className="flex-1 overflow-y-auto px-1">
+            {/* Flexible Table - Natural Height, No Footer */}
+            <div className="px-3 py-3">
               {contributorsLoading ? (
-                <div className="flex items-center justify-center h-full">
+                <div className="flex items-center justify-center py-20">
                   <div className="text-center">
                     <div className="animate-spin w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-3"></div>
                     <p className="text-sm text-gray-600">جاري التحميل...</p>
                   </div>
                 </div>
               ) : filteredContributors.length > 0 ? (
-                <div className="flex flex-col">
-                  {/* Sticky Table Header */}
-                  <div className="bg-gradient-to-r from-gray-800 to-gray-900 text-white grid grid-cols-5 gap-2 px-3 py-2 text-xs font-bold sticky top-0 z-10">
+                <div className="w-full">
+                  {/* Table Header */}
+                  <div className="bg-gradient-to-r from-gray-800 to-gray-900 text-white grid grid-cols-5 gap-3 px-4 py-2.5 text-xs font-bold rounded-t-lg">
                     <div className="text-right">المسلسل</div>
                     <div className="text-right">الاسم</div>
                     <div className="text-right">الفخذ</div>
@@ -1072,12 +1109,12 @@ const HijriDiyasManagement: React.FC = () => {
                     <div className="text-right">التاريخ</div>
                   </div>
 
-                  {/* Table Body - Shows Filtered Results */}
-                  <div className="bg-white">
+                  {/* Table Body - Natural Height */}
+                  <div className="bg-white border border-gray-200 rounded-b-lg">
                     {filteredContributors.map((contributor, index) => (
                       <div
                         key={index}
-                        className="grid grid-cols-5 gap-2 px-3 py-2 border-b border-gray-100 hover:bg-blue-50 transition-colors items-center"
+                        className="grid grid-cols-5 gap-3 px-4 py-2.5 border-b border-gray-100 hover:bg-blue-50 transition-colors items-center last:border-b-0"
                       >
                         <div className="text-right text-xs font-medium text-gray-700">{contributor.membership_number}</div>
                         <div className="text-right text-sm font-semibold text-gray-900">{contributor.member_name}</div>
@@ -1089,61 +1126,25 @@ const HijriDiyasManagement: React.FC = () => {
                       </div>
                     ))}
                   </div>
-
-                  {/* Show message if search filtered out results */}
-                  {contributorSearchTerm && filteredContributors.length === 0 && (
-                    <div className="py-8 text-center text-gray-500">
-                      <MagnifyingGlassIcon className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-                      <p className="text-sm">لا توجد نتائج للبحث "{contributorSearchTerm}"</p>
-                    </div>
-                  )}
+                </div>
+              ) : contributorSearchTerm ? (
+                <div className="py-12 text-center text-gray-500">
+                  <MagnifyingGlassIcon className="w-16 h-16 mx-auto mb-3 text-gray-300" />
+                  <p className="text-sm font-medium">لا توجد نتائج للبحث "{contributorSearchTerm}"</p>
+                  <button
+                    onClick={() => setContributorSearchTerm('')}
+                    className="mt-3 px-4 py-2 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    مسح البحث
+                  </button>
                 </div>
               ) : (
-                <div className="flex items-center justify-center h-full">
-                  <div className="text-center text-gray-500">
-                    <DocumentTextIcon className="w-16 h-16 mx-auto mb-2 text-gray-300" />
-                    <p>لا توجد مساهمات حالياً</p>
-                  </div>
+                <div className="py-12 text-center text-gray-500">
+                  <DocumentTextIcon className="w-16 h-16 mx-auto mb-3 text-gray-300" />
+                  <p>لا توجد مساهمات حالياً</p>
                 </div>
               )}
             </div>
-
-            {/* Minimal Footer - Page Numbers Only */}
-            {contributorsTotalPages > 1 && !contributorsLoading && !contributorSearchTerm && (
-              <div className="border-t px-2 py-1.5 flex-shrink-0 bg-gray-50 flex items-center justify-center gap-1">
-                <button
-                  onClick={() => handleContributorsPageChange(contributorsPage - 1)}
-                  disabled={contributorsPage === 1}
-                  className="px-2 py-1 text-xs bg-white hover:bg-gray-100 disabled:opacity-30 rounded"
-                >
-                  ‹
-                </button>
-                {Array.from({ length: contributorsTotalPages }, (_, i) => i + 1)
-                  .filter(p => p === 1 || p === contributorsTotalPages || Math.abs(p - contributorsPage) <= 2)
-                  .map((pageNum, idx, arr) => (
-                    <React.Fragment key={pageNum}>
-                      {idx > 0 && arr[idx - 1] !== pageNum - 1 && <span className="text-gray-400 text-xs">...</span>}
-                      <button
-                        onClick={() => handleContributorsPageChange(pageNum)}
-                        className={`px-2 py-1 rounded text-xs font-medium ${
-                          pageNum === contributorsPage
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-white hover:bg-gray-100 text-gray-700'
-                        }`}
-                      >
-                        {pageNum}
-                      </button>
-                    </React.Fragment>
-                  ))}
-                <button
-                  onClick={() => handleContributorsPageChange(contributorsPage + 1)}
-                  disabled={contributorsPage >= contributorsTotalPages}
-                  className="px-2 py-1 text-xs bg-white hover:bg-gray-100 disabled:opacity-30 rounded"
-                >
-                  ›
-                </button>
-              </div>
-            )}
           </div>
         </div>
       )}
