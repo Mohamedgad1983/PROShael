@@ -63,6 +63,16 @@ interface Payment {
   receiptNumber?: string;
 }
 
+interface Contributor {
+  member_id: string;
+  member_name: string;
+  membership_number: string;
+  tribal_section: string;
+  amount: number;
+  contribution_date: string;
+  payment_method: string;
+}
+
 const HijriDiyasManagement: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [diyas, setDiyas] = useState<Diya[]>([]);
@@ -77,6 +87,8 @@ const HijriDiyasManagement: React.FC = () => {
   const [toHijriDate, setToHijriDate] = useState('');
   const [toGregorianDate, setToGregorianDate] = useState('');
   const [showDateFilter, setShowDateFilter] = useState(false);
+  const [showContributorsModal, setShowContributorsModal] = useState(false);
+  const [contributors, setContributors] = useState<Contributor[]>([]);
 
   // Fetch real Diyas data from database
   const fetchDiyas = async () => {
@@ -143,6 +155,33 @@ const HijriDiyasManagement: React.FC = () => {
   useEffect(() => {
     fetchDiyas();
   }, []);
+
+  // Fetch contributors for a specific diya
+  const fetchContributors = async (diyaId: number | string) => {
+    try {
+      const API_URL = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
+      const response = await fetch(`${API_URL}/api/diya/${diyaId}/contributors`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      const result = await response.json();
+      if (result.success && result.data) {
+        setContributors(result.data);
+        setShowContributorsModal(true);
+      }
+    } catch (error) {
+      console.error('Error fetching contributors:', error);
+    }
+  };
+
+  // Handle viewing contributors
+  const handleViewContributors = (diya: Diya) => {
+    setSelectedDiya(diya);
+    fetchContributors(diya.id);
+  };
 
   // Helper functions
   const getStatusInfo = (status: string) => {
@@ -530,7 +569,11 @@ const HijriDiyasManagement: React.FC = () => {
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+            <button
+              onClick={() => handleViewContributors(diya)}
+              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              title="عرض قائمة المساهمين"
+            >
               <EyeIcon className="w-5 h-5 text-gray-600" />
             </button>
             <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
@@ -774,6 +817,85 @@ const HijriDiyasManagement: React.FC = () => {
 
       {/* Add Diya Modal */}
       {showAddModal && <AddDiyaModal />}
+
+      {/* Contributors Modal */}
+      {showContributorsModal && selectedDiya && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center z-50 p-5"
+          onClick={() => setShowContributorsModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-auto p-8"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                  {selectedDiya.title} - قائمة المساهمين
+                </h2>
+                <div className="flex gap-6 text-sm text-gray-600">
+                  <span>إجمالي المساهمين: <strong className="text-gray-900">{contributors.length}</strong></span>
+                  <span>المبلغ الإجمالي: <strong className="text-green-600">{selectedDiya.collectedAmount.toLocaleString()} ر.س</strong></span>
+                  <span>متوسط المساهمة: <strong className="text-blue-600">{contributors.length > 0 ? (selectedDiya.collectedAmount / contributors.length).toFixed(0) : 0} ر.س</strong></span>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowContributorsModal(false)}
+                className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                <XMarkIcon className="w-6 h-6 text-gray-600" />
+              </button>
+            </div>
+
+            {/* Contributors Table */}
+            <div className="bg-gray-50 rounded-xl p-4">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-gray-900 text-white">
+                    <th className="p-3 text-right rounded-tr-lg">رقم العضوية</th>
+                    <th className="p-3 text-right">الاسم</th>
+                    <th className="p-3 text-right">الفخذ</th>
+                    <th className="p-3 text-right">المبلغ</th>
+                    <th className="p-3 text-right rounded-tl-lg">التاريخ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {contributors.length > 0 ? (
+                    contributors.map((contributor, index) => (
+                      <tr key={index} className="border-b border-gray-200 hover:bg-gray-100 transition-colors">
+                        <td className="p-3 text-right">{contributor.membership_number}</td>
+                        <td className="p-3 text-right font-medium">{contributor.member_name}</td>
+                        <td className="p-3 text-right">{contributor.tribal_section || '-'}</td>
+                        <td className="p-3 text-right font-bold text-green-600">{contributor.amount.toLocaleString()} ر.س</td>
+                        <td className="p-3 text-right text-sm text-gray-600">
+                          {new Date(contributor.contribution_date).toLocaleDateString('ar-SA')}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5} className="p-8 text-center text-gray-500">
+                        لا توجد مساهمات حالياً
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => setShowContributorsModal(false)}
+                className="px-6 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors"
+              >
+                إغلاق
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Empty State */}
       {diyas.length === 0 && (
