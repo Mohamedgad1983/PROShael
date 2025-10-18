@@ -2,6 +2,7 @@ import { supabase } from '../config/database.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { sanitizeJSON as _sanitizeJSON, prepareUpdateData } from '../utils/jsonSanitizer.js';
+import { sanitizeSearchTerm, sanitizeNumber, sanitizeBoolean } from '../utils/inputSanitizer.js';
 import { log } from '../utils/logger.js';
 import { config } from '../config/env.js';
 
@@ -15,46 +16,56 @@ export const getAllMembers = async (req, res) => {
       status
     } = req.query;
 
-    // Ensure limit is a valid number and within reasonable bounds
-    const pageLimit = Math.min(Math.max(parseInt(limit) || 25, 1), 100);
+    // Sanitize and validate inputs
+    const pageNum = sanitizeNumber(page, 1, 10000, 1);
+    const pageLimit = sanitizeNumber(limit, 1, 100, 25);
+    const profileCompleted = profile_completed !== undefined ? sanitizeBoolean(profile_completed) : undefined;
+    const membershipStatus = status === 'active' || status === 'inactive' ? status : undefined;
 
     let query = supabase
       .from('members')
       .select('*', { count: 'exact' });
 
-    // Apply filters
-    if (profile_completed !== undefined) {
-      query = query.eq('profile_completed', profile_completed === 'true');
+    // Apply filters with sanitized inputs
+    if (profileCompleted !== undefined) {
+      query = query.eq('profile_completed', profileCompleted);
     }
 
-    if (status !== undefined) {
-      query = query.eq('membership_status', status === 'active' ? 'active' : 'inactive');
+    if (membershipStatus !== undefined) {
+      query = query.eq('membership_status', membershipStatus);
     }
 
+    // Sanitize search term to prevent SQL injection
     if (search) {
-      query = query.or(
-        `full_name.ilike.%${search}%,` +
-        `phone.ilike.%${search}%,` +
-        `membership_number.ilike.%${search}%,` +
-        `email.ilike.%${search}%`
-      );
+      const sanitizedSearch = sanitizeSearchTerm(search);
+      if (sanitizedSearch) {
+        query = query.or(
+          `full_name.ilike.%${sanitizedSearch}%,` +
+          `phone.ilike.%${sanitizedSearch}%,` +
+          `membership_number.ilike.%${sanitizedSearch}%,` +
+          `email.ilike.%${sanitizedSearch}%`
+        );
+      }
     }
 
-    // Apply pagination with validated limit
-    const offset = (page - 1) * pageLimit;
+    // Apply pagination with sanitized values
+    const offset = (pageNum - 1) * pageLimit;
     query = query
       .order('created_at', { ascending: false })
       .range(offset, offset + pageLimit - 1);
 
     const { data: members, error, count } = await query;
 
-    if (error) {throw error;}
+    if (error) {
+      log.error('Failed to fetch members', { error: error.message });
+      throw error;
+    }
 
     res.json({
       success: true,
       data: members || [],
       pagination: {
-        page: parseInt(page),
+        page: pageNum,
         limit: pageLimit,
         total: count || 0,
         pages: Math.ceil((count || 0) / pageLimit)

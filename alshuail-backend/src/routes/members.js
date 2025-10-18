@@ -53,28 +53,9 @@ const upload = multer({
 
 const router = express.Router();
 
-// Public member list endpoint (for monitoring dashboard - less restrictive)
-// This endpoint returns limited member data for monitoring purposes
-router.get('/', async (req, res) => {
-  try {
-    // Check if request has auth header (optional authentication)
-    const authHeader = req.headers.authorization;
-    let _isAuthenticated = false;
-
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      _isAuthenticated = true;
-    }
-
-    // Call the controller
-    await getAllMembers(req, res);
-  } catch (error) {
-    log.error('Error in members route', { error: error.message });
-    res.status(500).json({
-      success: false,
-      message: 'خطأ في جلب بيانات الأعضاء'
-    });
-  }
-});
+// Members list endpoint - requires authentication and appropriate roles
+// This endpoint returns member data based on user role permissions
+router.get('/', requireRole(['super_admin', 'admin', 'financial_manager']), getAllMembers);
 router.get('/statistics', requireRole(['super_admin', 'financial_manager']), getMemberStatistics);
 router.get('/incomplete-profiles', requireRole(['super_admin', 'financial_manager']), getIncompleteProfiles);
 router.get('/:id', requireRole(['super_admin', 'financial_manager', 'member']), getMemberById);

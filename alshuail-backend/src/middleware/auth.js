@@ -118,7 +118,7 @@ export const authenticate = async (req, res, next) => {
   }
 };
 
-export const requireAdmin = (req, res, next) => {
+export const requireAdmin = async (req, res, next) => {
   try {
     // Check if user is authenticated first
     if (!req.user) {
@@ -130,54 +130,62 @@ export const requireAdmin = (req, res, next) => {
     }
 
     const userId = req.user.id || req.user.user_id;
-    log.debug('Checking admin status', { userId });
+    const userRole = req.user.role;
 
-    // For now, simplified check - just verify authenticated
-    // We can enhance this later when needed
-    if (userId) {
-      log.auth('Admin access', userId, true);
+    log.debug('Checking admin status', { userId, userRole });
+
+    // Check if user has admin role
+    const allowedRoles = ['admin', 'super_admin', 'financial_manager'];
+
+    // If role is already in JWT token, use it
+    if (userRole && allowedRoles.includes(userRole)) {
+      log.auth('Admin access granted via token', userId, true);
       return next();
     }
 
-    // Original role check (commented for now to prevent issues)
-    /*
+    // Otherwise, check database for role
     const { data: member, error } = await supabase
       .from('members')
       .select('role')
-      .eq('user_id', userId)
+      .eq('id', userId)
       .single();
 
     if (error) {
       log.error('RequireAdmin: Database error', { error: error.message });
-      // Instead of blocking, allow authenticated users
-      return next();
+      return res.status(500).json({
+        success: false,
+        error: 'Authorization check failed'
+      });
     }
 
     if (!member) {
-      log.info('RequireAdmin: No member record found');
-      // Allow for now
-      return next();
-    }
-
-    if (!['admin', 'super_admin', 'financial_manager'].includes(member.role)) {
-      log.warn('RequireAdmin: User role not authorized', { role: member.role });
+      log.warn('RequireAdmin: No member record found', { userId });
       return res.status(403).json({
         success: false,
-        error: 'Admin privileges required'
+        error: 'Access denied',
+        message: 'Member record not found'
       });
     }
-    */
 
+    if (!allowedRoles.includes(member.role)) {
+      log.warn('RequireAdmin: User role not authorized', { role: member.role, userId });
+      return res.status(403).json({
+        success: false,
+        error: 'Admin privileges required',
+        message: `Your role (${member.role}) does not have access to this resource`
+      });
+    }
+
+    // Update req.user with correct role from database
+    req.user.role = member.role;
+    log.auth('Admin access granted via database', userId, true);
     next();
   } catch (error) {
     log.error('RequireAdmin unexpected error', { error: error.message });
-    // On error, allow authenticated users through
-    if (req.user) {
-      return next();
-    }
     res.status(500).json({
       success: false,
-      error: 'Authorization error'
+      error: 'Authorization error',
+      message: 'An unexpected error occurred during authorization'
     });
   }
 };
@@ -185,7 +193,7 @@ export const requireAdmin = (req, res, next) => {
 // Export authenticateToken as alias for compatibility
 export const authenticateToken = authenticate;
 
-export const requireSuperAdmin = (req, res, next) => {
+export const requireSuperAdmin = async (req, res, next) => {
   try {
     // Check if user is authenticated first
     if (!req.user) {
@@ -197,50 +205,59 @@ export const requireSuperAdmin = (req, res, next) => {
     }
 
     const userId = req.user.id || req.user.user_id;
-    log.debug('Checking super admin status', { userId });
+    const userRole = req.user.role;
 
-    // For now, simplified check - just verify authenticated
-    // We can enhance this later when needed
-    if (userId) {
-      log.auth('Super admin access', userId, true);
+    log.debug('Checking super admin status', { userId, userRole });
+
+    // If role is already in JWT token, use it
+    if (userRole === 'super_admin') {
+      log.auth('Super admin access granted via token', userId, true);
       return next();
     }
 
-    // Original role check (commented for now to prevent issues)
-    /*
+    // Otherwise, check database for role
     const { data: member, error } = await supabase
       .from('members')
       .select('role')
-      .eq('user_id', userId)
+      .eq('id', userId)
       .single();
 
     if (error) {
       log.error('RequireSuperAdmin: Database error', { error: error.message });
-      return res.status(403).json({
+      return res.status(500).json({
         success: false,
-        error: 'Access denied'
+        error: 'Authorization check failed'
       });
     }
 
-    if (!member || member.role !== 'super_admin') {
-      log.warn('RequireSuperAdmin: User role not super_admin', { role: member?.role });
+    if (!member) {
+      log.warn('RequireSuperAdmin: No member record found', { userId });
       return res.status(403).json({
         success: false,
-        error: 'Super Admin privileges required'
+        error: 'Access denied',
+        message: 'Member record not found'
       });
     }
-    */
 
+    if (member.role !== 'super_admin') {
+      log.warn('RequireSuperAdmin: User role not super_admin', { role: member.role, userId });
+      return res.status(403).json({
+        success: false,
+        error: 'Super Admin privileges required',
+        message: 'This action requires Super Admin privileges'
+      });
+    }
+
+    // Update req.user with correct role from database
+    req.user.role = member.role;
+    log.auth('Super admin access granted via database', userId, true);
     next();
   } catch (error) {
     log.error('RequireSuperAdmin unexpected error', { error: error.message });
-    // On error, allow authenticated users through
-    if (req.user) {
-      return next();
-    }
     res.status(500).json({
       success: false,
-      error: 'Authorization error'
+      error: 'Authorization error',
+      message: 'An unexpected error occurred during authorization'
     });
   }
 };

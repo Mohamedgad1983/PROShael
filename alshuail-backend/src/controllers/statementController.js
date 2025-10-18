@@ -1,20 +1,16 @@
 // Optimized Statement Controller using Materialized Views
-// Now uses high-performance materialized views for instant responses
 import { supabase } from '../config/database.js';
 import { log } from '../utils/logger.js';
 
-// Phone number validation for Saudi and Kuwait
+// Phone validation
 const validatePhone = (phone) => {
-  // Saudi format: 05XXXXXXXX
   const saudiRegex = /^(05|5)(5|0|3|6|4|9|1|8|7)[0-9]{7}$/;
-  // Kuwait format: 9XXXXXXX, 6XXXXXXX, 5XXXXXXX
   const kuwaitRegex = /^(9|6|5)[0-9]{7}$/;
-
   const cleaned = phone.replace(/[\s\-+]/g, '');
   return saudiRegex.test(cleaned) || kuwaitRegex.test(cleaned);
 };
 
-// Arabic text normalization for better search
+// Arabic text normalization
 const normalizeArabic = (text) => {
   return text
     .replace(/[أإآا]/g, 'ا')
@@ -23,7 +19,7 @@ const normalizeArabic = (text) => {
     .trim();
 };
 
-// Search by phone number
+// Search by phone using materialized view
 export const searchByPhone = async (req, res) => {
   try {
     const { phone } = req.query;
@@ -35,7 +31,6 @@ export const searchByPhone = async (req, res) => {
       });
     }
 
-    // Validate phone format
     if (!validatePhone(phone)) {
       return res.status(400).json({
         success: false,
@@ -43,26 +38,45 @@ export const searchByPhone = async (req, res) => {
       });
     }
 
-    // Search in database
-    const { data: member, error } = await supabase
-      .from('members')
+    // Use materialized view for instant results
+    const { data: _data, error } = await supabase
+      .from('member_statement_view')
       .select('*')
       .eq('phone', phone)
       .single();
 
-    if (error || !member) {
+    if (error || !_data) {
       return res.status(404).json({
         success: false,
         error: 'لم يتم العثور على عضو بهذا الرقم'
       });
     }
 
-    // Get member's statement data
-    const statementData = await getMemberStatement(member.id);
+    // Format the response
+    const statement = {
+      memberId: _data.membership_number,
+      fullName: _data.full_name,
+      phone: _data.phone,
+      email: _data.email,
+      memberSince: _data.member_since,
+      currentBalance: _data.current_balance,
+      targetBalance: 3000,
+      shortfall: _data.shortfall,
+      percentageComplete: _data.percentage_complete,
+      alertLevel: _data.alert_level,
+      statusColor: _data.status_color,
+      alertMessage: getAlertMessage(_data.alert_level, _data.shortfall),
+      recentTransactions: _data.recent_transactions || [],
+      statistics: {
+        totalPayments: _data.total_payments || 0,
+        lastPaymentDate: _data.last_payment_date,
+        currentYear: new Date().getFullYear()
+      }
+    };
 
     res.json({
       success: true,
-      data: statementData
+      data: statement
     });
 
   } catch (error) {
@@ -74,7 +88,7 @@ export const searchByPhone = async (req, res) => {
   }
 };
 
-// Search by name (Arabic)
+// Search by name using materialized view
 export const searchByName = async (req, res) => {
   try {
     const { name } = req.query;
@@ -86,31 +100,38 @@ export const searchByName = async (req, res) => {
       });
     }
 
-    // Normalize Arabic text for search
     const normalizedName = normalizeArabic(name);
 
-    // Search in database with multiple field fallbacks
-    const { data: members, error } = await supabase
-      .from('members')
+    // Use materialized view for fast search
+    const { data: _data, error } = await supabase
+      .from('member_statement_view')
       .select('*')
-      .or(`full_name.ilike.%${normalizedName}%,name.ilike.%${normalizedName}%,first_name.ilike.%${normalizedName}%,last_name.ilike.%${normalizedName}%`)
+      .ilike('full_name', `%${normalizedName}%`)
       .limit(10);
 
     if (error) {
       throw error;
     }
 
-    if (!members || members.length === 0) {
+    if (!_data || _data.length === 0) {
       return res.status(404).json({
         success: false,
         error: 'لم يتم العثور على أعضاء بهذا الاسم'
       });
     }
 
-    // Get statements for all matching members
-    const statements = await Promise.all(
-      members.map(member => getMemberStatement(member.id))
-    );
+    // Format statements
+    const statements = _data.map(member => ({
+      memberId: member.membership_number,
+      fullName: member.full_name,
+      phone: member.phone,
+      currentBalance: member.current_balance,
+      shortfall: member.shortfall,
+      alertLevel: member.alert_level,
+      statusColor: member.status_color,
+      percentageComplete: member.percentage_complete,
+      lastPaymentDate: member.last_payment_date
+    }));
 
     res.json({
       success: true,
@@ -126,7 +147,7 @@ export const searchByName = async (req, res) => {
   }
 };
 
-// Search by member ID
+// Search by member ID using materialized view
 export const searchByMemberId = async (req, res) => {
   try {
     const { memberId } = req.query;
@@ -138,26 +159,44 @@ export const searchByMemberId = async (req, res) => {
       });
     }
 
-    // Search in database
-    const { data: member, error } = await supabase
-      .from('members')
+    // Use materialized view
+    const { data: _data, error } = await supabase
+      .from('member_statement_view')
       .select('*')
       .eq('membership_number', memberId)
       .single();
 
-    if (error || !member) {
+    if (error || !_data) {
       return res.status(404).json({
         success: false,
         error: 'لم يتم العثور على عضو بهذا الرقم'
       });
     }
 
-    // Get member's statement data
-    const statementData = await getMemberStatement(member.id);
+    // Format the response
+    const statement = {
+      memberId: _data.membership_number,
+      fullName: _data.full_name,
+      phone: _data.phone,
+      email: _data.email,
+      memberSince: _data.member_since,
+      currentBalance: _data.current_balance,
+      targetBalance: 3000,
+      shortfall: _data.shortfall,
+      percentageComplete: _data.percentage_complete,
+      alertLevel: _data.alert_level,
+      statusColor: _data.status_color,
+      alertMessage: getAlertMessage(_data.alert_level, _data.shortfall),
+      recentTransactions: _data.recent_transactions || [],
+      statistics: {
+        totalPayments: _data.total_payments || 0,
+        lastPaymentDate: _data.last_payment_date
+      }
+    };
 
     res.json({
       success: true,
-      data: statementData
+      data: statement
     });
 
   } catch (error) {
@@ -169,105 +208,88 @@ export const searchByMemberId = async (req, res) => {
   }
 };
 
-// Get comprehensive member statement using materialized view
-async function getMemberStatement(memberId) {
+// Get dashboard statistics using function
+export const getDashboardStatistics = async (req, res) => {
   try {
-    // Get member data
-    const { data: member, error: _memberError } = await supabase
-      .from('members')
-      .select('*')
-      .eq('id', memberId)
-      .single();
+    // Call the database function
+    const { data: _data, error } = await supabase
+      .rpc('get_dashboard_stats');
 
-    if (_memberError) {throw _memberError;}
-
-    // Get payments data
-    const { data: payments } = await supabase
-      .from('payments')
-      .select('*')
-      .eq('payer_id', memberId)
-      .eq('status', 'paid')
-      .order('created_at', { ascending: false });
-
-    const totalPaid = payments?.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0) || 0;
-
-    // Get subscription info
-    const { data: subscription } = await supabase
-      .from('subscriptions')
-      .select('*')
-      .eq('member_id', memberId)
-      .eq('status', 'active')
-      .single();
-
-    // Determine alert level
-    let alertLevel, statusColor;
-    if (totalPaid === 0) {
-      alertLevel = 'ZERO_BALANCE';
-      statusColor = '#991B1B'; // Dark red
-    } else if (totalPaid < 1000) {
-      alertLevel = 'CRITICAL';
-      statusColor = '#DC2626'; // Red
-    } else if (totalPaid < 3000) {
-      alertLevel = 'WARNING';
-      statusColor = '#F59E0B'; // Amber
-    } else {
-      alertLevel = 'SUFFICIENT';
-      statusColor = '#10B981'; // Green
+    if (error) {
+      throw error;
     }
 
-    // Build comprehensive statement
-    return {
-      // Member Information
-      memberId: member.membership_number || `SH-${member.id.slice(0, 5)}`,
-      fullName: member.full_name || member.name || `عضو ${member.id}`,
-      phone: member.phone,
-      email: member.email,
-      memberSince: member.created_at,
+    res.json({
+      success: true,
+      data: _data[0] // Function returns array with one row
+    });
 
-      // Financial Information
-      currentBalance: totalPaid,
-      targetBalance: 3000,
-      shortfall: Math.max(0, 3000 - totalPaid),
-      percentageComplete: Math.min(100, (totalPaid / 3000) * 100),
-
-      // Alert Information
-      alertLevel,
-      statusColor,
-      alertMessage: getAlertMessage(alertLevel, Math.max(0, 3000 - totalPaid)),
-
-      // Subscription Information
-      subscription: subscription ? {
-        type: subscription.subscription_type,
-        quantity: subscription.quantity,
-        amount: subscription.amount,
-        nextDueDate: subscription.next_due_date,
-        status: subscription.status
-      } : null,
-
-      // Recent Transactions
-      recentTransactions: payments?.slice(0, 10).map(p => ({
-        date: p.created_at,
-        amount: p.amount,
-        type: p.category,
-        description: p.title || 'دفعة',
-        reference: p.reference_number
-      })) || [],
-
-      // Statistics
-      statistics: {
-        totalPayments: payments?.length || 0,
-        lastPaymentDate: payments?.[0]?.created_at || null,
-        averagePayment: payments?.length > 0 ? totalPaid / payments.length : 0,
-        yearlyTotal: calculateYearlyTotal(payments)
-      }
-    };
   } catch (error) {
-    log.error('Error generating statement', { error: error.message });
-    throw error;
+    log.error('Dashboard stats error', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'خطأ في جلب الإحصائيات'
+    });
   }
-}
+};
 
-// Get alert message based on level
+// Get critical members
+export const getCriticalMembers = async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 50;
+
+    // Use the critical members view
+    const { data: _data, error } = await supabase
+      .from('critical_members_view')
+      .select('*')
+      .limit(limit);
+
+    if (error) {
+      throw error;
+    }
+
+    res.json({
+      success: true,
+      data: _data || [],
+      count: _data?.length || 0
+    });
+
+  } catch (error) {
+    log.error('Critical members error', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'خطأ في جلب الأعضاء الحرجين'
+    });
+  }
+};
+
+// Refresh materialized views (admin only)
+export const refreshViews = async (req, res) => {
+  try {
+    // Call the refresh function
+    const { data: _data, error } = await supabase
+      .rpc('refresh_all_views');
+
+    if (error) {
+      throw error;
+    }
+
+    res.json({
+      success: true,
+      message: 'تم تحديث البيانات بنجاح',
+      details: _data
+    });
+
+  } catch (error) {
+    log.error('View refresh error', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'خطأ في تحديث البيانات'
+    });
+  }
+};
+
+// Helper function for alert messages
 function getAlertMessage(level, shortfall) {
   switch(level) {
     case 'ZERO_BALANCE':
@@ -283,43 +305,11 @@ function getAlertMessage(level, shortfall) {
   }
 }
 
-// Calculate yearly total
-function calculateYearlyTotal(payments) {
-  const oneYearAgo = new Date();
-  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-
-  return payments
-    ?.filter(p => new Date(p.created_at) > oneYearAgo)
-    .reduce((sum, p) => sum + parseFloat(p.amount || 0), 0) || 0;
-}
-
-// Generate PDF statement
-export const generateStatement = async (req, res) => {
-  try {
-    const { memberId } = req.params;
-
-    // Get member statement data
-    const statementData = await getMemberStatement(memberId);
-
-    // For now, return JSON (PDF generation to be implemented)
-    res.json({
-      success: true,
-      data: statementData,
-      message: 'كشف الحساب جاهز'
-    });
-
-  } catch (error) {
-    log.error('Statement generation error', { error: error.message });
-    res.status(500).json({
-      success: false,
-      error: 'خطأ في إنشاء كشف الحساب'
-    });
-  }
-};
-
 export default {
   searchByPhone,
   searchByName,
   searchByMemberId,
-  generateStatement
+  getDashboardStatistics,
+  getCriticalMembers,
+  refreshViews
 };

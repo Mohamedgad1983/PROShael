@@ -1,7 +1,28 @@
 {
   "files": {
-    "main.css": "/static/css/main.13e5e841.css",
-    "main.js": "/static/js/main.1547398b.js",
+    "main.css": "/static/css/main.bf1206bb.css",
+    "main.js": "/static/js/main.1a98dde8.js",
+    "static/css/405.c8ac83ff.chunk.css": "/static/css/405.c8ac83ff.chunk.css",
+    "static/js/405.fbc8c91a.chunk.js": "/static/js/405.fbc8c91a.chunk.js",
+    "static/css/311.26ab5e23.chunk.css": "/static/css/311.26ab5e23.chunk.css",
+    "static/js/311.86f4ed28.chunk.js": "/static/js/311.86f4ed28.chunk.js",
+    "static/css/639.60d2e296.chunk.css": "/static/css/639.60d2e296.chunk.css",
+    "static/js/639.d167b7a8.chunk.js": "/static/js/639.d167b7a8.chunk.js",
+    "static/css/433.e09064e8.chunk.css": "/static/css/433.e09064e8.chunk.css",
+    "static/js/433.e784c596.chunk.js": "/static/js/433.e784c596.chunk.js",
+    "static/css/390.02b11dc3.chunk.css": "/static/css/390.02b11dc3.chunk.css",
+    "static/js/390.67dcdf34.chunk.js": "/static/js/390.67dcdf34.chunk.js",
+    "static/css/302.27077a8a.chunk.css": "/static/css/302.27077a8a.chunk.css",
+    "static/js/302.067f0351.chunk.js": "/static/js/302.067f0351.chunk.js",
+    "static/css/393.07d73c9c.chunk.css": "/static/css/393.07d73c9c.chunk.css",
+    "static/js/393.453fca9c.chunk.js": "/static/js/393.453fca9c.chunk.js",
+    "static/css/452.c4e13a34.chunk.css": "/static/css/452.c4e13a34.chunk.css",
+    "static/js/452.49480aae.chunk.js": "/static/js/452.49480aae.chunk.js",
+    "static/js/814.a23071d4.chunk.js": "/static/js/814.a23071d4.chunk.js",
+    "static/js/256.a77703d6.chunk.js": "/static/js/256.a77703d6.chunk.js",
+    "static/js/739.00ce7ffb.chunk.js": "/static/js/739.00ce7ffb.chunk.js",
+    "static/js/905.0f842919.chunk.js": "/static/js/905.0f842919.chunk.js",
+    "static/js/328.f51b7c23.chunk.js": "/static/js/328.f51b7c23.chunk.js",
     "heroicons.js": "/static/js/heroicons.15682e5e.js",
     "charts.js": "/static/js/charts.38c96cb9.js",
     "react.js": "/static/js/react.791bfc9c.js",
@@ -16,7 +37,7 @@
     "static/js/react.791bfc9c.js",
     "static/js/libs.8adf3202.js",
     "static/js/vendor.80aa7408.js",
-    "static/css/main.13e5e841.css",
-    "static/js/main.1547398b.js"
+    "static/css/main.bf1206bb.css",
+    "static/js/main.1a98dde8.js"
   ]
 }

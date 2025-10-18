@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 import './styles/modern-login.css';
@@ -12,27 +12,40 @@ import { AdminRoute, MemberRoute, PublicRoute } from './utils/RouteGuard';
 import logo from './assets/logo.svg';
 import { showToast } from './utils/toast';
 
-// Mobile Pages
-import MobileLogin from './pages/mobile/Login';
-import ChangePassword from './pages/mobile/ChangePassword';
-import MobileDashboard from './pages/mobile/Dashboard';
-import MobileProfile from './pages/mobile/Profile';
-import MobilePayment from './pages/mobile/Payment';
-import MobilePaymentHistory from './pages/mobile/PaymentHistory';
-import MobileNotifications from './pages/mobile/Notifications';
-import MemberSubscriptionView from './pages/mobile/MemberSubscriptionView';
+// Lazy-loaded Pages for Code Splitting
+// Mobile Pages (lazy-loaded)
+const MobileLogin = React.lazy(() => import('./pages/mobile/Login'));
+const ChangePassword = React.lazy(() => import('./pages/mobile/ChangePassword'));
+const MobileDashboard = React.lazy(() => import('./pages/mobile/Dashboard'));
+const MobileProfile = React.lazy(() => import('./pages/mobile/Profile'));
+const MobilePayment = React.lazy(() => import('./pages/mobile/Payment'));
+const MobilePaymentHistory = React.lazy(() => import('./pages/mobile/PaymentHistory'));
+const MobileNotifications = React.lazy(() => import('./pages/mobile/Notifications'));
+const MemberSubscriptionView = React.lazy(() => import('./pages/mobile/MemberSubscriptionView'));
 
-// Admin Pages
-import SubscriptionDashboard from './pages/admin/SubscriptionDashboard';
-import NewsManagement from './pages/admin/NewsManagement';
-import InitiativesManagement from './pages/admin/InitiativesManagement';
-import InitiativeReport from './pages/admin/InitiativeReport';
+// Admin Pages (lazy-loaded)
+const SubscriptionDashboard = React.lazy(() => import('./pages/admin/SubscriptionDashboard'));
+const NewsManagement = React.lazy(() => import('./pages/admin/NewsManagement'));
+const InitiativesManagement = React.lazy(() => import('./pages/admin/InitiativesManagement'));
+const InitiativeReport = React.lazy(() => import('./pages/admin/InitiativeReport'));
 
-// Member Pages - News & Initiatives
-import MemberNews from './pages/member/News';
-import MemberNewsDetail from './pages/member/NewsDetail';
-import MemberNotifications from './pages/member/Notifications';
-import MemberInitiatives from './pages/member/Initiatives';
+// Member Pages - News & Initiatives (lazy-loaded)
+const MemberNews = React.lazy(() => import('./pages/member/News'));
+const MemberNewsDetail = React.lazy(() => import('./pages/member/NewsDetail'));
+const MemberNotificationsPage = React.lazy(() => import('./pages/member/Notifications'));
+const MemberInitiatives = React.lazy(() => import('./pages/member/Initiatives'));
+
+// Loading Fallback Component
+const PageLoading = () => (
+  <div className="flex items-center justify-center h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="text-center">
+      <div className="inline-flex items-center justify-center w-16 h-16 mb-4 bg-blue-100 rounded-full">
+        <div className="w-8 h-8 border-4 border-blue-300 border-t-blue-600 rounded-full animate-spin"></div>
+      </div>
+      <p className="text-gray-600">جاري التحميل...</p>
+    </div>
+  </div>
+);
 
 // Admin Dashboard Component
 const AdminDashboard: React.FC = () => {
@@ -254,73 +267,75 @@ const App: React.FC = () => {
     <AuthProvider>
       <RoleProvider>
         <Router>
-          <Routes>
-            {/* Mobile PWA Routes - Member Interface (Prioritized) */}
-            <Route path="/mobile/login" element={<MobileLogin />} />
-            <Route path="/mobile/change-password" element={<MemberRoute><ChangePassword /></MemberRoute>} />
-            <Route path="/mobile/dashboard" element={<MemberRoute><MobileDashboard /></MemberRoute>} />
-            <Route path="/mobile/profile" element={<MemberRoute><MobileProfile /></MemberRoute>} />
-            <Route path="/mobile/payment" element={<MemberRoute><MobilePayment /></MemberRoute>} />
-            <Route path="/mobile/payment-history" element={<MemberRoute><MobilePaymentHistory /></MemberRoute>} />
-            <Route path="/mobile/notifications" element={<MemberRoute><MobileNotifications /></MemberRoute>} />
-            <Route path="/mobile/subscription" element={<MemberRoute><MemberSubscriptionView /></MemberRoute>} />
-            <Route path="/mobile/subscriptions" element={<Navigate to="/mobile/subscription" replace />} />
+          <Suspense fallback={<PageLoading />}>
+            <Routes>
+              {/* Mobile PWA Routes - Member Interface (Prioritized) */}
+              <Route path="/mobile/login" element={<MobileLogin />} />
+              <Route path="/mobile/change-password" element={<MemberRoute><ChangePassword /></MemberRoute>} />
+              <Route path="/mobile/dashboard" element={<MemberRoute><MobileDashboard /></MemberRoute>} />
+              <Route path="/mobile/profile" element={<MemberRoute><MobileProfile /></MemberRoute>} />
+              <Route path="/mobile/payment" element={<MemberRoute><MobilePayment /></MemberRoute>} />
+              <Route path="/mobile/payment-history" element={<MemberRoute><MobilePaymentHistory /></MemberRoute>} />
+              <Route path="/mobile/notifications" element={<MemberRoute><MobileNotifications /></MemberRoute>} />
+              <Route path="/mobile/subscription" element={<MemberRoute><MemberSubscriptionView /></MemberRoute>} />
+              <Route path="/mobile/subscriptions" element={<Navigate to="/mobile/subscription" replace />} />
 
-            {/* News & Initiatives Routes (Member) */}
-            <Route path="/mobile/news" element={<MemberRoute><MemberNews /></MemberRoute>} />
-            <Route path="/mobile/news/:id" element={<MemberRoute><MemberNewsDetail /></MemberRoute>} />
-            <Route path="/mobile/member-notifications" element={<MemberRoute><MemberNotifications /></MemberRoute>} />
-            <Route path="/mobile/initiatives" element={<MemberRoute><MemberInitiatives /></MemberRoute>} />
+              {/* News & Initiatives Routes (Member) */}
+              <Route path="/mobile/news" element={<MemberRoute><MemberNews /></MemberRoute>} />
+              <Route path="/mobile/news/:id" element={<MemberRoute><MemberNewsDetail /></MemberRoute>} />
+              <Route path="/mobile/member-notifications" element={<MemberRoute><MemberNotificationsPage /></MemberRoute>} />
+              <Route path="/mobile/initiatives" element={<MemberRoute><MemberInitiatives /></MemberRoute>} />
 
-            <Route path="/mobile" element={<Navigate to="/mobile/login" replace />} />
+              <Route path="/mobile" element={<Navigate to="/mobile/login" replace />} />
 
-            {/* Public member registration route */}
-            <Route path="/register/:token" element={<MemberRegistration />} />
+              {/* Public member registration route */}
+              <Route path="/register/:token" element={<MemberRegistration />} />
 
-            {/* Apple-style registration form */}
-            <Route path="/apple-register" element={<AppleRegistrationForm />} />
+              {/* Apple-style registration form */}
+              <Route path="/apple-register" element={<AppleRegistrationForm />} />
 
-            {/* Premium registration form - New Route */}
-            <Route path="/premium-register" element={<PremiumRegistration />} />
+              {/* Premium registration form - New Route */}
+              <Route path="/premium-register" element={<PremiumRegistration />} />
 
-            {/* Redirect old /member routes to new /mobile routes */}
-            <Route path="/member" element={<Navigate to="/mobile/login" replace />} />
-            <Route path="/member/*" element={<Navigate to="/mobile/login" replace />} />
+              {/* Redirect old /member routes to new /mobile routes */}
+              <Route path="/member" element={<Navigate to="/mobile/login" replace />} />
+              <Route path="/member/*" element={<Navigate to="/mobile/login" replace />} />
 
-            {/* Family Tree Route */}
-            <Route path="/family-tree" element={<AdminRoute><StyledDashboard onLogout={() => {
-              localStorage.clear();
-              window.location.href = '/login';
-            }} /></AdminRoute>} />
+              {/* Family Tree Route */}
+              <Route path="/family-tree" element={<AdminRoute><StyledDashboard onLogout={() => {
+                localStorage.clear();
+                window.location.href = '/login';
+              }} /></AdminRoute>} />
 
-            {/* Admin Dashboard Route */}
-            <Route path="/admin/dashboard" element={<AdminRoute><StyledDashboard onLogout={() => {
-              localStorage.removeItem('token');
-              localStorage.removeItem('user');
-              window.location.href = '/login';
-            }} /></AdminRoute>} />
+              {/* Admin Dashboard Route */}
+              <Route path="/admin/dashboard" element={<AdminRoute><StyledDashboard onLogout={() => {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.href = '/login';
+              }} /></AdminRoute>} />
 
-            {/* Initiative Report - Keep separate route for detail page */}
-            <Route path="/admin/initiatives/:id/report" element={<AdminRoute><InitiativeReport /></AdminRoute>} />
+              {/* Initiative Report - Keep separate route for detail page */}
+              <Route path="/admin/initiatives/:id/report" element={<AdminRoute><InitiativeReport /></AdminRoute>} />
 
-            {/* Admin routes - StyledDashboard with sidebar handles all /admin/* routes */}
-            {/* This includes: /admin/dashboard, /admin/news, /admin/initiatives, /admin/subscriptions, /admin/diyas, etc. */}
-            <Route path="/admin/*" element={<AdminRoute><StyledDashboard onLogout={() => {
-              localStorage.removeItem('token');
-              localStorage.removeItem('user');
-              window.location.href = '/login';
-            }} /></AdminRoute>} />
+              {/* Admin routes - StyledDashboard with sidebar handles all /admin/* routes */}
+              {/* This includes: /admin/dashboard, /admin/news, /admin/initiatives, /admin/subscriptions, /admin/diyas, etc. */}
+              <Route path="/admin/*" element={<AdminRoute><StyledDashboard onLogout={() => {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.href = '/login';
+              }} /></AdminRoute>} />
 
-            {/* Legacy subscription route - redirects to admin */}
-            <Route path="/subscriptions" element={<Navigate to="/admin/subscriptions" replace />} />
-            <Route path="/login" element={<AdminDashboard />} />
+              {/* Legacy subscription route - redirects to admin */}
+              <Route path="/subscriptions" element={<Navigate to="/admin/subscriptions" replace />} />
+              <Route path="/login" element={<AdminDashboard />} />
 
-            {/* Default route redirects to login */}
-            <Route path="/" element={<Navigate to="/login" replace />} />
+              {/* Default route redirects to login */}
+              <Route path="/" element={<Navigate to="/login" replace />} />
 
-            {/* Catch all route - do not redirect mobile routes */}
-            <Route path="*" element={<Navigate to="/login" replace />} />
-          </Routes>
+              {/* Catch all route - do not redirect mobile routes */}
+              <Route path="*" element={<Navigate to="/login" replace />} />
+            </Routes>
+          </Suspense>
         </Router>
       </RoleProvider>
     </AuthProvider>

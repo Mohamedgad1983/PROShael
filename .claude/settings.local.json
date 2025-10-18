@@ -150,7 +150,13 @@
       "mcp__chrome-devtools__performance_stop_trace",
       "Bash(echo:*)",
       "Bash(npx wrangler pages deployment list:*)",
-      "WebFetch(domain:alshuail-mobile-pwa.pages.dev)"
+      "WebFetch(domain:alshuail-mobile-pwa.pages.dev)",
+      "Bash(npx jest __tests__/security --passWithNoTests)",
+      "Bash(NODE_OPTIONS='--experimental-vm-modules' npx jest __tests__/security --passWithNoTests)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(npx tsc src/components/Dashboard/UnifiedDashboard.tsx --noEmit --lib es2020,dom --jsx react)",
+      "Bash(npx tsc --noEmit \"src/components/Members/AppleMembersManagementWrapper.tsx\" \"src/components/Members/HijriMembersManagementWrapper.tsx\" \"src/components/Members/PremiumMembersManagementWrapper.tsx\")",
+      "Bash(1)"
     ],
     "deny": [],
     "ask": []
