@@ -162,12 +162,12 @@ export const HijriDatePicker: React.FC<HijriDatePickerProps> = ({
   };
 
   // Generate calendar days
-  const generateCalendarDays = () => {
+  const generateCalendarDays = (): (number | null)[] => {
     const daysInMonth = getHijriMonthDays(selectedHijriYear, selectedHijriMonth);
     const firstDayGregorian = hijriToGregorian(selectedHijriYear, selectedHijriMonth, 1);
     const firstDayOfWeek = firstDayGregorian.getDay();
 
-    const days = [];
+    const days: (number | null)[] = [];
 
     // Add empty cells for days before month starts
     for (let i = 0; i < firstDayOfWeek; i++) {

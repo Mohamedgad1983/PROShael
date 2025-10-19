@@ -204,8 +204,9 @@ const UserManagement: React.FC = () => {
 
   // Performance optimized event handlers (moved outside getRoleNameAr)
   const handleRefresh = useCallback(() => {
-    loadUsers();
-  }, [loadUsers]);
+    // Refresh users list
+    window.location.reload();
+  }, []);
 
   const handleFilterChange = useCallback((filterType: string, value: any) => {
     // Filter logic here
