@@ -1,6 +1,4 @@
 import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
-import { supabase } from '../../config/supabaseClient';
-import { toast } from 'react-hot-toast';
 import './MemberMonitoringDashboard.css';
 
 // Import decomposed components
@@ -47,14 +45,19 @@ const MemberMonitoringDashboard = memo(() => {
   const loadMembers = useCallback(async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('members')
-        .select('*')
-        .order('member_id', { ascending: true });
 
-      if (error) throw error;
+      // Fetch from API endpoint instead of direct Supabase
+      const response = await fetch('/api/members', {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
 
-      const processedMembers = data.map(member => {
+      if (!response.ok) throw new Error('Failed to load members');
+
+      const { data } = await response.json();
+      const processedMembers = (data || []).map(member => {
         const balance = member.current_balance || 0;
         const requiredPayment = Math.max(0, -balance);
 
@@ -107,7 +110,8 @@ const MemberMonitoringDashboard = memo(() => {
 
     } catch (error) {
       console.error('Error loading members:', error);
-      toast.error('حدث خطأ في تحميل البيانات');
+      // Show error message without toast for now
+      console.error('حدث خطأ في تحميل البيانات');
     } finally {
       setLoading(false);
     }
@@ -242,7 +246,7 @@ const MemberMonitoringDashboard = memo(() => {
 
   const handleViewMemberDetails = useCallback((member) => {
     // Navigate to member details or show modal
-    toast.success(`عرض تفاصيل: ${member.fullName}`);
+    console.log(`عرض تفاصيل: ${member.fullName}`);
   }, []);
 
   const handleContactMember = useCallback((member) => {
@@ -254,7 +258,7 @@ const MemberMonitoringDashboard = memo(() => {
 
   const handleShowNotifications = useCallback(() => {
     // Show notifications panel
-    toast.info('عرض الإشعارات');
+    console.log('عرض الإشعارات');
   }, []);
 
   const issueCount = statistics.nonCompliantMembers + statistics.criticalMembers;

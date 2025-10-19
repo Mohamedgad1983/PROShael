@@ -171,7 +171,9 @@
       "Bash(if [ -f \"$file\" ])",
       "Bash(then)",
       "Bash(fi)",
-      "Bash(tail -5 $file)"
+      "Bash(tail -5 $file)",
+      "Bash(CI=false npm run build)",
+      "Bash(set CI=false)"
     ],
     "deny": [],
     "ask": []

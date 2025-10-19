@@ -202,20 +202,22 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  const getRoleNameAr = (role: string) => {
-  // Performance optimized event handlers
+  // Performance optimized event handlers (moved outside getRoleNameAr)
   const handleRefresh = useCallback(() => {
-    // Refresh logic here
-  }, []);
+    loadUsers();
+  }, [loadUsers]);
 
-  const handleFilterChange = useCallback((filterType, value) => {
+  const handleFilterChange = useCallback((filterType: string, value: any) => {
     // Filter logic here
+    console.log('Filter changed:', filterType, value);
   }, []);
 
-  const handlePageChange = useCallback((page) => {
+  const handlePageChange = useCallback((page: number) => {
     // Pagination logic here
+    console.log('Page changed:', page);
   }, []);
 
+  const getRoleNameAr = (role: string) => {
     const roleMap: { [key: string]: string } = {
       'super_admin': 'المدير الأعلى',
       'financial_manager': 'المدير المالي',
