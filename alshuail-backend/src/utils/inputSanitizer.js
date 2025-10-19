@@ -138,13 +138,24 @@ export const sanitizeEmail = (email) => {
  * @param {string} country - Country code ('SA' or 'KW')
  * @returns {string|null} - Sanitized phone or null if invalid
  */
-export const sanitizePhone = (phone, country = 'SA') => {
+export const sanitizePhone = (phone, country) => {
   if (!phone || typeof phone !== 'string') {
     return null;
   }
 
   // Remove all non-numeric characters
   const cleaned = phone.replace(/\D/g, '');
+
+  // Auto-detect country if not provided
+  if (!country) {
+    if (cleaned.startsWith('965')) {
+      country = 'KW';
+    } else if (cleaned.startsWith('966') || cleaned.startsWith('05') || cleaned.startsWith('5')) {
+      country = 'SA';
+    } else {
+      country = 'SA'; // Default to Saudi
+    }
+  }
 
   if (country === 'KW') {
     // Kuwait phone number validation
