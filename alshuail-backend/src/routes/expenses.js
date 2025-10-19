@@ -8,7 +8,7 @@ import {
   updateExpense,
   approveExpense,
   deleteExpense
-} from '../controllers/expensesControllerSimple.js';
+} from '../controllers/expensesController.js';
 import { log } from '../utils/logger.js';
 import { config } from '../config/env.js';
 
