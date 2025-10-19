@@ -173,7 +173,8 @@
       "Bash(fi)",
       "Bash(tail -5 $file)",
       "Bash(CI=false npm run build)",
-      "Bash(set CI=false)"
+      "Bash(set CI=false)",
+      "mcp__playwright__browser_press_key"
     ],
     "deny": [],
     "ask": []

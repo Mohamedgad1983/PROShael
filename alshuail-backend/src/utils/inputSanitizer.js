@@ -132,12 +132,13 @@ export const sanitizeEmail = (email) => {
 };
 
 /**
- * Sanitize phone number
+ * Sanitize phone number - Supports Saudi Arabia and Kuwait formats
  * Removes non-numeric characters and validates format
  * @param {string} phone - The phone number to sanitize
+ * @param {string} country - Country code ('SA' or 'KW')
  * @returns {string|null} - Sanitized phone or null if invalid
  */
-export const sanitizePhone = (phone) => {
+export const sanitizePhone = (phone, country = 'SA') => {
   if (!phone || typeof phone !== 'string') {
     return null;
   }
@@ -145,12 +146,47 @@ export const sanitizePhone = (phone) => {
   // Remove all non-numeric characters
   const cleaned = phone.replace(/\D/g, '');
 
-  // Check if it's a valid length (Saudi phone numbers)
-  if (cleaned.length < 9 || cleaned.length > 15) {
-    return null;
-  }
+  if (country === 'KW') {
+    // Kuwait phone number validation
+    // Format: +965 XXXX XXXX (8 digits after country code)
+    // Can be entered as: 965XXXXXXXX, XXXXXXXX, or +965XXXXXXXX
 
-  return cleaned;
+    if (cleaned.startsWith('965')) {
+      // Has country code
+      const localNumber = cleaned.substring(3);
+      if (localNumber.length === 8) {
+        return cleaned; // Valid: 965XXXXXXXX
+      }
+    } else if (cleaned.length === 8) {
+      // Just local number
+      return '965' + cleaned; // Add country code
+    }
+
+    return null; // Invalid Kuwait format
+  } else {
+    // Saudi Arabia phone number validation (default)
+    // Format: +966 5X XXX XXXX (9 digits after country code)
+    // Can be entered as: 966XXXXXXXXX, 05XXXXXXXX, 5XXXXXXXX
+
+    if (cleaned.startsWith('966')) {
+      // Has country code
+      const localNumber = cleaned.substring(3);
+      if (localNumber.length === 9 && localNumber.startsWith('5')) {
+        return cleaned; // Valid: 966XXXXXXXXX
+      }
+    } else if (cleaned.startsWith('05')) {
+      // Format: 05XXXXXXXX
+      const localNumber = cleaned.substring(1);
+      if (localNumber.length === 9 && localNumber.startsWith('5')) {
+        return '966' + localNumber; // Convert to: 966XXXXXXXXX
+      }
+    } else if (cleaned.startsWith('5') && cleaned.length === 9) {
+      // Format: 5XXXXXXXX
+      return '966' + cleaned; // Convert to: 966XXXXXXXXX
+    }
+
+    return null; // Invalid Saudi format
+  }
 };
 
 /**
