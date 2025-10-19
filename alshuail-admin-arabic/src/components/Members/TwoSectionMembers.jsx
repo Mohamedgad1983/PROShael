@@ -924,10 +924,26 @@ const TwoSectionMembers = () => {
                       <label style={{ marginBottom: '8px', display: 'block' }}>رقم الهاتف *</label>
                       <div style={{
                         display: 'grid',
-                        gridTemplateColumns: '180px 1fr',
+                        gridTemplateColumns: '1fr 180px',
                         gap: '12px',
-                        width: '100%'
+                        width: '100%',
+                        direction: 'rtl'
                       }}>
+                        <input
+                          type="tel"
+                          value={editingMember.phone || ''}
+                          onChange={(e) => handleEditChange('phone', e.target.value)}
+                          placeholder={(editingMember.countryCode || '966') === '966' ? '5XXXXXXXX' : 'XXXXXXXX'}
+                          dir="ltr"
+                          style={{
+                            padding: '12px 16px',
+                            fontSize: '16px',
+                            borderRadius: '8px',
+                            border: '1px solid #d1d5db',
+                            letterSpacing: '1px',
+                            height: '48px'
+                          }}
+                        />
                         <select
                           value={editingMember.countryCode || '966'}
                           onChange={(e) => handleEditChange('countryCode', e.target.value)}
@@ -945,21 +961,6 @@ const TwoSectionMembers = () => {
                           <option value="966">🇸🇦 السعودية +966</option>
                           <option value="965">🇰🇼 الكويت +965</option>
                         </select>
-                        <input
-                          type="tel"
-                          value={editingMember.phone || ''}
-                          onChange={(e) => handleEditChange('phone', e.target.value)}
-                          placeholder={(editingMember.countryCode || '966') === '966' ? '5XXXXXXXX' : 'XXXXXXXX'}
-                          dir="ltr"
-                          style={{
-                            padding: '12px 16px',
-                            fontSize: '16px',
-                            borderRadius: '8px',
-                            border: '1px solid #d1d5db',
-                            letterSpacing: '1px',
-                            height: '48px'
-                          }}
-                        />
                       </div>
                       <small style={{
                         color: '#6b7280',
