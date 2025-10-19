@@ -1,115 +1,103 @@
 {
-  "name": "صندوق عائلة شعيل العنزي",
-  "short_name": "S.A.F",
-  "description": "Shuail Al-Anzi Family Fund - نظام إدارة صندوق عائلة شعيل العنزي",
-  "start_url": "/mobile/",
-  "scope": "/",
-  "display": "standalone",
-  "orientation": "portrait",
-  "dir": "rtl",
-  "lang": "ar",
-  "theme_color": "#0A84FF",
-  "background_color": "#000000",
-  "categories": ["finance", "lifestyle"],
+  "short_name": "آل شعيل",
+  "name": "نظام إدارة آل شعيل",
+  "description": "نظام إدارة شامل لعائلة آل شعيل",
   "icons": [
     {
-      "src": "/icons/icon-72.png",
-      "sizes": "72x72",
-      "type": "image/png",
-      "purpose": "any"
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
     },
     {
-      "src": "/icons/icon-96.png",
-      "sizes": "96x96",
+      "src": "logo192.png",
       "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-128.png",
-      "sizes": "128x128",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-144.png",
-      "sizes": "144x144",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-152.png",
-      "sizes": "152x152",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icons/icon-384.png",
-      "sizes": "384x384",
+      "src": "logo512.png",
       "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png",
       "purpose": "any maskable"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#1e40af",
+  "background_color": "#ffffff",
+  "orientation": "portrait-primary",
+  "categories": [
+    "business",
+    "finance",
+    "productivity"
+  ],
+  "dir": "rtl",
+  "lang": "ar",
+  "scope": "/",
+  "prefer_related_applications": false,
+  "shortcuts": [
+    {
+      "name": "لوحة التحكم",
+      "short_name": "Dashboard",
+      "description": "الذهاب إلى لوحة التحكم",
+      "url": "/dashboard",
+      "icons": [
+        {
+          "src": "/icons/dashboard-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "الأعضاء",
+      "short_name": "Members",
+      "description": "إدارة الأعضاء",
+      "url": "/members",
+      "icons": [
+        {
+          "src": "/icons/members-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "الدفعات",
+      "short_name": "Payments",
+      "description": "إدارة الدفعات",
+      "url": "/payments",
+      "icons": [
+        {
+          "src": "/icons/payments-96x96.png",
+          "sizes": "96x96"
+        }
+      ]
     }
   ],
   "screenshots": [
     {
-      "src": "/screenshots/home.png",
-      "sizes": "1170x2532",
-      "type": "image/png",
-      "form_factor": "narrow"
-    },
-    {
       "src": "/screenshots/dashboard.png",
-      "sizes": "1170x2532",
+      "sizes": "1280x720",
       "type": "image/png",
-      "form_factor": "narrow"
-    }
-  ],
-  "shortcuts": [
-    {
-      "name": "المدفوعات",
-      "short_name": "دفع",
-      "description": "دفع الاشتراك",
-      "url": "/mobile/payments",
-      "icons": [
-        {
-          "src": "/icons/payment-icon.png",
-          "sizes": "96x96"
-        }
-      ]
-    },
-    {
-      "name": "شجرة العائلة",
-      "short_name": "الشجرة",
-      "description": "عرض شجرة العائلة",
-      "url": "/mobile/family-tree",
-      "icons": [
-        {
-          "src": "/icons/tree-icon.png",
-          "sizes": "96x96"
-        }
-      ]
+      "label": "لوحة التحكم الرئيسية"
     }
   ],
   "share_target": {
-    "action": "/mobile/share",
+    "action": "/share",
     "method": "POST",
     "enctype": "multipart/form-data",
     "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
       "files": [
         {
-          "name": "receipt",
-          "accept": ["image/*", "application/pdf"]
+          "name": "file",
+          "accept": [
+            "image/*",
+            ".pdf",
+            ".xlsx",
+            ".xls"
+          ]
         }
       ]
     }

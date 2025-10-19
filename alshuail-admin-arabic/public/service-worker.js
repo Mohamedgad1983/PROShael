@@ -1,10 +1,20 @@
 // ========================================
-// Al-Shuail PWA Service Worker
-// Enables offline functionality and caching
+// Al-Shuail PWA Service Worker - Phase 5
+// Advanced offline functionality, caching, and background sync
+// Version: 2.0.0
 // ========================================
 
-const CACHE_NAME = 'alshuail-v1.0.0';
-const RUNTIME_CACHE = 'alshuail-runtime';
+const CACHE_VERSION = 'alshuail-v2.0.0';
+const CACHE_NAME = `${CACHE_VERSION}-static`;
+const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
+const API_CACHE = `${CACHE_VERSION}-api`;
+
+// Cache duration
+const CACHE_DURATION = {
+  static: 7 * 24 * 60 * 60 * 1000, // 7 days
+  runtime: 24 * 60 * 60 * 1000, // 1 day
+  api: 5 * 60 * 1000, // 5 minutes
+};
 
 // Files to cache on install
 const PRECACHE_URLS = [
