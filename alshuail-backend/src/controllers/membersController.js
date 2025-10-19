@@ -222,7 +222,11 @@ export const updateMember = async (req, res) => {
     // Use our utility to prepare the update data
     const fieldsToUpdate = prepareUpdateData(cleanedData);
 
-    log.debug('Prepared fields for update', { fieldsToUpdate: Object.keys(fieldsToUpdate) });
+    log.debug('Prepared fields for update', {
+      fieldsToUpdate: Object.keys(fieldsToUpdate),
+      phoneValue: fieldsToUpdate.phone,
+      allFields: fieldsToUpdate
+    });
 
     // Validate that we have at least one field to update
     if (Object.keys(fieldsToUpdate).length <= 1) { // Only updated_at

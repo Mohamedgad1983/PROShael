@@ -56,12 +56,22 @@ export const prepareUpdateData = (data) => {
       }
       // Handle empty strings and null values
       else if (value === undefined || value === null || value === '') {
-        result[field] = null;
+        // For phone field, empty string means clear the phone number
+        if (field === 'phone') {
+          result[field] = null; // Explicitly set to null to clear
+        } else {
+          result[field] = null;
+        }
       }
       // Handle string values
       else if (typeof value === 'string') {
         const trimmed = value.trim();
-        result[field] = trimmed === '' ? null : trimmed;
+        // For phone, ensure it's actually saved even if it looks unchanged
+        if (field === 'phone' && trimmed) {
+          result[field] = trimmed;
+        } else {
+          result[field] = trimmed === '' ? null : trimmed;
+        }
       }
       // Keep other values as-is
       else {

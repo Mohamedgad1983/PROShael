@@ -477,6 +477,8 @@ const TwoSectionMembers = () => {
       console.log('📥 Update response from backend:', response);
 
       if (response.success) {
+        console.log('✅ Update successful! Response data:', response.data);
+
         // Update the local state with the response data
         const updatedMembers = members.map(member =>
           member.id === editingMember.id ? { ...member, ...response.data } : member
@@ -488,8 +490,11 @@ const TwoSectionMembers = () => {
         setEditingMember(null);
         setActiveEditTab('personal'); // Reset to personal tab
 
-        // Reload to ensure data is synced
+        // Wait a moment for database to commit, then reload
+        await new Promise(resolve => setTimeout(resolve, 500));
         await loadMembers();
+
+        console.log('✅ Data reloaded after update');
       } else {
         throw new Error(response.error || 'Failed to update member');
       }
