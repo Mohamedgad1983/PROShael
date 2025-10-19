@@ -368,6 +368,24 @@ const TwoSectionMembers = () => {
   };
 
   const handleEditClick = (member) => {
+    // Detect country code from phone number
+    let detectedCountryCode = '966'; // Default Saudi
+    let phoneWithoutCode = member.phone || '';
+
+    if (phoneWithoutCode.startsWith('965')) {
+      detectedCountryCode = '965'; // Kuwait
+      phoneWithoutCode = phoneWithoutCode.substring(3);
+    } else if (phoneWithoutCode.startsWith('966')) {
+      detectedCountryCode = '966'; // Saudi
+      phoneWithoutCode = phoneWithoutCode.substring(3);
+    } else if (phoneWithoutCode.startsWith('0')) {
+      // Saudi format with leading 0
+      detectedCountryCode = '966';
+      // Keep the 0 for display
+    }
+
+    console.log('🌍 Detected country code:', detectedCountryCode, 'from phone:', member.phone);
+
     // Ensure all fields are properly populated with empty strings for form inputs
     const memberToEdit = {
       ...member,
@@ -383,7 +401,8 @@ const TwoSectionMembers = () => {
       nationality: member.nationality || 'سعودي',
       notes: member.notes || '',
       email: member.email || '',
-      phone: member.phone || '',
+      phone: phoneWithoutCode,
+      countryCode: detectedCountryCode,
       full_name: member.full_name || ''
     };
     console.log('🖊️ Opening edit modal with member:', memberToEdit);
@@ -430,10 +449,26 @@ const TwoSectionMembers = () => {
       // Log the current state of editingMember to debug
       console.log('🔍 Current editingMember state:', editingMember);
 
+      // Combine country code with phone number
+      const countryCode = editingMember.countryCode || '966';
+      let phoneWithCountry = editingMember.phone || '';
+
+      // If phone doesn't start with country code, add it
+      if (phoneWithCountry && !phoneWithCountry.startsWith(countryCode)) {
+        // Remove leading 0 if present
+        phoneWithCountry = phoneWithCountry.replace(/^0/, '');
+        // Add country code
+        phoneWithCountry = countryCode + phoneWithCountry;
+      }
+
+      console.log('📞 Phone before save:', editingMember.phone);
+      console.log('🌍 Country code:', countryCode);
+      console.log('📞 Phone with country:', phoneWithCountry);
+
       // Prepare the update data with all fields - using the exact values from editingMember
       const updateData = {
         full_name: editingMember.full_name,
-        phone: editingMember.phone,
+        phone: phoneWithCountry,
         email: editingMember.email,
         national_id: editingMember.national_id,
         tribal_section: editingMember.tribal_section,
