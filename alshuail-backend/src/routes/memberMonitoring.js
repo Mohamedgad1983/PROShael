@@ -10,7 +10,7 @@ import express from 'express';
 import {
   getMemberMonitoring,
   suspendMember,
-  notifyMember,
+  notifyMembers,
   getAuditLog,
   exportMembers
 } from '../controllers/memberMonitoringController.js';
@@ -31,6 +31,6 @@ router.get('/audit-log', cacheMiddleware(300), authenticateToken, getAuditLog);
 router.post('/:id/suspend', authenticateToken, suspendMember);
 
 // Send notification to a member - simplified authentication
-router.post('/:id/notify', authenticateToken, notifyMember);
+router.post('/:id/notify', authenticateToken, notifyMembers);
 
 export default router;
