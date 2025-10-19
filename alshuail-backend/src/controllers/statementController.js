@@ -289,6 +289,29 @@ export const refreshViews = async (req, res) => {
   }
 };
 
+// Generate statement for a specific member (wrapper for searchByMemberId)
+export const generateStatement = async (req, res) => {
+  try {
+    // Adapt URL params to query params format expected by searchByMemberId
+    const adaptedReq = {
+      ...req,
+      query: {
+        ...req.query,
+        memberId: req.params.memberId
+      }
+    };
+
+    // Reuse searchByMemberId logic
+    return await searchByMemberId(adaptedReq, res);
+  } catch (error) {
+    log.error('Generate statement error', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'خطأ في إنشاء كشف الحساب'
+    });
+  }
+};
+
 // Helper function for alert messages
 function getAlertMessage(level, shortfall) {
   switch(level) {
@@ -309,6 +332,7 @@ export default {
   searchByPhone,
   searchByName,
   searchByMemberId,
+  generateStatement,
   getDashboardStatistics,
   getCriticalMembers,
   refreshViews
