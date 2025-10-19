@@ -922,31 +922,60 @@ const TwoSectionMembers = () => {
 
                     <div className="form-group">
                       <label>رقم الهاتف *</label>
-                      <div style={{ display: 'flex', gap: '8px' }}>
+                      <div style={{
+                        display: 'flex',
+                        gap: '12px',
+                        alignItems: 'flex-start',
+                        marginBottom: '8px'
+                      }}>
                         <select
                           value={editingMember.countryCode || '966'}
                           onChange={(e) => handleEditChange('countryCode', e.target.value)}
                           className="form-input"
-                          style={{ width: '140px' }}
+                          style={{
+                            width: '160px',
+                            fontSize: '14px',
+                            padding: '10px 12px',
+                            borderRadius: '8px',
+                            border: '1px solid #d1d5db',
+                            backgroundColor: '#f9fafb',
+                            cursor: 'pointer',
+                            fontWeight: '500'
+                          }}
                         >
                           <option value="966">🇸🇦 السعودية +966</option>
                           <option value="965">🇰🇼 الكويت +965</option>
                         </select>
-                        <input
-                          type="tel"
-                          value={editingMember.phone || ''}
-                          onChange={(e) => handleEditChange('phone', e.target.value)}
-                          className="form-input"
-                          placeholder={(editingMember.countryCode || '966') === '966' ? '5XXXXXXXX' : 'XXXXXXXX'}
-                          dir="ltr"
-                          style={{ flex: 1 }}
-                        />
+                        <div style={{ flex: 1 }}>
+                          <input
+                            type="tel"
+                            value={editingMember.phone || ''}
+                            onChange={(e) => handleEditChange('phone', e.target.value)}
+                            className="form-input"
+                            placeholder={(editingMember.countryCode || '966') === '966' ? '5XXXXXXXX' : 'XXXXXXXX'}
+                            dir="ltr"
+                            style={{
+                              width: '100%',
+                              fontSize: '16px',
+                              padding: '10px 14px',
+                              borderRadius: '8px',
+                              border: '1px solid #d1d5db',
+                              letterSpacing: '0.5px'
+                            }}
+                          />
+                          <small style={{
+                            color: '#6b7280',
+                            fontSize: '12px',
+                            marginTop: '6px',
+                            display: 'block',
+                            fontStyle: 'italic'
+                          }}>
+                            {(editingMember.countryCode || '966') === '966'
+                              ? '💡 رقم سعودي: 9 أرقام تبدأ بـ 5 (مثال: 501234567)'
+                              : '💡 رقم كويتي: 8 أرقام (مثال: 12345678)'}
+                          </small>
+                        </div>
                       </div>
-                      <small style={{ color: '#6b7280', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
-                        {(editingMember.countryCode || '966') === '966'
-                          ? 'رقم سعودي: 9 أرقام تبدأ بـ 5 (مثال: 501234567)'
-                          : 'رقم كويتي: 8 أرقام (مثال: 12345678)'}
-                      </small>
                     </div>
 
                     <div className="form-group">
