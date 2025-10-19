@@ -1,3 +1,11 @@
+
+// Cache middleware for GET requests
+const cacheMiddleware = (duration = 300) => (req, res, next) => {
+  if (req.method === 'GET') {
+    res.set('Cache-Control', `public, max-age=${duration}`);
+  }
+  next();
+};
 import express from 'express';
 import { supabase } from '../config/database.js';
 import { requireRole } from '../middleware/rbacMiddleware.js';
@@ -5,17 +13,24 @@ import { requireRole } from '../middleware/rbacMiddleware.js';
 const router = express.Router();
 
 // Get all subscriptions - requires financial access
-router.get('/', requireRole(['super_admin', 'financial_manager']), async (req, res) => {
+router.get('/', cacheMiddleware(300), requireRole(['super_admin', 'financial_manager']), async (req, res) => {
   try {
     const { data: subscriptions, error } = await supabase
       .from('subscriptions')
-      .select('*')
+      .select(
+      .range(offset, offset + limit - 1)'*')
       .order('created_at', { ascending: false });
 
     if (error) {throw error;}
 
     res.json({
       success: true,
+      pagination: {
+        page,
+        limit,
+        total: count || data.length,
+        pages: Math.ceil((count || data.length) / limit)
+      },
       data: subscriptions || []
     });
   } catch (error) {
@@ -48,7 +63,8 @@ router.post('/', requireRole(['super_admin', 'financial_manager']), async (req, 
     const { data: subscription, error } = await supabase
       .from('subscriptions')
       .insert([subscriptionData])
-      .select()
+      .select(
+      .range(offset, offset + limit - 1))
       .single();
 
     if (error) {throw error;}

@@ -4,7 +4,7 @@ import { ARABIC_LABELS, CURRENCY } from '../../constants/arabic';
 import ActivitiesManager from '../Activities/ActivitiesManager';
 import MembersManager from '../Members/MembersManager';
 
-export const SimpleDashboard: React.FC = () => {
+const SimpleDashboardBase: React.FC = () => {
   const [currentView, setCurrentView] = useState('dashboard');
   const [statistics, setStatistics] = useState<Statistics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -330,3 +330,5 @@ export const SimpleDashboard: React.FC = () => {
     </div>
   );
 };
+
+export const SimpleDashboard = React.memo(SimpleDashboardBase);

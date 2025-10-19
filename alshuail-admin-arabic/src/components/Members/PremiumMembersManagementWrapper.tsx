@@ -66,5 +66,5 @@ const PremiumMembersManagement: React.FC<PremiumMembersManagementProps> = ({
 
 PremiumMembersManagement.displayName = 'PremiumMembersManagement';
 
-export default PremiumMembersManagement;
+export default React.memo(PremiumMembersManagement);
 export { PremiumMembersManagement };

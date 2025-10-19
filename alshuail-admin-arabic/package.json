@@ -76,7 +76,9 @@
     "pwa:audit": "npx pwa-audit-url http://localhost:3000",
     "sw:update": "npx workbox generateSW workbox-config.js",
     "offline:test": "npm run build && serve -s build -l 3000 --no-request-logging",
-    "manifest:validate": "npx web-app-manifest-validator public/manifest.json"
+    "manifest:validate": "npx web-app-manifest-validator public/manifest.json",
+    "build:optimized": "webpack --config webpack.optimize.js --mode production",
+    "analyze": "webpack-bundle-analyzer build/static/js/*.js"
   },
   "eslintConfig": {
     "extends": [
@@ -104,6 +106,7 @@
     "autoprefixer": "^10.4.21",
     "eslint": "^8.57.0",
     "fs-extra": "^11.3.2",
+    "glob": "^11.0.3",
     "postcss": "^8.5.6",
     "serve": "^14.2.1",
     "tailwindcss": "^3.4.17",

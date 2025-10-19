@@ -389,4 +389,4 @@ const CompleteDashboard = () => {
   );
 };
 
-export default CompleteDashboard;
+export default React.memo(CompleteDashboard);

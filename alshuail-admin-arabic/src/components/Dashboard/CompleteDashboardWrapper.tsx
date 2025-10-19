@@ -15,4 +15,4 @@ const CompleteDashboard: React.FC = () => {
   );
 };
 
-export default CompleteDashboard;
+export default React.memo(CompleteDashboard);

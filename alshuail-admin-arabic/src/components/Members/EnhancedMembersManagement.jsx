@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { memberService } from '../../services/memberService';
 import PremiumImportMembers from './PremiumImportMembers';
 import PremiumRegistration from '../Registration/PremiumRegistration';
@@ -993,4 +993,6 @@ const EnhancedMembersManagement = () => {
   );
 };
 
-export default EnhancedMembersManagement;
+
+// Phase 4: Performance Optimization - Memoize to prevent unnecessary re-renders
+export default React.memo(EnhancedMembersManagement);

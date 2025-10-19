@@ -1212,4 +1212,5 @@ const TwoSectionMembers = () => {
   );
 };
 
-export default TwoSectionMembers;
+// Phase 4: Performance Optimization - Memoize to prevent unnecessary re-renders
+export default React.memo(TwoSectionMembers);

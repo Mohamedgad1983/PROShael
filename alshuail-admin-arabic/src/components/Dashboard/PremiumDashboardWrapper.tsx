@@ -21,4 +21,4 @@ export const AlShuailPremiumDashboard = PremiumDashboard;
 export const AlShuailCorrectedDashboard = PremiumDashboard;
 export const UltraPremiumDashboard = PremiumDashboard;
 
-export default PremiumDashboard;
+export default React.memo(PremiumDashboard);

@@ -651,4 +651,4 @@ const AlShuailDashboard: React.FC = () => {
   );
 };
 
-export default AlShuailDashboard;
+export default React.memo(AlShuailDashboard);

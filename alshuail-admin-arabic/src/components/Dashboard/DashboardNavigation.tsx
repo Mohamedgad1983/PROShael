@@ -103,7 +103,7 @@ interface DesktopNavigationProps extends NavigationListProps {
   subtitle: string;
 }
 
-export const DesktopNavigation: React.FC<DesktopNavigationProps> = ({
+const DesktopNavigationBase: React.FC<DesktopNavigationProps> = ({
   items,
   activeSection,
   onSelect,
@@ -125,7 +125,7 @@ interface MobileNavigationProps extends NavigationListProps {
   onClose: () => void;
 }
 
-export const MobileNavigation: React.FC<MobileNavigationProps> = ({
+const MobileNavigationBase: React.FC<MobileNavigationProps> = ({
   items,
   activeSection,
   onSelect,
@@ -162,3 +162,6 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
     />
   </div>
 );
+
+export const DesktopNavigation = React.memo(DesktopNavigationBase);
+export const MobileNavigation = React.memo(MobileNavigationBase);

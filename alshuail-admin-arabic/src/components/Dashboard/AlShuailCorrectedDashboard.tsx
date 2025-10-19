@@ -689,4 +689,4 @@ const AlShuailCorrectedDashboard: React.FC = () => {
   );
 };
 
-export default AlShuailCorrectedDashboard;
+export default React.memo(AlShuailCorrectedDashboard);

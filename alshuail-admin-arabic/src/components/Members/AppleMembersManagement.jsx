@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   UserIcon,
   PhoneIcon,
@@ -90,7 +90,7 @@ const AppleMembersManagement = () => {
     return () => clearTimeout(saveTimer);
   }, [formData]);
 
-  const handleInputChange = (field, value) => {
+  const handleInputChange = useCallback((field, value) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -98,9 +98,9 @@ const AppleMembersManagement = () => {
 
     // Clear error for this field
     setErrors(prev => prev.filter(error => error.field !== field));
-  };
+  }, []);
 
-  const validateStep = (step) => {
+  const validateStep = useCallback((step) => {
     const newErrors = [];
 
     switch(step) {
@@ -140,21 +140,21 @@ const AppleMembersManagement = () => {
 
     setErrors(newErrors);
     return newErrors.length === 0;
-  };
+  }, [formData]);
 
-  const handleNextStep = () => {
+  const handleNextStep = useCallback(() => {
     if (validateStep(currentStep)) {
       setCurrentStep(prev => Math.min(prev + 1, totalSteps));
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-  };
+  }, [currentStep, validateStep]);
 
-  const handlePreviousStep = () => {
+  const handlePreviousStep = useCallback(() => {
     setCurrentStep(prev => Math.max(prev - 1, 1));
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  }, []);
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     if (!validateStep(currentStep)) {
       return;
     }
@@ -177,7 +177,7 @@ const AppleMembersManagement = () => {
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [currentStep, validateStep]);
 
   const renderStepIndicator = () => (
     <div className="step-indicator-container">
@@ -908,4 +908,6 @@ const AppleMembersManagement = () => {
   );
 };
 
-export default AppleMembersManagement;
+
+// Phase 4: Performance Optimization - Memoize to prevent unnecessary re-renders
+export default React.memo(AppleMembersManagement);

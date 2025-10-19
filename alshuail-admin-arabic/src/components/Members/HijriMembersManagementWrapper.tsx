@@ -64,5 +64,5 @@ const HijriMembersManagement: React.FC<HijriMembersManagementProps> = ({
 
 HijriMembersManagement.displayName = 'HijriMembersManagement';
 
-export default HijriMembersManagement;
+export default React.memo(HijriMembersManagement);
 export { HijriMembersManagement };

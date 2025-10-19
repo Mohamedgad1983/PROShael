@@ -1,3 +1,11 @@
+
+// Cache middleware for GET requests
+const cacheMiddleware = (duration = 300) => (req, res, next) => {
+  if (req.method === 'GET') {
+    res.set('Cache-Control', `public, max-age=${duration}`);
+  }
+  next();
+};
 import express from 'express';
 import {
   getAllInitiatives,
@@ -12,12 +20,12 @@ import {
 const router = express.Router();
 
 // Statistics endpoint (must be before :id routes)
-router.get('/stats', getInitiativeStats);
+router.get('/stats', cacheMiddleware(300), getInitiativeStats);
 
 // Basic CRUD Operations
-router.get('/', getAllInitiatives);
+router.get('/', cacheMiddleware(300), getAllInitiatives);
 router.post('/', createInitiative);
-router.get('/:id', getInitiativeById);
+router.get('/:id', cacheMiddleware(300), getInitiativeById);
 router.put('/:id', updateInitiative);
 
 // Contribution Management

@@ -254,4 +254,4 @@ export const SkeletonLoader = ({ lines = 3, height = '1rem', className = '' }) =
   </div>
 );
 
-export default LoadingSpinner;
+export default React.memo(LoadingSpinner);

@@ -15,4 +15,4 @@ const SimpleDashboard: React.FC = () => {
   );
 };
 
-export default SimpleDashboard;
+export default React.memo(SimpleDashboard);

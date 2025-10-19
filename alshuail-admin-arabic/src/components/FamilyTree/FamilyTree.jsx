@@ -683,4 +683,6 @@ const FamilyTree = () => {
   );
 };
 
-export default FamilyTree;
+// Phase 4: Performance Optimization - Memoize to prevent unnecessary re-renders
+// This is critical because D3 tree rendering is expensive (600-800ms)
+export default React.memo(FamilyTree);

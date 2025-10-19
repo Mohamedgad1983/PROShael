@@ -400,4 +400,4 @@ const IslamicPremiumDashboard: React.FC = () => {
   );
 };
 
-export default IslamicPremiumDashboard;
+export default React.memo(IslamicPremiumDashboard);

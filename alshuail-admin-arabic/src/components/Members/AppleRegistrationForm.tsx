@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import {
   UserIcon,
   PhoneIcon,
@@ -963,4 +963,6 @@ const AppleRegistrationForm: React.FC = () => {
   );
 };
 
-export default AppleRegistrationForm;
+
+// Phase 4: Performance Optimization - Memoize to prevent unnecessary re-renders
+export default React.memo(AppleRegistrationForm);

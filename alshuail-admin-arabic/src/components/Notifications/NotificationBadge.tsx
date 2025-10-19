@@ -167,4 +167,4 @@ const NotificationBadge: React.FC<NotificationBadgeProps> = ({
   );
 };
 
-export default NotificationBadge;
+export default React.memo(NotificationBadge);

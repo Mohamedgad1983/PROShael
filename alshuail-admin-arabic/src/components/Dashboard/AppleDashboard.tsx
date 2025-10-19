@@ -715,4 +715,4 @@ const AppleDashboard: React.FC<AppleDashboardProps> = ({ onLogout }) => {
   );
 };
 
-export default AppleDashboard;
+export default React.memo(AppleDashboard);

@@ -137,4 +137,4 @@ const OverviewCharts: React.FC<OverviewChartsProps> = ({ revenueData, memberDist
   </div>
 );
 
-export default OverviewCharts;
+export default React.memo(OverviewCharts);

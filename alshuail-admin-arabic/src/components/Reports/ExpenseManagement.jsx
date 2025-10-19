@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import ErrorDisplay from '../Common/ErrorDisplay';
 import LoadingSpinner from '../Common/LoadingSpinner';
@@ -959,4 +959,6 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
   );
 };
 
-export default ExpenseManagement;
+
+// Phase 4: Performance Optimization - Memoize to prevent unnecessary re-renders
+export default React.memo(ExpenseManagement);

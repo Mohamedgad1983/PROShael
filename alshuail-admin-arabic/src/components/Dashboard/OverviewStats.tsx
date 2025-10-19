@@ -63,4 +63,4 @@ const OverviewStats: React.FC<OverviewStatsProps> = ({ stats }) => (
   </div>
 );
 
-export default OverviewStats;
+export default React.memo(OverviewStats);

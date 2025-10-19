@@ -38,4 +38,4 @@ const RecentActivities: React.FC<RecentActivitiesProps> = ({ activities }) => (
   </div>
 );
 
-export default RecentActivities;
+export default React.memo(RecentActivities);

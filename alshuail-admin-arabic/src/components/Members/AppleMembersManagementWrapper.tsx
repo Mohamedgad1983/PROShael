@@ -57,5 +57,5 @@ const AppleMembersManagement: React.FC<AppleMembersManagementProps> = ({
 
 AppleMembersManagement.displayName = 'AppleMembersManagement';
 
-export default AppleMembersManagement;
+export default React.memo(AppleMembersManagement);
 export { AppleMembersManagement };

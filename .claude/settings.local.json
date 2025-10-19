@@ -156,7 +156,22 @@
       "Bash(npx tsc --noEmit)",
       "Bash(npx tsc src/components/Dashboard/UnifiedDashboard.tsx --noEmit --lib es2020,dom --jsx react)",
       "Bash(npx tsc --noEmit \"src/components/Members/AppleMembersManagementWrapper.tsx\" \"src/components/Members/HijriMembersManagementWrapper.tsx\" \"src/components/Members/PremiumMembersManagementWrapper.tsx\")",
-      "Bash(1)"
+      "Bash(1)",
+      "Bash(\"MemberMonitoring/MemberMonitoringDashboard.jsx\" )",
+      "Bash(\"FamilyTree/FamilyTree.jsx\" )",
+      "Bash(\"Diyas/AppleDiyasManagement.tsx\" )",
+      "Bash(\"Subscriptions/SubscriptionsManagement.jsx\" )",
+      "Bash(\"Dashboard/OverviewCharts.tsx\" )",
+      "Bash(\"Dashboard/OverviewStats.tsx\" )",
+      "Bash(\"Common/ErrorBoundary.jsx\" )",
+      "Bash(\"Common/LoadingSpinner.jsx\" )",
+      "Bash(\"Notifications/NotificationBadge.tsx\" )",
+      "Bash(\"Payments/PaymentsTracking.jsx\")",
+      "Bash(do)",
+      "Bash(if [ -f \"$file\" ])",
+      "Bash(then)",
+      "Bash(fi)",
+      "Bash(tail -5 $file)"
     ],
     "deny": [],
     "ask": []
