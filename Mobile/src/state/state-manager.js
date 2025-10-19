@@ -114,14 +114,13 @@ class StateManager {
    */
   bindComputed(storeName, state, computed) {
     const boundComputed = {};
-    const self = this;
 
     for (const [name, getter] of Object.entries(computed)) {
       Object.defineProperty(boundComputed, name, {
         get() {
-          const store = self.stores[storeName];
+          const store = this.stores[storeName];
           return getter(store.state);
-        }
+        }.bind(this)
       });
     }
 
