@@ -1,11 +1,3 @@
-
-// Cache middleware for GET requests
-const cacheMiddleware = (duration = 300) => (req, res, next) => {
-  if (req.method === 'GET') {
-    res.set('Cache-Control', `public, max-age=${duration}`);
-  }
-  next();
-};
 import express from 'express';
 import {
   getMemberMonitoring,
@@ -15,6 +7,14 @@ import {
   exportMembers
 } from '../controllers/memberMonitoringController.js';
 import { authenticateToken } from '../middleware/auth.js';
+
+// Cache middleware for GET requests
+const cacheMiddleware = (duration = 300) => (req, res, next) => {
+  if (req.method === 'GET') {
+    res.set('Cache-Control', `public, max-age=${duration}`);
+  }
+  next();
+};
 
 const router = express.Router();
 
