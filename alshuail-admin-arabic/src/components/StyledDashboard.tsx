@@ -48,7 +48,8 @@ import MemberStatementSearch from './MemberStatement/MemberStatementSearch.jsx';
 import MemberMonitoringDashboard from './MemberMonitoring/MemberMonitoringDashboard.jsx';
 // @ts-ignore
 import DocumentManager from './Documents/DocumentManager.jsx';
-import FamilyTree from './FamilyTree/FamilyTree';
+// import FamilyTree from './FamilyTree/FamilyTree'; // Old tree component
+import FamilyTreeViewer from './FamilyTree/FamilyTreeViewer'; // New HTML-based viewer
 
 // News & Initiatives Management - NEW
 // @ts-ignore
@@ -4438,8 +4439,8 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
                 {/* Document Management */}
                 {activeSection === 'documents' && <DocumentManager />}
 
-                {/* Family Tree */}
-                {activeSection === 'family-tree' && <FamilyTree />}
+                {/* Family Tree - New HTML-based interface */}
+                {activeSection === 'family-tree' && <FamilyTreeViewer />}
               </>
             )}
           </div>

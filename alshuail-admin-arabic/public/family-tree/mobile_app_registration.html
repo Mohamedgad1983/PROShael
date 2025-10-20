@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تسجيل عضو جديد - عائلة الشعيل</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .phone-container {
+            width: 100%;
+            max-width: 400px;
+            background: white;
+            border-radius: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .phone-notch {
+            height: 30px;
+            background: white;
+            position: relative;
+        }
+
+        .phone-screen {
+            background: #f5f5f5;
+            min-height: 700px;
+            position: relative;
+        }
+
+        .app-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            color: white;
+            text-align: center;
+        }
+
+        .app-logo {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .app-title {
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .app-subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .screen {
+            display: none;
+            padding: 20px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            padding: 20px;
+            background: white;
+        }
+
+        .step-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #e0e0e0;
+            transition: all 0.3s;
+        }
+
+        .step-dot.active {
+            background: #667eea;
+            width: 30px;
+            border-radius: 5px;
+        }
+
+        .welcome-screen {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .welcome-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+
+        .welcome-title {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .welcome-text {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        .clan-grid {
+            display: grid;
+            gap: 15px;
+        }
+
+        .clan-option {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .clan-option:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+
+        .clan-option.selected {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .clan-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .clan-info {
+            flex: 1;
+        }
+
+        .clan-name {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .clan-head {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .form-label .required {
+            color: #dc3545;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 15px;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .info-box {
+            background: rgba(102, 126, 234, 0.1);
+            border-right: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .info-box-icon {
+            font-size: 20px;
+            margin-left: 10px;
+        }
+
+        .info-box-text {
+            font-size: 14px;
+            color: #333;
+            line-height: 1.5;
+        }
+
+        .success-screen {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .success-icon {
+            width: 100px;
+            height: 100px;
+            background: #28a745;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 50px;
+            color: white;
+        }
+
+        .success-title {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .success-text {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        .timeline-item {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .timeline-item:last-child {
+            border-bottom: none;
+        }
+
+        .timeline-icon {
+            width: 40px;
+            height: 40px;
+            background: #667eea;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .timeline-content h4 {
+            font-size: 15px;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .timeline-content p {
+            font-size: 13px;
+            color: #666;
+            line-height: 1.5;
+        }
+
+        .verification-code {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 30px 0;
+        }
+
+        .code-input {
+            width: 50px;
+            height: 60px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            transition: all 0.3s;
+        }
+
+        .code-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .screen-title {
+            font-size: 22px;
+            color: #333;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .screen-subtitle {
+            color: #666;
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 480px) {
+            .phone-container {
+                border-radius: 0;
+                max-width: 100%;
+            }
+
+            .phone-notch {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="phone-container">
+        <div class="phone-notch"></div>
+        
+        <div class="phone-screen">
+            <!-- App Header -->
+            <div class="app-header">
+                <div class="app-logo">🏛️</div>
+                <div class="app-title">عائلة الشعيل</div>
+                <div class="app-subtitle">تطبيق إدارة العائلة</div>
+            </div>
+
+            <!-- Step Indicator -->
+            <div class="step-indicator">
+                <div class="step-dot active" data-step="1"></div>
+                <div class="step-dot" data-step="2"></div>
+                <div class="step-dot" data-step="3"></div>
+                <div class="step-dot" data-step="4"></div>
+                <div class="step-dot" data-step="5"></div>
+            </div>
+
+            <!-- Screen 1: Welcome -->
+            <div class="screen active" id="screen-welcome">
+                <div class="welcome-screen">
+                    <div class="welcome-icon">👋</div>
+                    <div class="welcome-title">مرحباً بك في عائلة الشعيل</div>
+                    <div class="welcome-text">
+                        نحن سعداء بانضمامك إلى منصة إدارة عائلة الشعيل.<br>
+                        دعنا نساعدك في إكمال التسجيل بسهولة
+                    </div>
+
+                    <div class="info-box">
+                        <div class="info-box-text">
+                            <span class="info-box-icon">📱</span>
+                            سنحتاج إلى رقم جوالك للتحقق من الهوية وإرسال رمز التأكيد
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary" onclick="goToScreen('phone')">
+                        ابدأ التسجيل ←
+                    </button>
+                </div>
+            </div>
+
+            <!-- Screen 2: Phone Verification -->
+            <div class="screen" id="screen-phone">
+                <div class="screen-title">التحقق من رقم الجوال</div>
+                <div class="screen-subtitle">
+                    أدخل رقم جوالك لإرسال رمز التحقق
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">رقم الجوال <span class="required">*</span></label>
+                    <input type="tel" class="form-control" id="phoneInput" placeholder="05XXXXXXXX" maxlength="10">
+                </div>
+
+                <div class="info-box">
+                    <div class="info-box-text">
+                        <span class="info-box-icon">🔒</span>
+                        سيتم إرسال رمز مكون من 4 أرقام عبر رسالة SMS لتأكيد رقم جوالك
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" onclick="sendVerificationCode()">
+                    إرسال رمز التحقق
+                </button>
+                <button class="btn btn-secondary" onclick="goToScreen('welcome')">
+                    ← رجوع
+                </button>
+            </div>
+
+            <!-- Screen 3: Verification Code -->
+            <div class="screen" id="screen-verification">
+                <div class="screen-title">أدخل رمز التحقق</div>
+                <div class="screen-subtitle">
+                    تم إرسال رمز مكون من 4 أرقام إلى<br>
+                    <strong id="displayPhone">05XX-XXX-XXX</strong>
+                </div>
+
+                <div class="verification-code">
+                    <input type="text" class="code-input" maxlength="1" data-index="0">
+                    <input type="text" class="code-input" maxlength="1" data-index="1">
+                    <input type="text" class="code-input" maxlength="1" data-index="2">
+                    <input type="text" class="code-input" maxlength="1" data-index="3">
+                </div>
+
+                <div class="info-box">
+                    <div class="info-box-text">
+                        <span class="info-box-icon">⏱️</span>
+                        لم تستلم الرمز؟ <a href="#" style="color: #667eea; font-weight: bold;" onclick="resendCode()">إعادة إرسال</a>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" onclick="verifyCode()">
+                    تأكيد
+                </button>
+                <button class="btn btn-secondary" onclick="goToScreen('phone')">
+                    ← رجوع
+                </button>
+            </div>
+
+            <!-- Screen 4: Select Clan -->
+            <div class="screen" id="screen-clan">
+                <div class="screen-title">اختر فخذك</div>
+                <div class="screen-subtitle">
+                    اختر الفخذ الذي تنتمي إليها من القائمة أدناه
+                </div>
+
+                <div class="clan-grid">
+                    <div class="clan-option" onclick="selectClan(1, this)">
+                        <div class="clan-icon">1</div>
+                        <div class="clan-info">
+                            <div class="clan-name">فخذ عبدالرحمن</div>
+                            <div class="clan-head">رئيس الفخذ: عبدالرحمن محمد الشعيل</div>
+                        </div>
+                    </div>
+
+                    <div class="clan-option" onclick="selectClan(2, this)">
+                        <div class="clan-icon">2</div>
+                        <div class="clan-info">
+                            <div class="clan-name">فخذ خالد</div>
+                            <div class="clan-head">رئيس الفخذ: خالد محمد الشعيل</div>
+                        </div>
+                    </div>
+
+                    <div class="clan-option" onclick="selectClan(3, this)">
+                        <div class="clan-icon">3</div>
+                        <div class="clan-info">
+                            <div class="clan-name">فخذ سعود</div>
+                            <div class="clan-head">رئيس الفخذ: سعود محمد الشعيل</div>
+                        </div>
+                    </div>
+
+                    <div class="clan-option" onclick="selectClan(4, this)">
+                        <div class="clan-icon">4</div>
+                        <div class="clan-info">
+                            <div class="clan-name">فخذ فهد</div>
+                            <div class="clan-head">رئيس الفخذ: فهد محمد الشعيل</div>
+                        </div>
+                    </div>
+
+                    <div class="clan-option" onclick="selectClan(5, this)">
+                        <div class="clan-icon">5</div>
+                        <div class="clan-info">
+                            <div class="clan-name">فخذ عبدالله</div>
+                            <div class="clan-head">رئيس الفخذ: عبدالله محمد الشعيل</div>
+                        </div>
+                    </div>
+
+                    <div class="clan-option" onclick="selectClan(6, this)">
+                        <div class="clan-icon">6</div>
+                        <div class="clan-info">
+                            <div class="clan-name">فخذ تركي</div>
+                            <div class="clan-head">رئيس الفخذ: تركي محمد الشعيل</div>
+                        </div>
+                    </div>
+
+                    <div class="clan-option" onclick="selectClan(7, this)">
+                        <div class="clan-icon">7</div>
+                        <div class="clan-info">
+                            <div class="clan-name">فخذ ناصر</div>
+                            <div class="clan-head">رئيس الفخذ: ناصر محمد الشعيل</div>
+                        </div>
+                    </div>
+
+                    <div class="clan-option" onclick="selectClan(8, this)">
+                        <div class="clan-icon">8</div>
+                        <div class="clan-info">
+                            <div class="clan-name">فخذ بندر</div>
+                            <div class="clan-head">رئيس الفخذ: بندر محمد الشعيل</div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" id="continueClan" onclick="goToScreen('register')" style="display: none;">
+                    متابعة ←
+                </button>
+                <button class="btn btn-secondary" onclick="goToScreen('verification')">
+                    ← رجوع
+                </button>
+            </div>
+
+            <!-- Screen 5: Complete Registration -->
+            <div class="screen" id="screen-register">
+                <div class="screen-title">إكمال البيانات</div>
+                <div class="screen-subtitle">
+                    يرجى إكمال بياناتك الشخصية بدقة
+                </div>
+
+                <form onsubmit="submitRegistration(event)">
+                    <div class="form-group">
+                        <label class="form-label">الاسم الرباعي بالكامل <span class="required">*</span></label>
+                        <input type="text" class="form-control" placeholder="مثال: محمد عبدالرحمن خالد الشعيل" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">تاريخ الميلاد <span class="required">*</span></label>
+                        <input type="date" class="form-control" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">رقم الهوية الوطنية <span class="required">*</span></label>
+                        <input type="text" class="form-control" placeholder="1234567890" maxlength="10" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">البريد الإلكتروني</label>
+                        <input type="email" class="form-control" placeholder="example@email.com">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">المدينة <span class="required">*</span></label>
+                        <input type="text" class="form-control" placeholder="مثال: الرياض" required>
+                    </div>
+
+                    <div class="info-box">
+                        <div class="info-box-text">
+                            <span class="info-box-icon">⚠️</span>
+                            تأكد من صحة البيانات. سيتم مراجعتها من قبل المسؤول قبل الموافقة.
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        إرسال الطلب ✓
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="goToScreen('clan')">
+                        ← رجوع
+                    </button>
+                </form>
+            </div>
+
+            <!-- Screen 6: Success -->
+            <div class="screen" id="screen-success">
+                <div class="success-screen">
+                    <div class="success-icon">✓</div>
+                    <div class="success-title">تم إرسال طلبك بنجاح!</div>
+                    <div class="success-text">
+                        شكراً لك! تم استلام طلب الانضمام للفخذ.<br>
+                        سيتم مراجعة طلبك من قبل المسؤول قريباً.
+                    </div>
+
+                    <div class="info-box" style="text-align: right;">
+                        <div class="info-box-text">
+                            <strong>ماذا بعد؟</strong>
+                        </div>
+                    </div>
+
+                    <div class="timeline-item">
+                        <div class="timeline-icon">1</div>
+                        <div class="timeline-content">
+                            <h4>مراجعة الطلب</h4>
+                            <p>سيقوم المسؤول بمراجعة بياناتك والتحقق منها</p>
+                        </div>
+                    </div>
+
+                    <div class="timeline-item">
+                        <div class="timeline-icon">2</div>
+                        <div class="timeline-content">
+                            <h4>إشعار الموافقة</h4>
+                            <p>ستصلك رسالة SMS فور الموافقة على طلبك</p>
+                        </div>
+                    </div>
+
+                    <div class="timeline-item">
+                        <div class="timeline-icon">3</div>
+                        <div class="timeline-content">
+                            <h4>الظهور في شجرة العائلة</h4>
+                            <p>ستظهر ضمن عشيرتك في شجرة العائلة الرسمية</p>
+                        </div>
+                    </div>
+
+                    <div class="timeline-item">
+                        <div class="timeline-icon">4</div>
+                        <div class="timeline-content">
+                            <h4>الدخول للتطبيق</h4>
+                            <p>يمكنك الدخول والاستفادة من جميع خدمات التطبيق</p>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary" onclick="finishRegistration()">
+                        العودة للرئيسية
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedClanId = null;
+        let currentStep = 1;
+
+        // Navigate between screens
+        function goToScreen(screenName) {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            document.getElementById('screen-' + screenName).classList.add('active');
+
+            // Update step indicator
+            const steps = {
+                'welcome': 1,
+                'phone': 2,
+                'verification': 2,
+                'clan': 3,
+                'register': 4,
+                'success': 5
+            };
+            
+            currentStep = steps[screenName];
+            updateStepIndicator(currentStep);
+        }
+
+        // Update step indicator
+        function updateStepIndicator(step) {
+            document.querySelectorAll('.step-dot').forEach((dot, index) => {
+                if (index + 1 <= step) {
+                    dot.classList.add('active');
+                } else {
+                    dot.classList.remove('active');
+                }
+            });
+        }
+
+        // Send verification code
+        function sendVerificationCode() {
+            const phone = document.getElementById('phoneInput').value;
+            
+            if (phone.length !== 10 || !phone.startsWith('05')) {
+                alert('يرجى إدخال رقم جوال صحيح يبدأ بـ 05');
+                return;
+            }
+
+            // Mask phone number
+            const maskedPhone = phone.substring(0, 4) + '-XXX-' + phone.substring(7);
+            document.getElementById('displayPhone').textContent = maskedPhone;
+
+            alert('✅ تم إرسال رمز التحقق إلى ' + maskedPhone);
+            goToScreen('verification');
+        }
+
+        // Resend code
+        function resendCode() {
+            event.preventDefault();
+            alert('✅ تم إعادة إرسال رمز التحقق');
+        }
+
+        // Handle verification code input
+        document.querySelectorAll('.code-input').forEach((input, index) => {
+            input.addEventListener('input', function() {
+                if (this.value.length === 1 && index < 3) {
+                    document.querySelectorAll('.code-input')[index + 1].focus();
+                }
+            });
+
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Backspace' && this.value === '' && index > 0) {
+                    document.querySelectorAll('.code-input')[index - 1].focus();
+                }
+            });
+        });
+
+        // Verify code
+        function verifyCode() {
+            const codes = Array.from(document.querySelectorAll('.code-input')).map(input => input.value);
+            const fullCode = codes.join('');
+
+            if (fullCode.length !== 4) {
+                alert('يرجى إدخال الرمز المكون من 4 أرقام');
+                return;
+            }
+
+            alert('✅ تم التحقق من رقم الجوال بنجاح!');
+            goToScreen('clan');
+        }
+
+        // Select clan
+        function selectClan(clanId, element) {
+            selectedClanId = clanId;
+            
+            // Remove selected class from all
+            document.querySelectorAll('.clan-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            
+            // Add selected class to clicked
+            element.classList.add('selected');
+            
+            // Show continue button
+            document.getElementById('continueClan').style.display = 'block';
+        }
+
+        // Submit registration
+        function submitRegistration(event) {
+            event.preventDefault();
+            
+            // Simulate submission
+            alert('🔄 جاري إرسال طلبك...');
+            
+            setTimeout(() => {
+                goToScreen('success');
+            }, 1000);
+        }
+
+        // Finish registration
+        function finishRegistration() {
+            alert('شكراً لاستخدام تطبيق عائلة الشعيل!\n\nسيتم إعلامك عند الموافقة على طلبك.');
+            goToScreen('welcome');
+        }
+
+        // Auto-focus first code input when screen loads
+        document.addEventListener('DOMContentLoaded', () => {
+            const observer = new MutationObserver(() => {
+                if (document.getElementById('screen-verification').classList.contains('active')) {
+                    document.querySelectorAll('.code-input')[0].focus();
+                }
+            });
+
+            observer.observe(document.getElementById('screen-verification'), {
+                attributes: true,
+                attributeFilter: ['class']
+            });
+        });
+    </script>
+</body>
+</html>
