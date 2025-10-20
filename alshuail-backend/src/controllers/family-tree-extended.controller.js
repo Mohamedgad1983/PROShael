@@ -16,17 +16,10 @@ const supabase = createClient(
  */
 export const getBranches = async (req, res) => {
   try {
+    // Simplified query without branch_head JOIN to avoid FK issues
     const { data: branches, error } = await supabase
       .from('family_branches')
-      .select(`
-        *,
-        branch_head:members!family_branches_branch_head_id_fkey(
-          id,
-          full_name_ar,
-          full_name_en,
-          phone
-        )
-      `)
+      .select('*')
       .order('branch_name', { ascending: true });
 
     if (error) throw error;
