@@ -34,6 +34,9 @@ import familyTreeRoutes from './src/routes/familyTree.js';
 import diyaDashboardRoutes from './src/routes/diyaDashboard.js';
 import memberRoutes from "./src/routes/member.js";
 import receiptsRoutes from "./src/routes/receipts.js";
+import adminRoutes from './src/routes/admin.routes.js';
+import approvalRoutes from './src/routes/approval.routes.js';
+import familyTreeNewRoutes from './src/routes/family-tree.routes.js';
 import { log } from './src/utils/logger.js';
 import { config } from './src/config/env.js';
 import { errorHandler } from './src/utils/errorCodes.js';
@@ -241,6 +244,13 @@ app.use('/api/family-tree', familyTreeRoutes);
 app.use('/api/diya', diyaDashboardRoutes);
 app.use("/api/member", memberRoutes);
 app.use("/api/receipts", receiptsRoutes);
+
+// New Admin & Approval Routes (File 04 - Admin APIs)
+app.use('/api/admin', adminRoutes);
+app.use('/api/approvals', approvalRoutes);
+
+// New Family Tree APIs (File 05) - Enhanced tree generation
+app.use('/api/tree', familyTreeNewRoutes);
 
 // Enhanced health check endpoint
 app.get('/api/health', async (req, res) => {
