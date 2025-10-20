@@ -193,6 +193,9 @@ export const requireAdmin = async (req, res, next) => {
 // Export authenticateToken as alias for compatibility
 export const authenticateToken = authenticate;
 
+// Export protect as alias for new routes compatibility
+export const protect = authenticate;
+
 export const requireSuperAdmin = async (req, res, next) => {
   try {
     // Check if user is authenticated first
