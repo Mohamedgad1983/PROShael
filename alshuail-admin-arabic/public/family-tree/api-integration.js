@@ -187,7 +187,7 @@ function getMockData(endpoint) {
                 active_members: 347,  // All are active
                 assigned_members: 347, // Members assigned to branches
                 pending_members: 0,
-                branches_count: 8
+                branches_count: 10  // Updated to 10 branches (removed 3 English branches)
             }
         };
     }

@@ -570,7 +570,7 @@
                 </div>
                 <div class="tabs">
                     <button class="tab-btn active" onclick="switchTab('clans')">
-                        🏛️ الفخوذ الثمانية
+                        🏛️ الفخوذ العشرة
                     </button>
                     <button class="tab-btn" onclick="switchTab('pending')">
                         ⏳ طلبات الانضمام
@@ -593,16 +593,16 @@
                 <div class="stat-label">الفخوذ المؤسسة</div>
             </div>
             <div class="stat-card">
-                <div class="stat-number">15</div>
+                <div class="stat-number" id="pending-requests-count">0</div>
                 <div class="stat-label">طلبات قيد الانتظار</div>
             </div>
             <div class="stat-card">
-                <div class="stat-number">1,247</div>
+                <div class="stat-number" id="total-members-count">344</div>
                 <div class="stat-label">الأعضاء المعتمدون</div>
             </div>
             <div class="stat-card">
-                <div class="stat-number">89%</div>
-                <div class="stat-label">نسبة الاكتمال</div>
+                <div class="stat-number" id="active-rate">27%</div>
+                <div class="stat-label">نسبة التوزيع على الفخوذ</div>
             </div>
         </div>
 
@@ -641,13 +641,13 @@
         <div id="tab-clans" class="tab-content active">
             <div class="section">
                 <div class="section-title">
-                    <span>🏛️ الفخوذ الثمانية المؤسسة</span>
+                    <span>🏛️ الفخوذ العشرة المؤسسة</span>
                     <button class="btn btn-primary" onclick="openAddClanModal()">
                         ➕ إضافة فخذ جديد
                     </button>
                 </div>
 
-                <div class="clans-grid">
+                <div class="clans-grid" id="clans-grid">
                     <!-- Clan 1 -->
                     <div class="clan-card">
                         <div class="clan-number">1</div>
@@ -887,7 +887,7 @@
                                 <th>الإجراءات</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="pending-table-body">
                             <tr>
                                 <td>#REG-2025-001</td>
                                 <td>محمد عبدالرحمن خالد الشعيل</td>
@@ -962,7 +962,7 @@
         <div id="tab-approved" class="tab-content">
             <div class="section">
                 <div class="section-title">
-                    <span>✅ الأعضاء المعتمدون (1,247 عضو)</span>
+                    <span>✅ الأعضاء المعتمدون (<span id="approved-members-count">344</span> عضو)</span>
                     <button class="btn btn-primary" onclick="exportMembers()">
                         📥 تصدير القائمة
                     </button>
@@ -1251,5 +1251,8 @@
             });
         });
     </script>
+
+    <!-- Include API Integration Script -->
+    <script src="api-integration.js"></script>
 </body>
 </html>
