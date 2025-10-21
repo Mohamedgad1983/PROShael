@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تعيين الأعضاء للفخوذ - عائلة الشعيل</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="./api-integration.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
+
+        body {
+            font-family: 'Cairo', sans-serif;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        .loading-spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #8b5cf6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .success-message {
+            animation: slideInDown 0.3s ease-out;
+        }
+
+        @keyframes slideInDown {
+            from {
+                transform: translateY(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Success/Error Toast -->
+    <div id="toast" class="hidden fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 rounded-lg shadow-lg success-message">
+        <div class="flex items-center">
+            <svg id="toast-icon" class="w-6 h-6 ml-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+            <span id="toast-message" class="font-medium"></span>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">تعيين الأعضاء للفخوذ الثمانية</h1>
+            <p class="text-gray-600">إدارة تعيين الأعضاء غير المصنفين إلى الفخوذ المناسبة</p>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-lg shadow-sm p-6 border-r-4 border-purple-600">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">إجمالي غير المصنفين</p>
+                        <p id="total-unassigned" class="text-3xl font-bold text-gray-900 mt-2">0</p>
+                    </div>
+                    <div class="bg-purple-100 rounded-full p-3">
+                        <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-sm p-6 border-r-4 border-green-600">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">تم التعيين</p>
+                        <p id="assigned-count" class="text-3xl font-bold text-gray-900 mt-2">0</p>
+                    </div>
+                    <div class="bg-green-100 rounded-full p-3">
+                        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-sm p-6 border-r-4 border-blue-600">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">الفخوذ الثمانية</p>
+                        <p id="branches-count" class="text-3xl font-bold text-gray-900 mt-2">8</p>
+                    </div>
+                    <div class="bg-blue-100 rounded-full p-3">
+                        <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-sm p-6 border-r-4 border-orange-600">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">محددين للتعيين</p>
+                        <p id="selected-count" class="text-3xl font-bold text-gray-900 mt-2">0</p>
+                    </div>
+                    <div class="bg-orange-100 rounded-full p-3">
+                        <svg class="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search and Bulk Actions -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <div class="flex flex-col md:flex-row gap-4 items-center justify-between">
+                <!-- Search Box -->
+                <div class="flex-1 w-full md:w-auto">
+                    <div class="relative">
+                        <input
+                            type="text"
+                            id="search-input"
+                            placeholder="بحث بالاسم أو رقم الجوال..."
+                            class="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                        >
+                        <svg class="absolute right-3 top-3 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Bulk Actions -->
+                <div class="flex gap-3 w-full md:w-auto">
+                    <button
+                        id="select-all-btn"
+                        class="flex-1 md:flex-initial px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                    >
+                        تحديد الكل
+                    </button>
+                    <button
+                        id="bulk-assign-btn"
+                        disabled
+                        class="flex-1 md:flex-initial px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:bg-gray-300 disabled:cursor-not-allowed"
+                    >
+                        تعيين المحددين
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Members Table -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+            <!-- Loading State -->
+            <div id="loading-state" class="flex flex-col items-center justify-center py-16">
+                <div class="loading-spinner mb-4"></div>
+                <p class="text-gray-600">جاري تحميل البيانات...</p>
+            </div>
+
+            <!-- Empty State -->
+            <div id="empty-state" class="hidden flex-col items-center justify-center py-16">
+                <svg class="w-24 h-24 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <p class="text-gray-600 text-lg">لا توجد أعضاء غير مصنفين</p>
+                <p class="text-gray-400 text-sm mt-2">جميع الأعضاء تم تعيينهم للفخوذ المناسبة</p>
+            </div>
+
+            <!-- Table -->
+            <div id="table-container" class="hidden table-container">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <input type="checkbox" id="select-all-checkbox" class="rounded border-gray-300 text-purple-600 focus:ring-purple-500">
+                            </th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">رقم العضوية</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الاسم الكامل</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">رقم الجوال</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">تاريخ الإضافة</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الفخذ</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="members-tbody" class="bg-white divide-y divide-gray-200">
+                        <!-- Dynamic content -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div id="pagination-container" class="hidden px-6 py-4 bg-gray-50 border-t border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div class="text-sm text-gray-700">
+                        عرض <span id="showing-from">1</span> إلى <span id="showing-to">50</span> من <span id="showing-total">0</span> عضو
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="prev-page-btn" disabled class="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                            السابق
+                        </button>
+                        <div id="page-numbers" class="flex gap-2">
+                            <!-- Dynamic page numbers -->
+                        </div>
+                        <button id="next-page-btn" disabled class="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                            التالي
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Assignment Modal -->
+    <div id="bulk-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 fade-in">
+            <div class="p-6 border-b border-gray-200">
+                <h3 class="text-xl font-bold text-gray-900">تعيين متعدد للفخذ</h3>
+            </div>
+            <div class="p-6">
+                <p class="text-gray-600 mb-4">اختر الفخذ لتعيين <span id="modal-selected-count">0</span> عضو محدد:</p>
+                <select id="bulk-branch-select" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent">
+                    <option value="">اختر الفخذ...</option>
+                    <!-- Dynamic options -->
+                </select>
+            </div>
+            <div class="p-6 bg-gray-50 border-t border-gray-200 flex gap-3 justify-end">
+                <button id="cancel-bulk-btn" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
+                    إلغاء
+                </button>
+                <button id="confirm-bulk-btn" class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                    تأكيد التعيين
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State management
+        let currentPage = 1;
+        let totalPages = 1;
+        let totalUnassigned = 0;
+        let searchQuery = '';
+        let selectedMembers = new Set();
+        let allMembers = [];
+        let allBranches = [];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadBranches();
+            await loadUnassignedMembers();
+            setupEventListeners();
+        });
+
+        // Load branches
+        async function loadBranches() {
+            try {
+                const response = await window.FamilyTreeAPI.fetchBranches();
+                allBranches = response.data || [];
+
+                // Populate branch select in bulk modal
+                const bulkSelect = document.getElementById('bulk-branch-select');
+                allBranches.forEach(branch => {
+                    const option = document.createElement('option');
+                    option.value = branch.id;
+                    option.textContent = `${branch.branch_name} (${branch.memberCount || 0} عضو)`;
+                    bulkSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading branches:', error);
+                showToast('خطأ في تحميل الفخوذ', 'error');
+            }
+        }
+
+        // Load unassigned members
+        async function loadUnassignedMembers() {
+            try {
+                showLoadingState();
+
+                const response = await window.FamilyTreeAPI.fetchUnassignedMembers(currentPage, 50, searchQuery);
+
+                allMembers = response.data || [];
+                totalUnassigned = response.pagination?.total || 0;
+                totalPages = response.pagination?.totalPages || 1;
+
+                // Update stats
+                document.getElementById('total-unassigned').textContent = totalUnassigned;
+
+                if (allMembers.length === 0) {
+                    showEmptyState();
+                } else {
+                    renderMembersTable();
+                    updatePagination();
+                    showTable();
+                }
+            } catch (error) {
+                console.error('Error loading unassigned members:', error);
+                showToast('خطأ في تحميل الأعضاء', 'error');
+                showEmptyState();
+            }
+        }
+
+        // Render members table
+        function renderMembersTable() {
+            const tbody = document.getElementById('members-tbody');
+            tbody.innerHTML = '';
+
+            allMembers.forEach(member => {
+                const row = createMemberRow(member);
+                tbody.appendChild(row);
+            });
+        }
+
+        // Create member row
+        function createMemberRow(member) {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-gray-50 transition-colors';
+            tr.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <input type="checkbox"
+                           class="member-checkbox rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                           data-member-id="${member.id}"
+                           ${selectedMembers.has(member.id) ? 'checked' : ''}>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="text-sm font-medium text-gray-900">${member.member_id || member.id}</span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 h-10 w-10 bg-purple-100 rounded-full flex items-center justify-center">
+                            <span class="text-purple-600 font-bold text-lg">${(member.full_name_ar || member.full_name || 'غ')[0]}</span>
+                        </div>
+                        <div class="mr-4">
+                            <div class="text-sm font-medium text-gray-900">${member.full_name_ar || member.full_name || 'غير محدد'}</div>
+                            <div class="text-sm text-gray-500">${member.full_name_en || member.full_name || ''}</div>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="text-sm text-gray-900 direction-ltr text-right block">${member.phone || 'غير محدد'}</span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="text-sm text-gray-500">${formatDate(member.created_at)}</span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <select class="branch-select px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-600 focus:border-transparent" data-member-id="${member.id}">
+                        <option value="">اختر الفخذ...</option>
+                        ${allBranches.map(branch => `
+                            <option value="${branch.id}">${branch.branch_name} (${branch.memberCount || 0})</option>
+                        `).join('')}
+                    </select>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <button class="assign-btn px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium disabled:bg-gray-300 disabled:cursor-not-allowed"
+                            data-member-id="${member.id}"
+                            disabled>
+                        تعيين
+                    </button>
+                </td>
+            `;
+
+            // Setup row event listeners
+            const checkbox = tr.querySelector('.member-checkbox');
+            const branchSelect = tr.querySelector('.branch-select');
+            const assignBtn = tr.querySelector('.assign-btn');
+
+            checkbox.addEventListener('change', () => handleCheckboxChange(member.id, checkbox.checked));
+            branchSelect.addEventListener('change', () => handleBranchSelectChange(member.id, branchSelect.value, assignBtn));
+            assignBtn.addEventListener('click', () => handleSingleAssignment(member.id, branchSelect.value));
+
+            return tr;
+        }
+
+        // Handle checkbox change
+        function handleCheckboxChange(memberId, checked) {
+            if (checked) {
+                selectedMembers.add(memberId);
+            } else {
+                selectedMembers.delete(memberId);
+            }
+            updateSelectedCount();
+            updateBulkAssignButton();
+        }
+
+        // Handle branch select change
+        function handleBranchSelectChange(memberId, branchId, assignBtn) {
+            assignBtn.disabled = !branchId;
+        }
+
+        // Handle single assignment
+        async function handleSingleAssignment(memberId, branchId) {
+            if (!branchId) return;
+
+            try {
+                const response = await window.FamilyTreeAPI.assignMemberToBranch(memberId, branchId);
+
+                if (response.success) {
+                    showToast(response.message || 'تم تعيين العضو بنجاح', 'success');
+                    updateAssignedCount();
+                    await loadUnassignedMembers();
+                } else {
+                    showToast(response.error || 'فشل في تعيين العضو', 'error');
+                }
+            } catch (error) {
+                console.error('Error assigning member:', error);
+                showToast('حدث خطأ أثناء التعيين', 'error');
+            }
+        }
+
+        // Update pagination
+        function updatePagination() {
+            const showingFrom = (currentPage - 1) * 50 + 1;
+            const showingTo = Math.min(currentPage * 50, totalUnassigned);
+
+            document.getElementById('showing-from').textContent = showingFrom;
+            document.getElementById('showing-to').textContent = showingTo;
+            document.getElementById('showing-total').textContent = totalUnassigned;
+
+            document.getElementById('prev-page-btn').disabled = currentPage === 1;
+            document.getElementById('next-page-btn').disabled = currentPage === totalPages;
+
+            // Render page numbers
+            renderPageNumbers();
+        }
+
+        // Render page numbers
+        function renderPageNumbers() {
+            const container = document.getElementById('page-numbers');
+            container.innerHTML = '';
+
+            const maxPages = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxPages / 2));
+            let endPage = Math.min(totalPages, startPage + maxPages - 1);
+
+            if (endPage - startPage < maxPages - 1) {
+                startPage = Math.max(1, endPage - maxPages + 1);
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                const btn = document.createElement('button');
+                btn.className = `px-4 py-2 rounded-lg ${i === currentPage ? 'bg-purple-600 text-white' : 'bg-white border border-gray-300 hover:bg-gray-50'}`;
+                btn.textContent = i;
+                btn.addEventListener('click', () => goToPage(i));
+                container.appendChild(btn);
+            }
+        }
+
+        // Go to page
+        async function goToPage(page) {
+            if (page < 1 || page > totalPages) return;
+            currentPage = page;
+            await loadUnassignedMembers();
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Search
+            const searchInput = document.getElementById('search-input');
+            let searchTimeout;
+            searchInput.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    searchQuery = e.target.value;
+                    currentPage = 1;
+                    loadUnassignedMembers();
+                }, 500);
+            });
+
+            // Pagination
+            document.getElementById('prev-page-btn').addEventListener('click', () => goToPage(currentPage - 1));
+            document.getElementById('next-page-btn').addEventListener('click', () => goToPage(currentPage + 1));
+
+            // Select all
+            document.getElementById('select-all-btn').addEventListener('click', toggleSelectAll);
+            document.getElementById('select-all-checkbox').addEventListener('change', (e) => {
+                toggleSelectAll();
+            });
+
+            // Bulk assign
+            document.getElementById('bulk-assign-btn').addEventListener('click', showBulkModal);
+            document.getElementById('cancel-bulk-btn').addEventListener('click', hideBulkModal);
+            document.getElementById('confirm-bulk-btn').addEventListener('click', handleBulkAssignment);
+        }
+
+        // Toggle select all
+        function toggleSelectAll() {
+            const checkboxes = document.querySelectorAll('.member-checkbox');
+            const selectAllCheckbox = document.getElementById('select-all-checkbox');
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+
+            checkboxes.forEach(checkbox => {
+                const memberId = checkbox.dataset.memberId;
+                checkbox.checked = !allChecked;
+                if (!allChecked) {
+                    selectedMembers.add(memberId);
+                } else {
+                    selectedMembers.delete(memberId);
+                }
+            });
+
+            selectAllCheckbox.checked = !allChecked;
+            updateSelectedCount();
+            updateBulkAssignButton();
+        }
+
+        // Show bulk modal
+        function showBulkModal() {
+            document.getElementById('modal-selected-count').textContent = selectedMembers.size;
+            document.getElementById('bulk-modal').classList.remove('hidden');
+        }
+
+        // Hide bulk modal
+        function hideBulkModal() {
+            document.getElementById('bulk-modal').classList.add('hidden');
+            document.getElementById('bulk-branch-select').value = '';
+        }
+
+        // Handle bulk assignment
+        async function handleBulkAssignment() {
+            const branchId = document.getElementById('bulk-branch-select').value;
+            if (!branchId || selectedMembers.size === 0) return;
+
+            try {
+                const assignments = Array.from(selectedMembers).map(memberId => ({
+                    memberId,
+                    branchId
+                }));
+
+                const response = await window.FamilyTreeAPI.bulkAssignMembers(assignments);
+
+                if (response.success) {
+                    showToast(response.message || `تم تعيين ${response.data.successful} عضو بنجاح`, 'success');
+                    selectedMembers.clear();
+                    updateSelectedCount();
+                    updateAssignedCount();
+                    hideBulkModal();
+                    await loadUnassignedMembers();
+                } else {
+                    showToast(response.error || 'فشل في التعيين الجماعي', 'error');
+                }
+            } catch (error) {
+                console.error('Error bulk assigning:', error);
+                showToast('حدث خطأ أثناء التعيين الجماعي', 'error');
+            }
+        }
+
+        // Update selected count
+        function updateSelectedCount() {
+            document.getElementById('selected-count').textContent = selectedMembers.size;
+        }
+
+        // Update assigned count
+        function updateAssignedCount() {
+            const current = parseInt(document.getElementById('assigned-count').textContent) || 0;
+            document.getElementById('assigned-count').textContent = current + 1;
+        }
+
+        // Update bulk assign button
+        function updateBulkAssignButton() {
+            const btn = document.getElementById('bulk-assign-btn');
+            btn.disabled = selectedMembers.size === 0;
+        }
+
+        // Format date
+        function formatDate(dateString) {
+            if (!dateString) return 'غير محدد';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' });
+        }
+
+        // Show toast
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toast-message');
+            const toastIcon = document.getElementById('toast-icon');
+
+            toastMessage.textContent = message;
+
+            if (type === 'success') {
+                toast.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 rounded-lg shadow-lg success-message bg-green-500 text-white';
+                toastIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>';
+            } else {
+                toast.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 rounded-lg shadow-lg success-message bg-red-500 text-white';
+                toastIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>';
+            }
+
+            toast.classList.remove('hidden');
+
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3000);
+        }
+
+        // Show loading state
+        function showLoadingState() {
+            document.getElementById('loading-state').classList.remove('hidden');
+            document.getElementById('empty-state').classList.add('hidden');
+            document.getElementById('table-container').classList.add('hidden');
+            document.getElementById('pagination-container').classList.add('hidden');
+        }
+
+        // Show empty state
+        function showEmptyState() {
+            document.getElementById('loading-state').classList.add('hidden');
+            document.getElementById('empty-state').classList.remove('hidden');
+            document.getElementById('table-container').classList.add('hidden');
+            document.getElementById('pagination-container').classList.add('hidden');
+        }
+
+        // Show table
+        function showTable() {
+            document.getElementById('loading-state').classList.add('hidden');
+            document.getElementById('empty-state').classList.add('hidden');
+            document.getElementById('table-container').classList.remove('hidden');
+            document.getElementById('pagination-container').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
