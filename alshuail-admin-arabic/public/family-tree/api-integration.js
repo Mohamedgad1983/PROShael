@@ -24,13 +24,20 @@ const API_CONFIG = {
 // Get stored auth token from localStorage
 function getAuthToken() {
     // Try multiple possible token keys (main app uses different keys)
-    const token = localStorage.getItem('authToken') ||
+    // Check sessionStorage first (React app uses sessionStorage)
+    const token = sessionStorage.getItem('token') ||
+                  sessionStorage.getItem('authToken') ||
+                  sessionStorage.getItem('auth_token') ||
+                  localStorage.getItem('authToken') ||
                   localStorage.getItem('auth_token') ||
                   localStorage.getItem('token');
+
     if (!token) {
-        console.warn('No auth token found. Please login first.');
+        console.warn('No auth token found. Using demo mode.');
         return null;
     }
+
+    console.log('✅ Auth token found, using live API');
     return token;
 }
 
@@ -161,7 +168,7 @@ function getMockData(endpoint) {
                     branch_code: 'SHUB',
                     branch_name: 'الشبيعان',
                     branch_name_en: 'Al-Shubaian',
-                    memberCount: 0,
+                    memberCount: 5,
                     pendingCount: 0,
                     branch_head: {
                         full_name_ar: 'رئيس فخذ الشبيعان',
@@ -176,9 +183,9 @@ function getMockData(endpoint) {
         return {
             success: true,
             data: {
-                total_members: 344,  // Total members in database
-                active_members: 344,  // All are active
-                assigned_members: 92, // Members assigned to branches
+                total_members: 347,  // Total members in database
+                active_members: 347,  // All are active
+                assigned_members: 347, // Members assigned to branches
                 pending_members: 0,
                 branches_count: 8
             }
@@ -343,7 +350,7 @@ async function updateTotalStats(branches) {
     // Fetch total members from stats endpoint for accurate count
     try {
         const statsResponse = await fetchStats();
-        const totalMembers = statsResponse.data?.total_members || 344; // Use 344 as fallback (real count)
+        const totalMembers = statsResponse.data?.total_members || 347; // Use 347 as fallback (real count)
 
         const totalAssigned = branches.reduce((sum, b) => sum + (b.memberCount || 0), 0);
         const totalPending = branches.reduce((sum, b) => sum + (b.pendingCount || 0), 0);
@@ -369,10 +376,10 @@ async function updateTotalStats(branches) {
         console.error('Error fetching stats:', error);
         // Use fallback values
         if (document.getElementById('total-members-count')) {
-            document.getElementById('total-members-count').textContent = '344';
+            document.getElementById('total-members-count').textContent = '347';
         }
         if (document.getElementById('approved-members-count')) {
-            document.getElementById('approved-members-count').textContent = '344';
+            document.getElementById('approved-members-count').textContent = '347';
         }
     }
 }
