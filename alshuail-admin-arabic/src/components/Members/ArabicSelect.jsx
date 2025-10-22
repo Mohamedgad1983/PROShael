@@ -48,16 +48,19 @@ const ArabicSelect = ({
   };
 
   return (
-    <div className="form-group arabic-select-container">
-      <label>{label}</label>
-      <div ref={wrapperRef} className="custom-select-wrapper" style={{ position: 'relative' }}>
+    <div className="form-group arabic-select-container" style={{ marginBottom: '25px' }}>
+      <label className="form-label">
+        <span className="label-icon">🏛️</span>
+        <span>{label}</span>
+      </label>
+      <div ref={wrapperRef} className="custom-select-wrapper select-wrapper" style={{ position: 'relative', isolation: 'isolate' }}>
         <div
-          className="form-input custom-select-display"
+          className="form-input custom-select-display enhanced-dropdown"
           onClick={() => setIsOpen(!isOpen)}
           style={{
             cursor: 'pointer',
             position: 'relative',
-            paddingLeft: '35px',
+            paddingLeft: '45px',
             backgroundColor: 'white',
             userSelect: 'none',
             display: 'flex',
@@ -66,27 +69,22 @@ const ArabicSelect = ({
           }}
         >
           <span style={{
-            color: displayValue ? '#1f2937' : '#9ca3af',
-            fontSize: '15px',
-            fontFamily: 'system-ui, -apple-system, Arial, sans-serif'
+            color: displayValue ? '#2d3748' : '#a0aec0',
+            fontSize: '16px',
+            fontFamily: 'inherit'
           }}>
             {displayValue || placeholder}
           </span>
-          <svg
-            style={{
-              position: 'absolute',
-              left: '10px',
-              width: '20px',
-              height: '20px',
-              transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-              transition: 'transform 0.2s'
-            }}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
+          <span className="select-arrow" style={{
+            position: 'absolute',
+            left: '18px',
+            fontSize: '18px',
+            color: '#667eea',
+            transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+            transition: 'transform 0.3s ease'
+          }}>
+            ▼
+          </span>
         </div>
 
         {isOpen && (
@@ -98,13 +96,13 @@ const ArabicSelect = ({
               left: 0,
               right: 0,
               backgroundColor: 'white',
-              border: '1px solid #D1D5DB',
-              borderRadius: '8px',
+              border: '2px solid #667eea',
+              borderRadius: '12px',
               marginTop: '4px',
-              maxHeight: '200px',
+              maxHeight: '250px',
               overflowY: 'auto',
-              zIndex: 1000,
-              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+              zIndex: 9999,
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.1)'
             }}
           >
             <div
@@ -123,7 +121,7 @@ const ArabicSelect = ({
             >
               {placeholder}
             </div>
-            {options.map((option) => (
+            {options && options.length > 0 ? options.map((option) => (
               <div
                 key={option.value}
                 className="custom-select-option"
@@ -150,7 +148,7 @@ const ArabicSelect = ({
               >
                 {option.label}
               </div>
-            ))}
+            )) : null}
           </div>
         )}
       </div>

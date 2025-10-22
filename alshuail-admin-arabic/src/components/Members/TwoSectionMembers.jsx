@@ -622,38 +622,59 @@ const TwoSectionMembers = () => {
 
               {showFilters && (
                 <div className="filter-dropdown">
-                  <div className="filter-item">
-                    <label>الحالة:</label>
-                    <select
-                      value={filters.status}
-                      onChange={(e) => handleFilterChange('status', e.target.value)}
-                    >
-                      <option value="">الكل</option>
-                      <option value="active">نشط</option>
-                      <option value="inactive">غير نشط</option>
-                    </select>
+                  <div className="filter-item form-group">
+                    <label className="form-label">
+                      <span className="label-icon">📊</span>
+                      <span>الحالة:</span>
+                    </label>
+                    <div className="select-wrapper">
+                      <select
+                        className="enhanced-dropdown"
+                        value={filters.status}
+                        onChange={(e) => handleFilterChange('status', e.target.value)}
+                      >
+                        <option value="">الكل</option>
+                        <option value="active">نشط</option>
+                        <option value="inactive">غير نشط</option>
+                      </select>
+                      <span className="select-arrow">▼</span>
+                    </div>
                   </div>
-                  <div className="filter-item">
-                    <label>اكتمال الملف:</label>
-                    <select
-                      value={filters.profile_completed}
-                      onChange={(e) => handleFilterChange('profile_completed', e.target.value)}
-                    >
-                      <option value="">الكل</option>
-                      <option value="true">مكتمل</option>
-                      <option value="false">غير مكتمل</option>
-                    </select>
+                  <div className="filter-item form-group">
+                    <label className="form-label">
+                      <span className="label-icon">📋</span>
+                      <span>اكتمال الملف:</span>
+                    </label>
+                    <div className="select-wrapper">
+                      <select
+                        className="enhanced-dropdown"
+                        value={filters.profile_completed}
+                        onChange={(e) => handleFilterChange('profile_completed', e.target.value)}
+                      >
+                        <option value="">الكل</option>
+                        <option value="true">مكتمل</option>
+                        <option value="false">غير مكتمل</option>
+                      </select>
+                      <span className="select-arrow">▼</span>
+                    </div>
                   </div>
-                  <div className="filter-item">
-                    <label>الضمان الاجتماعي:</label>
-                    <select
-                      value={filters.social_security_beneficiary}
-                      onChange={(e) => handleFilterChange('social_security_beneficiary', e.target.value)}
-                    >
-                      <option value="">الكل</option>
-                      <option value="true">مستفيد</option>
-                      <option value="false">غير مستفيد</option>
-                    </select>
+                  <div className="filter-item form-group">
+                    <label className="form-label">
+                      <span className="label-icon">🏛️</span>
+                      <span>الضمان الاجتماعي:</span>
+                    </label>
+                    <div className="select-wrapper">
+                      <select
+                        className="enhanced-dropdown"
+                        value={filters.social_security_beneficiary}
+                        onChange={(e) => handleFilterChange('social_security_beneficiary', e.target.value)}
+                      >
+                        <option value="">الكل</option>
+                        <option value="true">مستفيد</option>
+                        <option value="false">غير مستفيد</option>
+                      </select>
+                      <span className="select-arrow">▼</span>
+                    </div>
                   </div>
                 </div>
               )}
@@ -682,26 +703,25 @@ const TwoSectionMembers = () => {
 
             {/* Page Size Selector */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <label htmlFor="pageSize" style={{ fontSize: '14px' }}>عرض:</label>
-              <select
-                id="pageSize"
-                value={pagination.limit}
-                onChange={(e) => handlePageSizeChange(e.target.value)}
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid #ddd',
-                  backgroundColor: 'white',
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                  minWidth: '80px'
-                }}
-              >
-                <option value="10">10</option>
-                <option value="20">20</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-              </select>
+              <label htmlFor="pageSize" className="form-label" style={{ fontSize: '14px', marginBottom: 0 }}>
+                <span className="label-icon">📄</span>
+                <span>عرض:</span>
+              </label>
+              <div className="select-wrapper" style={{ minWidth: '80px' }}>
+                <select
+                  id="pageSize"
+                  className="enhanced-dropdown"
+                  value={pagination.limit}
+                  onChange={(e) => handlePageSizeChange(e.target.value)}
+                  style={{ padding: '8px 35px 8px 12px', fontSize: '14px' }}
+                >
+                  <option value="10">10</option>
+                  <option value="20">20</option>
+                  <option value="50">50</option>
+                  <option value="100">100</option>
+                </select>
+                <span className="select-arrow">▼</span>
+              </div>
               <span style={{ fontSize: '14px' }}>في الصفحة</span>
             </div>
           </div>
@@ -979,23 +999,23 @@ const TwoSectionMembers = () => {
                             height: '48px'
                           }}
                         />
-                        <select
-                          value={editingMember.countryCode || '966'}
-                          onChange={(e) => handleEditChange('countryCode', e.target.value)}
-                          style={{
-                            padding: '12px 16px',
-                            fontSize: '15px',
-                            borderRadius: '8px',
-                            border: '1px solid #d1d5db',
-                            backgroundColor: 'white',
-                            cursor: 'pointer',
-                            fontWeight: '500',
-                            height: '48px'
-                          }}
-                        >
-                          <option value="966">🇸🇦 السعودية +966</option>
-                          <option value="965">🇰🇼 الكويت +965</option>
-                        </select>
+                        <div className="select-wrapper">
+                          <select
+                            className="enhanced-dropdown"
+                            value={editingMember.countryCode || '966'}
+                            onChange={(e) => handleEditChange('countryCode', e.target.value)}
+                            style={{
+                              padding: '12px 40px 12px 16px',
+                              fontSize: '15px',
+                              fontWeight: '500',
+                              height: '48px'
+                            }}
+                          >
+                            <option value="966">🇸🇦 السعودية +966</option>
+                            <option value="965">🇰🇼 الكويت +965</option>
+                          </select>
+                          <span className="select-arrow">▼</span>
+                        </div>
                       </div>
                       <small style={{
                         color: '#6b7280',
@@ -1173,16 +1193,23 @@ const TwoSectionMembers = () => {
                     </div>
 
                     <div className="form-group">
-                      <label>حالة العضوية</label>
-                      <select
-                        value={editingMember.membership_status || 'active'}
-                        onChange={(e) => handleEditChange('membership_status', e.target.value)}
-                        className="form-input"
-                      >
-                        <option value="active">نشط</option>
-                        <option value="inactive">غير نشط</option>
-                        <option value="suspended">معلق</option>
-                      </select>
+                      <label className="form-label">
+                        <span className="label-icon">📊</span>
+                        <span>حالة العضوية</span>
+                      </label>
+                      <div className="select-wrapper">
+                        <select
+                          value={editingMember.membership_status || 'active'}
+                          onChange={(e) => handleEditChange('membership_status', e.target.value)}
+                          className="form-input enhanced-dropdown"
+                          id="membership_status"
+                        >
+                          <option value="active">نشط</option>
+                          <option value="inactive">غير نشط</option>
+                          <option value="suspended">معلق</option>
+                        </select>
+                        <span className="select-arrow">▼</span>
+                      </div>
                     </div>
 
                     <div className="form-group">
@@ -1196,16 +1223,23 @@ const TwoSectionMembers = () => {
                     </div>
 
                     <div className="form-group">
-                      <label>نوع العضوية</label>
-                      <select
-                        value={editingMember.membership_type || 'regular'}
-                        onChange={(e) => handleEditChange('membership_type', e.target.value)}
-                        className="form-input"
-                      >
-                        <option value="regular">عادي</option>
-                        <option value="vip">VIP</option>
-                        <option value="honorary">شرفي</option>
-                      </select>
+                      <label className="form-label">
+                        <span className="label-icon">⭐</span>
+                        <span>نوع العضوية</span>
+                      </label>
+                      <div className="select-wrapper">
+                        <select
+                          value={editingMember.membership_type || 'regular'}
+                          onChange={(e) => handleEditChange('membership_type', e.target.value)}
+                          className="form-input enhanced-dropdown"
+                          id="membership_type"
+                        >
+                          <option value="regular">عادي</option>
+                          <option value="vip">VIP</option>
+                          <option value="honorary">شرفي</option>
+                        </select>
+                        <span className="select-arrow">▼</span>
+                      </div>
                     </div>
                   </div>
                 </div>
