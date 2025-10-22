@@ -18,7 +18,7 @@ export const getAllMembers = async (req, res) => {
 
     // Sanitize and validate inputs
     const pageNum = sanitizeNumber(page, 1, 10000, 1);
-    const pageLimit = sanitizeNumber(limit, 1, 500, 25) // Increased to 500 to support all 347 members;
+    const pageLimit = sanitizeNumber(limit, 1, 500, 25); // Increased to 500 to support all 347 members
     const profileCompleted = profile_completed !== undefined ? sanitizeBoolean(profile_completed) : undefined;
     const membershipStatus = status === 'active' || status === 'inactive' ? status : undefined;
 
