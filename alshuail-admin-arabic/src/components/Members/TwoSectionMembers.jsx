@@ -1197,18 +1197,44 @@ const TwoSectionMembers = () => {
                         <span className="label-icon">📊</span>
                         <span>حالة العضوية</span>
                       </label>
-                      <div className="select-wrapper">
+                      <div className="select-wrapper" style={{ position: 'relative' }}>
                         <select
                           value={editingMember.membership_status || 'active'}
                           onChange={(e) => handleEditChange('membership_status', e.target.value)}
                           className="form-input enhanced-dropdown"
                           id="membership_status"
                         >
-                          <option value="active">نشط</option>
-                          <option value="inactive">غير نشط</option>
-                          <option value="suspended">معلق</option>
+                          <option value="active">✅ نشط</option>
+                          <option value="inactive">❌ غير نشط</option>
+                          <option value="suspended">⏸️ معلق</option>
                         </select>
                         <span className="select-arrow">▼</span>
+                        <span style={{
+                          position: 'absolute',
+                          left: '-80px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          padding: '6px 12px',
+                          borderRadius: '20px',
+                          fontSize: '13px',
+                          fontWeight: '600',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          backgroundColor: (editingMember.membership_status || 'active') === 'active' ? '#10b981' :
+                                           (editingMember.membership_status || 'active') === 'inactive' ? '#ef4444' :
+                                           '#f59e0b',
+                          color: 'white',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {(editingMember.membership_status || 'active') === 'active' && '✅'}
+                          {(editingMember.membership_status || 'active') === 'inactive' && '❌'}
+                          {(editingMember.membership_status || 'active') === 'suspended' && '⏸️'}
+                          {(editingMember.membership_status || 'active') === 'active' && 'نشط'}
+                          {(editingMember.membership_status || 'active') === 'inactive' && 'غير نشط'}
+                          {(editingMember.membership_status || 'active') === 'suspended' && 'معلق'}
+                        </span>
                       </div>
                     </div>
 
