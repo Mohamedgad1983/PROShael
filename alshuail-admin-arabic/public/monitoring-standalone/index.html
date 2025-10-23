@@ -2172,18 +2172,28 @@
             initSubscriptionChart();
             initBranchChart();
 
-            // Get token from parent React app
-            try {
-                const parentToken = window.parent.localStorage.getItem('token');
-                if (parentToken) {
-                    localStorage.setItem('auth_token', parentToken);
-                }
-            } catch (e) {
-                console.log('Running standalone, using own auth');
-            }
+            // Listen for auth token from parent React app via postMessage
+            window.addEventListener('message', (event) => {
+                // Verify message origin matches our domain
+                if (event.origin !== window.location.origin) return;
 
-            // Always load dashboard
-            await initDashboard();
+                if (event.data.type === 'AUTH_TOKEN' && event.data.token) {
+                    console.log('📩 Received auth token from parent window');
+                    localStorage.setItem('auth_token', event.data.token);
+
+                    // Load dashboard with the token
+                    initDashboard();
+                }
+            });
+
+            // Fallback: try to get token from own localStorage (standalone mode)
+            if (!localStorage.getItem('auth_token')) {
+                console.log('⏳ Waiting for auth token from parent...');
+                // Will load when postMessage arrives
+            } else {
+                // Already have token (from previous session), load immediately
+                await initDashboard();
+            }
         };
         // Subscription Chart
         function initSubscriptionChart() {
