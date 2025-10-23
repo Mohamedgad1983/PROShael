@@ -2167,32 +2167,39 @@
                 stats.subscriptions.toLocaleString('ar-SA') + ' ر.س';
             document.querySelector('.stat-card:nth-child(6) .stat-number').textContent = stats.expired;
         }
+        // Listen for auth token from parent React app via postMessage
+        // Set up listener immediately, before window.onload
+        let dashboardInitialized = false;
+        window.addEventListener('message', (event) => {
+            // Verify message origin matches our domain
+            if (event.origin !== window.location.origin) return;
+
+            if (event.data.type === 'AUTH_TOKEN' && event.data.token) {
+                console.log('📩 Received auth token from parent window');
+                localStorage.setItem('auth_token', event.data.token);
+
+                // Only initialize dashboard once window has loaded
+                if (document.readyState === 'complete' && !dashboardInitialized) {
+                    dashboardInitialized = true;
+                    console.log('🚀 Initializing dashboard with received token');
+                    initDashboard();
+                }
+            }
+        });
+
         // Initialize Charts
         window.onload = async function() {
             initSubscriptionChart();
             initBranchChart();
 
-            // Listen for auth token from parent React app via postMessage
-            window.addEventListener('message', (event) => {
-                // Verify message origin matches our domain
-                if (event.origin !== window.location.origin) return;
-
-                if (event.data.type === 'AUTH_TOKEN' && event.data.token) {
-                    console.log('📩 Received auth token from parent window');
-                    localStorage.setItem('auth_token', event.data.token);
-
-                    // Load dashboard with the token
-                    initDashboard();
-                }
-            });
-
-            // Fallback: try to get token from own localStorage (standalone mode)
-            if (!localStorage.getItem('auth_token')) {
-                console.log('⏳ Waiting for auth token from parent...');
-                // Will load when postMessage arrives
-            } else {
-                // Already have token (from previous session), load immediately
+            // Check if we already have a token from postMessage or localStorage
+            const token = localStorage.getItem('auth_token');
+            if (token && !dashboardInitialized) {
+                dashboardInitialized = true;
+                console.log('🚀 Initializing dashboard with existing token');
                 await initDashboard();
+            } else if (!token) {
+                console.log('⏳ Waiting for auth token from parent...');
             }
         };
         // Subscription Chart
