@@ -31,7 +31,7 @@ export const suspendMember = async (req, res) => {
     // Check if member exists
     const { data: member, error: memberError } = await supabase
       .from('members')
-      .select('id, full_name_arabic, membership_status')
+      .select('id, full_name, membership_status')
       .eq('id', memberId)
       .single();
 
@@ -77,7 +77,7 @@ export const suspendMember = async (req, res) => {
 
     log.info('[Suspend] Member suspended successfully:', {
       memberId,
-      memberName: member.full_name_arabic,
+      memberName: member.full_name,
       suspendedBy: superAdmin.email,
       reason
     });
@@ -89,7 +89,7 @@ export const suspendMember = async (req, res) => {
       data: {
         member: {
           id: updatedMember.id,
-          name: updatedMember.full_name_arabic,
+          name: updatedMember.full_name,
           status: updatedMember.membership_status,
           suspended_at: updatedMember.suspended_at,
           suspended_by: superAdmin.email,
@@ -130,7 +130,7 @@ export const activateMember = async (req, res) => {
     // Check if member exists
     const { data: member, error: memberError } = await supabase
       .from('members')
-      .select('id, full_name_arabic, membership_status')
+      .select('id, full_name, membership_status')
       .eq('id', memberId)
       .single();
 
@@ -176,7 +176,7 @@ export const activateMember = async (req, res) => {
 
     log.info('[Activate] Member activated successfully:', {
       memberId,
-      memberName: member.full_name_arabic,
+      memberName: member.full_name,
       activatedBy: superAdmin.email,
       notes
     });
@@ -188,7 +188,7 @@ export const activateMember = async (req, res) => {
       data: {
         member: {
           id: updatedMember.id,
-          name: updatedMember.full_name_arabic,
+          name: updatedMember.full_name,
           status: updatedMember.membership_status,
           reactivated_at: updatedMember.reactivated_at,
           reactivated_by: superAdmin.email,
@@ -219,7 +219,7 @@ export const getSuspensionHistory = async (req, res) => {
       .from('members')
       .select(`
         id,
-        full_name_arabic,
+        full_name,
         membership_status,
         suspended_at,
         suspended_by,
@@ -244,7 +244,7 @@ export const getSuspensionHistory = async (req, res) => {
       data: {
         member: {
           id: member.id,
-          name: member.full_name_arabic,
+          name: member.full_name,
           current_status: member.membership_status
         },
         suspension_info: member.suspended_at ? {
