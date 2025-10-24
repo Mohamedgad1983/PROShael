@@ -222,6 +222,11 @@ app.use('/api', (req, res, next) => {
 
   validateCSRFToken(req, res, next);
 });
+
+// Member Suspension APIs - MUST come before general membersRoutes
+// to match more specific suspend/activate routes first
+app.use('/api/members', memberSuspensionRoutes);
+
 app.use('/api/members', membersRoutes);
 // Add member monitoring routes under /api/member-monitoring to avoid conflict
 app.use('/api/member-monitoring', memberMonitoringRoutes);
@@ -256,9 +261,6 @@ app.use('/api/tree', familyTreeNewRoutes);
 
 // Payment Analytics APIs - Real-time financial reporting
 app.use('/api/analytics', paymentAnalyticsRoutes);
-
-// Member Suspension APIs - Super admin member management
-app.use('/api/members', memberSuspensionRoutes);
 
 // Enhanced health check endpoint
 app.get('/api/health', async (req, res) => {
