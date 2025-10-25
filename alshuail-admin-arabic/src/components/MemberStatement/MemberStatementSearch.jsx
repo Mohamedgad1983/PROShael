@@ -79,7 +79,7 @@ const MemberStatementSearch = () => {
         const API_URL = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
         const token = localStorage.getItem('token');
         const response = await fetch(
-          `${API_URL}/api/members`,
+          `${API_URL}/api/members?limit=500`,  // Request all members (supports up to 500, current: 347)
           {
             headers: {
               'Authorization': `Bearer ${token}`
