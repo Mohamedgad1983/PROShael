@@ -6,6 +6,7 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { motion, AnimatePresence } from 'framer-motion';
 import './MemberStatementSearch.css';
+import './MemberStatementSearchEnhanced.css';
 
 const MemberStatementSearch = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -15,6 +16,12 @@ const MemberStatementSearch = () => {
   const [memberStatement, setMemberStatement] = useState(null);
   const [error, setError] = useState('');
   const [showAutoComplete, setShowAutoComplete] = useState(false);
+  const [activeFilter, setActiveFilter] = useState('all'); // 'all', 'compliant', 'non-compliant'
+  const [animatedCounts, setAnimatedCounts] = useState({
+    total: 0,
+    compliant: 0,
+    nonCompliant: 0
+  });
 
   // Yearly payment requirements
   const YEARLY_AMOUNT = 600; // SAR per year
@@ -158,6 +165,57 @@ const MemberStatementSearch = () => {
     if (!memberStatement) return 0;
     return Math.min(100, (memberStatement.totalPaid / memberStatement.totalRequired) * 100);
   }, [memberStatement]);
+
+  // Filter members based on active filter
+  const filteredMembers = useMemo(() => {
+    if (activeFilter === 'all') return searchResults;
+    if (activeFilter === 'compliant') {
+      return searchResults.filter(m => m.balance >= MINIMUM_BALANCE);
+    }
+    if (activeFilter === 'non-compliant') {
+      return searchResults.filter(m => m.balance < MINIMUM_BALANCE);
+    }
+    return searchResults;
+  }, [searchResults, activeFilter]);
+
+  // Count-up animation effect
+  useEffect(() => {
+    if (searchResults.length === 0) {
+      setAnimatedCounts({ total: 0, compliant: 0, nonCompliant: 0 });
+      return;
+    }
+
+    const totalCount = searchResults.length;
+    const compliantCount = searchResults.filter(m => m.balance >= MINIMUM_BALANCE).length;
+    const nonCompliantCount = totalCount - compliantCount;
+
+    const duration = 1500; // 1.5 seconds
+    const steps = 60;
+    const interval = duration / steps;
+
+    let currentStep = 0;
+    const timer = setInterval(() => {
+      currentStep++;
+      const progress = currentStep / steps;
+
+      setAnimatedCounts({
+        total: Math.round(totalCount * progress),
+        compliant: Math.round(compliantCount * progress),
+        nonCompliant: Math.round(nonCompliantCount * progress)
+      });
+
+      if (currentStep >= steps) {
+        setAnimatedCounts({
+          total: totalCount,
+          compliant: compliantCount,
+          nonCompliant: nonCompliantCount
+        });
+        clearInterval(timer);
+      }
+    }, interval);
+
+    return () => clearInterval(timer);
+  }, [searchResults]);
 
   // Load member statement with payment details
   const loadMemberStatement = async (member) => {
@@ -438,90 +496,189 @@ const MemberStatementSearch = () => {
   };
 
   return (
-    <div className="member-statement-container">
-      {/* Header */}
-      <div className="statement-header">
-        <h1 className="statement-title">البحث عن كشف الحساب</h1>
-        <p className="statement-subtitle">ابحث عن العضو بالاسم أو رقم الهاتف لعرض كشف الحساب</p>
-      </div>
-
-      {/* Search Section */}
-      <div className="search-section">
-        <div className="search-input-wrapper">
-          <MagnifyingGlassIcon className="search-icon" />
-          <input
-            type="text"
-            className="search-input"
-            placeholder="ابحث برقم العضو، الاسم، أو رقم الجوال..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            dir="rtl"
-          />
-          {loading && <div className="search-loading">جاري البحث...</div>}
-        </div>
-
-        {error && (
-          <div className="search-error">{error}</div>
-        )}
-
-        {/* Auto-complete dropdown */}
-        <AnimatePresence>
-          {showAutoComplete && searchResults.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="autocomplete-dropdown"
-            >
-              {searchResults.map((member) => (
-                <div
-                  key={member.id}
-                  onClick={() => handleMemberSelect(member)}
-                  className="autocomplete-item"
-                >
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium">{member.full_name}</span>
-                    <span className="text-sm text-gray-500">{member.member_no}</span>
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    {member.phone} • {member.tribal_section}
-                  </div>
-                </div>
-              ))}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* Members Table View - Show when no member is selected */}
-      {!memberStatement && searchResults.length > 0 && (
+    <div className="enhanced-statement-container">
+      <div className="statement-content-wrapper">
+        {/* Enhanced Header */}
         <motion.div
+          className="enhanced-statement-header"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <div className="header-title-section">
+            <div className="header-icon">
+              <DocumentArrowDownIcon className="w-12 h-12" />
+            </div>
+            <div>
+              <h1 className="statement-title">البحث عن كشف الحساب</h1>
+              <p className="statement-subtitle">ابحث عن العضو بالاسم أو رقم الهاتف لعرض كشف الحساب</p>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Glassmorphism Search Section */}
+        <motion.div
+          className="glassmorphism-search-section"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="members-table-section"
+          transition={{ duration: 0.6, delay: 0.2 }}
         >
-          <div className="table-header">
-            <h2 className="table-title">
-              إجمالي الأعضاء: {searchResults.length} عضو
-            </h2>
-            <div className="table-stats">
-              <div className="stat-item stat-good">
-                <CheckCircleIcon className="stat-icon" />
-                <span>مكتمل: {searchResults.filter(m => m.balance >= MINIMUM_BALANCE).length}</span>
+          <div className="glassmorphism-search-wrapper">
+            <MagnifyingGlassIcon className="search-icon-enhanced" />
+            <input
+              type="text"
+              className="glassmorphism-search-input"
+              placeholder="ابحث برقم العضو، الاسم، أو رقم الجوال..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              dir="rtl"
+            />
+            {loading && (
+              <div className="search-loading-enhanced">
+                <div className="loading-spinner"></div>
+                <span>جاري البحث...</span>
               </div>
-              <div className="stat-item stat-warning">
-                <XCircleIcon className="stat-icon" />
-                <span>غير مكتمل: {searchResults.filter(m => m.balance < MINIMUM_BALANCE).length}</span>
-              </div>
-            </div>
-            <p className="table-subtitle">
-              اضغط على أي عضو لعرض كشف الحساب التفصيلي
-            </p>
+            )}
           </div>
 
-          {/* Desktop Table View */}
-          <div className="members-table-container desktop-view" dir="rtl">
-            <table className="members-table" dir="rtl">
+          {/* Quick Filter Chips */}
+          <div className="filter-chips-container">
+            <button
+              className={`filter-chip ${activeFilter === 'all' ? 'active' : ''}`}
+              onClick={() => setActiveFilter('all')}
+            >
+              <span className="chip-icon">📋</span>
+              <span>الكل ({animatedCounts.total})</span>
+            </button>
+            <button
+              className={`filter-chip ${activeFilter === 'compliant' ? 'active' : ''}`}
+              onClick={() => setActiveFilter('compliant')}
+            >
+              <span className="chip-icon">✅</span>
+              <span>ملتزم ({animatedCounts.compliant})</span>
+            </button>
+            <button
+              className={`filter-chip ${activeFilter === 'non-compliant' ? 'active' : ''}`}
+              onClick={() => setActiveFilter('non-compliant')}
+            >
+              <span className="chip-icon">⚠️</span>
+              <span>غير ملتزم ({animatedCounts.nonCompliant})</span>
+            </button>
+          </div>
+
+          {error && (
+            <motion.div
+              className="search-error-enhanced"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+            >
+              {error}
+            </motion.div>
+          )}
+
+          {/* Auto-complete dropdown */}
+          <AnimatePresence>
+            {showAutoComplete && searchResults.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="autocomplete-dropdown"
+              >
+                {searchResults.map((member) => (
+                  <div
+                    key={member.id}
+                    onClick={() => handleMemberSelect(member)}
+                    className="autocomplete-item"
+                  >
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">{member.full_name}</span>
+                      <span className="text-sm text-gray-500">{member.member_no}</span>
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {member.phone} • {member.tribal_section}
+                    </div>
+                  </div>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+
+        {/* Animated Stat Cards */}
+        {!memberStatement && searchResults.length > 0 && (
+          <motion.div
+            className="stat-cards-grid"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+          >
+            <div className="animated-stat-card">
+              <div className="stat-icon-wrapper stat-icon-primary">
+                <UserIcon className="w-8 h-8" />
+              </div>
+              <div className="stat-content">
+                <div className="stat-value-animated">{animatedCounts.total}</div>
+                <div className="stat-label">إجمالي الأعضاء</div>
+              </div>
+            </div>
+
+            <div className="animated-stat-card">
+              <div className="stat-icon-wrapper stat-icon-success">
+                <CheckCircleIcon className="w-8 h-8" />
+              </div>
+              <div className="stat-content">
+                <div className="stat-value-animated">{animatedCounts.compliant}</div>
+                <div className="stat-label">الأعضاء الملتزمين</div>
+              </div>
+            </div>
+
+            <div className="animated-stat-card">
+              <div className="stat-icon-wrapper stat-icon-warning">
+                <XCircleIcon className="w-8 h-8" />
+              </div>
+              <div className="stat-content">
+                <div className="stat-value-animated">{animatedCounts.nonCompliant}</div>
+                <div className="stat-label">الأعضاء غير الملتزمين</div>
+              </div>
+            </div>
+
+            <div className="animated-stat-card">
+              <div className="stat-icon-wrapper stat-icon-info">
+                <CurrencyDollarIcon className="w-8 h-8" />
+              </div>
+              <div className="stat-content">
+                <div className="stat-value-animated">
+                  {Math.round(searchResults.reduce((sum, m) => sum + (m.balance || 0), 0) / searchResults.length)}
+                </div>
+                <div className="stat-label">متوسط الرصيد (ريال)</div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Enhanced Members Table */}
+        {!memberStatement && filteredMembers.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.6 }}
+            className="enhanced-table-section"
+          >
+            <div className="enhanced-table-header">
+              <h2 className="enhanced-table-title">
+                {activeFilter === 'all' ? 'جميع الأعضاء' :
+                 activeFilter === 'compliant' ? 'الأعضاء الملتزمين' : 'الأعضاء غير الملتزمين'}
+                <span className="title-count">({filteredMembers.length})</span>
+              </h2>
+              <p className="enhanced-table-subtitle">
+                اضغط على أي عضو لعرض كشف الحساب التفصيلي
+              </p>
+            </div>
+
+            {/* Desktop Enhanced Table View */}
+            <div className="enhanced-table-container desktop-view" dir="rtl">
+              <table className="enhanced-members-table" dir="rtl">
               <thead>
                 <tr>
                   <th>رقم العضوية</th>
@@ -534,11 +691,14 @@ const MemberStatementSearch = () => {
                 </tr>
               </thead>
               <tbody>
-                {searchResults.map((member) => (
-                  <tr
+                {filteredMembers.map((member, index) => (
+                  <motion.tr
                     key={member.id}
-                    className="member-row"
+                    className="enhanced-member-row"
                     onClick={() => handleMemberSelect(member)}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: Math.min(index * 0.05, 1) }}
                   >
                     <td className="member-no">{member.member_no}</td>
                     <td className="member-name">
@@ -574,7 +734,7 @@ const MemberStatementSearch = () => {
                         عرض الكشف
                       </button>
                     </td>
-                  </tr>
+                  </motion.tr>
                 ))}
               </tbody>
             </table>
@@ -582,7 +742,7 @@ const MemberStatementSearch = () => {
 
           {/* Mobile Card View */}
           <div className="members-cards-container mobile-view">
-            {searchResults.map((member) => (
+            {filteredMembers.map((member) => (
               <motion.div
                 key={member.id}
                 className="member-card"
@@ -713,17 +873,53 @@ const MemberStatementSearch = () => {
               </div>
             </div>
 
-            {/* Payment Progress Bar */}
-            <div className="payment-progress">
-              <div className="progress-header">
-                <span>نسبة السداد</span>
-                <span>{Math.round(paymentProgress)}%</span>
+            {/* Circular Progress Ring */}
+            <div className="circular-progress-section">
+              <div className="circular-progress-header">
+                <h3>نسبة السداد</h3>
+                <p>مقارنة المبلغ المدفوع بالمطلوب</p>
               </div>
-              <div className="progress-bar">
-                <div
-                  className="progress-fill"
-                  style={{ width: `${paymentProgress}%` }}
-                />
+              <div className="progress-ring-container">
+                <svg className="progress-ring-svg" width="200" height="200">
+                  <defs>
+                    <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#667eea" />
+                      <stop offset="100%" stopColor="#764ba2" />
+                    </linearGradient>
+                  </defs>
+                  <circle
+                    className="progress-ring-background"
+                    cx="100"
+                    cy="100"
+                    r="85"
+                  />
+                  <circle
+                    className="progress-ring-circle"
+                    cx="100"
+                    cy="100"
+                    r="85"
+                    style={{
+                      strokeDasharray: `${2 * Math.PI * 85}`,
+                      strokeDashoffset: `${2 * Math.PI * 85 * (1 - paymentProgress / 100)}`
+                    }}
+                  />
+                  <text x="100" y="95" className="progress-ring-text">
+                    {Math.round(paymentProgress)}%
+                  </text>
+                  <text x="100" y="115" className="progress-ring-subtext">
+                    {memberStatement.totalPaid} / {memberStatement.totalRequired} ريال
+                  </text>
+                </svg>
+                <div className="progress-ring-details">
+                  <div className="progress-detail-item">
+                    <div className="detail-color" style={{background: 'linear-gradient(135deg, #667eea, #764ba2)'}}></div>
+                    <span>مدفوع: {memberStatement.totalPaid} ريال</span>
+                  </div>
+                  <div className="progress-detail-item">
+                    <div className="detail-color" style={{background: '#e5e7eb'}}></div>
+                    <span>متبقي: {memberStatement.outstandingBalance} ريال</span>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -765,31 +961,66 @@ const MemberStatementSearch = () => {
               </table>
             </div>
 
-            {/* Payment Chart */}
-            <div className="payment-chart-card">
-              <h4 className="text-lg font-semibold mb-4">رسم بياني للمدفوعات</h4>
-              <div className="chart-container">
-                <div className="bar-chart">
-                  {memberStatement.yearlyPayments.map((payment) => (
-                    <div key={payment.year} className="chart-bar-wrapper">
-                      <div
-                        className="chart-bar"
-                        style={{
-                          height: `${(payment.paid / payment.required) * 100}%`,
-                          backgroundColor: payment.status === 'paid' ? '#10b981' :
-                                         payment.status === 'partial' ? '#f59e0b' : '#ef4444'
-                        }}
-                      />
-                      <div className="chart-label">{payment.year}</div>
-                      <div className="chart-value">{payment.paid}</div>
+            {/* Timeline View */}
+            <div className="timeline-section">
+              <div className="timeline-header">
+                <h3>سجل المدفوعات السنوية</h3>
+                <p>تفاصيل المدفوعات مرتبة زمنياً</p>
+              </div>
+              <div className="timeline-container">
+                {memberStatement.yearlyPayments.map((payment, index) => (
+                  <motion.div
+                    key={payment.year}
+                    className={`timeline-item ${payment.status}`}
+                    initial={{ opacity: 0, x: -30 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.4, delay: index * 0.1 }}
+                  >
+                    <div className="timeline-marker">
+                      {payment.status === 'paid' ? (
+                        <CheckCircleIcon className="w-6 h-6" />
+                      ) : payment.status === 'partial' ? (
+                        <ClockIcon className="w-6 h-6" />
+                      ) : (
+                        <XCircleIcon className="w-6 h-6" />
+                      )}
                     </div>
-                  ))}
-                </div>
+                    <div className="timeline-content">
+                      <div className="timeline-year">{payment.year}</div>
+                      <div className="timeline-details">
+                        <div className="timeline-amount">
+                          <span className="amount-label">المدفوع:</span>
+                          <span className="amount-value">{payment.paid} ريال</span>
+                        </div>
+                        <div className="timeline-amount">
+                          <span className="amount-label">المطلوب:</span>
+                          <span className="amount-value">{payment.required} ريال</span>
+                        </div>
+                        {payment.paymentDate && (
+                          <div className="timeline-date">
+                            <CalendarIcon className="w-4 h-4" />
+                            <span>{new Date(payment.paymentDate).toLocaleDateString('ar-SA')}</span>
+                          </div>
+                        )}
+                        {payment.receiptNumber && (
+                          <div className="timeline-receipt">
+                            <span>إيصال: {payment.receiptNumber}</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className={`timeline-status-badge status-${payment.status}`}>
+                        {payment.status === 'paid' ? 'مدفوع بالكامل' :
+                         payment.status === 'partial' ? 'مدفوع جزئياً' : 'غير مدفوع'}
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
               </div>
             </div>
           </div>
         </motion.div>
       )}
+      </div>
     </div>
   );
 };
