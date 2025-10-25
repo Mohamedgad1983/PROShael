@@ -1,5 +1,23 @@
 import { supabase } from '../config/database.js';
 import { log } from '../utils/logger.js';
+import {
+  MEMBER_STATUS,
+  MEMBER_COLUMNS,
+  ERROR_CODES,
+  ERROR_MESSAGES,
+  SUCCESS_MESSAGES
+} from '../constants/memberConstants.js';
+import {
+  validateMemberId,
+  validateSuspensionReason,
+  validateReactivationNotes,
+  buildErrorResponse
+} from '../utils/memberValidation.js';
+import {
+  findMemberById,
+  isMemberSuspended,
+  isMemberActive
+} from '../utils/memberHelpers.js';
 
 /**
  * Suspend a member (Super Admin only)
@@ -11,99 +29,111 @@ export const suspendMember = async (req, res) => {
     const { reason } = req.body;
     const superAdmin = req.superAdmin; // From requireSuperAdmin middleware
 
-    // Validate inputs
-    if (!memberId) {
+    // HIGH #2: Validate member ID with UUID format check
+    const memberIdValidation = validateMemberId(memberId);
+    if (!memberIdValidation.valid) {
       return res.status(400).json({
         success: false,
-        error: 'INVALID_INPUT',
-        message: 'معرف العضو مطلوب'
+        ...memberIdValidation.error
       });
     }
 
-    if (!reason || reason.trim().length === 0) {
+    // HIGH #2: Validate and sanitize suspension reason (XSS protection + length check)
+    const reasonValidation = validateSuspensionReason(reason);
+    if (!reasonValidation.valid) {
       return res.status(400).json({
         success: false,
-        error: 'INVALID_INPUT',
-        message: 'يجب إدخال سبب الإيقاف'
+        ...reasonValidation.error
       });
     }
+    const sanitizedReason = reasonValidation.sanitized;
 
-    // Check if member exists
-    const { data: member, error: memberError } = await supabase
-      .from('members')
-      .select('id, full_name, membership_status')
-      .eq('id', memberId)
-      .single();
-
-    if (memberError || !member) {
-      return res.status(404).json({
-        success: false,
-        error: 'MEMBER_NOT_FOUND',
-        message: 'العضو غير موجود'
-      });
+    // HIGH #1: Use reusable helper for member lookup
+    const memberResult = await findMemberById(memberId);
+    if (!memberResult.success) {
+      return res.status(memberResult.error.status).json(memberResult.error.body);
     }
+    const member = memberResult.member;
 
-    // Check if already suspended
-    if (member.membership_status === 'suspended') {
+    // MEDIUM #4: Use type-safe constants instead of magic strings
+    if (isMemberSuspended(member)) {
       return res.status(400).json({
         success: false,
-        error: 'ALREADY_SUSPENDED',
-        message: 'العضو موقوف بالفعل'
+        error: ERROR_CODES.ALREADY_SUSPENDED,
+        message: ERROR_MESSAGES.ALREADY_SUSPENDED
       });
     }
 
-    // Suspend the member
+    // LOW #7: Optimized single-query approach with better error handling
     const { data: updatedMember, error: updateError } = await supabase
       .from('members')
       .update({
-        membership_status: 'suspended',
-        suspended_at: new Date().toISOString(),
-        suspended_by: superAdmin.id,
-        suspension_reason: reason,
-        updated_at: new Date().toISOString()
+        [MEMBER_COLUMNS.MEMBERSHIP_STATUS]: MEMBER_STATUS.SUSPENDED,
+        [MEMBER_COLUMNS.SUSPENDED_AT]: new Date().toISOString(),
+        [MEMBER_COLUMNS.SUSPENDED_BY]: superAdmin.id,
+        [MEMBER_COLUMNS.SUSPENSION_REASON]: sanitizedReason,
+        [MEMBER_COLUMNS.UPDATED_AT]: new Date().toISOString()
       })
-      .eq('id', memberId)
+      .eq(MEMBER_COLUMNS.ID, memberId)
       .select()
       .single();
 
     if (updateError) {
-      log.error('[Suspend] Database error:', { updateError, memberId });
+      // MEDIUM #5: Enhanced error logging with Supabase details
+      log.error('[Suspend] Database error:', {
+        error: updateError,
+        memberId,
+        errorCode: updateError.code,
+        errorDetails: updateError.details,
+        errorHint: updateError.hint,
+        errorMessage: updateError.message
+      });
+
       return res.status(500).json({
         success: false,
-        error: 'DATABASE_ERROR',
-        message: 'خطأ في إيقاف العضو'
+        error: ERROR_CODES.DATABASE_ERROR,
+        message: ERROR_MESSAGES.DATABASE_ERROR.SUSPEND_FAILED
       });
     }
 
     log.info('[Suspend] Member suspended successfully:', {
       memberId,
-      memberName: member.full_name,
+      memberName: member[MEMBER_COLUMNS.FULL_NAME],
       suspendedBy: superAdmin.email,
-      reason
+      suspendedById: superAdmin.id,
+      reason: sanitizedReason
     });
 
-    // Return success
+    // MEDIUM #6: Enhanced audit trail with full admin details
     res.json({
       success: true,
-      message: 'تم إيقاف العضو بنجاح',
+      message: SUCCESS_MESSAGES.MEMBER_SUSPENDED,
       data: {
         member: {
-          id: updatedMember.id,
-          name: updatedMember.full_name,
-          status: updatedMember.membership_status,
-          suspended_at: updatedMember.suspended_at,
-          suspended_by: superAdmin.email,
-          suspension_reason: updatedMember.suspension_reason
+          id: updatedMember[MEMBER_COLUMNS.ID],
+          name: updatedMember[MEMBER_COLUMNS.FULL_NAME],
+          status: updatedMember[MEMBER_COLUMNS.MEMBERSHIP_STATUS],
+          suspended_at: updatedMember[MEMBER_COLUMNS.SUSPENDED_AT],
+          suspended_by: {
+            id: superAdmin.id,
+            email: superAdmin.email,
+            role: superAdmin.role
+          },
+          suspension_reason: updatedMember[MEMBER_COLUMNS.SUSPENSION_REASON]
         }
       }
     });
 
   } catch (error) {
-    log.error('[Suspend] Unexpected error:', error);
+    log.error('[Suspend] Unexpected error:', {
+      error: error.message,
+      stack: error.stack,
+      memberId: req.params.memberId
+    });
     res.status(500).json({
       success: false,
-      error: 'SERVER_ERROR',
-      message: 'خطأ في الخادم'
+      error: ERROR_CODES.SERVER_ERROR,
+      message: ERROR_MESSAGES.SERVER_ERROR
     });
   }
 };
@@ -118,91 +148,111 @@ export const activateMember = async (req, res) => {
     const { notes } = req.body;
     const superAdmin = req.superAdmin;
 
-    // Validate inputs
-    if (!memberId) {
+    // HIGH #2: Validate member ID with UUID format check
+    const memberIdValidation = validateMemberId(memberId);
+    if (!memberIdValidation.valid) {
       return res.status(400).json({
         success: false,
-        error: 'INVALID_INPUT',
-        message: 'معرف العضو مطلوب'
+        ...memberIdValidation.error
       });
     }
 
-    // Check if member exists
-    const { data: member, error: memberError } = await supabase
-      .from('members')
-      .select('id, full_name, membership_status')
-      .eq('id', memberId)
-      .single();
-
-    if (memberError || !member) {
-      return res.status(404).json({
-        success: false,
-        error: 'MEMBER_NOT_FOUND',
-        message: 'العضو غير موجود'
-      });
-    }
-
-    // Check if actually suspended
-    if (member.membership_status !== 'suspended') {
+    // HIGH #2: Validate and sanitize reactivation notes (optional field)
+    const notesValidation = validateReactivationNotes(notes);
+    if (!notesValidation.valid) {
       return res.status(400).json({
         success: false,
-        error: 'NOT_SUSPENDED',
-        message: 'العضو غير موقوف'
+        ...notesValidation.error
+      });
+    }
+    const sanitizedNotes = notesValidation.sanitized || SUCCESS_MESSAGES.DEFAULT_ACTIVATION_NOTE;
+
+    // HIGH #1: Use reusable helper for member lookup
+    const memberResult = await findMemberById(memberId);
+    if (!memberResult.success) {
+      return res.status(memberResult.error.status).json(memberResult.error.body);
+    }
+    const member = memberResult.member;
+
+    // MEDIUM #4: Use type-safe constants instead of magic strings
+    if (!isMemberSuspended(member)) {
+      return res.status(400).json({
+        success: false,
+        error: ERROR_CODES.NOT_SUSPENDED,
+        message: ERROR_MESSAGES.NOT_SUSPENDED
       });
     }
 
-    // Activate the member
+    // LOW #7: Optimized single-query approach
     const { data: updatedMember, error: updateError } = await supabase
       .from('members')
       .update({
-        membership_status: 'active',
-        reactivated_at: new Date().toISOString(),
-        reactivated_by: superAdmin.id,
-        reactivation_notes: notes || 'تم التفعيل بواسطة المشرف العام',
-        updated_at: new Date().toISOString()
+        [MEMBER_COLUMNS.MEMBERSHIP_STATUS]: MEMBER_STATUS.ACTIVE,
+        [MEMBER_COLUMNS.REACTIVATED_AT]: new Date().toISOString(),
+        [MEMBER_COLUMNS.REACTIVATED_BY]: superAdmin.id,
+        [MEMBER_COLUMNS.REACTIVATION_NOTES]: sanitizedNotes,
+        [MEMBER_COLUMNS.UPDATED_AT]: new Date().toISOString()
       })
-      .eq('id', memberId)
+      .eq(MEMBER_COLUMNS.ID, memberId)
       .select()
       .single();
 
     if (updateError) {
-      log.error('[Activate] Database error:', { updateError, memberId });
+      // MEDIUM #5: Enhanced error logging with Supabase details
+      log.error('[Activate] Database error:', {
+        error: updateError,
+        memberId,
+        errorCode: updateError.code,
+        errorDetails: updateError.details,
+        errorHint: updateError.hint,
+        errorMessage: updateError.message
+      });
+
       return res.status(500).json({
         success: false,
-        error: 'DATABASE_ERROR',
-        message: 'خطأ في تفعيل العضو'
+        error: ERROR_CODES.DATABASE_ERROR,
+        message: ERROR_MESSAGES.DATABASE_ERROR.ACTIVATE_FAILED
       });
     }
 
     log.info('[Activate] Member activated successfully:', {
       memberId,
-      memberName: member.full_name,
+      memberName: member[MEMBER_COLUMNS.FULL_NAME],
       activatedBy: superAdmin.email,
-      notes
+      activatedById: superAdmin.id,
+      notes: sanitizedNotes
     });
 
-    // Return success
+    // MEDIUM #6: Enhanced audit trail with full admin details
     res.json({
       success: true,
-      message: 'تم تفعيل العضو بنجاح',
+      message: SUCCESS_MESSAGES.MEMBER_ACTIVATED,
       data: {
         member: {
-          id: updatedMember.id,
-          name: updatedMember.full_name,
-          status: updatedMember.membership_status,
-          reactivated_at: updatedMember.reactivated_at,
-          reactivated_by: superAdmin.email,
-          reactivation_notes: updatedMember.reactivation_notes
+          id: updatedMember[MEMBER_COLUMNS.ID],
+          name: updatedMember[MEMBER_COLUMNS.FULL_NAME],
+          status: updatedMember[MEMBER_COLUMNS.MEMBERSHIP_STATUS],
+          reactivated_at: updatedMember[MEMBER_COLUMNS.REACTIVATED_AT],
+          reactivated_by: {
+            id: superAdmin.id,
+            email: superAdmin.email,
+            role: superAdmin.role
+          },
+          reactivation_notes: updatedMember[MEMBER_COLUMNS.REACTIVATION_NOTES]
         }
       }
     });
 
   } catch (error) {
-    log.error('[Activate] Unexpected error:', error);
+    log.error('[Activate] Unexpected error:', {
+      error: error.message,
+      stack: error.stack,
+      memberId: req.params.memberId
+    });
     res.status(500).json({
       success: false,
-      error: 'SERVER_ERROR',
-      message: 'خطأ في الخادم'
+      error: ERROR_CODES.SERVER_ERROR,
+      message: ERROR_MESSAGES.SERVER_ERROR
     });
   }
 };
@@ -215,55 +265,80 @@ export const getSuspensionHistory = async (req, res) => {
   try {
     const { memberId } = req.params;
 
-    const { data: member, error } = await supabase
-      .from('members')
-      .select(`
-        id,
-        full_name,
-        membership_status,
-        suspended_at,
-        suspended_by,
-        suspension_reason,
-        reactivated_at,
-        reactivated_by,
-        reactivation_notes
-      `)
-      .eq('id', memberId)
-      .single();
-
-    if (error || !member) {
-      return res.status(404).json({
+    // HIGH #2: Validate member ID
+    const memberIdValidation = validateMemberId(memberId);
+    if (!memberIdValidation.valid) {
+      return res.status(400).json({
         success: false,
-        error: 'MEMBER_NOT_FOUND',
-        message: 'العضو غير موجود'
+        ...memberIdValidation.error
       });
     }
 
+    // HIGH #1: Use reusable helper
+    const { data: member, error } = await supabase
+      .from('members')
+      .select(`
+        ${MEMBER_COLUMNS.ID},
+        ${MEMBER_COLUMNS.FULL_NAME},
+        ${MEMBER_COLUMNS.MEMBERSHIP_STATUS},
+        ${MEMBER_COLUMNS.SUSPENDED_AT},
+        ${MEMBER_COLUMNS.SUSPENDED_BY},
+        ${MEMBER_COLUMNS.SUSPENSION_REASON},
+        ${MEMBER_COLUMNS.REACTIVATED_AT},
+        ${MEMBER_COLUMNS.REACTIVATED_BY},
+        ${MEMBER_COLUMNS.REACTIVATION_NOTES}
+      `)
+      .eq(MEMBER_COLUMNS.ID, memberId)
+      .single();
+
+    if (error || !member) {
+      // MEDIUM #5: Enhanced error logging
+      if (error) {
+        log.error('[SuspensionHistory] Database error:', {
+          error,
+          memberId,
+          errorCode: error.code,
+          errorDetails: error.details
+        });
+      }
+
+      return res.status(404).json({
+        success: false,
+        error: ERROR_CODES.MEMBER_NOT_FOUND,
+        message: ERROR_MESSAGES.MEMBER_NOT_FOUND
+      });
+    }
+
+    // MEDIUM #4: Use constants for column names
     res.json({
       success: true,
       data: {
         member: {
-          id: member.id,
-          name: member.full_name,
-          current_status: member.membership_status
+          id: member[MEMBER_COLUMNS.ID],
+          name: member[MEMBER_COLUMNS.FULL_NAME],
+          current_status: member[MEMBER_COLUMNS.MEMBERSHIP_STATUS]
         },
-        suspension_info: member.suspended_at ? {
-          suspended_at: member.suspended_at,
-          suspended_by: member.suspended_by,
-          reason: member.suspension_reason,
-          reactivated_at: member.reactivated_at,
-          reactivated_by: member.reactivated_by,
-          notes: member.reactivation_notes
+        suspension_info: member[MEMBER_COLUMNS.SUSPENDED_AT] ? {
+          suspended_at: member[MEMBER_COLUMNS.SUSPENDED_AT],
+          suspended_by: member[MEMBER_COLUMNS.SUSPENDED_BY],
+          reason: member[MEMBER_COLUMNS.SUSPENSION_REASON],
+          reactivated_at: member[MEMBER_COLUMNS.REACTIVATED_AT],
+          reactivated_by: member[MEMBER_COLUMNS.REACTIVATED_BY],
+          notes: member[MEMBER_COLUMNS.REACTIVATION_NOTES]
         } : null
       }
     });
 
   } catch (error) {
-    log.error('[SuspensionHistory] Error:', error);
+    log.error('[SuspensionHistory] Unexpected error:', {
+      error: error.message,
+      stack: error.stack,
+      memberId: req.params.memberId
+    });
     res.status(500).json({
       success: false,
-      error: 'SERVER_ERROR',
-      message: 'خطأ في الخادم'
+      error: ERROR_CODES.SERVER_ERROR,
+      message: ERROR_MESSAGES.SERVER_ERROR
     });
   }
 };

@@ -6,6 +6,7 @@ import {
 } from '../controllers/memberSuspensionController.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { requireSuperAdmin } from '../middleware/superAdminAuth.js';
+import { requireAdminOrSelf } from '../middleware/requireAdminOrSelf.js';
 
 const router = express.Router();
 
@@ -29,8 +30,9 @@ router.post('/:memberId/activate', requireSuperAdmin, activateMember);
 /**
  * @route   GET /api/members/:memberId/suspension-history
  * @desc    Get suspension history for a member
- * @access  Authenticated (Admin)
+ * @access  Admin OR Member (self only)
+ * @security HIGH #3: Added authorization - Admins can view any, members can view only their own
  */
-router.get('/:memberId/suspension-history', getSuspensionHistory);
+router.get('/:memberId/suspension-history', requireAdminOrSelf, getSuspensionHistory);
 
 export default router;
