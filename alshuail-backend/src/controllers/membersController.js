@@ -2,7 +2,7 @@ import { supabase } from '../config/database.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { sanitizeJSON as _sanitizeJSON, prepareUpdateData } from '../utils/jsonSanitizer.js';
-import { sanitizeSearchTerm, sanitizeNumber, sanitizeBoolean } from '../utils/inputSanitizer.js';
+import { sanitizeSearchTerm, sanitizeNumber, sanitizeBoolean, sanitizePhone } from '../utils/inputSanitizer.js';
 import { log } from '../utils/logger.js';
 import { config } from '../config/env.js';
 
@@ -126,6 +126,15 @@ export const createMember = async (req, res) => {
       }
     }
 
+    // Sanitize and validate phone number (supports Saudi +966 and Kuwait +965)
+    const sanitizedPhone = sanitizePhone(memberData.phone, memberData.country_code);
+    if (!sanitizedPhone) {
+      return res.status(400).json({
+        success: false,
+        error: 'رقم الهاتف غير صالح. يجب أن يكون رقم سعودي (05XXXXXXXX) أو كويتي (XXXXXXXX)'
+      });
+    }
+
     // Generate membership number if not provided
     if (!memberData.membership_number) {
       memberData.membership_number = `SH-${  Date.now().toString().slice(-8)}`;
@@ -134,7 +143,7 @@ export const createMember = async (req, res) => {
     // Ensure all fields are properly set
     const memberToCreate = {
       full_name: memberData.full_name,
-      phone: memberData.phone,
+      phone: sanitizedPhone,
       email: memberData.email || null,
       national_id: memberData.national_id || null,
       tribal_section: memberData.tribal_section || null,
@@ -218,6 +227,18 @@ export const updateMember = async (req, res) => {
     });
 
     log.debug('Data cleaned and validated', { fieldsCount: Object.keys(cleanedData).length });
+
+    // Sanitize and validate phone number if it's being updated
+    if (cleanedData.phone) {
+      const sanitizedPhone = sanitizePhone(cleanedData.phone, cleanedData.country_code);
+      if (!sanitizedPhone) {
+        return res.status(400).json({
+          success: false,
+          error: 'رقم الهاتف غير صالح. يجب أن يكون رقم سعودي (05XXXXXXXX) أو كويتي (XXXXXXXX)'
+        });
+      }
+      cleanedData.phone = sanitizedPhone;
+    }
 
     // Use our utility to prepare the update data
     const fieldsToUpdate = prepareUpdateData(cleanedData);
