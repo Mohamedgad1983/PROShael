@@ -2279,7 +2279,7 @@
             // Calculate branch distribution
             const branchCounts = {};
             members.forEach(m => {
-                const branch = m.branch_arabic || 'غير محدد';
+                const branch = m.tribal_section || 'غير محدد';
                 branchCounts[branch] = (branchCounts[branch] || 0) + 1;
             });
 
@@ -2596,18 +2596,18 @@
 
         // ===== Member Action Functions (Updated for API Data) =====
         function viewMember(memberId) {
-            const member = allMembers.find(m => (m.member_number || m.id) === memberId);
+            const member = allMembers.find(m => (m.membership_number || m.id) === memberId);
             if (member) {
-                alert(`عرض تفاصيل العضو: ${member.full_name_arabic || member.name}\nرقم العضو: ${memberId}`);
+                alert(`عرض تفاصيل العضو: ${member.full_name || member.name}\nرقم العضو: ${memberId}`);
                 // In production, open detail modal or navigate to detail page
             }
         }
 
         function whatsappMember(memberId) {
-            const member = allMembers.find(m => (m.member_number || m.id) === memberId);
+            const member = allMembers.find(m => (m.membership_number || m.id) === memberId);
             if (member) {
-                const phone = (member.phone_number || member.phone || '').replace(/\s/g, '').replace('+', '');
-                const name = member.full_name_arabic || member.name || 'العضو';
+                const phone = (member.phone || member.phone || '').replace(/\s/g, '').replace('+', '');
+                const name = member.full_name || member.name || 'العضو';
                 const message = encodeURIComponent(`مرحباً ${name}`);
                 window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
             }
@@ -2626,7 +2626,7 @@
         function getSelectedMembers() {
             const checkboxes = document.querySelectorAll('.member-checkbox:checked');
             const selectedIds = Array.from(checkboxes).map(cb => cb.dataset.memberId);
-            return allMembers.filter(m => selectedIds.includes(m.member_number || m.id));
+            return allMembers.filter(m => selectedIds.includes(m.membership_number || m.id));
         }
 
         // ===== Bulk Actions (Updated) =====
@@ -2651,8 +2651,8 @@
             // Open WhatsApp for each selected member
             selected.forEach((member, index) => {
                 setTimeout(() => {
-                    const phone = (member.phone_number || member.phone || '').replace(/\s/g, '').replace('+', '');
-                    const name = member.full_name_arabic || member.name || 'العضو';
+                    const phone = (member.phone || member.phone || '').replace(/\s/g, '').replace('+', '');
+                    const name = member.full_name || member.name || 'العضو';
                     const message = encodeURIComponent(`مرحباً ${name}`);
                     window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
                 }, index * 500); // Delay to avoid popup blocking
@@ -2676,10 +2676,10 @@
         function exportMembersToExcel(members) {
             try {
                 const exportData = members.map(member => ({
-                    'رقم العضو': member.member_number || member.id || '',
-                    'الاسم الكامل': member.full_name_arabic || member.name || '',
-                    'رقم الهاتف': member.phone_number || member.phone || '',
-                    'الفخذ': member.branch_arabic || member.branch || '',
+                    'رقم العضو': member.membership_number || member.id || '',
+                    'الاسم الكامل': member.full_name || member.name || '',
+                    'رقم الهاتف': member.phone || member.phone || '',
+                    'الفخذ': member.tribal_section || member.branch || '',
                     'حالة العضوية': translateMemberStatus(member.membership_status || ''),
                     'الحالة المالية': translateFinancialStatus(member.financial_status || ''),
                     'الرصيد الحالي': member.current_balance || 0,
@@ -2739,10 +2739,10 @@
             const payment = document.getElementById('filterPayment')?.value || '';
 
             filteredMembers = allMembers.filter(member => {
-                const memberId = (member.member_number || member.id || '').toLowerCase();
-                const name = (member.full_name_arabic || member.name || '').toLowerCase();
-                const memberPhone = member.phone_number || member.phone || '';
-                const memberBranch = member.branch_arabic || member.branch || '';
+                const memberId = (member.membership_number || member.id || '').toLowerCase();
+                const name = (member.full_name || member.name || '').toLowerCase();
+                const memberPhone = member.phone || member.phone || '';
+                const memberBranch = member.tribal_section || member.branch || '';
                 const memberStatus = member.membership_status || '';
                 const paymentStatus = member.financial_status || '';
 
