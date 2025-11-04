@@ -39,15 +39,16 @@ const MemberMonitoringDashboard = memo(() => {
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
+  const [pageSize, setPageSize] = useState(25); // Default to 25 for better UX
 
   // Load members data
   const loadMembers = useCallback(async () => {
     try {
       setLoading(true);
 
-      // Fetch from API endpoint instead of direct Supabase
-      const response = await fetch('/api/members', {
+      // Fetch ALL members from API (backend max 500, enough for our 347 members)
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
+      const response = await fetch(`${API_BASE_URL}/api/members?limit=500&page=1`, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -58,8 +59,13 @@ const MemberMonitoringDashboard = memo(() => {
 
       const { data } = await response.json();
       const processedMembers = (data || []).map(member => {
-        const balance = member.current_balance || 0;
-        const requiredPayment = Math.max(0, -balance);
+        // Fix: Use explicit undefined check to preserve 0 values (same fix as statement search)
+        const balance = member.current_balance !== undefined ? member.current_balance : 0;
+
+        // Required amount: 3000 SAR for each member until 2025
+        const requiredAmount = 3000;
+        const requiredPayment = Math.max(0, requiredAmount - balance);
+        const percentageComplete = Math.min(100, (balance / requiredAmount) * 100);
 
         let status = 'compliant';
         let statusText = 'ملتزم';
@@ -82,7 +88,7 @@ const MemberMonitoringDashboard = memo(() => {
         return {
           ...member,
           id: member.id,
-          memberId: member.member_id,
+          memberId: member.membership_number || member.member_id,
           fullName: member.full_name,
           phone: member.phone,
           tribalSection: member.tribal_section || 'غير محدد',

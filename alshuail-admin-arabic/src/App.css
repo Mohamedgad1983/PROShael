@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap');
+@import './styles/enhanced-dropdowns.css';
 
 * {
   margin: 0;
@@ -123,6 +124,36 @@ body {
 
 .form-group {
   margin-bottom: 0.75rem;
+}
+
+/* Override margin for ArabicSelect when dropdown is open */
+.arabic-select-container.dropdown-open {
+  margin-bottom: 280px !important;
+  transition: margin-bottom 0.2s ease;
+}
+
+.arabic-select-container:not(.dropdown-open) {
+  margin-bottom: 25px !important;
+  transition: margin-bottom 0.2s ease;
+}
+
+/* Fix for member status dropdown - ensure text is visible */
+#membership_status,
+#membership_type {
+  height: 48px !important;
+  line-height: 24px !important;
+  padding: 12px 40px 12px 16px !important;
+  font-size: 16px !important;
+}
+
+/* Fix for Hijri month dropdown - ensure text is visible */
+.form-group select.form-input {
+  height: auto !important;
+  min-height: 38px !important;
+  line-height: 1.5 !important;
+  padding: 8px 12px !important;
+  font-size: 14px !important;
+  color: #2d3748 !important;
 }
 
 .form-group label {

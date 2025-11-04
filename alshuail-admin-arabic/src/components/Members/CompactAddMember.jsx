@@ -281,25 +281,31 @@ const CompactAddMember = ({ onMemberAdded }) => {
             </div>
 
             <div className="form-group">
-              <label htmlFor="tribal_section">الفخذ</label>
-              <select
-                id="tribal_section"
-                name="tribal_section"
-                value={formData.tribal_section}
-                onChange={handleChange}
-                className="form-select"
-                dir="rtl"
-              >
-                <option value="">اختر الفخذ</option>
-                <option value="الدغيش">الدغيش</option>
-                <option value="الرشيد">الرشيد</option>
-                <option value="الشبيعان">الشبيعان</option>
-                <option value="العيد">العيد</option>
-                <option value="المسعود">المسعود</option>
-                <option value="رشود">رشود</option>
-                <option value="رشيد">رشيد</option>
-                <option value="عقاب">عقاب</option>
-              </select>
+              <label htmlFor="tribal_section" className="form-label">
+                <span className="label-icon">🏛️</span>
+                <span>الفخذ</span>
+              </label>
+              <div className="select-wrapper">
+                <select
+                  id="tribal_section"
+                  name="tribal_section"
+                  value={formData.tribal_section}
+                  onChange={handleChange}
+                  className="form-select enhanced-dropdown"
+                  dir="rtl"
+                >
+                  <option value="">اختر الفخذ</option>
+                  <option value="الدغيش">الدغيش</option>
+                  <option value="الرشيد">الرشيد</option>
+                  <option value="الشبيعان">الشبيعان</option>
+                  <option value="العيد">العيد</option>
+                  <option value="المسعود">المسعود</option>
+                  <option value="رشود">رشود</option>
+                  <option value="رشيد">رشيد</option>
+                  <option value="عقاب">عقاب</option>
+                </select>
+                <span className="select-arrow">▼</span>
+              </div>
             </div>
 
             {/* Photo Upload */}

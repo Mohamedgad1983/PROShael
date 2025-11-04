@@ -1,4 +1,5 @@
-﻿import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { getDistrictsByCity } from '../../utils/cityDistrictData';
 import {
   UserIcon,
   PhoneIcon,
@@ -55,6 +56,7 @@ const AppleMembersManagement = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [activeField, setActiveField] = useState('');
+  const [availableDistricts, setAvailableDistricts] = useState([]);
   const formRef = useRef(null);
 
   const totalSteps = 5;
@@ -98,6 +100,18 @@ const AppleMembersManagement = () => {
 
     // Clear error for this field
     setErrors(prev => prev.filter(error => error.field !== field));
+
+    // Handle City → District cascading
+    if (field === 'city') {
+      const districts = getDistrictsByCity(value);
+      setAvailableDistricts(districts);
+
+      // Reset district when city changes
+      setFormData(prev => ({
+        ...prev,
+        district: ''
+      }));
+    }
   }, []);
 
   const validateStep = useCallback((step) => {
@@ -405,38 +419,62 @@ const AppleMembersManagement = () => {
       </div>
 
       <div className="form-grid">
-        <div className="input-group">
-          <label className="input-label">
+        <div className="input-group form-group">
+          <label className="input-label form-label">
             <MapPinIcon className="label-icon" />
-            المدينة
+            <span>المدينة</span>
           </label>
-          <select
-            className={`input-field ${errors.find(e => e.field === 'city') ? 'error' : ''}`}
-            value={formData.city}
-            onChange={(e) => handleInputChange('city', e.target.value)}
-          >
-            <option value="">اختر المدينة</option>
-            <option value="riyadh">الرياض</option>
-            <option value="jeddah">جدة</option>
-            <option value="makkah">مكة المكرمة</option>
-            <option value="madinah">المدينة المنورة</option>
-            <option value="dammam">الدمام</option>
-            <option value="khobar">الخبر</option>
-          </select>
+          <div className="select-wrapper">
+            <select
+              className={`input-field enhanced-dropdown ${errors.find(e => e.field === 'city') ? 'error' : ''}`}
+              value={formData.city}
+              onChange={(e) => handleInputChange('city', e.target.value)}
+              id="city"
+            >
+              <option value="">اختر المدينة</option>
+              <option value="riyadh">الرياض</option>
+              <option value="jeddah">جدة</option>
+              <option value="makkah">مكة المكرمة</option>
+              <option value="madinah">المدينة المنورة</option>
+              <option value="dammam">الدمام</option>
+              <option value="khobar">الخبر</option>
+            </select>
+            <span className="select-arrow">▼</span>
+          </div>
         </div>
 
-        <div className="input-group">
-          <label className="input-label">
+        <div className="input-group form-group cascade-connection">
+          <label className="input-label form-label">
             <MapPinIcon className="label-icon" />
-            الحي
+            <span>الحي</span>
+            <span className="dependent-indicator">
+              <span>↓</span>
+              <span>يعتمد على المدينة</span>
+            </span>
           </label>
-          <input
-            type="text"
-            className={`input-field ${errors.find(e => e.field === 'district') ? 'error' : ''}`}
-            placeholder="اسم الحي"
-            value={formData.district}
-            onChange={(e) => handleInputChange('district', e.target.value)}
-          />
+          <div className="select-wrapper">
+            <select
+              className={`input-field enhanced-dropdown ${errors.find(e => e.field === 'district') ? 'error' : ''}`}
+              value={formData.district}
+              onChange={(e) => handleInputChange('district', e.target.value)}
+              id="district"
+              disabled={!formData.city || availableDistricts.length === 0}
+            >
+              <option value="">
+                {!formData.city ? 'اختر المدينة أولاً' : availableDistricts.length === 0 ? 'لا توجد أحياء متاحة' : 'اختر الحي'}
+              </option>
+              {availableDistricts.map((district) => (
+                <option key={district.value} value={district.value}>
+                  {district.label}
+                </option>
+              ))}
+            </select>
+            <span className="select-arrow">▼</span>
+          </div>
+          <div className="helper-text">
+            <span className="helper-icon">ℹ️</span>
+            <span>{availableDistricts.length > 0 ? `${availableDistricts.length} حي متاح` : 'اختر المدينة لإظهار الأحياء'}</span>
+          </div>
         </div>
 
         <div className="input-group">
@@ -502,22 +540,26 @@ const AppleMembersManagement = () => {
       </div>
 
       <div className="form-grid">
-        <div className="input-group">
-          <label className="input-label">
+        <div className="input-group form-group">
+          <label className="input-label form-label">
             <HeartIcon className="label-icon" />
-            الحالة الاجتماعية
+            <span>الحالة الاجتماعية</span>
           </label>
-          <select
-            className={`input-field ${errors.find(e => e.field === 'maritalStatus') ? 'error' : ''}`}
-            value={formData.maritalStatus}
-            onChange={(e) => handleInputChange('maritalStatus', e.target.value)}
-          >
-            <option value="">اختر الحالة</option>
-            <option value="single">أعزب</option>
-            <option value="married">متزوج</option>
-            <option value="divorced">مطلق</option>
-            <option value="widowed">أرمل</option>
-          </select>
+          <div className="select-wrapper">
+            <select
+              className={`input-field enhanced-dropdown ${errors.find(e => e.field === 'maritalStatus') ? 'error' : ''}`}
+              value={formData.maritalStatus}
+              onChange={(e) => handleInputChange('maritalStatus', e.target.value)}
+              id="maritalStatus"
+            >
+              <option value="">اختر الحالة</option>
+              <option value="single">أعزب</option>
+              <option value="married">متزوج</option>
+              <option value="divorced">مطلق</option>
+              <option value="widowed">أرمل</option>
+            </select>
+            <span className="select-arrow">▼</span>
+          </div>
         </div>
 
         <div className="input-group">
@@ -633,45 +675,53 @@ const AppleMembersManagement = () => {
           />
         </div>
 
-        <div className="input-group">
-          <label className="input-label">
+        <div className="input-group form-group">
+          <label className="input-label form-label">
             <BanknotesIcon className="label-icon" />
-            الدخل الشهري
+            <span>الدخل الشهري</span>
           </label>
-          <select
-            className="input-field"
-            value={formData.monthlyIncome}
-            onChange={(e) => handleInputChange('monthlyIncome', e.target.value)}
-          >
-            <option value="">اختر النطاق</option>
-            <option value="less-3000">أقل من 3,000 ريال</option>
-            <option value="3000-5000">3,000 - 5,000 ريال</option>
-            <option value="5000-10000">5,000 - 10,000 ريال</option>
-            <option value="10000-15000">10,000 - 15,000 ريال</option>
-            <option value="15000-20000">15,000 - 20,000 ريال</option>
-            <option value="more-20000">أكثر من 20,000 ريال</option>
-          </select>
+          <div className="select-wrapper">
+            <select
+              className="input-field enhanced-dropdown"
+              value={formData.monthlyIncome}
+              onChange={(e) => handleInputChange('monthlyIncome', e.target.value)}
+              id="monthlyIncome"
+            >
+              <option value="">اختر النطاق</option>
+              <option value="less-3000">أقل من 3,000 ريال</option>
+              <option value="3000-5000">3,000 - 5,000 ريال</option>
+              <option value="5000-10000">5,000 - 10,000 ريال</option>
+              <option value="10000-15000">10,000 - 15,000 ريال</option>
+              <option value="15000-20000">15,000 - 20,000 ريال</option>
+              <option value="more-20000">أكثر من 20,000 ريال</option>
+            </select>
+            <span className="select-arrow">▼</span>
+          </div>
         </div>
 
-        <div className="input-group">
-          <label className="input-label">
+        <div className="input-group form-group">
+          <label className="input-label form-label">
             <AcademicCapIcon className="label-icon" />
-            المستوى التعليمي
+            <span>المستوى التعليمي</span>
           </label>
-          <select
-            className="input-field"
-            value={formData.educationLevel}
-            onChange={(e) => handleInputChange('educationLevel', e.target.value)}
-          >
-            <option value="">اختر المستوى</option>
-            <option value="primary">ابتدائي</option>
-            <option value="intermediate">متوسط</option>
-            <option value="secondary">ثانوي</option>
-            <option value="diploma">دبلوم</option>
-            <option value="bachelor">بكالوريوس</option>
-            <option value="master">ماجستير</option>
-            <option value="phd">دكتوراه</option>
-          </select>
+          <div className="select-wrapper">
+            <select
+              className="input-field enhanced-dropdown"
+              value={formData.educationLevel}
+              onChange={(e) => handleInputChange('educationLevel', e.target.value)}
+              id="educationLevel"
+            >
+              <option value="">اختر المستوى</option>
+              <option value="primary">ابتدائي</option>
+              <option value="intermediate">متوسط</option>
+              <option value="secondary">ثانوي</option>
+              <option value="diploma">دبلوم</option>
+              <option value="bachelor">بكالوريوس</option>
+              <option value="master">ماجستير</option>
+              <option value="phd">دكتوراه</option>
+            </select>
+            <span className="select-arrow">▼</span>
+          </div>
         </div>
       </div>
     </div>

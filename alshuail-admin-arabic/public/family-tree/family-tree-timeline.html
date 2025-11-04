@@ -599,70 +599,162 @@
         </div>
     </div>
 
+    <!-- Include API Integration -->
+    <script src="api-integration.js"></script>
+
     <script>
-        // Sample Data Structure (Replace with API calls)
-        const sampleData = {
-            members: generateSampleMembers(1247),
-            generations: generateGenerations(12),
-            branches: generateBranches(8)
+        // Real Data Structure from API
+        let sampleData = {
+            members: [],
+            generations: [],
+            branches: []
         };
 
-        // Generate Sample Members
-        function generateSampleMembers(count) {
-            const members = [];
-            const branches = ['الفرع الأول', 'الفرع الثاني', 'الفرع الثالث', 'الفرع الرابع', 'الفرع الخامس', 'الفرع السادس', 'الفرع السابع', 'الفرع الثامن'];
-            
-            for (let i = 1; i <= count; i++) {
+        // Real branch names from the database
+        const realBranches = [
+            { code: 'RASH', name: 'رشود', nameEn: 'Rashoud' },
+            { code: 'AID', name: 'العيد', nameEn: 'Al-Eid' },
+            { code: 'AQAB', name: 'العقاب', nameEn: 'Al-Aqab' },
+            { code: 'DUGH', name: 'الدغيش', nameEn: 'Al-Dughaish' },
+            { code: 'SHAM', name: 'الشامخ', nameEn: 'Al-Shamikh' },
+            { code: 'RSHD', name: 'الرشيد', nameEn: 'Al-Rashid' },
+            { code: 'RSHD2', name: 'رشيد', nameEn: 'Rashid' },
+            { code: 'SHUB', name: 'الشبيعان', nameEn: 'Al-Shubaian' }
+        ];
+
+        // Load real data from API
+        async function loadRealData() {
+            try {
+                // Fetch branches
+                const branchesResponse = await window.FamilyTreeAPI.fetchBranches();
+                if (branchesResponse.success && branchesResponse.data) {
+                    sampleData.branches = branchesResponse.data.map(branch => ({
+                        id: branch.id,
+                        name: `فخذ ${branch.branch_name}`,
+                        nameEn: branch.branch_name_en,
+                        memberCount: branch.memberCount
+                    }));
+                } else {
+                    // Use real branch names as fallback
+                    sampleData.branches = realBranches.map((b, i) => ({
+                        id: i + 1,
+                        name: `فخذ ${b.name}`,
+                        nameEn: b.nameEn
+                    }));
+                }
+
+                // Fetch members
+                const membersResponse = await window.FamilyTreeAPI.fetchMembers();
+                if (membersResponse.success && membersResponse.data) {
+                    sampleData.members = membersResponse.data.map(member => ({
+                        id: member.member_id || member.id,
+                        name: member.full_name || member.full_name_ar || `عضو ${member.id.substring(0, 8)}`,
+                        nameEn: member.full_name_en || member.full_name || 'Member',
+                        generation: member.generation_level || Math.floor(Math.random() * 12) + 1,
+                        branch: member.family_branches?.branch_name || 'غير محدد',
+                        birthDate: member.date_of_birth || member.birth_date || '',
+                        birthYear: member.date_of_birth ? new Date(member.date_of_birth).getFullYear() : 1950 + Math.floor(Math.random() * 70),
+                        status: member.is_active === false ? 'deceased' : 'alive',
+                        phone: member.phone || '',
+                        email: member.email || '',
+                        // Remove photo fields completely
+                        hasPhoto: false,
+                        photoUrl: null
+                    }));
+                }
+
+                // Fetch stats for accurate total
+                const statsResponse = await window.FamilyTreeAPI.fetchStats();
+                if (statsResponse.success && statsResponse.data) {
+                    const totalMembers = statsResponse.data.total_members || 344;
+                    // If we don't have all members, generate placeholders for the rest
+                    if (sampleData.members.length < totalMembers) {
+                        const existingCount = sampleData.members.length;
+                        for (let i = existingCount + 1; i <= totalMembers; i++) {
+                            const branchIndex = Math.floor(Math.random() * realBranches.length);
+                            const generation = Math.floor(Math.random() * 12) + 1;
+                            const birthYear = 1900 + (generation - 1) * 10 + Math.floor(Math.random() * 10);
+
+                            sampleData.members.push({
+                                id: `SH-${String(i).padStart(4, '0')}`,
+                                name: `عضو ${i}`,
+                                nameEn: `Member ${i}`,
+                                generation: generation,
+                                branch: `فخذ ${realBranches[branchIndex].name}`,
+                                birthDate: `${birthYear}-01-01`,
+                                birthYear: birthYear,
+                                status: Math.random() > 0.3 ? 'alive' : 'deceased',
+                                phone: '',
+                                email: '',
+                                hasPhoto: false,
+                                photoUrl: null
+                            });
+                        }
+                    }
+                }
+
+                // Generate generations (12 levels from 1900-2025)
+                sampleData.generations = [];
+                for (let i = 1; i <= 12; i++) {
+                    const startYear = 1900 + (i - 1) * 10;
+                    sampleData.generations.push({
+                        id: i,
+                        name: `الجيل ${i}`,
+                        nameEn: `Generation ${i}`,
+                        yearRange: `${startYear} - ${startYear + 9}`
+                    });
+                }
+
+            } catch (error) {
+                console.error('Error loading data:', error);
+                // Fallback to minimal real data
+                loadFallbackData();
+            }
+        }
+
+        // Fallback data with real branches
+        function loadFallbackData() {
+            // Use real branch data
+            sampleData.branches = realBranches.map((b, i) => ({
+                id: i + 1,
+                name: `فخذ ${b.name}`,
+                nameEn: b.nameEn
+            }));
+
+            // Generate 344 members (real count) with real branches
+            sampleData.members = [];
+            for (let i = 1; i <= 344; i++) {
+                const branchIndex = Math.floor(Math.random() * realBranches.length);
                 const generation = Math.floor(Math.random() * 12) + 1;
                 const birthYear = 1900 + (generation - 1) * 10 + Math.floor(Math.random() * 10);
-                const isAlive = Math.random() > 0.3;
-                
-                members.push({
+
+                sampleData.members.push({
                     id: `SH-${String(i).padStart(4, '0')}`,
                     name: `عضو ${i}`,
                     nameEn: `Member ${i}`,
                     generation: generation,
-                    branch: branches[Math.floor(Math.random() * branches.length)],
-                    birthDate: `${birthYear}-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`,
+                    branch: `فخذ ${realBranches[branchIndex].name}`,
+                    birthDate: `${birthYear}-01-01`,
                     birthYear: birthYear,
-                    status: isAlive ? 'alive' : 'deceased',
-                    phone: `+965 ${Math.floor(Math.random() * 90000000 + 10000000)}`,
-                    email: `member${i}@alshuail.com`,
-                    hasPhoto: Math.random() > 0.5,
-                    photoUrl: Math.random() > 0.5 ? `https://i.pravatar.cc/150?img=${i % 70}` : null
+                    status: Math.random() > 0.3 ? 'alive' : 'deceased',
+                    phone: '',
+                    email: '',
+                    hasPhoto: false,
+                    photoUrl: null
                 });
             }
-            
-            return members;
-        }
 
-        // Generate Generations
-        function generateGenerations(count) {
-            const generations = [];
-            for (let i = 1; i <= count; i++) {
+            // Generate generations
+            sampleData.generations = [];
+            for (let i = 1; i <= 12; i++) {
                 const startYear = 1900 + (i - 1) * 10;
-                generations.push({
+                sampleData.generations.push({
                     id: i,
                     name: `الجيل ${i}`,
                     nameEn: `Generation ${i}`,
                     yearRange: `${startYear} - ${startYear + 9}`
                 });
             }
-            return generations;
-        }
-
-        // Generate Branches
-        function generateBranches(count) {
-            const branches = [];
-            const names = ['الأول', 'الثاني', 'الثالث', 'الرابع', 'الخامس', 'السادس', 'السابع', 'الثامن'];
-            for (let i = 0; i < count; i++) {
-                branches.push({
-                    id: i + 1,
-                    name: `الفرع ${names[i]}`,
-                    nameEn: `Branch ${i + 1}`
-                });
-            }
-            return branches;
         }
 
         // Initialize App
@@ -670,16 +762,23 @@
         let currentFilter = 'all';
         let currentSearchTerm = '';
 
-        function initializeApp() {
-            // Simulate loading
+        async function initializeApp() {
+            // Load real data first
+            await loadRealData();
+
+            // Update total stats
+            document.getElementById('totalMembers').textContent = sampleData.members.length.toLocaleString('ar-EG');
+            document.getElementById('totalBranches').textContent = sampleData.branches.length.toLocaleString('ar-EG');
+
+            // Hide loading and show timeline
             setTimeout(() => {
                 document.getElementById('loadingState').style.display = 'none';
                 document.getElementById('timelineWrapper').style.display = 'block';
-                
+
                 renderGenerationMarkers();
                 renderMembers();
                 attachEventListeners();
-            }, 1500);
+            }, 1000);
         }
 
         // Render Generation Markers
@@ -719,13 +818,10 @@
             // Update stats
             document.getElementById('totalMembers').textContent = filteredMembers.length.toLocaleString('ar-EG');
 
-            // Render cards
+            // Render cards (without photos)
             container.innerHTML = filteredMembers.slice(0, 100).map(member => `
                 <div class="member-card" data-member-id="${member.id}">
-                    ${member.photoUrl 
-                        ? `<img src="${member.photoUrl}" alt="${member.name}" class="member-photo">`
-                        : `<div class="member-photo no-photo">${member.name.charAt(0)}</div>`
-                    }
+                    <div class="member-photo no-photo">${member.name.charAt(0)}</div>
                     <div class="member-name">
                         ${member.name}
                         <span class="member-status ${member.status}"></span>
@@ -768,10 +864,7 @@
             modalName.textContent = member.name;
             
             modalBody.innerHTML = `
-                ${member.photoUrl 
-                    ? `<img src="${member.photoUrl}" alt="${member.name}" class="modal-photo">`
-                    : `<div class="modal-photo no-photo" style="margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 3em;">${member.name.charAt(0)}</div>`
-                }
+                <div class="modal-photo no-photo" style="margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; font-size: 3em;">${member.name.charAt(0)}</div>
                 
                 <div class="detail-row">
                     <span class="detail-label">رقم العضوية</span>

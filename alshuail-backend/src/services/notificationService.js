@@ -1,15 +1,22 @@
 /**
  * Notification Service
- * Unified service for sending notifications via WhatsApp, SMS, and Push
+ * Unified service for sending notifications via WhatsApp and Push
  *
- * Status: STUB IMPLEMENTATION - Ready for production integration
- * TODO: Add WhatsApp Business API credentials
- * TODO: Add SMS provider (Twilio/AWS SNS) credentials
- * TODO: Add Firebase Cloud Messaging credentials
+ * Status: PRODUCTION READY with latest Context7 patterns
+ * Features:
+ * - WhatsApp notifications via Twilio (with smart Arabic encoding)
+ * - Push notifications via Firebase Cloud Messaging (FCM v1 API)
+ * - Multi-channel delivery with fallback
+ * - User preference management
+ * - Quiet hours support
+ * - Bilingual templates (Arabic/English)
  */
 
 import { log } from '../utils/logger.js';
 import { config } from '../config/env.js';
+import * as firebaseService from './firebaseService.js';
+import * as twilioService from './twilioService.js';
+import { supabase } from '../config/database.js';
 
 /**
  * Notification types supported
@@ -34,41 +41,51 @@ export const DeliveryChannel = {
 };
 
 /**
- * Send notification via WhatsApp Business API
+ * Send notification via WhatsApp Business API (using Twilio)
  * @param {string} phoneNumber - Recipient phone number (format: +9665xxxxxxxx)
- * @param {string} templateName - WhatsApp template name
- * @param {Object} templateData - Template variables
+ * @param {string} message - WhatsApp message text (supports Arabic)
+ * @param {Object} [options] - Optional configuration
  * @returns {Promise<Object>} - Delivery status
  */
-export async function sendWhatsAppNotification(phoneNumber, templateName, templateData) {
+export async function sendWhatsAppNotification(phoneNumber, message, options = {}) {
   try {
     log.info('WhatsApp notification requested', {
       phone: phoneNumber,
-      template: templateName
+      messageLength: message.length
     });
 
-    // STUB: Mock successful delivery
-    // TODO: Implement WhatsApp Business API integration
-    // const response = await whatsappClient.messages.create({
-    //   from: 'whatsapp:+965XXXXXXXX',
-    //   to: `whatsapp:${phoneNumber}`,
-    //   template: templateName,
-    //   templateData: templateData
-    // });
+    // Use real Twilio service with latest Context7 patterns
+    const result = await twilioService.sendWhatsAppMessage(phoneNumber, message, options);
 
-    const mockResponse = {
-      success: true,
-      messageId: `whatsapp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      channel: DeliveryChannel.WHATSAPP,
-      status: 'sent',
-      timestamp: new Date().toISOString()
-    };
+    if (result.success) {
+      log.info('WhatsApp notification sent successfully', {
+        messageId: result.messageId,
+        status: result.status,
+        phone: phoneNumber
+      });
 
-    log.info('WhatsApp notification sent (MOCK)', mockResponse);
-    return mockResponse;
+      return {
+        success: true,
+        messageId: result.messageId,
+        channel: DeliveryChannel.WHATSAPP,
+        status: result.status,
+        timestamp: new Date().toISOString()
+      };
+    } else {
+      log.error('WhatsApp notification failed', {
+        error: result.error,
+        phone: phoneNumber
+      });
+
+      return {
+        success: false,
+        error: result.error.message || result.error,
+        channel: DeliveryChannel.WHATSAPP
+      };
+    }
 
   } catch (error) {
-    log.error('WhatsApp notification failed', {
+    log.error('WhatsApp notification exception', {
       error: error.message,
       phone: phoneNumber
     });
@@ -82,85 +99,112 @@ export async function sendWhatsAppNotification(phoneNumber, templateName, templa
 }
 
 /**
- * Send notification via SMS
+ * Send notification via SMS (Currently disabled - WhatsApp + Push only)
  * @param {string} phoneNumber - Recipient phone number
  * @param {string} message - SMS message text (Arabic or English)
  * @returns {Promise<Object>} - Delivery status
  */
 export async function sendSMSNotification(phoneNumber, message) {
-  try {
-    log.info('SMS notification requested', {
-      phone: phoneNumber,
-      messageLength: message.length
-    });
+  log.info('SMS notification skipped - feature not enabled (WhatsApp + Push only)', {
+    phone: phoneNumber
+  });
 
-    // STUB: Mock successful delivery
-    // TODO: Implement SMS provider integration (Twilio or AWS SNS)
-    // const response = await smsClient.messages.create({
-    //   from: config.sms.fromNumber,
-    //   to: phoneNumber,
-    //   body: message
-    // });
-
-    const mockResponse = {
-      success: true,
-      messageId: `sms_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      channel: DeliveryChannel.SMS,
-      status: 'sent',
-      timestamp: new Date().toISOString()
-    };
-
-    log.info('SMS notification sent (MOCK)', mockResponse);
-    return mockResponse;
-
-  } catch (error) {
-    log.error('SMS notification failed', {
-      error: error.message,
-      phone: phoneNumber
-    });
-
-    return {
-      success: false,
-      error: error.message,
-      channel: DeliveryChannel.SMS
-    };
-  }
+  return {
+    success: false,
+    error: 'SMS notifications not enabled - using WhatsApp and Push only',
+    channel: DeliveryChannel.SMS
+  };
 }
 
 /**
  * Send push notification via Firebase Cloud Messaging
- * @param {string} userId - User ID to send notification to
- * @param {Object} notification - Notification payload
+ * @param {string} userId - User ID (member_id from members table)
+ * @param {Object} notification - Notification payload {title, body, imageUrl}
+ * @param {Object} [data] - Optional custom data payload
  * @returns {Promise<Object>} - Delivery status
  */
-export async function sendPushNotification(userId, notification) {
+export async function sendPushNotification(userId, notification, data = {}) {
   try {
     log.info('Push notification requested', {
       userId,
       title: notification.title
     });
 
-    // STUB: Mock successful delivery
-    // TODO: Implement Firebase Cloud Messaging
-    // const response = await fcmClient.send({
-    //   token: userDeviceToken,
-    //   notification: {
-    //     title: notification.title,
-    //     body: notification.body
-    //   },
-    //   data: notification.data
-    // });
+    // Get all active device tokens for this user
+    const { data: tokens, error } = await supabase
+      .from('device_tokens')
+      .select('token, platform')
+      .eq('member_id', userId)
+      .eq('is_active', true);
 
-    const mockResponse = {
-      success: true,
-      messageId: `push_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      channel: DeliveryChannel.PUSH,
-      status: 'sent',
-      timestamp: new Date().toISOString()
-    };
+    if (error) {
+      throw new Error(`Failed to fetch device tokens: ${error.message}`);
+    }
 
-    log.info('Push notification sent (MOCK)', mockResponse);
-    return mockResponse;
+    if (!tokens || tokens.length === 0) {
+      log.warn('No active device tokens found for user', { userId });
+      return {
+        success: false,
+        error: 'No active devices registered',
+        channel: DeliveryChannel.PUSH
+      };
+    }
+
+    // Send to all user devices using multicast (more efficient)
+    const deviceTokens = tokens.map(t => t.token);
+    const result = await firebaseService.sendMulticastNotification(
+      deviceTokens,
+      {
+        title: notification.title,
+        body: notification.body,
+        imageUrl: notification.imageUrl
+      },
+      data
+    );
+
+    // Clean up invalid tokens
+    if (result.results) {
+      const invalidTokens = result.results
+        .filter(r => r.shouldRemoveToken)
+        .map(r => r.token);
+
+      if (invalidTokens.length > 0) {
+        log.info('Removing invalid device tokens', {
+          count: invalidTokens.length,
+          userId
+        });
+
+        // Mark tokens as inactive
+        await supabase
+          .from('device_tokens')
+          .update({ is_active: false })
+          .in('token', invalidTokens);
+      }
+    }
+
+    if (result.successCount > 0) {
+      log.info('Push notification sent successfully', {
+        userId,
+        devicesReached: result.successCount,
+        totalDevices: tokens.length
+      });
+
+      return {
+        success: true,
+        messageId: `push_multicast_${Date.now()}`,
+        channel: DeliveryChannel.PUSH,
+        status: 'sent',
+        devicesReached: result.successCount,
+        totalDevices: tokens.length,
+        timestamp: new Date().toISOString()
+      };
+    } else {
+      return {
+        success: false,
+        error: 'Failed to send to any device',
+        channel: DeliveryChannel.PUSH
+      };
+    }
 
   } catch (error) {
     log.error('Push notification failed', {
@@ -198,22 +242,26 @@ export async function sendMultiChannelNotification(recipient, notification, chan
       case DeliveryChannel.WHATSAPP:
         result = await sendWhatsAppNotification(
           recipient.phone,
-          notification.template,
-          notification.data
+          notification.message || notification.body
         );
         break;
 
       case DeliveryChannel.SMS:
         result = await sendSMSNotification(
           recipient.phone,
-          notification.message
+          notification.message || notification.body
         );
         break;
 
       case DeliveryChannel.PUSH:
         result = await sendPushNotification(
           recipient.userId,
-          notification
+          {
+            title: notification.title,
+            body: notification.body,
+            imageUrl: notification.imageUrl
+          },
+          notification.data
         );
         break;
 
@@ -248,20 +296,75 @@ export async function sendMultiChannelNotification(recipient, notification, chan
 }
 
 /**
- * Check user notification preferences
- * @param {string} userId - User ID
- * @param {string} notificationType - Type of notification
+ * Check user notification preferences from database
+ * @param {string} userId - User ID (member_id)
  * @returns {Promise<Object>} - User preferences
  */
 export async function getUserNotificationPreferences(userId) {
-  // STUB: Return default preferences
-  // TODO: Fetch from database (user_notification_preferences table)
+  try {
+    // Fetch from user_notification_preferences table
+    const { data: prefs, error } = await supabase
+      .from('user_notification_preferences')
+      .select('*')
+      .eq('member_id', userId)
+      .single();
 
+    if (error) {
+      // If no preferences found, return defaults
+      if (error.code === 'PGRST116') {
+        log.warn('No preferences found for user, using defaults', { userId });
+        return getDefaultPreferences(userId);
+      }
+      throw new Error(`Failed to fetch preferences: ${error.message}`);
+    }
+
+    // Map database columns to expected format
+    return {
+      userId,
+      channels: {
+        whatsapp: prefs.enable_whatsapp,
+        sms: false, // SMS disabled as per requirements
+        push: prefs.enable_push,
+        email: prefs.enable_email
+      },
+      types: {
+        event_invitation: prefs.event_invitations,
+        payment_receipt: prefs.payment_receipts,
+        payment_reminder: prefs.payment_reminders,
+        crisis_alert: prefs.crisis_alerts,
+        general_announcement: prefs.general_announcements,
+        rsvp_confirmation: prefs.rsvp_confirmations
+      },
+      quietHours: {
+        enabled: prefs.quiet_hours_enabled,
+        start: prefs.quiet_hours_start ? prefs.quiet_hours_start.substring(0, 5) : '22:00',
+        end: prefs.quiet_hours_end ? prefs.quiet_hours_end.substring(0, 5) : '07:00'
+      },
+      language: prefs.preferred_language || 'ar'
+    };
+
+  } catch (error) {
+    log.error('Error fetching user preferences', {
+      error: error.message,
+      userId
+    });
+
+    // Return defaults on error
+    return getDefaultPreferences(userId);
+  }
+}
+
+/**
+ * Get default notification preferences
+ * @param {string} userId - User ID
+ * @returns {Object} - Default preferences
+ */
+function getDefaultPreferences(userId) {
   return {
     userId,
     channels: {
       whatsapp: true,
-      sms: true,
+      sms: false, // Disabled as per requirements
       push: true,
       email: false
     },
@@ -270,14 +373,15 @@ export async function getUserNotificationPreferences(userId) {
       payment_receipt: true,
       payment_reminder: true,
       crisis_alert: true,
-      general_announcement: true
+      general_announcement: true,
+      rsvp_confirmation: true
     },
     quietHours: {
-      enabled: true,
-      start: '22:00', // 10 PM
-      end: '07:00'    // 7 AM
+      enabled: false,
+      start: '22:00',
+      end: '07:00'
     },
-    language: 'ar' // 'ar' or 'en'
+    language: 'ar'
   };
 }
 
@@ -357,12 +461,28 @@ export async function sendNotificationWithPreferences(userId, notificationType, 
       };
     }
 
-    // Get recipient information
-    // TODO: Fetch from database
+    // Get recipient information from database
+    const { data: member, error: memberError } = await supabase
+      .from('members')
+      .select('id, phone, email')
+      .eq('id', userId)
+      .single();
+
+    if (memberError || !member) {
+      log.error('Failed to fetch member data', {
+        error: memberError?.message,
+        userId
+      });
+      return {
+        success: false,
+        reason: 'member_not_found'
+      };
+    }
+
     const recipient = {
-      userId,
-      phone: '+9665XXXXXXXX', // STUB
-      email: 'user@example.com' // STUB
+      userId: member.id,
+      phone: member.phone,
+      email: member.email
     };
 
     // Send via enabled channels

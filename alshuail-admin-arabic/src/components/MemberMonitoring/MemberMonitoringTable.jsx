@@ -122,7 +122,7 @@ const MemberMonitoringTable = memo(({
               <td className={`balance ${member.currentBalance < 0 ? 'negative' : 'positive'}`}>
                 {formatAmount(member.currentBalance)}
               </td>
-              <td className="required-payment">
+              <td className="required-payment" style={{ color: member.requiredPayment > 0 ? '#dc2626' : '#16a34a', fontWeight: '600' }}>
                 {formatAmount(member.requiredPayment)}
               </td>
               <td>{member.lastPaymentDate || 'لا توجد'}</td>

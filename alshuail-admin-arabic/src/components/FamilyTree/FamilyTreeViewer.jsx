@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import {
   UsersIcon,
   ChartBarIcon,
-  DevicePhoneMobileIcon,
-  ArrowLeftIcon
+  UserGroupIcon
 } from '@heroicons/react/24/outline';
 
 /**
@@ -13,7 +12,7 @@ import {
  */
 const FamilyTreeViewer = () => {
   // State to track which view is active
-  const [activeView, setActiveView] = useState('admin'); // admin, tree, mobile
+  const [activeView, setActiveView] = useState('admin'); // admin, tree
 
   // Get the base URL for the HTML files
   const getHtmlUrl = (filename) => {
@@ -21,7 +20,7 @@ const FamilyTreeViewer = () => {
     return `/family-tree/${filename}`;
   };
 
-  // View configurations
+  // View configurations - Admin functions only
   const views = {
     admin: {
       title: 'إدارة الفخوذ والتسجيلات',
@@ -30,26 +29,26 @@ const FamilyTreeViewer = () => {
       url: getHtmlUrl('admin_clan_management.html'),
       color: 'bg-purple-600'
     },
+    assign: {
+      title: 'تعيين الأعضاء',
+      subtitle: 'تصنيف الأعضاء غير المصنفين للفخوذ',
+      icon: UserGroupIcon,
+      url: getHtmlUrl('assign-members.html'),
+      color: 'bg-orange-600'
+    },
     tree: {
       title: 'شجرة العائلة',
       subtitle: 'عرض الشجرة الكاملة بالخط الزمني',
       icon: ChartBarIcon,
       url: getHtmlUrl('family-tree-timeline.html'),
       color: 'bg-green-600'
-    },
-    mobile: {
-      title: 'تسجيل عضو جديد',
-      subtitle: 'واجهة التسجيل للأعضاء الجدد',
-      icon: DevicePhoneMobileIcon,
-      url: getHtmlUrl('mobile_app_registration.html'),
-      color: 'bg-blue-600'
     }
   };
 
   return (
-    <div className="h-full flex flex-col bg-gray-50">
+    <div className="min-h-screen h-full flex flex-col bg-gray-50">
       {/* Header Navigation */}
-      <div className="bg-white shadow-sm border-b border-gray-200">
+      <div className="bg-white shadow-sm border-b border-gray-200 flex-shrink-0">
         <div className="px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             {/* Title */}
@@ -99,8 +98,8 @@ const FamilyTreeViewer = () => {
               <div className="mr-3 flex-1 md:flex md:justify-between">
                 <p className="text-sm text-blue-700">
                   {activeView === 'admin' && 'استخدم هذه الواجهة لإدارة الفخوذ الثمانية واعتماد طلبات الانضمام'}
+                  {activeView === 'assign' && 'قم بتعيين الأعضاء غير المصنفين (252 عضو) إلى الفخوذ الثمانية المناسبة'}
                   {activeView === 'tree' && 'اعرض شجرة العائلة الكاملة مع 12 جيل من 1900 إلى 2025'}
-                  {activeView === 'mobile' && 'واجهة تسجيل الأعضاء الجدد عبر رقم الجوال والتحقق بـ OTP'}
                 </p>
               </div>
             </div>
@@ -108,14 +107,14 @@ const FamilyTreeViewer = () => {
         </div>
       </div>
 
-      {/* Iframe Container */}
-      <div className="flex-1 relative bg-white">
+      {/* Iframe Container - Full Height */}
+      <div className="flex-1 relative bg-white overflow-hidden">
         <iframe
           key={activeView} // Force reload when view changes
           src={views[activeView].url}
           title={views[activeView].title}
           className="absolute inset-0 w-full h-full border-0"
-          style={{ minHeight: '600px' }}
+          style={{ minHeight: '100vh' }}
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
         />
       </div>

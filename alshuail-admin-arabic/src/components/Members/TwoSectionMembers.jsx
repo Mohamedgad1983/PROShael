@@ -3,6 +3,7 @@ import { memberService } from '../../services/memberService';
 import PremiumRegistration from '../Registration/PremiumRegistration';
 import CompactAddMember from './CompactAddMember';
 import ArabicSelect from './ArabicSelect';
+import HijriDateInput from './HijriDateInput';
 import './TwoSectionMembers.css';
 import {
   MagnifyingGlassIcon,
@@ -1063,16 +1064,6 @@ const TwoSectionMembers = () => {
                       ]}
                     />
 
-                    <div className="form-group">
-                      <label>تاريخ الميلاد</label>
-                      <input
-                        type="date"
-                        value={editingMember.date_of_birth || ''}
-                        onChange={(e) => handleEditChange('date_of_birth', e.target.value)}
-                        className="form-input"
-                      />
-                    </div>
-
                     <ArabicSelect
                       label="الجنس"
                       id="gender"
@@ -1110,6 +1101,13 @@ const TwoSectionMembers = () => {
                       />
                     </div>
                   </div>
+
+                  {/* Date of Birth with Hijri Support */}
+                  <HijriDateInput
+                    label="تاريخ الميلاد"
+                    value={editingMember.date_of_birth || ''}
+                    onChange={(date) => handleEditChange('date_of_birth', date)}
+                  />
                 </div>
                 )}
 
@@ -1192,12 +1190,21 @@ const TwoSectionMembers = () => {
                       />
                     </div>
 
+                    {/* Join Date with Hijri Support - Full Width */}
+                    <div className="form-group full-width">
+                      <HijriDateInput
+                        label="تاريخ الانضمام"
+                        value={editingMember.membership_date || ''}
+                        onChange={(date) => handleEditChange('membership_date', date)}
+                      />
+                    </div>
+
                     <div className="form-group">
                       <label className="form-label">
                         <span className="label-icon">📊</span>
                         <span>حالة العضوية</span>
                       </label>
-                      <div className="select-wrapper" style={{ position: 'relative' }}>
+                      <div className="select-wrapper">
                         <select
                           value={editingMember.membership_status || 'active'}
                           onChange={(e) => handleEditChange('membership_status', e.target.value)}
@@ -1209,43 +1216,7 @@ const TwoSectionMembers = () => {
                           <option value="suspended">⏸️ معلق</option>
                         </select>
                         <span className="select-arrow">▼</span>
-                        <span style={{
-                          position: 'absolute',
-                          left: '-80px',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          padding: '6px 12px',
-                          borderRadius: '20px',
-                          fontSize: '13px',
-                          fontWeight: '600',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '4px',
-                          backgroundColor: (editingMember.membership_status || 'active') === 'active' ? '#10b981' :
-                                           (editingMember.membership_status || 'active') === 'inactive' ? '#ef4444' :
-                                           '#f59e0b',
-                          color: 'white',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                          whiteSpace: 'nowrap'
-                        }}>
-                          {(editingMember.membership_status || 'active') === 'active' && '✅'}
-                          {(editingMember.membership_status || 'active') === 'inactive' && '❌'}
-                          {(editingMember.membership_status || 'active') === 'suspended' && '⏸️'}
-                          {(editingMember.membership_status || 'active') === 'active' && 'نشط'}
-                          {(editingMember.membership_status || 'active') === 'inactive' && 'غير نشط'}
-                          {(editingMember.membership_status || 'active') === 'suspended' && 'معلق'}
-                        </span>
                       </div>
-                    </div>
-
-                    <div className="form-group">
-                      <label>تاريخ الانضمام</label>
-                      <input
-                        type="date"
-                        value={editingMember.membership_date || ''}
-                        onChange={(e) => handleEditChange('membership_date', e.target.value)}
-                        className="form-input"
-                      />
                     </div>
 
                     <div className="form-group">
@@ -1260,9 +1231,9 @@ const TwoSectionMembers = () => {
                           className="form-input enhanced-dropdown"
                           id="membership_type"
                         >
-                          <option value="regular">عادي</option>
-                          <option value="vip">VIP</option>
-                          <option value="honorary">شرفي</option>
+                          <option value="regular">⭐ عادي</option>
+                          <option value="vip">💎 VIP</option>
+                          <option value="honorary">🏆 شرفي</option>
                         </select>
                         <span className="select-arrow">▼</span>
                       </div>

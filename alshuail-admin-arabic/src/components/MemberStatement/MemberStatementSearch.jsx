@@ -22,6 +22,8 @@ const MemberStatementSearch = () => {
     compliant: 0,
     nonCompliant: 0
   });
+  const [itemsPerPage, setItemsPerPage] = useState(20); // Default 20 items per page
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Yearly payment requirements
   const YEARLY_AMOUNT = 600; // SAR per year
@@ -131,8 +133,8 @@ const MemberStatementSearch = () => {
     }
   }, [searchQuery, searchMembers]);
 
-  // Payment status icon
-  const getStatusIcon = (status) => {
+  // Payment status icon - memoized with useCallback
+  const getStatusIcon = useCallback((status) => {
     switch (status) {
       case 'paid':
         return <CheckCircleIcon className="w-5 h-5 text-green-500" />;
@@ -141,10 +143,10 @@ const MemberStatementSearch = () => {
       default:
         return <XCircleIcon className="w-5 h-5 text-red-500" />;
     }
-  };
+  }, []);
 
-  // Payment status badge
-  const getStatusBadge = (status) => {
+  // Payment status badge - memoized with useCallback
+  const getStatusBadge = useCallback((status) => {
     const statusConfig = {
       paid: { text: 'مدفوع', className: 'bg-green-100 text-green-800' },
       partial: { text: 'جزئي', className: 'bg-yellow-100 text-yellow-800' },
@@ -158,7 +160,7 @@ const MemberStatementSearch = () => {
         {config.text}
       </span>
     );
-  };
+  }, []);
 
   // Calculate payment progress
   const paymentProgress = useMemo(() => {
@@ -177,6 +179,23 @@ const MemberStatementSearch = () => {
     }
     return searchResults;
   }, [searchResults, activeFilter]);
+
+  // Paginated members
+  const paginatedMembers = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredMembers.slice(startIndex, endIndex);
+  }, [filteredMembers, currentPage, itemsPerPage]);
+
+  // Total pages
+  const totalPages = useMemo(() => {
+    return Math.ceil(filteredMembers.length / itemsPerPage);
+  }, [filteredMembers.length, itemsPerPage]);
+
+  // Reset to page 1 when filter or items per page changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeFilter, itemsPerPage]);
 
   // Count-up animation effect
   useEffect(() => {
@@ -217,8 +236,8 @@ const MemberStatementSearch = () => {
     return () => clearInterval(timer);
   }, [searchResults]);
 
-  // Load member statement with payment details
-  const loadMemberStatement = async (member) => {
+  // Load member statement with payment details - memoized with useCallback
+  const loadMemberStatement = useCallback(async (member) => {
     setLoading(true);
     setError('');
 
@@ -296,16 +315,73 @@ const MemberStatementSearch = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [YEARLY_AMOUNT, MINIMUM_BALANCE]);
 
-  // Handle member selection
-  const handleMemberSelect = (member) => {
+  // Handle member selection - memoized with useCallback
+  const handleMemberSelect = useCallback((member) => {
     loadMemberStatement(member);
     setSearchQuery(member.full_name);
-  };
+  }, [loadMemberStatement]);
 
-  // Print statement
-  const handlePrint = () => {
+  // Handle back to main list - memoized with useCallback
+  const handleBackToList = useCallback(async () => {
+    setMemberStatement(null);
+    setSelectedMember(null);
+    setSearchQuery('');
+    setShowAutoComplete(false);
+
+    // Reload all members to show full list
+    setLoading(true);
+    try {
+      const API_URL = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
+      const token = localStorage.getItem('token');
+      const response = await fetch(
+        `${API_URL}/api/members?limit=500`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      if (response.ok) {
+        const apiData = await response.json();
+        const members = apiData.data || apiData.members || [];
+
+        const results = members.map(m => ({
+          id: m.id,
+          member_no: m.membership_number || m.member_no,
+          full_name: m.full_name,
+          phone: m.phone,
+          tribal_section: m.tribal_section,
+          balance: m.balance || 0
+        }));
+
+        setSearchResults(results);
+      }
+    } catch (error) {
+      console.error('Error reloading members:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // ESC key handler for back navigation
+  useEffect(() => {
+    const handleEscKey = (event) => {
+      if (event.key === 'Escape' && memberStatement) {
+        handleBackToList();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscKey);
+    return () => {
+      document.removeEventListener('keydown', handleEscKey);
+    };
+  }, [memberStatement, handleBackToList]);
+
+  // Print statement - memoized with useCallback
+  const handlePrint = useCallback(() => {
     const printWindow = window.open('', '_blank');
     const printContent = document.getElementById('statement-content');
 
@@ -378,10 +454,10 @@ const MemberStatementSearch = () => {
     setTimeout(() => {
       printWindow.print();
     }, 250);
-  };
+  }, [selectedMember]);
 
-  // Export to Excel with XLSX
-  const handleExport = () => {
+  // Export to Excel with XLSX - memoized with useCallback
+  const handleExport = useCallback(() => {
     if (!memberStatement) return;
 
     const data = memberStatement.yearlyPayments.map(payment => ({
@@ -410,10 +486,10 @@ const MemberStatementSearch = () => {
     // Generate filename with member ID and timestamp
     const fileName = `statement_${selectedMember.member_no}_${new Date().toISOString().split('T')[0]}.xlsx`;
     XLSX.writeFile(wb, fileName);
-  };
+  }, [memberStatement, selectedMember]);
 
-  // Export to PDF
-  const exportToPDF = () => {
+  // Export to PDF - memoized with useCallback
+  const exportToPDF = useCallback(() => {
     if (!memberStatement) return;
 
     const doc = new jsPDF({
@@ -493,7 +569,29 @@ const MemberStatementSearch = () => {
     // Save PDF
     const fileName = `statement_${selectedMember.member_no}_${new Date().toISOString().split('T')[0]}.pdf`;
     doc.save(fileName);
-  };
+  }, [memberStatement, selectedMember]);
+
+  // Memoized filter handler
+  const handleFilterChange = useCallback((filter) => {
+    setActiveFilter(filter);
+  }, []);
+
+  // Memoized pagination handlers
+  const handleItemsPerPageChange = useCallback((items) => {
+    setItemsPerPage(items);
+  }, []);
+
+  const handlePageChange = useCallback((page) => {
+    setCurrentPage(page);
+  }, []);
+
+  const handlePreviousPage = useCallback(() => {
+    setCurrentPage(prev => Math.max(1, prev - 1));
+  }, []);
+
+  const handleNextPage = useCallback(() => {
+    setCurrentPage(prev => Math.min(totalPages, prev + 1));
+  }, [totalPages]);
 
   return (
     <div className="enhanced-statement-container">
@@ -545,21 +643,21 @@ const MemberStatementSearch = () => {
           <div className="filter-chips-container">
             <button
               className={`filter-chip ${activeFilter === 'all' ? 'active' : ''}`}
-              onClick={() => setActiveFilter('all')}
+              onClick={() => handleFilterChange('all')}
             >
               <span className="chip-icon">📋</span>
               <span>الكل ({animatedCounts.total})</span>
             </button>
             <button
               className={`filter-chip ${activeFilter === 'compliant' ? 'active' : ''}`}
-              onClick={() => setActiveFilter('compliant')}
+              onClick={() => handleFilterChange('compliant')}
             >
               <span className="chip-icon">✅</span>
               <span>ملتزم ({animatedCounts.compliant})</span>
             </button>
             <button
               className={`filter-chip ${activeFilter === 'non-compliant' ? 'active' : ''}`}
-              onClick={() => setActiveFilter('non-compliant')}
+              onClick={() => handleFilterChange('non-compliant')}
             >
               <span className="chip-icon">⚠️</span>
               <span>غير ملتزم ({animatedCounts.nonCompliant})</span>
@@ -605,57 +703,6 @@ const MemberStatementSearch = () => {
           </AnimatePresence>
         </motion.div>
 
-        {/* Animated Stat Cards */}
-        {!memberStatement && searchResults.length > 0 && (
-          <motion.div
-            className="stat-cards-grid"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-          >
-            <div className="animated-stat-card">
-              <div className="stat-icon-wrapper stat-icon-primary">
-                <UserIcon className="w-8 h-8" />
-              </div>
-              <div className="stat-content">
-                <div className="stat-value-animated">{animatedCounts.total}</div>
-                <div className="stat-label">إجمالي الأعضاء</div>
-              </div>
-            </div>
-
-            <div className="animated-stat-card">
-              <div className="stat-icon-wrapper stat-icon-success">
-                <CheckCircleIcon className="w-8 h-8" />
-              </div>
-              <div className="stat-content">
-                <div className="stat-value-animated">{animatedCounts.compliant}</div>
-                <div className="stat-label">الأعضاء الملتزمين</div>
-              </div>
-            </div>
-
-            <div className="animated-stat-card">
-              <div className="stat-icon-wrapper stat-icon-warning">
-                <XCircleIcon className="w-8 h-8" />
-              </div>
-              <div className="stat-content">
-                <div className="stat-value-animated">{animatedCounts.nonCompliant}</div>
-                <div className="stat-label">الأعضاء غير الملتزمين</div>
-              </div>
-            </div>
-
-            <div className="animated-stat-card">
-              <div className="stat-icon-wrapper stat-icon-info">
-                <CurrencyDollarIcon className="w-8 h-8" />
-              </div>
-              <div className="stat-content">
-                <div className="stat-value-animated">
-                  {Math.round(searchResults.reduce((sum, m) => sum + (m.balance || 0), 0) / searchResults.length)}
-                </div>
-                <div className="stat-label">متوسط الرصيد (ريال)</div>
-              </div>
-            </div>
-          </motion.div>
-        )}
 
         {/* Enhanced Members Table */}
         {!memberStatement && filteredMembers.length > 0 && (
@@ -691,7 +738,7 @@ const MemberStatementSearch = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredMembers.map((member, index) => (
+                {paginatedMembers.map((member, index) => (
                   <motion.tr
                     key={member.id}
                     className="enhanced-member-row"
@@ -742,7 +789,7 @@ const MemberStatementSearch = () => {
 
           {/* Mobile Card View */}
           <div className="members-cards-container mobile-view">
-            {filteredMembers.map((member) => (
+            {paginatedMembers.map((member) => (
               <motion.div
                 key={member.id}
                 className="member-card"
@@ -787,6 +834,73 @@ const MemberStatementSearch = () => {
               </motion.div>
             ))}
           </div>
+
+          {/* Pagination Controls */}
+          <div className="pagination-controls" dir="rtl">
+            {/* Items Per Page Selector */}
+            <div className="items-per-page-selector">
+              <span className="pagination-label">عرض:</span>
+              <div className="page-size-buttons">
+                <button
+                  className={`page-size-btn ${itemsPerPage === 10 ? 'active' : ''}`}
+                  onClick={() => handleItemsPerPageChange(10)}
+                >
+                  10
+                </button>
+                <button
+                  className={`page-size-btn ${itemsPerPage === 20 ? 'active' : ''}`}
+                  onClick={() => handleItemsPerPageChange(20)}
+                >
+                  20
+                </button>
+                <button
+                  className={`page-size-btn ${itemsPerPage === 50 ? 'active' : ''}`}
+                  onClick={() => handleItemsPerPageChange(50)}
+                >
+                  50
+                </button>
+              </div>
+              <span className="pagination-info">
+                من {filteredMembers.length} عضو
+              </span>
+            </div>
+
+            {/* Page Navigation */}
+            {totalPages > 1 && (
+              <div className="page-navigation">
+                <button
+                  className="page-nav-btn"
+                  onClick={handlePreviousPage}
+                  disabled={currentPage === 1}
+                >
+                  السابق
+                </button>
+                <div className="page-numbers">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                    <button
+                      key={page}
+                      className={`page-number-btn ${currentPage === page ? 'active' : ''}`}
+                      onClick={() => handlePageChange(page)}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  className="page-nav-btn"
+                  onClick={handleNextPage}
+                  disabled={currentPage === totalPages}
+                >
+                  التالي
+                </button>
+              </div>
+            )}
+
+            {/* Current Page Info */}
+            <div className="current-page-info">
+              صفحة {currentPage} من {totalPages}
+            </div>
+          </div>
         </motion.div>
       )}
 
@@ -799,6 +913,19 @@ const MemberStatementSearch = () => {
           id="statement-content"
         >
           <div className="statement-card">
+            {/* Back Button */}
+            <button
+              onClick={handleBackToList}
+              className="back-to-list-btn"
+              title="العودة إلى القائمة (ESC)"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+              </svg>
+              <span>العودة للقائمة</span>
+              <span className="esc-hint">ESC</span>
+            </button>
+
             {/* Member Info Header */}
             <div className="statement-member-header">
               <div className="member-info-section">

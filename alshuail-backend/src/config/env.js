@@ -169,6 +169,22 @@ export const config = {
     testMemberPassword: getString('TEST_MEMBER_PASSWORD', isDevelopment ? 'test123' : ''),
     password: getString('PASSWORD', ''), // Generic test password
   },
+
+  // Firebase Cloud Messaging (Push Notifications)
+  firebase: {
+    projectId: getString('FIREBASE_PROJECT_ID'),
+    clientEmail: getString('FIREBASE_CLIENT_EMAIL'),
+    privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n') || '',
+    enabled: !!(getString('FIREBASE_PROJECT_ID') && getString('FIREBASE_CLIENT_EMAIL') && getString('FIREBASE_PRIVATE_KEY')),
+  },
+
+  // Twilio (WhatsApp Notifications)
+  twilio: {
+    accountSid: getString('TWILIO_ACCOUNT_SID'),
+    authToken: getString('TWILIO_AUTH_TOKEN'),
+    phoneNumber: getString('TWILIO_PHONE_NUMBER'),
+    enabled: !!(getString('TWILIO_ACCOUNT_SID') && getString('TWILIO_AUTH_TOKEN') && getString('TWILIO_PHONE_NUMBER')),
+  },
 };
 
 // Log configuration on startup (non-sensitive info only)
@@ -180,6 +196,8 @@ if (isDevelopment) {
     jwtConfigured: !!config.jwt.secret,
     redisEnabled: config.redis.enabled,
     frontendUrl: config.frontend.url,
+    firebaseEnabled: config.firebase.enabled,
+    twilioEnabled: config.twilio.enabled,
   });
 }
 
@@ -190,6 +208,12 @@ if (isProduction) {
   }
   if (!config.frontend.corsOrigin) {
     console.warn('⚠️  CORS_ORIGIN not configured. Using permissive CORS settings.');
+  }
+  if (!config.firebase.enabled) {
+    console.warn('⚠️  Firebase credentials not configured. Push notifications will be disabled.');
+  }
+  if (!config.twilio.enabled) {
+    console.warn('⚠️  Twilio credentials not configured. WhatsApp notifications will be disabled.');
   }
 }
 

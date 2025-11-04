@@ -796,13 +796,15 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px;
+  padding: 12px 24px;
   border: none;
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
   font-family: 'Cairo', 'Tajawal', sans-serif;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .btn-icon {
@@ -817,6 +819,8 @@
 
 .print-btn:hover {
   background: #0051D5;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 122, 255, 0.4);
 }
 
 .export-btn {
@@ -826,6 +830,8 @@
 
 .export-btn:hover {
   background: #28a745;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(52, 199, 89, 0.4);
 }
 
 .pdf-btn {
@@ -835,6 +841,8 @@
 
 .pdf-btn:hover {
   background: #dc3545;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 59, 48, 0.4);
 }
 
 .back-btn {

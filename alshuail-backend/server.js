@@ -39,6 +39,7 @@ import approvalRoutes from './src/routes/approval.routes.js';
 import familyTreeNewRoutes from './src/routes/family-tree.routes.js';
 import paymentAnalyticsRoutes from './src/routes/paymentAnalyticsRoutes.js';
 import memberSuspensionRoutes from './src/routes/memberSuspensionRoutes.js';
+import deviceTokenRoutes from './src/routes/deviceTokenRoutes.js';
 import { log } from './src/utils/logger.js';
 import { config } from './src/config/env.js';
 import { errorHandler } from './src/utils/errorCodes.js';
@@ -261,6 +262,9 @@ app.use('/api/tree', familyTreeNewRoutes);
 
 // Payment Analytics APIs - Real-time financial reporting
 app.use('/api/analytics', paymentAnalyticsRoutes);
+
+// Device Token Management APIs - Push notification token management
+app.use('/api/device-tokens', deviceTokenRoutes);
 
 // Enhanced health check endpoint
 app.get('/api/health', async (req, res) => {

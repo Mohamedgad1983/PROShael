@@ -48,7 +48,7 @@ const ArabicSelect = ({
   };
 
   return (
-    <div className="form-group arabic-select-container" style={{ marginBottom: '25px' }}>
+    <div className={`form-group arabic-select-container ${isOpen ? 'dropdown-open' : ''}`}>
       <label className="form-label">
         <span className="label-icon">🏛️</span>
         <span>{label}</span>
@@ -101,7 +101,7 @@ const ArabicSelect = ({
               marginTop: '4px',
               maxHeight: '250px',
               overflowY: 'auto',
-              zIndex: 9999,
+              zIndex: 1000,
               boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.1)'
             }}
           >

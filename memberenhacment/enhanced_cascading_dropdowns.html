@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Dropdowns - Member Management</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+            direction: rtl;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .form-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        }
+
+        .form-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .form-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: #1a202c;
+            margin-bottom: 10px;
+        }
+
+        .form-subtitle {
+            color: #718096;
+            font-size: 16px;
+        }
+
+        /* Enhanced Dropdown Styles */
+        .form-group {
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .form-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            color: #2d3748;
+            font-weight: 600;
+            font-size: 15px;
+        }
+
+        .required-mark {
+            color: #e53e3e;
+            font-size: 18px;
+        }
+
+        .label-icon {
+            font-size: 18px;
+        }
+
+        /* Custom Select Wrapper */
+        .select-wrapper {
+            position: relative;
+        }
+
+        .custom-select {
+            width: 100%;
+            padding: 16px 45px 16px 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 14px;
+            font-size: 16px;
+            color: #2d3748;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            appearance: none;
+            font-family: inherit;
+        }
+
+        .custom-select:hover {
+            border-color: #cbd5e0;
+        }
+
+        .custom-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+
+        .custom-select:disabled {
+            background: #f7fafc;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        /* Dropdown Arrow */
+        .select-arrow {
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+            font-size: 20px;
+            color: #667eea;
+            transition: transform 0.3s ease;
+        }
+
+        .select-wrapper:hover .select-arrow {
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        /* Loading State */
+        .select-loading {
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: none;
+        }
+
+        .select-loading.active {
+            display: block;
+        }
+
+        .select-loading.active ~ .select-arrow {
+            display: none;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid #e2e8f0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: translateY(-50%) rotate(360deg); }
+        }
+
+        /* Helper Text */
+        .helper-text {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 8px;
+            font-size: 13px;
+            color: #718096;
+        }
+
+        .helper-icon {
+            font-size: 14px;
+        }
+
+        /* Dependent Dropdown Indicator */
+        .dependent-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            background: #e6fffa;
+            color: #234e52;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+
+        /* Searchable Select Enhancement */
+        .search-select-wrapper {
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 14px 45px 14px 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 14px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #a0aec0;
+            font-size: 18px;
+        }
+
+        .dropdown-options {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            margin-top: 8px;
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 14px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+
+        .dropdown-options.active {
+            display: block;
+        }
+
+        .dropdown-option {
+            padding: 14px 20px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .dropdown-option:hover {
+            background: #f7fafc;
+        }
+
+        .dropdown-option.selected {
+            background: #e6f7ff;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .option-icon {
+            font-size: 18px;
+        }
+
+        /* Cascading Visual Connection */
+        .cascade-connection {
+            position: relative;
+            padding-right: 30px;
+        }
+
+        .cascade-connection::before {
+            content: '';
+            position: absolute;
+            right: 8px;
+            top: -15px;
+            width: 2px;
+            height: calc(100% + 15px);
+            background: linear-gradient(to bottom, #667eea, transparent);
+        }
+
+        .cascade-connection::after {
+            content: '↓';
+            position: absolute;
+            right: 0;
+            top: -25px;
+            font-size: 20px;
+            color: #667eea;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+
+        /* Value Preview Chip */
+        .value-preview {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .clear-value {
+            background: rgba(255, 255, 255, 0.3);
+            border: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .clear-value:hover {
+            background: rgba(255, 255, 255, 0.5);
+            transform: scale(1.1);
+        }
+
+        /* Form Actions */
+        .form-actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 2px solid #e2e8f0;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 16px;
+            border: none;
+            border-radius: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+
+        .btn-secondary:hover {
+            background: #f7fafc;
+        }
+
+        /* Demo Info Box */
+        .demo-info {
+            background: #fff5f5;
+            border: 2px solid #fc8181;
+            border-radius: 14px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .demo-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            color: #c53030;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .demo-text {
+            color: #742a2a;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .form-card {
+                padding: 25px;
+            }
+
+            .form-title {
+                font-size: 24px;
+            }
+
+            .form-actions {
+                flex-direction: column;
+            }
+        }
+
+        /* Custom Scrollbar */
+        .dropdown-options::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .dropdown-options::-webkit-scrollbar-track {
+            background: #f7fafc;
+            border-radius: 10px;
+        }
+
+        .dropdown-options::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 10px;
+        }
+
+        .dropdown-options::-webkit-scrollbar-thumb:hover {
+            background: #a0aec0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="form-card">
+            <div class="form-header">
+                <h1 class="form-title">🎨 تحسين واجهة القوائم المنسدلة</h1>
+                <p class="form-subtitle">قوائم منسدلة محسّنة مع ربط ذكي بين الحقول</p>
+            </div>
+
+            <!-- Demo Information -->
+            <div class="demo-info">
+                <div class="demo-title">
+                    <span>💡</span>
+                    <span>تجربة القوائم المترابطة</span>
+                </div>
+                <div class="demo-text">
+                    جرّب اختيار "الفخذ الرئيسي" أولاً، وشاهد كيف تتحدث القوائم الأخرى تلقائياً بناءً على اختيارك!
+                </div>
+            </div>
+
+            <form id="memberForm">
+                <!-- Example 1: Main Branch (Parent) -->
+                <div class="form-group">
+                    <label class="form-label">
+                        <span class="label-icon">🏛️</span>
+                        <span>الفخذ الرئيسي</span>
+                        <span class="required-mark">*</span>
+                    </label>
+                    <div class="select-wrapper">
+                        <select class="custom-select" id="mainBranch" required onchange="updateSubBranches(this.value)">
+                            <option value="">-- اختر الفخذ الرئيسي --</option>
+                            <option value="branch1">الفخذ الأول (آل عبدالله)</option>
+                            <option value="branch2">الفخذ الثاني (آل محمد)</option>
+                            <option value="branch3">الفخذ الثالث (آل أحمد)</option>
+                            <option value="branch4">الفخذ الرابع (آل صالح)</option>
+                        </select>
+                        <span class="select-arrow">▼</span>
+                        <div class="select-loading">
+                            <div class="spinner"></div>
+                        </div>
+                    </div>
+                    <div class="helper-text">
+                        <span class="helper-icon">ℹ️</span>
+                        <span>اختر الفخذ الرئيسي أولاً لتفعيل الفرع الفرعي</span>
+                    </div>
+                </div>
+
+                <!-- Example 2: Sub-Branch (Dependent on Main Branch) -->
+                <div class="form-group cascade-connection">
+                    <label class="form-label">
+                        <span class="label-icon">🌿</span>
+                        <span>الفرع الفرعي</span>
+                        <span class="dependent-indicator">
+                            <span>↓</span>
+                            <span>يعتمد على</span>
+                        </span>
+                        <span class="required-mark">*</span>
+                    </label>
+                    <div class="select-wrapper">
+                        <select class="custom-select" id="subBranch" disabled required>
+                            <option value="">-- اختر الفخذ الرئيسي أولاً --</option>
+                        </select>
+                        <span class="select-arrow">▼</span>
+                        <div class="select-loading">
+                            <div class="spinner"></div>
+                        </div>
+                    </div>
+                    <div class="helper-text">
+                        <span class="helper-icon">🔗</span>
+                        <span id="subBranchHelper">هذه القائمة تعتمد على اختيارك للفخذ الرئيسي</span>
+                    </div>
+                </div>
+
+                <!-- Example 3: Country (Parent) -->
+                <div class="form-group">
+                    <label class="form-label">
+                        <span class="label-icon">🌍</span>
+                        <span>الدولة</span>
+                        <span class="required-mark">*</span>
+                    </label>
+                    <div class="select-wrapper">
+                        <select class="custom-select" id="country" required onchange="updateCities(this.value)">
+                            <option value="">-- اختر الدولة --</option>
+                            <option value="sa">🇸🇦 المملكة العربية السعودية</option>
+                            <option value="kw">🇰🇼 الكويت</option>
+                            <option value="ae">🇦🇪 الإمارات العربية المتحدة</option>
+                            <option value="qa">🇶🇦 قطر</option>
+                        </select>
+                        <span class="select-arrow">▼</span>
+                    </div>
+                </div>
+
+                <!-- Example 4: City (Dependent on Country) -->
+                <div class="form-group cascade-connection">
+                    <label class="form-label">
+                        <span class="label-icon">🏙️</span>
+                        <span>المدينة</span>
+                        <span class="dependent-indicator">
+                            <span>↓</span>
+                            <span>يعتمد على</span>
+                        </span>
+                        <span class="required-mark">*</span>
+                    </label>
+                    <div class="select-wrapper">
+                        <select class="custom-select" id="city" disabled required>
+                            <option value="">-- اختر الدولة أولاً --</option>
+                        </select>
+                        <span class="select-arrow">▼</span>
+                        <div class="select-loading">
+                            <div class="spinner"></div>
+                        </div>
+                    </div>
+                    <div class="helper-text">
+                        <span class="helper-icon">📍</span>
+                        <span id="cityHelper">المدن المتاحة تعتمد على الدولة المختارة</span>
+                    </div>
+                </div>
+
+                <!-- Example 5: Gender (Simple Select) -->
+                <div class="form-group">
+                    <label class="form-label">
+                        <span class="label-icon">👤</span>
+                        <span>الجنس</span>
+                        <span class="required-mark">*</span>
+                    </label>
+                    <div class="select-wrapper">
+                        <select class="custom-select" id="gender" required>
+                            <option value="">-- اختر الجنس --</option>
+                            <option value="male">ذكر</option>
+                            <option value="female">أنثى</option>
+                        </select>
+                        <span class="select-arrow">▼</span>
+                    </div>
+                </div>
+
+                <!-- Example 6: Subscription Type (Parent) -->
+                <div class="form-group">
+                    <label class="form-label">
+                        <span class="label-icon">💳</span>
+                        <span>نوع الاشتراك</span>
+                        <span class="required-mark">*</span>
+                    </label>
+                    <div class="select-wrapper">
+                        <select class="custom-select" id="subscriptionType" required onchange="updateSubscriptionPlans(this.value)">
+                            <option value="">-- اختر نوع الاشتراك --</option>
+                            <option value="individual">اشتراك فردي</option>
+                            <option value="family">اشتراك عائلي</option>
+                            <option value="corporate">اشتراك مؤسسي</option>
+                        </select>
+                        <span class="select-arrow">▼</span>
+                    </div>
+                </div>
+
+                <!-- Example 7: Subscription Plan (Dependent on Type) -->
+                <div class="form-group cascade-connection">
+                    <label class="form-label">
+                        <span class="label-icon">📋</span>
+                        <span>خطة الاشتراك</span>
+                        <span class="dependent-indicator">
+                            <span>↓</span>
+                            <span>يعتمد على</span>
+                        </span>
+                        <span class="required-mark">*</span>
+                    </label>
+                    <div class="select-wrapper">
+                        <select class="custom-select" id="subscriptionPlan" disabled required>
+                            <option value="">-- اختر نوع الاشتراك أولاً --</option>
+                        </select>
+                        <span class="select-arrow">▼</span>
+                        <div class="select-loading">
+                            <div class="spinner"></div>
+                        </div>
+                    </div>
+                    <div class="helper-text">
+                        <span class="helper-icon">💰</span>
+                        <span id="planHelper">الخطط المتاحة تعتمد على نوع الاشتراك</span>
+                    </div>
+                </div>
+
+                <!-- Example 8: Member Status (Simple Select) -->
+                <div class="form-group">
+                    <label class="form-label">
+                        <span class="label-icon">📊</span>
+                        <span>حالة العضو</span>
+                        <span class="required-mark">*</span>
+                    </label>
+                    <div class="select-wrapper">
+                        <select class="custom-select" id="memberStatus" required>
+                            <option value="">-- اختر الحالة --</option>
+                            <option value="active">✅ نشط</option>
+                            <option value="pending">⏳ قيد المراجعة</option>
+                            <option value="inactive">❌ غير نشط</option>
+                            <option value="suspended">⚠️ معلق</option>
+                        </select>
+                        <span class="select-arrow">▼</span>
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <span>💾</span>
+                        <span>حفظ البيانات</span>
+                    </button>
+                    <button type="reset" class="btn btn-secondary">
+                        <span>🔄</span>
+                        <span>إعادة تعيين</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Data for cascading dropdowns
+        const branchData = {
+            branch1: [
+                { value: 'sub1_1', text: 'الفرع الأول - آل سعد' },
+                { value: 'sub1_2', text: 'الفرع الثاني - آل خالد' },
+                { value: 'sub1_3', text: 'الفرع الثالث - آل فهد' }
+            ],
+            branch2: [
+                { value: 'sub2_1', text: 'الفرع الأول - آل عمر' },
+                { value: 'sub2_2', text: 'الفرع الثاني - آل ناصر' },
+                { value: 'sub2_3', text: 'الفرع الثالث - آل سلطان' }
+            ],
+            branch3: [
+                { value: 'sub3_1', text: 'الفرع الأول - آل راشد' },
+                { value: 'sub3_2', text: 'الفرع الثاني - آل مشعل' }
+            ],
+            branch4: [
+                { value: 'sub4_1', text: 'الفرع الأول - آل تركي' },
+                { value: 'sub4_2', text: 'الفرع الثاني - آل بندر' },
+                { value: 'sub4_3', text: 'الفرع الثالث - آل فيصل' },
+                { value: 'sub4_4', text: 'الفرع الرابع - آل متعب' }
+            ]
+        };
+
+        const cityData = {
+            sa: [
+                { value: 'riyadh', text: 'الرياض' },
+                { value: 'jeddah', text: 'جدة' },
+                { value: 'dammam', text: 'الدمام' },
+                { value: 'makkah', text: 'مكة المكرمة' },
+                { value: 'madinah', text: 'المدينة المنورة' }
+            ],
+            kw: [
+                { value: 'kuwait_city', text: 'مدينة الكويت' },
+                { value: 'hawalli', text: 'حولي' },
+                { value: 'farwaniya', text: 'الفروانية' },
+                { value: 'jahra', text: 'الجهراء' }
+            ],
+            ae: [
+                { value: 'dubai', text: 'دبي' },
+                { value: 'abudhabi', text: 'أبوظبي' },
+                { value: 'sharjah', text: 'الشارقة' },
+                { value: 'ajman', text: 'عجمان' }
+            ],
+            qa: [
+                { value: 'doha', text: 'الدوحة' },
+                { value: 'alrayyan', text: 'الريان' },
+                { value: 'alkhor', text: 'الخور' }
+            ]
+        };
+
+        const subscriptionPlans = {
+            individual: [
+                { value: 'basic', text: 'خطة أساسية - 100 ريال/شهر' },
+                { value: 'premium', text: 'خطة مميزة - 200 ريال/شهر' },
+                { value: 'vip', text: 'خطة VIP - 500 ريال/شهر' }
+            ],
+            family: [
+                { value: 'family_basic', text: 'عائلية أساسية - 300 ريال/شهر (حتى 5 أفراد)' },
+                { value: 'family_extended', text: 'عائلية موسعة - 500 ريال/شهر (حتى 10 أفراد)' },
+                { value: 'family_unlimited', text: 'عائلية غير محدودة - 1000 ريال/شهر' }
+            ],
+            corporate: [
+                { value: 'corp_starter', text: 'مؤسسية - مبتدئ - 2000 ريال/شهر' },
+                { value: 'corp_business', text: 'مؤسسية - أعمال - 5000 ريال/شهر' },
+                { value: 'corp_enterprise', text: 'مؤسسية - مؤسسات - حسب الطلب' }
+            ]
+        };
+
+        // Update Sub-Branches based on Main Branch selection
+        function updateSubBranches(branchId) {
+            const subBranchSelect = document.getElementById('subBranch');
+            const loading = subBranchSelect.parentElement.querySelector('.select-loading');
+            const helper = document.getElementById('subBranchHelper');
+
+            if (!branchId) {
+                subBranchSelect.disabled = true;
+                subBranchSelect.innerHTML = '<option value="">-- اختر الفخذ الرئيسي أولاً --</option>';
+                helper.textContent = 'هذه القائمة تعتمد على اختيارك للفخذ الرئيسي';
+                return;
+            }
+
+            // Show loading
+            loading.classList.add('active');
+            subBranchSelect.disabled = true;
+
+            // Simulate API call delay
+            setTimeout(() => {
+                const branches = branchData[branchId];
+                subBranchSelect.innerHTML = '<option value="">-- اختر الفرع الفرعي --</option>';
+                
+                branches.forEach(branch => {
+                    const option = document.createElement('option');
+                    option.value = branch.value;
+                    option.textContent = branch.text;
+                    subBranchSelect.appendChild(option);
+                });
+
+                subBranchSelect.disabled = false;
+                loading.classList.remove('active');
+                helper.textContent = `تم تحميل ${branches.length} فروع متاحة`;
+            }, 500);
+        }
+
+        // Update Cities based on Country selection
+        function updateCities(countryCode) {
+            const citySelect = document.getElementById('city');
+            const loading = citySelect.parentElement.querySelector('.select-loading');
+            const helper = document.getElementById('cityHelper');
+
+            if (!countryCode) {
+                citySelect.disabled = true;
+                citySelect.innerHTML = '<option value="">-- اختر الدولة أولاً --</option>';
+                helper.textContent = 'المدن المتاحة تعتمد على الدولة المختارة';
+                return;
+            }
+
+            // Show loading
+            loading.classList.add('active');
+            citySelect.disabled = true;
+
+            // Simulate API call delay
+            setTimeout(() => {
+                const cities = cityData[countryCode];
+                citySelect.innerHTML = '<option value="">-- اختر المدينة --</option>';
+                
+                cities.forEach(city => {
+                    const option = document.createElement('option');
+                    option.value = city.value;
+                    option.textContent = city.text;
+                    citySelect.appendChild(option);
+                });
+
+                citySelect.disabled = false;
+                loading.classList.remove('active');
+                helper.textContent = `تم تحميل ${cities.length} مدن متاحة`;
+            }, 500);
+        }
+
+        // Update Subscription Plans based on Type
+        function updateSubscriptionPlans(type) {
+            const planSelect = document.getElementById('subscriptionPlan');
+            const loading = planSelect.parentElement.querySelector('.select-loading');
+            const helper = document.getElementById('planHelper');
+
+            if (!type) {
+                planSelect.disabled = true;
+                planSelect.innerHTML = '<option value="">-- اختر نوع الاشتراك أولاً --</option>';
+                helper.textContent = 'الخطط المتاحة تعتمد على نوع الاشتراك';
+                return;
+            }
+
+            // Show loading
+            loading.classList.add('active');
+            planSelect.disabled = true;
+
+            // Simulate API call delay
+            setTimeout(() => {
+                const plans = subscriptionPlans[type];
+                planSelect.innerHTML = '<option value="">-- اختر خطة الاشتراك --</option>';
+                
+                plans.forEach(plan => {
+                    const option = document.createElement('option');
+                    option.value = plan.value;
+                    option.textContent = plan.text;
+                    planSelect.appendChild(option);
+                });
+
+                planSelect.disabled = false;
+                loading.classList.remove('active');
+                helper.textContent = `تم تحميل ${plans.length} خطط متاحة`;
+            }, 500);
+        }
+
+        // Form submission
+        document.getElementById('memberForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Collect form data
+            const formData = {
+                mainBranch: document.getElementById('mainBranch').value,
+                subBranch: document.getElementById('subBranch').value,
+                country: document.getElementById('country').value,
+                city: document.getElementById('city').value,
+                gender: document.getElementById('gender').value,
+                subscriptionType: document.getElementById('subscriptionType').value,
+                subscriptionPlan: document.getElementById('subscriptionPlan').value,
+                memberStatus: document.getElementById('memberStatus').value
+            };
+
+            console.log('Form Data:', formData);
+            alert('✅ تم حفظ البيانات بنجاح!\n\nراجع Console للاطلاع على البيانات المرسلة.');
+        });
+
+        // Reset cascading dropdowns on form reset
+        document.getElementById('memberForm').addEventListener('reset', function() {
+            setTimeout(() => {
+                document.getElementById('subBranch').disabled = true;
+                document.getElementById('city').disabled = true;
+                document.getElementById('subscriptionPlan').disabled = true;
+            }, 10);
+        });
+    </script>
+</body>
+</html>

@@ -2378,15 +2378,18 @@
         function createMemberRow(member) {
             const row = document.createElement('tr');
 
-            // Map member data
-            const memberId = member.member_number || member.id || 'N/A';
-            const name = member.full_name_arabic || member.name || 'غير محدد';
-            const phone = member.phone_number || member.phone || 'غير محدد';
-            const branch = member.branch_arabic || member.branch || 'غير محدد';
-            const membershipStatus = member.membership_status || 'unknown';
-            const financialStatus = member.financial_status || 'unknown';
-            const balance = member.current_balance || 0;
-            const due = member.amount_due || 0;
+            // Map member data - using correct API field names from members table
+            const memberId = member.membership_number || member.id || 'N/A';
+            const name = member.full_name || 'غير محدد';
+            const phone = member.phone || 'غير محدد';
+            const branch = member.tribal_section || 'غير محدد';
+            const membershipStatus = member.membership_status || 'active';
+            const financialStatus = member.financial_status || 'paid';
+            // Fix: Use explicit undefined check to preserve 0 values (same fix as statement search)
+            const balance = member.current_balance !== undefined ? member.current_balance : 0;
+            // Required amount: 3000 SAR for each member until 2025
+            const requiredAmount = 3000;
+            const due = Math.max(0, requiredAmount - balance);
 
             // Translate statuses
             const memberStatusText = translateMemberStatus(membershipStatus);

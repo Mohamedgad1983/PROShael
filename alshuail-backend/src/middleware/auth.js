@@ -264,3 +264,7 @@ export const requireSuperAdmin = async (req, res, next) => {
     });
   }
 };
+/**
+ * Check if member is suspended and block login
+ * Use this in mobile app login endpoints
+ */
