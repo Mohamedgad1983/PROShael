@@ -2199,7 +2199,7 @@
                 console.log('🚀 Initializing dashboard with existing token');
                 await initDashboard();
             } else if (!token) {
-                console.log('⏳ Waiting for auth token from parent...');
+                console.log('⏳ No token found, showing login modal...'); showLoginModal();
             }
         };
         // Subscription Chart
