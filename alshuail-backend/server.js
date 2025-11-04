@@ -93,6 +93,8 @@ const corsOptions = {
     const allowedOrigins = [
       'https://alshuail-admin.pages.dev',
       'https://alshuail-admin-main.pages.dev',
+      'https://alshailfund.com',
+      'https://www.alshailfund.com',
       'http://localhost:3002',
       'http://localhost:3000',
       'http://localhost:3001',
@@ -113,6 +115,7 @@ const corsOptions = {
     if (config.isProduction) {
       if (allowedOrigins.includes(origin) ||
           origin.includes('alshuail-admin.pages.dev') ||
+          origin.includes('alshailfund.com') ||
           origin === config.frontend.url) {
         log.info(`[CORS] ✓ Allowed origin: ${origin}`);
         return callback(null, true);
@@ -148,7 +151,8 @@ app.use(cors(corsOptions));
 // Additional CORS headers for extra safety
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  if (origin && (origin.includes('alshuail-admin.pages.dev') || origin.includes('localhost'))) {
+  if (origin && (origin.includes('alshuail-admin.pages.dev') ||
+          origin.includes('alshailfund.com') || origin.includes('localhost'))) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
   }
