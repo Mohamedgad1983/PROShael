@@ -2461,7 +2461,10 @@
                         ${membershipStatus === 'suspended' ?
                             `<button class="btn-action btn-success" onclick="activateMember('${memberId}')" title="تفعيل">
                                 <i class="fas fa-check"></i>
-                            </button>` : ''}
+                            </button>` :
+                            `<button class="btn-action btn-suspend" onclick="suspendMember('${memberId}')" title="إيقاف">
+                                <i class="fas fa-ban"></i>
+                            </button>`}
                     </div>
                 </td>
             `;
@@ -2630,6 +2633,15 @@
             if (confirm('هل أنت متأكد من تفعيل هذا العضو?')) {
                 // In production, call API to update member status
                 alert('تم تفعيل العضو بنجاح');
+                // Refresh data
+                initDashboard();
+            }
+        }
+
+        function suspendMember(memberId) {
+            if (confirm('هل أنت متأكد من إيقاف هذا العضو?')) {
+                // In production, call API to update member status
+                alert('تم إيقاف العضو بنجاح');
                 // Refresh data
                 initDashboard();
             }
