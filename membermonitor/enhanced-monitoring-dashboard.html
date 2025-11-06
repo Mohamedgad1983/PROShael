@@ -2323,6 +2323,8 @@
             document.querySelectorAll('.member-checkbox').forEach(cb => {
                 cb.checked = false;
             });
+            updateSelection();
+        }
 
         // ===== Table Rendering Functions =====
         function renderMembersTable(members) {
