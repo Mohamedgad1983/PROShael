@@ -2170,6 +2170,8 @@
         // Listen for auth token from parent React app via postMessage
         // Set up listener immediately, before window.onload
         let dashboardInitialized = false;
+        let tokenReceivedFromParent = false;
+
         window.addEventListener('message', (event) => {
             // Verify message origin matches our domain
             if (event.origin !== window.location.origin) return;
@@ -2177,12 +2179,15 @@
             if (event.data.type === 'AUTH_TOKEN' && event.data.token) {
                 console.log('📩 Received auth token from parent window');
                 localStorage.setItem('auth_token', event.data.token);
+                tokenReceivedFromParent = true;
 
-                // Only initialize dashboard once window has loaded
+                // Initialize dashboard once window has loaded
                 if (document.readyState === 'complete' && !dashboardInitialized) {
                     dashboardInitialized = true;
                     console.log('🚀 Initializing dashboard with received token');
                     initDashboard();
+                } else if (document.readyState !== 'complete') {
+                    console.log('⏳ Token received, waiting for page load...');
                 }
             }
         });
@@ -2198,8 +2203,16 @@
                 dashboardInitialized = true;
                 console.log('🚀 Initializing dashboard with existing token');
                 await initDashboard();
-            } else if (!token) {
-                console.log('⏳ No token found, showing login modal...'); showLoginModal();
+            } else if (!token && !tokenReceivedFromParent) {
+                // Wait a short time for potential postMessage from parent before showing login modal
+                console.log('⏳ No token found, waiting 500ms for parent authentication...');
+                setTimeout(() => {
+                    const delayedToken = localStorage.getItem('auth_token');
+                    if (!delayedToken && !dashboardInitialized) {
+                        console.log('⏳ No token received, showing login modal...');
+                        showLoginModal();
+                    }
+                }, 500);
             }
         };
         // Subscription Chart
@@ -2352,6 +2365,15 @@
 
         // ===== Table Rendering Functions =====
         function renderMembersTable(members) {
+            // Validate members data
+            if (!members || !Array.isArray(members)) {
+                console.warn('Invalid members data provided to renderMembersTable');
+                filteredMembers = [];
+                currentPage = 1;
+                renderCurrentPage();
+                return;
+            }
+
             filteredMembers = members;
             currentPage = 1;
             renderCurrentPage();
@@ -2361,15 +2383,33 @@
             const tbody = document.querySelector('#membersTable tbody');
             if (!tbody) return;
 
+            // Clear existing content
+            tbody.innerHTML = '';
+
+            // Check if we have data to display
+            if (!filteredMembers || filteredMembers.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="10" style="text-align: center; padding: 2rem; color: #666;">
+                            <i class="fas fa-info-circle" style="font-size: 2rem; margin-bottom: 1rem; display: block;"></i>
+                            لا توجد بيانات للعرض
+                        </td>
+                    </tr>
+                `;
+                updatePaginationInfo();
+                return;
+            }
+
             const startIndex = (currentPage - 1) * pageSize;
             const endIndex = startIndex + pageSize;
             const pageMembers = filteredMembers.slice(startIndex, endIndex);
 
-            tbody.innerHTML = '';
-
             pageMembers.forEach(member => {
-                const row = createMemberRow(member);
-                tbody.appendChild(row);
+                // Validate member object before creating row
+                if (member && typeof member === 'object') {
+                    const row = createMemberRow(member);
+                    tbody.appendChild(row);
+                }
             });
 
             updatePaginationInfo();
@@ -2378,15 +2418,23 @@
         function createMemberRow(member) {
             const row = document.createElement('tr');
 
-            // Map member data - using correct API field names from members table
+            // Validate member object
+            if (!member || typeof member !== 'object') {
+                console.warn('Invalid member data in createMemberRow:', member);
+                return row;
+            }
+
+            // Map member data - using correct API field names from members table with safe defaults
             const memberId = member.membership_number || member.id || 'N/A';
-            const name = member.full_name || 'غير محدد';
+            const name = member.full_name || member.name || 'غير محدد';
             const phone = member.phone || 'غير محدد';
             const branch = member.tribal_section || 'غير محدد';
             const membershipStatus = member.membership_status || 'active';
             const financialStatus = member.financial_status || 'paid';
             // Fix: Use explicit undefined check to preserve 0 values (same fix as statement search)
-            const balance = member.current_balance !== undefined ? member.current_balance : 0;
+            const balance = member.current_balance !== undefined && member.current_balance !== null
+                ? parseFloat(member.current_balance)
+                : 0;
             // Required amount: 3000 SAR for each member until 2025
             const requiredAmount = 3000;
             const due = Math.max(0, requiredAmount - balance);
@@ -2397,8 +2445,8 @@
             const paymentStatusText = translateFinancialStatus(financialStatus);
             const paymentStatusClass = getPaymentStatusClass(financialStatus);
 
-            // Get first letter for avatar
-            const firstLetter = name.charAt(0);
+            // Get first letter for avatar - ensure name is valid
+            const firstLetter = name && name.length > 0 ? name.charAt(0) : '؟';
 
             row.innerHTML = `
                 <td>
@@ -2423,11 +2471,11 @@
                 </td>
                 <td>
                     <span class="amount-display ${balance >= 0 ? 'positive' : 'negative'}">
-                        ${balance >= 0 ? '+' : ''}${balance.toLocaleString('ar-SA')} ر.س
+                        ${balance >= 0 ? '+' : ''}${(isNaN(balance) ? 0 : balance).toLocaleString('ar-SA')} ر.س
                     </span>
                 </td>
                 <td>
-                    <span class="amount-display">${due.toLocaleString('ar-SA')} ر.س</span>
+                    <span class="amount-display">${(isNaN(due) ? 0 : due).toLocaleString('ar-SA')} ر.س</span>
                 </td>
                 <td>
                     <div class="action-buttons">
