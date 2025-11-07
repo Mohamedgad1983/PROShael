@@ -153,7 +153,7 @@ export const getMembers = async (req, res) => {
       .from('members')
       .select(`
         *,
-        family_branches(
+        family_branches!members_family_branch_id_fkey(
           id,
           branch_name,
           branch_name_en
