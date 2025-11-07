@@ -153,7 +153,7 @@ export const getMembers = async (req, res) => {
       .from('members')
       .select(`
         *,
-        family_branches!members_family_branch_id_fkey(
+        family_branches(
           id,
           branch_name,
           branch_name_en
@@ -171,29 +171,40 @@ export const getMembers = async (req, res) => {
       query = query.eq('generation_level', generation);
     }
     if (search) {
-      query = query.or(`full_name_ar.ilike.%${search}%,full_name_en.ilike.%${search}%,phone.ilike.%${search}%`);
+      query = query.or(`full_name.ilike.%${search}%,full_name_en.ilike.%${search}%,phone.ilike.%${search}%`);
     }
 
     // Order by generation and birth order
     query = query
       .order('generation_level', { ascending: false })
-      .order('birth_order', { ascending: true })
-      .order('full_name_ar', { ascending: true });
+      .order('full_name', { ascending: true });
 
     const { data: members, error } = await query;
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase query error details:', error);
+      throw error;
+    }
+
+    // Map column names to match frontend expectations
+    const mappedMembers = (members || []).map(member => ({
+      ...member,
+      full_name_ar: member.full_name, // Map full_name to full_name_ar for frontend
+      birth_date: member.date_of_birth // Map date_of_birth to birth_date for frontend
+    }));
 
     res.json({
       success: true,
-      data: members || [],
-      count: (members || []).length
+      data: mappedMembers,
+      count: mappedMembers.length
     });
   } catch (error) {
     console.error('Error fetching members:', error);
+    console.error('Error details:', error.message, error.details, error.hint);
     res.status(500).json({
       success: false,
-      error: 'Failed to fetch members'
+      error: 'Failed to fetch members',
+      message: error.message
     });
   }
 };
