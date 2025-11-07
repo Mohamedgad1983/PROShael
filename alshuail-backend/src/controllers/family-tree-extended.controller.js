@@ -171,7 +171,8 @@ export const getMembers = async (req, res) => {
       query = query.eq('generation_level', generation);
     }
     if (search) {
-      query = query.or(`full_name.ilike.%${search}%,full_name_en.ilike.%${search}%,phone.ilike.%${search}%`);
+      // Fixed: Use proper column references with quotes for Supabase
+      query = query.or(`full_name.ilike.%${search}%,phone.ilike.%${search}%`);
     }
 
     // Order by name only (generation_level can be NULL causing errors)

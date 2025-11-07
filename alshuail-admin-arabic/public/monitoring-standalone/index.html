@@ -2150,6 +2150,72 @@
             }
         }
 
+        // ===== Demo Data Parser for Offline Mode =====
+        function parseDemoDataToArrays() {
+            console.log('📊 Parsing demo HTML data into JavaScript arrays...');
+            try {
+                const demoRows = document.querySelectorAll('#membersTable tbody tr');
+                if (demoRows.length === 0) {
+                    console.warn('⚠️ No demo rows found in table');
+                    return;
+                }
+
+                allMembers = Array.from(demoRows).map((row, index) => {
+                    const cells = row.cells;
+
+                    // Extract membership status from the status badge
+                    const statusBadge = cells[5]?.querySelector('.member-badge');
+                    let membershipStatus = 'active';
+                    if (statusBadge) {
+                        const statusText = statusBadge.textContent.trim();
+                        if (statusText === 'نشط') membershipStatus = 'active';
+                        else if (statusText === 'موقوف') membershipStatus = 'suspended';
+                        else if (statusText === 'معلق') membershipStatus = 'pending';
+                    }
+
+                    // Extract financial status
+                    let financialStatus = 'paid';
+                    const finStatusText = cells[6]?.textContent.trim();
+                    if (finStatusText === 'مدفوع') financialStatus = 'paid';
+                    else if (finStatusText === 'متأخر') financialStatus = 'non-compliant';
+                    else if (finStatusText === 'جزئي') financialStatus = 'partial';
+
+                    // Parse balance (remove currency symbols and parse)
+                    const balanceText = cells[7]?.textContent.trim() || '0';
+                    const currentBalance = parseFloat(balanceText.replace(/[^\d.-]/g, '')) || 0;
+
+                    // Parse amount due
+                    const dueText = cells[8]?.textContent.trim() || '0';
+                    const amountDue = parseFloat(dueText.replace(/[^\d.-]/g, '')) || 0;
+
+                    return {
+                        id: index + 1,
+                        membership_number: cells[1]?.textContent.trim() || '',
+                        full_name: cells[2]?.querySelector('.member-name')?.textContent.trim() || cells[2]?.textContent.trim() || '',
+                        phone: cells[3]?.textContent.trim() || '',
+                        tribal_section: cells[4]?.textContent.trim() || '',
+                        membership_status: membershipStatus,
+                        financial_status: financialStatus,
+                        current_balance: currentBalance,
+                        amount_due: amountDue
+                    };
+                });
+
+                filteredMembers = [...allMembers];
+
+                console.log(`✅ Successfully parsed ${allMembers.length} demo members into arrays`);
+                console.log('📋 Sample member:', allMembers[0]);
+
+                // Update statistics with demo data
+                updateStatistics(allMembers);
+
+            } catch (error) {
+                console.error('❌ Error parsing demo data:', error);
+                allMembers = [];
+                filteredMembers = [];
+            }
+        }
+
         // ===== Dashboard Initialization =====
         async function initDashboard() {
             try {
@@ -2225,7 +2291,11 @@
                 console.log('🚀 Initializing dashboard with existing token');
                 await initDashboard();
             } else if (!token) {
-                console.log('⏳ No token found, showing login modal...'); showLoginModal();
+                console.log('⏳ No token found, parsing demo data for offline mode...');
+                // Parse demo HTML data into JavaScript arrays for offline functionality
+                parseDemoDataToArrays();
+                // Don't show login modal automatically - let user use demo mode
+                // showLoginModal();
             }
         };
         // Subscription Chart
@@ -2375,6 +2445,7 @@
             document.querySelectorAll('.member-checkbox').forEach(cb => {
                 cb.checked = false;
             });
+            updateSelection(); // Update counter and hide bulk action bar
         }
 
         // ===== Table Rendering Functions =====

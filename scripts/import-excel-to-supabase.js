@@ -4,11 +4,15 @@ const path = require('path');
 require('dotenv').config();
 
 // Supabase configuration
-const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || process.env.REACT_APP_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
+console.log('🔧 Supabase URL:', supabaseUrl ? 'Found' : 'Missing');
+console.log('🔧 Service Key:', supabaseServiceKey ? 'Found (length: ' + supabaseServiceKey.length + ')' : 'Missing');
 
 if (!supabaseUrl || !supabaseServiceKey) {
   console.error('❌ Missing Supabase credentials in environment variables');
+  console.error('Available env vars:', Object.keys(process.env).filter(k => k.includes('SUPABASE')));
   process.exit(1);
 }
 
@@ -20,7 +24,8 @@ async function importExcelData() {
     console.log('📊 Reading Excel file...');
 
     // Read the Excel file
-    const filePath = path.join(__dirname, 'alshuail-backend', 'AlShuail_Members_Prefilled_Import.xlsx');
+    const filePath = path.join(__dirname, '..', 'alshuail-backend', 'AlShuail_Members_Prefilled_Import.xlsx');
+    console.log(`📁 Reading file from: ${filePath}`);
     const workbook = XLSX.readFile(filePath);
 
     // Get the first sheet
@@ -40,7 +45,11 @@ async function importExcelData() {
     for (const row of data) {
       try {
         // Extract member ID and payment data
-        const memberNo = row['رقم العضوية\nmember_id'] || row['member_id'];
+        let memberNo = row['رقم العضوية\nmember_id'] || row['member_id'];
+        // Strip "SH-" prefix if present
+        if (memberNo && typeof memberNo === 'string') {
+          memberNo = memberNo.replace(/^SH-/i, '');
+        }
         const payment2021 = parseFloat(row['مدفوعات 2021\npayment_2021'] || row['payment_2021'] || 0);
         const payment2022 = parseFloat(row['مدفوعات 2022\npayment_2022'] || row['payment_2022'] || 0);
         const payment2023 = parseFloat(row['مدفوعات 2023\npayment_2023'] || row['payment_2023'] || 0);
@@ -54,12 +63,12 @@ async function importExcelData() {
 
         console.log(`Processing member ${memberNo}...`);
 
-        // Get member from database
+        // Get member from database (use membership_number column)
         const { data: member, error: memberError } = await supabase
           .from('members')
-          .select('id')
-          .eq('member_no', memberNo)
-          .single();
+          .select('id, membership_number')
+          .eq('membership_number', memberNo)
+          .maybeSingle();
 
         if (memberError || !member) {
           errors.push(`Member ${memberNo} not found in database`);
@@ -128,13 +137,13 @@ async function importExcelData() {
           }
         }
 
-        // Update member's total balance
+        // Update member's total balance (using current_balance column)
         const totalPaid = payment2021 + payment2022 + payment2023 + payment2024 + payment2025;
 
         const { error: balanceError } = await supabase
           .from('members')
           .update({
-            balance: totalPaid,
+            current_balance: totalPaid,
             updated_at: new Date().toISOString()
           })
           .eq('id', member.id);
