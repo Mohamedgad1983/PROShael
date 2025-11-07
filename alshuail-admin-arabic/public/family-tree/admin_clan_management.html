@@ -1197,7 +1197,7 @@
         }
 
         // View clan members
-        async function viewClanMembers(clanId) {
+        window.viewClanMembers = async function(clanId) {
             const modal = document.getElementById('clanMembersModal');
             const content = document.getElementById('clanMembersContent');
 
@@ -1276,7 +1276,7 @@
         }
 
         // Edit clan
-        async function editClan(clanId) {
+        window.editClan = async function(clanId) {
             const modal = document.getElementById('editClanModal');
 
             try {
@@ -1354,7 +1354,7 @@
         }
 
         // Export members to Excel
-        function exportMembersToExcel(clanId) {
+        window.exportMembersToExcel = function(clanId) {
             alert(`📥 جاري تصدير أعضاء الفخذ ${clanId} إلى ملف Excel...\n\nهذه الميزة قيد التطوير.`);
         }
 
