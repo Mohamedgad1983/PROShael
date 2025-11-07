@@ -174,9 +174,8 @@ export const getMembers = async (req, res) => {
       query = query.or(`full_name.ilike.%${search}%,full_name_en.ilike.%${search}%,phone.ilike.%${search}%`);
     }
 
-    // Order by generation and birth order
+    // Order by name only (generation_level can be NULL causing errors)
     query = query
-      .order('generation_level', { ascending: false })
       .order('full_name', { ascending: true });
 
     const { data: members, error } = await query;
