@@ -538,6 +538,11 @@
             color: #333;
         }
 
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
         @media (max-width: 768px) {
             .clans-grid {
                 grid-template-columns: 1fr;
@@ -1084,10 +1089,75 @@
                 <div class="modal-title">📋 تفاصيل طلب الانضمام</div>
                 <button class="close-btn" onclick="closeModal('memberDetailsModal')">&times;</button>
             </div>
-            
+
             <div id="memberDetailsContent">
                 <!-- Will be populated dynamically -->
             </div>
+        </div>
+    </div>
+
+    <!-- View Clan Members Modal -->
+    <div class="modal" id="clanMembersModal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <div class="modal-title">👥 أعضاء الفخذ</div>
+                <button class="close-btn" onclick="closeModal('clanMembersModal')">&times;</button>
+            </div>
+
+            <div id="clanMembersContent">
+                <div style="text-align: center; padding: 40px;">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+                    <p style="margin-top: 15px; color: #666;">جاري تحميل الأعضاء...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Clan Modal -->
+    <div class="modal" id="editClanModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">✏️ تعديل بيانات الفخذ</div>
+                <button class="close-btn" onclick="closeModal('editClanModal')">&times;</button>
+            </div>
+
+            <form onsubmit="saveEditedClan(event)" id="editClanForm">
+                <input type="hidden" id="edit-clan-id">
+
+                <div class="form-group">
+                    <label class="form-label">اسم الفخذ *</label>
+                    <input type="text" class="form-control" id="edit-clan-name" placeholder="مثال: فخذ عبدالرحمن الشعيل" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">اسم رئيس الفخذ *</label>
+                    <input type="text" class="form-control" id="edit-clan-head-name" placeholder="مثال: عبدالرحمن محمد الشعيل" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">رقم جوال رئيس الفخذ *</label>
+                    <input type="tel" class="form-control" id="edit-clan-head-phone" placeholder="مثال: 0555-123-456" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">البريد الإلكتروني (اختياري)</label>
+                    <input type="email" class="form-control" id="edit-clan-email" placeholder="example@email.com">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">ملاحظات (اختياري)</label>
+                    <textarea class="form-control" id="edit-clan-notes" rows="3" placeholder="أي ملاحظات إضافية..."></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">
+                        💾 حفظ التعديلات
+                    </button>
+                    <button type="button" class="btn" style="flex: 1; background: #e0e0e0;" onclick="closeModal('editClanModal')">
+                        ❌ إلغاء
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -1127,13 +1197,165 @@
         }
 
         // View clan members
-        function viewClanMembers(clanId) {
-            alert(`عرض جميع أعضاء الفخذ رقم ${clanId}`);
+        async function viewClanMembers(clanId) {
+            const modal = document.getElementById('clanMembersModal');
+            const content = document.getElementById('clanMembersContent');
+
+            // Show modal with loading state
+            modal.classList.add('active');
+            content.innerHTML = `
+                <div style="text-align: center; padding: 40px;">
+                    <div style="display: inline-block; width: 48px; height: 48px; border: 4px solid #f3f3f3; border-top-color: #667eea; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                    <p style="margin-top: 15px; color: #666;">جاري تحميل أعضاء الفخذ...</p>
+                </div>
+            `;
+
+            try {
+                // Fetch members from API
+                const response = await window.FamilyTreeAPI.fetchMembers({ branchId: clanId });
+
+                if (!response.success || !response.data || response.data.length === 0) {
+                    content.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">👥</div>
+                            <div class="empty-text">لا توجد أعضاء في هذا الفخذ حالياً</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const members = response.data;
+
+                // Build members table
+                content.innerHTML = `
+                    <div style="margin-bottom: 15px; padding: 12px; background: #f8f9fa; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: bold; color: #667eea;">إجمالي الأعضاء: ${members.length}</span>
+                        <button class="btn btn-primary" style="padding: 8px 15px; font-size: 13px;" onclick="exportMembersToExcel('${clanId}')">
+                            📥 تصدير لـ Excel
+                        </button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>الاسم الكامل</th>
+                                    <th>رقم الجوال</th>
+                                    <th>تاريخ الميلاد</th>
+                                    <th>الجنس</th>
+                                    <th>الحالة</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${members.map(member => `
+                                    <tr>
+                                        <td>${member.full_name_ar || member.name_arabic || 'غير محدد'}</td>
+                                        <td>${member.phone || 'غير محدد'}</td>
+                                        <td>${member.birth_date ? new Date(member.birth_date).toLocaleDateString('ar-SA') : 'غير محدد'}</td>
+                                        <td>${member.gender === 'male' ? '👨 ذكر' : member.gender === 'female' ? '👩 أنثى' : 'غير محدد'}</td>
+                                        <td><span class="status-badge status-approved">✅ معتمد</span></td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
+            } catch (error) {
+                console.error('Error loading clan members:', error);
+                content.innerHTML = `
+                    <div style="text-align: center; padding: 40px;">
+                        <div style="font-size: 48px; margin-bottom: 15px;">⚠️</div>
+                        <div style="color: #dc3545; font-weight: bold; margin-bottom: 10px;">خطأ في تحميل البيانات</div>
+                        <p style="color: #666; margin-bottom: 20px;">تعذر الاتصال بالخادم. يرجى المحاولة لاحقاً.</p>
+                        <button class="btn btn-primary" onclick="viewClanMembers('${clanId}')">
+                            🔄 إعادة المحاولة
+                        </button>
+                    </div>
+                `;
+            }
         }
 
         // Edit clan
-        function editClan(clanId) {
-            alert(`تعديل بيانات الفخذ رقم ${clanId}`);
+        async function editClan(clanId) {
+            const modal = document.getElementById('editClanModal');
+
+            try {
+                // Fetch branch data
+                const response = await window.FamilyTreeAPI.fetchBranches();
+
+                if (!response.success) throw new Error('Failed to fetch branch data');
+
+                const branch = response.data.find(b => b.id === clanId);
+
+                if (!branch) {
+                    alert('لم يتم العثور على بيانات الفخذ');
+                    return;
+                }
+
+                // Populate form with existing data
+                document.getElementById('edit-clan-id').value = branch.id;
+                document.getElementById('edit-clan-name').value = branch.branch_name || '';
+                document.getElementById('edit-clan-head-name').value = branch.branch_head?.full_name_ar || '';
+                document.getElementById('edit-clan-head-phone').value = branch.branch_head?.phone || '';
+                document.getElementById('edit-clan-email').value = branch.branch_head?.email || '';
+                document.getElementById('edit-clan-notes').value = branch.notes || '';
+
+                // Show modal
+                modal.classList.add('active');
+
+            } catch (error) {
+                console.error('Error loading clan data:', error);
+                alert('خطأ في تحميل بيانات الفخذ. يرجى المحاولة لاحقاً.');
+            }
+        }
+
+        // Save edited clan
+        async function saveEditedClan(event) {
+            event.preventDefault();
+
+            const clanId = document.getElementById('edit-clan-id').value;
+            const updatedData = {
+                branch_name: document.getElementById('edit-clan-name').value,
+                branch_head: {
+                    full_name_ar: document.getElementById('edit-clan-head-name').value,
+                    phone: document.getElementById('edit-clan-head-phone').value,
+                    email: document.getElementById('edit-clan-email').value
+                },
+                notes: document.getElementById('edit-clan-notes').value
+            };
+
+            try {
+                // Call API to update clan (implementation needed in backend)
+                const response = await fetch(`${window.FamilyTreeAPI.API_CONFIG?.PROD_API_URL || 'https://proshael.onrender.com/api'}/tree/branches/${clanId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${window.sessionStorage.getItem('token') || window.localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify(updatedData)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                alert('✅ تم حفظ التعديلات بنجاح!');
+                closeModal('editClanModal');
+
+                // Refresh clan cards
+                if (window.FamilyTreeAPI && window.FamilyTreeAPI.updateClanCards) {
+                    await window.FamilyTreeAPI.updateClanCards();
+                }
+
+            } catch (error) {
+                console.error('Error saving clan:', error);
+                alert('⚠️ خطأ في حفظ التعديلات. يرجى المحاولة لاحقاً.\n\nالتفاصيل: ' + error.message);
+            }
+        }
+
+        // Export members to Excel
+        function exportMembersToExcel(clanId) {
+            alert(`📥 جاري تصدير أعضاء الفخذ ${clanId} إلى ملف Excel...\n\nهذه الميزة قيد التطوير.`);
         }
 
         // Approve member

@@ -482,17 +482,22 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 30000);
     }
 
-    // Make functions globally available
-    window.viewClanMembers = async (branchId) => {
-        const members = await fetchMembers({ branchId });
-        console.log('Branch members:', members);
-        // Implement member viewing UI
-    };
+    // Functions are now implemented directly in admin_clan_management.html
+    // These are just exports for backward compatibility
+    if (!window.viewClanMembers) {
+        window.viewClanMembers = async (branchId) => {
+            const members = await fetchMembers({ branchId });
+            console.log('Branch members:', members);
+            alert(`عرض ${members.data?.length || 0} عضو من الفخذ ${branchId}`);
+        };
+    }
 
-    window.editClan = (branchId) => {
-        console.log('Edit clan:', branchId);
-        // Implement edit functionality
-    };
+    if (!window.editClan) {
+        window.editClan = (branchId) => {
+            console.log('Edit clan:', branchId);
+            alert(`تعديل الفخذ ${branchId}`);
+        };
+    }
 
     window.handleApprove = handleApprove;
     window.handleReject = handleReject;
