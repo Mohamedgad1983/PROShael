@@ -47,8 +47,8 @@ router.get('/search-members', authenticateToken, requireRole(['super_admin']), a
     // Search in both users and members tables
     const { data: usersResults, error: usersError } = await supabase
       .from('users')
-      .select('id, email, full_name, phone, role, is_active')
-      .or(`email.ilike.${searchTerm},full_name.ilike.${searchTerm},phone.ilike.${searchTerm}`)
+      .select('id, email, full_name_en, phone, role, is_active')
+      .or(`email.ilike.${searchTerm},full_name_en.ilike.${searchTerm},phone.ilike.${searchTerm}`)
       .eq('is_active', true)
       .limit(limit);
 
@@ -64,7 +64,7 @@ router.get('/search-members', authenticateToken, requireRole(['super_admin']), a
 
     // Get current roles for each user
     const allResults = [
-      ...(usersResults || []).map(u => ({ ...u, source: 'users' })),
+      ...(usersResults || []).map(u => ({ ...u, full_name: u.full_name_en, source: 'users' })),
       ...(membersResults || []).map(m => ({ ...m, source: 'members' }))
     ];
 
