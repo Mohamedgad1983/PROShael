@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import {
   CogIcon,
   UsersIcon,
+  UserGroupIcon,
   ShieldCheckIcon,
   BellIcon,
   PaintBrushIcon,
@@ -20,6 +21,7 @@ import { useRole, RoleGate } from '../../contexts/RoleContext';
 import UserManagement from './UserManagement';
 import SystemSettings from './SystemSettingsEnhanced';
 import AuditLogs from './AuditLogs';
+import MultiRoleManagement from './MultiRoleManagement';
 
 interface SettingsTab {
   id: string;
@@ -50,6 +52,14 @@ const SettingsPage: React.FC = () => {
       component: UserManagement,
       requiredRole: ['super_admin'],
       description: 'إدارة المستخدمين وتعيين الأدوار والصلاحيات'
+    },
+    {
+      id: 'multi-role-management',
+      label: 'إدارة الأدوار المتعددة',
+      icon: UserGroupIcon,
+      component: MultiRoleManagement,
+      requiredRole: ['super_admin'],
+      description: 'تعيين أدوار متعددة مع فترات زمنية محددة'
     },
     {
       id: 'system-settings',
