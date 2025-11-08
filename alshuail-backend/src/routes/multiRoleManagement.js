@@ -191,7 +191,7 @@ router.post('/assign', authenticateToken, requireRole(['super_admin']), async (r
     // Check if user exists in either users or members table
     const { data: userInUsers } = await supabase
       .from('users')
-      .select('id, email, full_name')
+      .select('id, email, full_name_en')
       .eq('id', user_id)
       .single();
 
@@ -208,7 +208,7 @@ router.post('/assign', authenticateToken, requireRole(['super_admin']), async (r
       });
     }
 
-    const user = userInUsers || userInMembers;
+    const user = userInUsers ? { ...userInUsers, full_name: userInUsers.full_name_en } : userInMembers;
 
     // Check if role exists
     const { data: role, error: roleError } = await supabase
