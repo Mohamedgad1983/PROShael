@@ -433,7 +433,7 @@ router.get('/roles', authenticateToken, requireRole(['super_admin']), async (req
   try {
     const { data: roles, error } = await supabase
       .from('user_roles')
-      .select('id, role_name, role_name_ar, role_description, priority, permissions')
+      .select('id, role_name, role_name_ar, description, priority, permissions')
       .order('priority', { ascending: false });
 
     if (error) throw error;
