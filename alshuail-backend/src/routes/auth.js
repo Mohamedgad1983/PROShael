@@ -162,7 +162,7 @@ async function authenticateAdmin(identifier, password, requestedRole = null) {
     // First try users table (for admin roles)
     let result = await supabase
       .from('users')
-      .select('id, email, password_hash, is_active, role, phone, full_name')
+      .select('id, email, password_hash, is_active, role, phone, full_name_ar, full_name_en')
       .eq('email', normalizedEmail)
       .single();
 
@@ -183,7 +183,7 @@ async function authenticateAdmin(identifier, password, requestedRole = null) {
     // First try users table (for admin roles)
     let result = await supabase
       .from('users')
-      .select('id, email, password_hash, is_active, role, phone, full_name')
+      .select('id, email, password_hash, is_active, role, phone, full_name_ar, full_name_en')
       .eq('phone', cleanPhone)
       .single();
 
@@ -284,7 +284,7 @@ async function authenticateAdmin(identifier, password, requestedRole = null) {
       id: user.id,
       email: user.email || `${user.phone}@alshuail.com`,
       phone: user.phone,
-      fullName: user.full_name || user.email?.split('@')[0] || `Admin ${user.phone}`,
+      fullName: user.full_name_ar || user.full_name_en || user.full_name || user.email?.split('@')[0] || `Admin ${user.phone}`,
       role: roleInfo.name,
       roleAr: roleInfo.displayName,
       permissions: roleInfo.permissions
