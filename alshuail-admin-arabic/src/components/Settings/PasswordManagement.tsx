@@ -14,7 +14,8 @@ import {
   LockClosedIcon,
   LockOpenIcon
 } from '@heroicons/react/24/outline';
-import { API_URL } from '../../config';
+
+const API_URL = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
 
 interface User {
   id: string;
