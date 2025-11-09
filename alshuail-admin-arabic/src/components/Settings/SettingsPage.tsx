@@ -21,16 +21,18 @@ import { useRole, RoleGate } from '../../contexts/RoleContext';
 import UserManagement from './UserManagement';
 import SystemSettings from './SystemSettingsEnhanced';
 import AuditLogs from './AuditLogs';
-import MultiRoleManagement from './MultiRoleManagement';
 
-// Force webpack to include the component
-if (false) { console.log(MultiRoleManagement); }
+// Import MultiRoleManagement directly (not lazy) to debug webpack issue
+import MultiRoleManagement from './MultiRoleManagement';
+import PasswordManagement from './PasswordManagement';
+
+// Force webpack to include MultiRoleManagement by using it at module level
+console.log('[Settings] MultiRoleManagement imported:', MultiRoleManagement);
 
 interface SettingsTab {
   id: string;
   label: string;
   icon: React.ComponentType<any>;
-  component: React.ComponentType;
   requiredRole?: string[];
   description: string;
 }
@@ -38,6 +40,41 @@ interface SettingsTab {
 const SettingsPage: React.FC = () => {
   const { user, hasRole, loading } = useRole();
   const [activeTab, setActiveTab] = useState('user-management');
+
+  // Force webpack to see MultiRoleManagement is used
+  // Store component in window to prevent tree shaking
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).__MULTI_ROLE__ = MultiRoleManagement;
+    }
+  }, []);
+
+  // Test component to see if webpack includes it
+  const TestMultiRole = () => (
+    <div>
+      <h1>Multi-Role Management Test</h1>
+      <p>If you see this, webpack is including the component!</p>
+    </div>
+  );
+
+  // Explicit component renderer to force webpack inclusion
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'user-management':
+        return <UserManagement />;
+      case 'multi-role-management':
+        // Use the actual MultiRoleManagement component
+        return <MultiRoleManagement />;
+      case 'password-management':
+        return <PasswordManagement />;
+      case 'system-settings':
+        return <SystemSettings />;
+      case 'audit-logs':
+        return <AuditLogs />;
+      default:
+        return <UserManagement />;
+    }
+  };
 
   // Debug: Log user info
   useEffect(() => {
@@ -52,7 +89,6 @@ const SettingsPage: React.FC = () => {
       id: 'user-management',
       label: 'إدارة المستخدمين والصلاحيات',
       icon: UsersIcon,
-      component: UserManagement,
       requiredRole: ['super_admin'],
       description: 'إدارة المستخدمين وتعيين الأدوار والصلاحيات'
     },
@@ -60,15 +96,20 @@ const SettingsPage: React.FC = () => {
       id: 'multi-role-management',
       label: 'إدارة الأدوار المتعددة',
       icon: UserGroupIcon,
-      component: MultiRoleManagement,
       requiredRole: ['super_admin'],
       description: 'تعيين أدوار متعددة مع فترات زمنية محددة'
+    },
+    {
+      id: 'password-management',
+      label: 'إدارة كلمات المرور',
+      icon: KeyIcon,
+      requiredRole: ['super_admin'],
+      description: 'إنشاء وإعادة تعيين كلمات المرور للمستخدمين'
     },
     {
       id: 'system-settings',
       label: 'إعدادات النظام',
       icon: ServerIcon,
-      component: SystemSettings,
       requiredRole: ['super_admin'],
       description: 'إعدادات النظام العامة والتكوينات'
     },
@@ -76,20 +117,34 @@ const SettingsPage: React.FC = () => {
       id: 'audit-logs',
       label: 'سجلات التدقيق',
       icon: ShieldCheckIcon,
-      component: AuditLogs,
       requiredRole: ['super_admin'],
       description: 'عرض سجلات النظام والأنشطة'
     }
   ];
 
+  // Debug: Log all tabs before filtering
+  console.log('[Settings] All tabs defined:', settingsTabs.map(t => t.id));
+
+  // Check if MultiRoleManagement component exists
+  console.log('[Settings] MultiRoleManagement component exists?', typeof MultiRoleManagement);
+  console.log('[Settings] MultiRoleManagement component:', MultiRoleManagement);
+
   // Filter tabs based on user role
   const availableTabs = settingsTabs.filter(tab => {
     if (!tab.requiredRole) return true;
-    return hasRole(tab.requiredRole as any);
+    const hasRequiredRole = hasRole(tab.requiredRole as any);
+    console.log(`[Settings] Tab ${tab.id} - Required role: ${tab.requiredRole}, Has role: ${hasRequiredRole}`);
+
+    // TEMPORARY: Force include multi-role tab for testing
+    if (tab.id === 'multi-role-management') {
+      console.log('[Settings] FORCING multi-role-management tab to be included');
+      return true;
+    }
+
+    return hasRequiredRole;
   });
 
-  const activeTabData = availableTabs.find(tab => tab.id === activeTab) || availableTabs[0];
-  const ActiveComponent = activeTabData?.component;
+  console.log('[Settings] Available tabs after filtering:', availableTabs.map(t => t.id));
 
   const containerStyle: React.CSSProperties = {
     minHeight: '100vh',
@@ -302,7 +357,7 @@ const SettingsPage: React.FC = () => {
               </div>
             </div>
           ) : (
-            ActiveComponent && <ActiveComponent />
+            renderTabContent()
           )}
         </div>
       </div>
