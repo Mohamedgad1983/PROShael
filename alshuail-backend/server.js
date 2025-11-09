@@ -41,6 +41,7 @@ import paymentAnalyticsRoutes from './src/routes/paymentAnalyticsRoutes.js';
 import memberSuspensionRoutes from './src/routes/memberSuspensionRoutes.js';
 import deviceTokenRoutes from './src/routes/deviceTokenRoutes.js';
 import multiRoleManagementRoutes from './src/routes/multiRoleManagement.js';
+import passwordManagementRoutes from './src/routes/passwordManagement.js';
 import { log } from './src/utils/logger.js';
 import { config } from './src/config/env.js';
 import { errorHandler } from './src/utils/errorCodes.js';
@@ -273,6 +274,9 @@ app.use('/api/device-tokens', deviceTokenRoutes);
 
 // Multi-Role Time-Based Management APIs - Assign multiple roles with Hijri date periods
 app.use('/api/multi-role', multiRoleManagementRoutes);
+
+// Password Management APIs - Superadmin password creation and reset
+app.use('/api/password-management', passwordManagementRoutes);
 
 // Enhanced health check endpoint
 app.get('/api/health', async (req, res) => {
