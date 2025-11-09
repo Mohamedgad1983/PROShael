@@ -23,6 +23,9 @@ import SystemSettings from './SystemSettingsEnhanced';
 import AuditLogs from './AuditLogs';
 import MultiRoleManagement from './MultiRoleManagement';
 
+// Force webpack to include the component
+if (false) { console.log(MultiRoleManagement); }
+
 interface SettingsTab {
   id: string;
   label: string;
