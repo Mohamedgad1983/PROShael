@@ -6,13 +6,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import UserManagement from './UserManagement.tsx';
-import SystemSettings from './SystemSettings.tsx';
-import AuditLogs from './AuditLogs.tsx';
+import UserManagement from './UserManagement';
+import SystemSettings from './SystemSettings';
+import AuditLogs from './AuditLogs';
+import MultiRoleManagement from './MultiRoleManagement';
 import '../Members/AppleDesignSystem.css';
 import {
   CogIcon,
   UsersIcon,
+  UserGroupIcon,
   ShieldCheckIcon,
   ServerIcon,
   KeyIcon,
@@ -35,6 +37,16 @@ const Settings = () => {
       description: 'إدارة المستخدمين وتعيين الأدوار والصلاحيات',
       gradient: 'linear-gradient(135deg, var(--apple-blue-500) 0%, var(--apple-purple-600) 100%)',
       shadowColor: 'rgba(59, 130, 246, 0.3)'
+    },
+    {
+      id: 'multi-role-management',
+      label: 'إدارة الأدوار المتعددة',
+      icon: UserGroupIcon,
+      component: MultiRoleManagement,
+      requiredRoles: ['super_admin'],
+      description: 'تعيين أدوار متعددة مع فترات زمنية محددة',
+      gradient: 'linear-gradient(135deg, var(--apple-indigo-500) 0%, var(--apple-purple-600) 100%)',
+      shadowColor: 'rgba(99, 102, 241, 0.3)'
     },
     {
       id: 'system-settings',
@@ -435,17 +447,29 @@ const Settings = () => {
 
               {/* Component Content */}
               <div style={{ position: 'relative' }}>
-                {ActiveComponent ? (
-                  <ActiveComponent />
-                ) : (
-                  <div style={{
-                    padding: '2rem',
-                    textAlign: 'center',
-                    color: 'var(--apple-gray-600)'
-                  }}>
-                    <p>جاري تحميل المحتوى...</p>
-                  </div>
-                )}
+                {(() => {
+                  // Explicit component rendering to force webpack inclusion
+                  switch (activeTab) {
+                    case 'user-management':
+                      return <UserManagement />;
+                    case 'multi-role-management':
+                      return <MultiRoleManagement />;
+                    case 'system-settings':
+                      return <SystemSettings />;
+                    case 'audit-logs':
+                      return <AuditLogs />;
+                    default:
+                      return (
+                        <div style={{
+                          padding: '2rem',
+                          textAlign: 'center',
+                          color: 'var(--apple-gray-600)'
+                        }}>
+                          <p>جاري تحميل المحتوى...</p>
+                        </div>
+                      );
+                  }
+                })()}
               </div>
             </div>
           )}

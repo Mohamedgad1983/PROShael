@@ -165,6 +165,37 @@ class MultiRoleService {
     );
     return { message: response.data.message };
   }
+
+  /**
+   * Get all users with active role assignments
+   */
+  async getAllAssignments(): Promise<{
+    users: Array<{
+      user_id: string;
+      full_name: string;
+      email: string;
+      phone: string;
+      roles: Array<{
+        assignment_id: string;
+        role_id: string;
+        role_name: string;
+        role_name_ar: string;
+        start_date_gregorian: string | null;
+        end_date_gregorian: string | null;
+        start_date_hijri: string | null;
+        end_date_hijri: string | null;
+        status: string;
+        notes: string;
+      }>;
+    }>;
+    total_users: number;
+    total_assignments: number;
+  }> {
+    const response = await axios.get(`${API_BASE_URL}/api/multi-role/all-assignments`, {
+      headers: this.getAuthHeaders()
+    });
+    return response.data.data;
+  }
 }
 
 export const multiRoleService = new MultiRoleService();

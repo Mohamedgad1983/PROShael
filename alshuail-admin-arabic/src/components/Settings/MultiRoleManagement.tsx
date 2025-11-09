@@ -24,6 +24,7 @@ import multiRoleService, {
   AssignRoleRequest,
   UpdateRoleAssignmentRequest
 } from '../../services/multiRoleService';
+import { HijriDatePicker } from '../Common/HijriDatePicker';
 
 const MultiRoleManagement: React.FC = () => {
   // State management
@@ -32,7 +33,26 @@ const MultiRoleManagement: React.FC = () => {
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [userAssignments, setUserAssignments] = useState<RoleAssignment[]>([]);
+  const [allUsersWithRoles, setAllUsersWithRoles] = useState<Array<{
+    user_id: string;
+    full_name: string;
+    email: string;
+    phone: string;
+    roles: Array<{
+      assignment_id: string;
+      role_id: string;
+      role_name: string;
+      role_name_ar: string;
+      start_date_gregorian: string | null;
+      end_date_gregorian: string | null;
+      start_date_hijri: string | null;
+      end_date_hijri: string | null;
+      status: string;
+      notes: string;
+    }>;
+  }>>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingAllUsers, setLoadingAllUsers] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState<RoleAssignment | null>(null);
@@ -46,17 +66,22 @@ const MultiRoleManagement: React.FC = () => {
     role_id: string;
     start_date_gregorian: string;
     end_date_gregorian: string;
+    start_date_hijri: string;
+    end_date_hijri: string;
     notes: string;
   }>({
     role_id: '',
     start_date_gregorian: '',
     end_date_gregorian: '',
+    start_date_hijri: '',
+    end_date_hijri: '',
     notes: ''
   });
 
-  // Load roles on mount
+  // Load roles and all users with roles on mount
   useEffect(() => {
     loadRoles();
+    loadAllUsersWithRoles();
   }, []);
 
   // Search members with debounce
@@ -79,6 +104,19 @@ const MultiRoleManagement: React.FC = () => {
     } catch (error) {
       showNotification('error', 'فشل تحميل الأدوار');
       console.error('Load roles error:', error);
+    }
+  };
+
+  const loadAllUsersWithRoles = async () => {
+    try {
+      setLoadingAllUsers(true);
+      const data = await multiRoleService.getAllAssignments();
+      setAllUsersWithRoles(data.users || []);
+    } catch (error) {
+      // Don't show error if endpoint doesn't exist yet
+      console.log('Load all users with roles:', error);
+    } finally {
+      setLoadingAllUsers(false);
     }
   };
 
@@ -136,6 +174,7 @@ const MultiRoleManagement: React.FC = () => {
       setShowAssignModal(false);
       resetAssignForm();
       loadUserAssignments(selectedUser.id);
+      loadAllUsersWithRoles(); // Refresh the all users list
     } catch (error: any) {
       const errorMsg = error.response?.data?.error || 'فشل تعيين الصلاحية';
       showNotification('error', errorMsg);
@@ -185,6 +224,7 @@ const MultiRoleManagement: React.FC = () => {
       if (selectedUser) {
         loadUserAssignments(selectedUser.id);
       }
+      loadAllUsersWithRoles(); // Refresh the all users list
     } catch (error: any) {
       const errorMsg = error.response?.data?.error || 'فشل إلغاء الصلاحية';
       showNotification('error', errorMsg);
@@ -200,6 +240,8 @@ const MultiRoleManagement: React.FC = () => {
       role_id: assignment.role_id,
       start_date_gregorian: assignment.start_date_gregorian || '',
       end_date_gregorian: assignment.end_date_gregorian || '',
+      start_date_hijri: '',  // Will be populated by HijriDatePicker
+      end_date_hijri: '',    // Will be populated by HijriDatePicker
       notes: assignment.notes || ''
     });
     setShowEditModal(true);
@@ -210,6 +252,8 @@ const MultiRoleManagement: React.FC = () => {
       role_id: '',
       start_date_gregorian: '',
       end_date_gregorian: '',
+      start_date_hijri: '',
+      end_date_hijri: '',
       notes: ''
     });
   };
@@ -438,6 +482,105 @@ const MultiRoleManagement: React.FC = () => {
         </div>
       )}
 
+      {/* All Users with Roles Section */}
+      {allUsersWithRoles.length > 0 && (
+        <div style={{
+          background: '#F9FAFB',
+          borderRadius: '16px',
+          padding: '20px',
+          marginBottom: '30px',
+          border: '1px solid rgba(0, 0, 0, 0.08)'
+        }}>
+          <h3 style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            color: '#1F2937',
+            marginBottom: '15px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <ShieldCheckIcon style={{ width: '22px', height: '22px', color: '#6366F1' }} />
+            جميع المستخدمين مع الأدوار المعينة ({allUsersWithRoles.length} مستخدم)
+          </h3>
+
+          <div style={{ display: 'grid', gap: '12px' }}>
+            {loadingAllUsers ? (
+              <div style={{ textAlign: 'center', padding: '20px', color: '#6B7280' }}>
+                جاري التحميل...
+              </div>
+            ) : (
+              allUsersWithRoles.map((user) => (
+                <div
+                  key={user.user_id}
+                  style={{
+                    background: 'white',
+                    borderRadius: '12px',
+                    padding: '15px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    border: '1px solid rgba(0, 0, 0, 0.08)'
+                  }}
+                  onClick={() => {
+                    const userObj = {
+                      id: user.user_id,
+                      full_name: user.full_name,
+                      email: user.email,
+                      phone: user.phone,
+                      primary_role: '',
+                      source: 'users' as const,
+                      active_roles: []
+                    };
+                    handleSelectUser(userObj);
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.boxShadow = 'none';
+                    e.currentTarget.style.transform = 'none';
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontWeight: '600', fontSize: '15px', color: '#1F2937' }}>
+                        {user.full_name}
+                      </div>
+                      <div style={{ fontSize: '13px', color: '#6B7280', marginTop: '4px' }}>
+                        {user.email}
+                      </div>
+                    </div>
+                    <div style={{
+                      background: '#6366F1',
+                      color: 'white',
+                      padding: '6px 12px',
+                      borderRadius: '20px',
+                      fontSize: '12px',
+                      fontWeight: '600'
+                    }}>
+                      {user.roles.length} {user.roles.length === 1 ? 'دور' : 'أدوار'}
+                    </div>
+                  </div>
+
+                  {/* Show role details on hover */}
+                  <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid rgba(0, 0, 0, 0.05)' }}>
+                    <div style={{ fontSize: '12px', color: '#6B7280' }}>
+                      {user.roles.map((role, index) => (
+                        <span key={index}>
+                          {role.role_name_ar}
+                          {index < user.roles.length - 1 && ' • '}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Member Search */}
       <div style={searchContainerStyle}>
         <input
@@ -618,23 +761,35 @@ const MultiRoleManagement: React.FC = () => {
               </select>
             </div>
 
-            <div>
-              <label style={labelStyle}>تاريخ البدء (اختياري)</label>
-              <input
-                type="date"
+            <div style={{ marginBottom: '15px' }}>
+              <HijriDatePicker
+                label="تاريخ البدء (اختياري)"
                 value={assignForm.start_date_gregorian}
-                onChange={(e) => setAssignForm({ ...assignForm, start_date_gregorian: e.target.value })}
-                style={inputStyle}
+                onChange={(gregorianDate, hijriDate) =>
+                  setAssignForm({
+                    ...assignForm,
+                    start_date_gregorian: gregorianDate,
+                    start_date_hijri: hijriDate
+                  })
+                }
+                placeholder="اختر تاريخ البدء بالهجري"
+                showGregorian={true}
               />
             </div>
 
-            <div>
-              <label style={labelStyle}>تاريخ الانتهاء (اختياري)</label>
-              <input
-                type="date"
+            <div style={{ marginBottom: '15px' }}>
+              <HijriDatePicker
+                label="تاريخ الانتهاء (اختياري)"
                 value={assignForm.end_date_gregorian}
-                onChange={(e) => setAssignForm({ ...assignForm, end_date_gregorian: e.target.value })}
-                style={inputStyle}
+                onChange={(gregorianDate, hijriDate) =>
+                  setAssignForm({
+                    ...assignForm,
+                    end_date_gregorian: gregorianDate,
+                    end_date_hijri: hijriDate
+                  })
+                }
+                placeholder="اختر تاريخ الانتهاء بالهجري"
+                showGregorian={true}
               />
             </div>
 
@@ -702,23 +857,35 @@ const MultiRoleManagement: React.FC = () => {
               </div>
             </div>
 
-            <div>
-              <label style={labelStyle}>تاريخ البدء</label>
-              <input
-                type="date"
+            <div style={{ marginBottom: '15px' }}>
+              <HijriDatePicker
+                label="تاريخ البدء"
                 value={assignForm.start_date_gregorian}
-                onChange={(e) => setAssignForm({ ...assignForm, start_date_gregorian: e.target.value })}
-                style={inputStyle}
+                onChange={(gregorianDate, hijriDate) =>
+                  setAssignForm({
+                    ...assignForm,
+                    start_date_gregorian: gregorianDate,
+                    start_date_hijri: hijriDate
+                  })
+                }
+                placeholder="اختر تاريخ البدء بالهجري"
+                showGregorian={true}
               />
             </div>
 
-            <div>
-              <label style={labelStyle}>تاريخ الانتهاء</label>
-              <input
-                type="date"
+            <div style={{ marginBottom: '15px' }}>
+              <HijriDatePicker
+                label="تاريخ الانتهاء"
                 value={assignForm.end_date_gregorian}
-                onChange={(e) => setAssignForm({ ...assignForm, end_date_gregorian: e.target.value })}
-                style={inputStyle}
+                onChange={(gregorianDate, hijriDate) =>
+                  setAssignForm({
+                    ...assignForm,
+                    end_date_gregorian: gregorianDate,
+                    end_date_hijri: hijriDate
+                  })
+                }
+                placeholder="اختر تاريخ الانتهاء بالهجري"
+                showGregorian={true}
               />
             </div>
 

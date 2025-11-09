@@ -33,7 +33,7 @@ module.exports = {
 
       // Phase 4: Optimize for production with aggressive bundle splitting
       if (process.env.NODE_ENV === 'production') {
-        // Enable tree shaking and minification
+        // Optimize for production
         webpackConfig.optimization.usedExports = true;
         webpackConfig.optimization.sideEffects = true;
         webpackConfig.optimization.minimize = true;

@@ -26,8 +26,15 @@ import AuditLogs from './AuditLogs';
 import MultiRoleManagement from './MultiRoleManagement';
 import PasswordManagement from './PasswordManagement';
 
-// Force webpack to include MultiRoleManagement by using it at module level
+// Force webpack to include components by using them at module level
 console.log('[Settings] MultiRoleManagement imported:', MultiRoleManagement);
+console.log('[Settings] PasswordManagement imported:', PasswordManagement);
+
+// Force webpack to see these are used (prevent tree-shaking)
+const FORCE_INCLUDE_COMPONENTS = {
+  MultiRoleManagement,
+  PasswordManagement
+};
 
 interface SettingsTab {
   id: string;
