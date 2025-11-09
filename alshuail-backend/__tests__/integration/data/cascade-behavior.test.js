@@ -163,7 +163,7 @@ describe('Cascade Behavior Tests', () => {
             }
             break;
 
-          case 'LOG':
+          case 'LOG': {
             // Create audit log entry
             const logEntry = {
               id: `LOG-${Date.now()}`,
@@ -176,6 +176,7 @@ describe('Cascade Behavior Tests', () => {
             this.data.audit_logs.set(logEntry.id, logEntry);
             cascadeResult.logged.push(logEntry);
             break;
+          }
         }
       }
 

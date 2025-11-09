@@ -221,31 +221,42 @@ router.post('/users', authenticateToken, requireRole(['super_admin']), async (re
   try {
     const { full_name, email, phone, role, temporary_password } = req.body;
 
-    // Check if user already exists
-    const { data: existingUser } = await supabase
+    // Determine if this is an admin role or a member role
+    const adminRoles = ['super_admin', 'financial_manager', 'family_tree_admin', 'occasions_initiatives_diyas_admin'];
+    const isAdminRole = adminRoles.includes(role);
+    const targetTable = isAdminRole ? 'users' : 'members';
+
+    // Check if user already exists in both tables
+    const { data: existingInUsers } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', email)
+      .single();
+
+    const { data: existingInMembers } = await supabase
       .from('members')
       .select('id')
       .eq('email', email)
       .single();
 
-    if (existingUser) {
+    if (existingInUsers || existingInMembers) {
       return res.status(400).json({ error: 'User with this email already exists' });
     }
 
     // Hash the temporary password
     const hashedPassword = await bcrypt.hash(temporary_password, 10);
 
-    // Create new user
+    // Create new user in appropriate table
     const { data: newUser, error } = await supabase
-      .from('members')
+      .from(targetTable)
       .insert({
         full_name,
         email,
         phone,
-        role: role || 'user_member',
+        role: role || (isAdminRole ? 'super_admin' : 'member'),
         password_hash: hashedPassword,
         is_active: true,
-        membership_number: `MEM${Date.now()}`
+        ...(targetTable === 'members' && { membership_number: `MEM${Date.now()}` })
       })
       .select()
       .single();
@@ -258,7 +269,7 @@ router.post('/users', authenticateToken, requireRole(['super_admin']), async (re
       req.user.email,
       req.user.role,
       'user_create',
-      `Created user: ${email} with role: ${role}`,
+      `Created user: ${email} with role: ${role} in ${targetTable} table`,
       req.ip
     );
 

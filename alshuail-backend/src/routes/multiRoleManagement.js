@@ -422,6 +422,80 @@ router.delete('/assignments/:assignmentId', authenticateToken, requireRole(['sup
 });
 
 // ============================================================================
+// GET ALL USERS WITH ROLE ASSIGNMENTS
+// ============================================================================
+
+/**
+ * Get all users with active role assignments
+ * GET /api/multi-role/all-assignments
+ */
+router.get('/all-assignments', authenticateToken, requireRole(['super_admin']), async (req, res) => {
+  try {
+    // Get all active role assignments with user details
+    const { data: assignments, error: assignmentError } = await supabase
+      .from('v_user_roles_with_periods')
+      .select('*')
+      .eq('status', 'active')
+      .order('user_id', { ascending: true })
+      .order('start_date_gregorian', { ascending: false });
+
+    if (assignmentError) throw assignmentError;
+
+    // Group assignments by user
+    const usersByIdMap = {};
+
+    (assignments || []).forEach(assignment => {
+      if (!usersByIdMap[assignment.user_id]) {
+        usersByIdMap[assignment.user_id] = {
+          user_id: assignment.user_id,
+          full_name: assignment.user_name,
+          email: assignment.user_email,
+          phone: assignment.user_phone,
+          roles: []
+        };
+      }
+
+      usersByIdMap[assignment.user_id].roles.push({
+        assignment_id: assignment.id,
+        role_id: assignment.role_id,
+        role_name: assignment.role_name,
+        role_name_ar: assignment.role_name_ar,
+        start_date_gregorian: assignment.start_date_gregorian,
+        end_date_gregorian: assignment.end_date_gregorian,
+        start_date_hijri: assignment.start_date_hijri,
+        end_date_hijri: assignment.end_date_hijri,
+        status: assignment.status,
+        notes: assignment.notes
+      });
+    });
+
+    // Convert map to array
+    const usersWithRoles = Object.values(usersByIdMap);
+
+    log.info('Fetched all users with role assignments', {
+      user_count: usersWithRoles.length,
+      total_assignments: (assignments || []).length
+    });
+
+    res.json({
+      success: true,
+      data: {
+        users: usersWithRoles,
+        total_users: usersWithRoles.length,
+        total_assignments: (assignments || []).length
+      }
+    });
+
+  } catch (error) {
+    log.error('Failed to fetch all role assignments', { error: error.message });
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch all role assignments'
+    });
+  }
+});
+
+// ============================================================================
 // GET ALL AVAILABLE ROLES
 // ============================================================================
 

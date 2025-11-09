@@ -8,7 +8,7 @@ import { jest } from '@jest/globals';
 
 describe('Token Revocation Tests', () => {
   const SECRET_KEY = process.env.JWT_SECRET || 'test-secret-key';
-  let revokedTokens = new Set();
+  const revokedTokens = new Set();
 
   const isTokenRevoked = (token) => {
     const decoded = jwt.decode(token);

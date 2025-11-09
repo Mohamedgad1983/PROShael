@@ -1,0 +1,35 @@
+{
+  "totalTests": 0,
+  "passedTests": 0,
+  "failedTests": 0,
+  "criticalFailures": [
+    {
+      "category": "Authentication Security",
+      "error": "Command failed: npx jest __tests__\\security\\authentication.test.js --json --outputFile=test-results-temp.json\n\nReferenceError: You are trying to `import` a file after the Jest environment has been torn down. From __tests__/security/authentication.test.js.\nFAIL __tests__/security/authentication.test.js\n  ● Test suite failed to run\n\n    Cannot find module 'joi' from 'src/routes/multiRoleManagement.js'\n\n      at Resolver._throwModNotFoundError (node_modules/jest-resolve/build/index.js:863:11)\n\nTest Suites: 1 failed, 1 total\nTests:       0 total\nSnapshots:   0 total\nTime:        0.762 s\nRan all test suites matching __tests__\\security\\authentication.test.js.\nTest results written to: test-results-temp.json\n(node:21052) ExperimentalWarning: VM Modules is an experimental feature and might change at any time\n(Use `node --trace-warnings ...` to show where the warning was created)\n"
+    },
+    {
+      "category": "RBAC Authorization",
+      "error": "Command failed: npx jest __tests__\\security\\authorization.test.js --json --outputFile=test-results-temp.json\n\nReferenceError: You are trying to `import` a file after the Jest environment has been torn down. From __tests__/security/authorization.test.js.\nFAIL __tests__/security/authorization.test.js\n  ● Test suite failed to run\n\n    Cannot find module 'joi' from 'src/routes/multiRoleManagement.js'\n\n      at Resolver._throwModNotFoundError (node_modules/jest-resolve/build/index.js:863:11)\n\nTest Suites: 1 failed, 1 total\nTests:       0 total\nSnapshots:   0 total\nTime:        0.852 s\nRan all test suites matching __tests__\\security\\authorization.test.js.\nTest results written to: test-results-temp.json\n(node:18944) ExperimentalWarning: VM Modules is an experimental feature and might change at any time\n(Use `node --trace-warnings ...` to show where the warning was created)\n"
+    },
+    {
+      "category": "SQL Injection Prevention",
+      "error": "Command failed: npx jest __tests__\\security\\sql-injection.test.js --json --outputFile=test-results-temp.json\n\nReferenceError: You are trying to `import` a file after the Jest environment has been torn down. From __tests__/security/sql-injection.test.js.\nFAIL __tests__/security/sql-injection.test.js\n  ● Test suite failed to run\n\n    Cannot find module 'joi' from 'src/routes/multiRoleManagement.js'\n\n      at Resolver._throwModNotFoundError (node_modules/jest-resolve/build/index.js:863:11)\n\nTest Suites: 1 failed, 1 total\nTests:       0 total\nSnapshots:   0 total\nTime:        0.824 s\nRan all test suites matching __tests__\\security\\sql-injection.test.js.\nTest results written to: test-results-temp.json\n(node:17332) ExperimentalWarning: VM Modules is an experimental feature and might change at any time\n(Use `node --trace-warnings ...` to show where the warning was created)\n"
+    }
+  ],
+  "testDetails": {
+    "authentication.test.js": {
+      "error": "Command failed: npx jest __tests__\\security\\authentication.test.js --json --outputFile=test-results-temp.json\n\nReferenceError: You are trying to `import` a file after the Jest environment has been torn down. From __tests__/security/authentication.test.js.\nFAIL __tests__/security/authentication.test.js\n  ● Test suite failed to run\n\n    Cannot find module 'joi' from 'src/routes/multiRoleManagement.js'\n\n      at Resolver._throwModNotFoundError (node_modules/jest-resolve/build/index.js:863:11)\n\nTest Suites: 1 failed, 1 total\nTests:       0 total\nSnapshots:   0 total\nTime:        0.762 s\nRan all test suites matching __tests__\\security\\authentication.test.js.\nTest results written to: test-results-temp.json\n(node:21052) ExperimentalWarning: VM Modules is an experimental feature and might change at any time\n(Use `node --trace-warnings ...` to show where the warning was created)\n",
+      "status": "ERROR"
+    },
+    "authorization.test.js": {
+      "error": "Command failed: npx jest __tests__\\security\\authorization.test.js --json --outputFile=test-results-temp.json\n\nReferenceError: You are trying to `import` a file after the Jest environment has been torn down. From __tests__/security/authorization.test.js.\nFAIL __tests__/security/authorization.test.js\n  ● Test suite failed to run\n\n    Cannot find module 'joi' from 'src/routes/multiRoleManagement.js'\n\n      at Resolver._throwModNotFoundError (node_modules/jest-resolve/build/index.js:863:11)\n\nTest Suites: 1 failed, 1 total\nTests:       0 total\nSnapshots:   0 total\nTime:        0.852 s\nRan all test suites matching __tests__\\security\\authorization.test.js.\nTest results written to: test-results-temp.json\n(node:18944) ExperimentalWarning: VM Modules is an experimental feature and might change at any time\n(Use `node --trace-warnings ...` to show where the warning was created)\n",
+      "status": "ERROR"
+    },
+    "sql-injection.test.js": {
+      "error": "Command failed: npx jest __tests__\\security\\sql-injection.test.js --json --outputFile=test-results-temp.json\n\nReferenceError: You are trying to `import` a file after the Jest environment has been torn down. From __tests__/security/sql-injection.test.js.\nFAIL __tests__/security/sql-injection.test.js\n  ● Test suite failed to run\n\n    Cannot find module 'joi' from 'src/routes/multiRoleManagement.js'\n\n      at Resolver._throwModNotFoundError (node_modules/jest-resolve/build/index.js:863:11)\n\nTest Suites: 1 failed, 1 total\nTests:       0 total\nSnapshots:   0 total\nTime:        0.824 s\nRan all test suites matching __tests__\\security\\sql-injection.test.js.\nTest results written to: test-results-temp.json\n(node:17332) ExperimentalWarning: VM Modules is an experimental feature and might change at any time\n(Use `node --trace-warnings ...` to show where the warning was created)\n",
+      "status": "ERROR"
+    }
+  },
+  "timestamp": "2025-11-08T09:34:02.103Z",
+  "environment": "test"
+}

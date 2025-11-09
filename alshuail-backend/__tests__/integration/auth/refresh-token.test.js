@@ -72,7 +72,7 @@ describe('Refresh Token Mechanism Tests', () => {
 
     test('should handle refresh token rotation', () => {
       const userId = 'user123';
-      let tokenFamily = [];
+      const tokenFamily = [];
 
       // Initial token pair
       const initialPair = generateTokenPair(userId);

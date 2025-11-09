@@ -6,7 +6,7 @@
 export function calculateGenerationLevel(member, allMembers, maxDepth = 20) {
   let level = 0;
   let currentMember = member;
-  let visited = new Set();
+  const visited = new Set();
 
   while (currentMember.parent_member_id && level < maxDepth) {
     if (visited.has(currentMember.id)) {
@@ -98,7 +98,7 @@ export function getDescendants(memberId, memberMap, includeSpouses = false) {
 export function getAncestors(memberId, memberMap) {
   const ancestors = [];
   let currentId = memberId;
-  let visited = new Set();
+  const visited = new Set();
 
   while (currentId) {
     if (visited.has(currentId)) break;

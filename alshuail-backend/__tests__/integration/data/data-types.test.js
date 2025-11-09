@@ -141,7 +141,7 @@ describe('Data Type Validation Tests', () => {
           }
           break;
 
-        case 'date':
+        case 'date': {
           const dateValue = new Date(value);
           const now = new Date();
           if (constraints.min) {
@@ -163,6 +163,7 @@ describe('Data Type Validation Tests', () => {
             errors.push('Date must be in the past');
           }
           break;
+        }
 
         case 'array':
           if (constraints.minItems && value.length < constraints.minItems) {

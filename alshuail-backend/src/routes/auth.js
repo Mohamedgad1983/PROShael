@@ -120,12 +120,23 @@ const _parsePermissions = (rawPermissions) => {
 };
 
 async function fetchPrimaryRole(userId) {
-  // Simplified role fetching - directly from users table
-  const { data: user, error } = await supabase
+  // Try users table first (for admin roles)
+  let result = await supabase
     .from('users')
     .select('role')
     .eq('id', userId)
     .single();
+
+  // If not found, try members table (for regular members)
+  if (result.error) {
+    result = await supabase
+      .from('members')
+      .select('role')
+      .eq('id', userId)
+      .single();
+  }
+
+  const { data: user, error } = result;
 
   if (error || !user) {
     log.error('Failed to fetch user role from Supabase', { error: error?.message });
@@ -148,21 +159,43 @@ async function authenticateAdmin(identifier, password, requestedRole = null) {
 
   if (isEmail) {
     const normalizedEmail = normalizeEmail(identifier);
-    const result = await supabase
+    // First try users table (for admin roles)
+    let result = await supabase
       .from('users')
-      .select('id, email, password_hash, is_active, role, phone')
+      .select('id, email, password_hash, is_active, role, phone, full_name')
       .eq('email', normalizedEmail)
       .single();
+
+    // If not found in users, try members table (for regular members)
+    if (result.error) {
+      result = await supabase
+        .from('members')
+        .select('id, email, password_hash, is_active, role, phone, full_name, suspended_at, reactivated_at, suspension_reason')
+        .eq('email', normalizedEmail)
+        .single();
+    }
+
     user = result.data;
     error = result.error;
   } else {
     // Phone-based login
     const cleanPhone = normalizePhone(identifier);
-    const result = await supabase
+    // First try users table (for admin roles)
+    let result = await supabase
       .from('users')
-      .select('id, email, password_hash, is_active, role, phone')
+      .select('id, email, password_hash, is_active, role, phone, full_name')
       .eq('phone', cleanPhone)
       .single();
+
+    // If not found in users, try members table (for regular members)
+    if (result.error) {
+      result = await supabase
+        .from('members')
+        .select('id, email, password_hash, is_active, role, phone, full_name, suspended_at, reactivated_at, suspension_reason')
+        .eq('phone', cleanPhone)
+        .single();
+    }
+
     user = result.data;
     error = result.error;
   }
@@ -179,7 +212,18 @@ async function authenticateAdmin(identifier, password, requestedRole = null) {
     return {
       ok: false,
       status: 403,
-      message: 'رقم الهاتف وكلمة المرور مطلوبان'
+      message: 'الحساب غير مفعل'
+    };
+  }
+
+  // Check if member is suspended
+  if (user.suspended_at && !user.reactivated_at) {
+    return {
+      ok: false,
+      status: 403,
+      message: 'الحساب موقوف مؤقتاً',
+      suspension_reason: user.suspension_reason,
+      suspended_at: user.suspended_at
     };
   }
 

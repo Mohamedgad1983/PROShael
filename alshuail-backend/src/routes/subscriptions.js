@@ -15,10 +15,14 @@ const router = express.Router();
 // Get all subscriptions - requires financial access
 router.get('/', cacheMiddleware(300), requireRole(['super_admin', 'financial_manager']), async (req, res) => {
   try {
-    const { data: subscriptions, error } = await supabase
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = (page - 1) * limit;
+
+    const { data: subscriptions, error, count } = await supabase
       .from('subscriptions')
-      .select(
-      .range(offset, offset + limit - 1)'*')
+      .select('*', { count: 'exact' })
+      .range(offset, offset + limit - 1)
       .order('created_at', { ascending: false });
 
     if (error) {throw error;}
@@ -28,8 +32,8 @@ router.get('/', cacheMiddleware(300), requireRole(['super_admin', 'financial_man
       pagination: {
         page,
         limit,
-        total: count || data.length,
-        pages: Math.ceil((count || data.length) / limit)
+        total: count || subscriptions.length,
+        pages: Math.ceil((count || subscriptions.length) / limit)
       },
       data: subscriptions || []
     });
@@ -63,8 +67,7 @@ router.post('/', requireRole(['super_admin', 'financial_manager']), async (req, 
     const { data: subscription, error } = await supabase
       .from('subscriptions')
       .insert([subscriptionData])
-      .select(
-      .range(offset, offset + limit - 1))
+      .select()
       .single();
 
     if (error) {throw error;}

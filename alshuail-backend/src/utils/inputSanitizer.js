@@ -23,7 +23,9 @@ export const sanitizeSQL = (input) => {
     .replace(/'/g, "''")  // Escape single quotes
     .replace(/\\/g, '\\\\') // Escape backslashes
     .replace(/"/g, '\\"')   // Escape double quotes
+    // eslint-disable-next-line no-control-regex
     .replace(/\x00/g, '')   // Remove null bytes
+    // eslint-disable-next-line no-control-regex
     .replace(/\x1a/g, '');  // Remove EOF characters
 
   // Remove dangerous SQL keywords (case-insensitive)
