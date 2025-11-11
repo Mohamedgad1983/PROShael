@@ -31,6 +31,7 @@ interface User {
   role: string;
   isActive: boolean;
   hasPassword: boolean;
+  source?: 'user' | 'member'; // 'user' = existing auth user, 'member' = member needing auth
 }
 
 const AccessControl: React.FC = () => {
@@ -403,6 +404,17 @@ const AccessControl: React.FC = () => {
                   }}>
                     {user.role}
                   </span>
+                  {user.source === 'member' && (
+                    <span style={{
+                      background: selectedUser?.id === user.id ? 'rgba(59, 130, 246, 0.3)' : '#DBEAFE',
+                      padding: '4px 8px',
+                      borderRadius: '6px',
+                      fontSize: '11px',
+                      color: selectedUser?.id === user.id ? 'white' : '#1E40AF'
+                    }}>
+                      عضو بحاجة لحساب
+                    </span>
+                  )}
                   <span style={{
                     background: user.hasPassword
                       ? (selectedUser?.id === user.id ? 'rgba(16, 185, 129, 0.3)' : '#D1FAE5')

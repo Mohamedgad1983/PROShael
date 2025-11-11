@@ -142,7 +142,9 @@
       "Bash(set NODE_OPTIONS=--max-old-space-size=8192)",
       "Bash(set BUILD_MODE=emergency)",
       "Bash(find:*)",
-      "Bash(node verify-access-control.js:*)"
+      "Bash(node verify-access-control.js:*)",
+      "Bash(node:*)",
+      "Bash(__NEW_LINE__ curl -s \"https://proshael.onrender.com/api/password-management/search-users?query=%D8%A3%D8%AD%D9%85%D8%AF\" -H \"Authorization: Bearer $TOKEN\")"
     ],
     "deny": [],
     "ask": []

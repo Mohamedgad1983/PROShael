@@ -381,16 +381,24 @@ router.get('/search-users', authenticateToken, requireSuperAdmin, passwordManage
       });
     }
 
-    // Search in users table
-    const { data: users, error } = await supabase
+    // Search in both users and members tables
+    const { data: users, error: usersError } = await supabase
       .from('users')
       .select('id, email, phone, full_name_ar, full_name_en, role, is_active, password_hash')
       .or(`email.ilike.%${query}%,phone.ilike.%${query}%,full_name_ar.ilike.%${query}%,full_name_en.ilike.%${query}%`)
       .order('created_at', { ascending: false })
       .limit(20);
 
-    if (error) {
-      log.error('[UserSearch] Search failed:', error);
+    const { data: members, error: membersError } = await supabase
+      .from('members')
+      .select('id, email, phone, full_name, user_id, status')
+      .or(`email.ilike.%${query}%,phone.ilike.%${query}%,full_name.ilike.%${query}%`)
+      .is('user_id', null) // Only members without auth accounts
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    if (usersError) {
+      log.error('[UserSearch] Users search failed:', usersError);
       return res.status(500).json({
         success: false,
         error: 'SEARCH_FAILED',
@@ -399,16 +407,37 @@ router.get('/search-users', authenticateToken, requireSuperAdmin, passwordManage
       });
     }
 
-    // Map results to hide password hash
-    const results = users.map(user => ({
+    if (membersError) {
+      log.error('[UserSearch] Members search failed:', membersError);
+      // Continue with users results even if members search fails
+    }
+
+    // Map users results
+    const userResults = (users || []).map(user => ({
       id: user.id,
       email: user.email,
       phone: user.phone,
       fullName: user.full_name_ar || user.full_name_en,
       role: user.role,
       isActive: user.is_active,
-      hasPassword: !!user.password_hash
+      hasPassword: !!user.password_hash,
+      source: 'user' // Indicates this is an existing auth user
     }));
+
+    // Map members results (members without auth accounts)
+    const memberResults = (members || []).map(member => ({
+      id: member.id,
+      email: member.email,
+      phone: member.phone,
+      fullName: member.full_name,
+      role: 'member',
+      isActive: member.status === 'active',
+      hasPassword: false, // Members without user_id have no password
+      source: 'member' // Indicates this is a member needing auth account
+    }));
+
+    // Combine results (users first, then members)
+    const results = [...userResults, ...memberResults];
 
     res.json({
       success: true,

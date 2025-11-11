@@ -53,6 +53,9 @@ module.exports = {
       if (process.env.BUILD_MODE === 'emergency') {
         console.log('⚠️  EMERGENCY MODE: Building with ZERO optimizations (unminified, no tree-shaking)');
 
+        // CRITICAL: Disable webpack caching
+        webpackConfig.cache = false;
+
         // Disable ALL optimizations
         webpackConfig.optimization = {
           ...webpackConfig.optimization,
