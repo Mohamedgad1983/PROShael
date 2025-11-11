@@ -10,6 +10,7 @@ import UserManagement from './UserManagement';
 import SystemSettings from './SystemSettings';
 import AuditLogs from './AuditLogs';
 import MultiRoleManagement from './MultiRoleManagement';
+import AccessControl from './AccessControl';
 import '../Members/AppleDesignSystem.css';
 import {
   CogIcon,
@@ -47,6 +48,16 @@ const Settings = () => {
       description: 'تعيين أدوار متعددة مع فترات زمنية محددة',
       gradient: 'linear-gradient(135deg, var(--apple-indigo-500) 0%, var(--apple-purple-600) 100%)',
       shadowColor: 'rgba(99, 102, 241, 0.3)'
+    },
+    {
+      id: 'password-management',
+      label: 'إدارة كلمات المرور',
+      icon: KeyIcon,
+      component: AccessControl,
+      requiredRoles: ['super_admin'],
+      description: 'إنشاء وإعادة تعيين كلمات المرور للمستخدمين',
+      gradient: 'linear-gradient(135deg, var(--apple-pink-500) 0%, var(--apple-rose-600) 100%)',
+      shadowColor: 'rgba(236, 72, 153, 0.3)'
     },
     {
       id: 'system-settings',
