@@ -94,52 +94,51 @@ const SettingsPage: React.FC = () => {
     console.log('SettingsPage - Has super_admin role:', hasRole(['super_admin']));
   }, [user, loading, hasRole]);
 
-  // Settings tabs configuration - define tabs individually first to prevent tree-shaking
-  // Use string concatenation to make ID opaque to webpack static analysis
-  const passwordManagementTab: SettingsTab = {
-    id: ['password', 'management'].join('-'),  // Opaque to webpack!
+  // Settings tabs configuration - Build array dynamically to prevent tree-shaking
+  // This is the ONLY way to prevent webpack from removing password-management tab
+  const settingsTabs: SettingsTab[] = [];
+
+  // Add each tab individually using push() to make array construction opaque to webpack
+  settingsTabs.push({
+    id: 'user-management',
+    label: 'إدارة المستخدمين والصلاحيات',
+    icon: UsersIcon,
+    requiredRole: ['super_admin'],
+    description: 'إدارة المستخدمين وتعيين الأدوار والصلاحيات'
+  });
+
+  settingsTabs.push({
+    id: 'multi-role-management',
+    label: 'إدارة الأدوار المتعددة',
+    icon: UserGroupIcon,
+    requiredRole: ['super_admin'],
+    description: 'تعيين أدوار متعددة مع فترات زمنية محددة'
+  });
+
+  // Password Management tab with dynamic ID to prevent webpack static analysis
+  settingsTabs.push({
+    id: ['password', 'management'].join('-'),  // Dynamic join prevents webpack removal
     label: 'إدارة كلمات المرور',
     icon: KeyIcon,
     requiredRole: ['super_admin'],
     description: 'إنشاء وإعادة تعيين كلمات المرور للمستخدمين'
-  };
+  });
 
-  // Force webpack to see passwordManagementTab is used
-  if (typeof window !== 'undefined') {
-    (window as any).__PWD_TAB__ = passwordManagementTab;
-  }
+  settingsTabs.push({
+    id: 'system-settings',
+    label: 'إعدادات النظام',
+    icon: ServerIcon,
+    requiredRole: ['super_admin'],
+    description: 'إعدادات النظام العامة والتكوينات'
+  });
 
-  const settingsTabs: SettingsTab[] = [
-    {
-      id: 'user-management',
-      label: 'إدارة المستخدمين والصلاحيات',
-      icon: UsersIcon,
-      requiredRole: ['super_admin'],
-      description: 'إدارة المستخدمين وتعيين الأدوار والصلاحيات'
-    },
-    {
-      id: 'multi-role-management',
-      label: 'إدارة الأدوار المتعددة',
-      icon: UserGroupIcon,
-      requiredRole: ['super_admin'],
-      description: 'تعيين أدوار متعددة مع فترات زمنية محددة'
-    },
-    passwordManagementTab,
-    {
-      id: 'system-settings',
-      label: 'إعدادات النظام',
-      icon: ServerIcon,
-      requiredRole: ['super_admin'],
-      description: 'إعدادات النظام العامة والتكوينات'
-    },
-    {
-      id: 'audit-logs',
-      label: 'سجلات التدقيق',
-      icon: ShieldCheckIcon,
-      requiredRole: ['super_admin'],
-      description: 'عرض سجلات النظام والأنشطة'
-    }
-  ];
+  settingsTabs.push({
+    id: 'audit-logs',
+    label: 'سجلات التدقيق',
+    icon: ShieldCheckIcon,
+    requiredRole: ['super_admin'],
+    description: 'عرض سجلات النظام والأنشطة'
+  });
 
   // Debug: Log all tabs before filtering
   console.log('[Settings] All tabs defined:', settingsTabs.map(t => t.id));
