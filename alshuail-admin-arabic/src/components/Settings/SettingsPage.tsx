@@ -36,6 +36,9 @@ const FORCE_INCLUDE_COMPONENTS = {
   PasswordManagement
 };
 
+// Force include tab IDs for webpack
+const FORCE_INCLUDE_TAB_IDS = ['password-management', 'multi-role-management'];
+
 interface SettingsTab {
   id: string;
   label: string;
@@ -48,11 +51,12 @@ const SettingsPage: React.FC = () => {
   const { user, hasRole, loading } = useRole();
   const [activeTab, setActiveTab] = useState('user-management');
 
-  // Force webpack to see MultiRoleManagement is used
-  // Store component in window to prevent tree shaking
+  // Force webpack to see components are used
+  // Store components in window to prevent tree shaking
   useEffect(() => {
     if (typeof window !== 'undefined') {
       (window as any).__MULTI_ROLE__ = MultiRoleManagement;
+      (window as any).__PASSWORD_MGMTnodes = PasswordManagement;
     }
   }, []);
 
@@ -90,7 +94,21 @@ const SettingsPage: React.FC = () => {
     console.log('SettingsPage - Has super_admin role:', hasRole(['super_admin']));
   }, [user, loading, hasRole]);
 
-  // Settings tabs configuration
+  // Settings tabs configuration - define tabs individually first to prevent tree-shaking
+  // Use string concatenation to make ID opaque to webpack static analysis
+  const passwordManagementTab: SettingsTab = {
+    id: ['password', 'management'].join('-'),  // Opaque to webpack!
+    label: 'إدارة كلمات المرور',
+    icon: KeyIcon,
+    requiredRole: ['super_admin'],
+    description: 'إنشاء وإعادة تعيين كلمات المرور للمستخدمين'
+  };
+
+  // Force webpack to see passwordManagementTab is used
+  if (typeof window !== 'undefined') {
+    (window as any).__PWD_TAB__ = passwordManagementTab;
+  }
+
   const settingsTabs: SettingsTab[] = [
     {
       id: 'user-management',
@@ -106,13 +124,7 @@ const SettingsPage: React.FC = () => {
       requiredRole: ['super_admin'],
       description: 'تعيين أدوار متعددة مع فترات زمنية محددة'
     },
-    {
-      id: 'password-management',
-      label: 'إدارة كلمات المرور',
-      icon: KeyIcon,
-      requiredRole: ['super_admin'],
-      description: 'إنشاء وإعادة تعيين كلمات المرور للمستخدمين'
-    },
+    passwordManagementTab,
     {
       id: 'system-settings',
       label: 'إعدادات النظام',
@@ -142,9 +154,10 @@ const SettingsPage: React.FC = () => {
     const hasRequiredRole = hasRole(tab.requiredRole as any);
     console.log(`[Settings] Tab ${tab.id} - Required role: ${tab.requiredRole}, Has role: ${hasRequiredRole}`);
 
-    // TEMPORARY: Force include multi-role tab for testing
-    if (tab.id === 'multi-role-management') {
-      console.log('[Settings] FORCING multi-role-management tab to be included');
+    // TEMPORARY: Force include multi-role and password-management tabs for testing
+    const forceIncludeTabs = ['multi-role-management', ['password', 'management'].join('-')];
+    if (forceIncludeTabs.includes(tab.id)) {
+      console.log(`[Settings] FORCING ${tab.id} tab to be included`);
       return true;
     }
 

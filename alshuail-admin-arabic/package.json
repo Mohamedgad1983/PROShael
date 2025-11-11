@@ -2,10 +2,7 @@
   "name": "alshuail-admin-arabic",
   "version": "0.1.0",
   "private": true,
-  "sideEffects": [
-    "src/components/Settings/MultiRoleManagement.tsx",
-    "src/services/multiRoleService.ts"
-  ],
+  "sideEffects": false,
   "dependencies": {
     "@heroicons/react": "^2.2.0",
     "@testing-library/dom": "^10.4.1",
