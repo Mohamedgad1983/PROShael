@@ -15,7 +15,8 @@ import {
   LockOpenIcon
 } from '@heroicons/react/24/outline';
 
-const API_URL = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
+// Remove /api suffix if present to avoid double /api in URL
+const API_URL = (process.env.REACT_APP_API_URL || 'https://proshael.onrender.com').replace(/\/api$/, '');
 
 // FORCE WEBPACK INCLUSION - This side effect prevents tree-shaking
 if (typeof window !== 'undefined') {
