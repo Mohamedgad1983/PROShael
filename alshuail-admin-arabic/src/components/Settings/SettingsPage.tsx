@@ -21,11 +21,13 @@ import { useRole, RoleGate } from '../../contexts/RoleContext';
 import UserManagement from './UserManagement';
 import SystemSettings from './SystemSettingsEnhanced';
 import AuditLogs from './AuditLogs';
+import MultiRoleManagement from './MultiRoleManagement';
+// CRITICAL: Import from feature package to prevent tree-shaking
+import AccessControl, { __KEEP_ACCESS_CONTROL__ } from '../../features/access-control';
 
-// CRITICAL FIX: Use dynamic imports to force webpack inclusion
-// Static imports get tree-shaken because webpack thinks they're unreachable
-const MultiRoleManagement = React.lazy(() => import('./MultiRoleManagement'));
-const PasswordManagement = React.lazy(() => import('./PasswordManagement'));
+// CRITICAL: Reference the keep symbol to create explicit dependency
+// DO NOT REMOVE - This prevents Webpack from tree-shaking the component
+void __KEEP_ACCESS_CONTROL__;
 
 interface SettingsTab {
   id: string;
@@ -110,32 +112,31 @@ const SettingsPage: React.FC = () => {
   const { user, hasRole, loading } = useRole();
   const [activeTab, setActiveTab] = useState('user-management');
 
-  // Force webpack to see components are used
-  // Store components in window to prevent tree shaking
+  // CRITICAL: Verify Access Control is loaded
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      const isLoaded = (window as any).__ACCESS_CONTROL_LOADED__;
+      console.log('[SettingsPage] Access Control loaded:', isLoaded);
+
+      if (!isLoaded) {
+        console.error('[SettingsPage] CRITICAL: Access Control component not loaded!');
+      }
+
+      // Store components in window to prevent tree shaking
       (window as any).__MULTI_ROLE__ = MultiRoleManagement;
-      (window as any).__PASSWORD_MGMT__ = PasswordManagement;
+      (window as any).__ACCESS_CONTROL__ = AccessControl;
     }
   }, []);
 
-  // Explicit component renderer with Suspense for lazy-loaded components
+  // Explicit component renderer
   const renderTabContent = () => {
     switch (activeTab) {
       case 'user-management':
         return <UserManagement />;
       case 'multi-role-management':
-        return (
-          <React.Suspense fallback={<div style={{textAlign: 'center', padding: '40px'}}>جاري التحميل...</div>}>
-            <MultiRoleManagement />
-          </React.Suspense>
-        );
+        return <MultiRoleManagement />;
       case 'password-management':
-        return (
-          <React.Suspense fallback={<div style={{textAlign: 'center', padding: '40px'}}>جاري التحميل...</div>}>
-            <PasswordManagement />
-          </React.Suspense>
-        );
+        return <AccessControl />;
       case 'system-settings':
         return <SystemSettings />;
       case 'audit-logs':

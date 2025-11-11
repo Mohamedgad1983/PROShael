@@ -1,0 +1,7 @@
+{
+  "name": "@app/feature-access-control",
+  "version": "1.0.0",
+  "private": true,
+  "sideEffects": true,
+  "main": "./index.tsx"
+}

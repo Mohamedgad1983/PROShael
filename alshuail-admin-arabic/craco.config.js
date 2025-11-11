@@ -30,6 +30,46 @@ module.exports = {
         })
       );
 
+      // CRITICAL: Configure module resolution for feature packages
+      webpackConfig.resolve.alias = {
+        ...webpackConfig.resolve.alias,
+        '@app/feature-access-control': path.resolve(__dirname, 'src/features/access-control')
+      };
+
+      // CRITICAL: Ensure feature packages are never tree-shaken
+      webpackConfig.module.rules.push({
+        test: /features\/access-control/,
+        sideEffects: true
+      });
+
+      // CRITICAL: Prevent optimization of force-include shim
+      if (webpackConfig.optimization) {
+        webpackConfig.optimization.providedExports = false; // Disable export analysis
+        webpackConfig.optimization.innerGraph = false; // Disable inner graph analysis
+      }
+
+      // EMERGENCY WORKAROUND: Completely disable optimizations for development build
+      // Set BUILD_MODE=emergency to deploy unminified build with NO tree-shaking
+      if (process.env.BUILD_MODE === 'emergency') {
+        console.log('⚠️  EMERGENCY MODE: Building with ZERO optimizations (unminified, no tree-shaking)');
+
+        // Disable ALL optimizations
+        webpackConfig.optimization = {
+          ...webpackConfig.optimization,
+          minimize: false,
+          usedExports: false,
+          sideEffects: false,
+          concatenateModules: false,
+          splitChunks: false,
+          runtimeChunk: false,
+          removeAvailableModules: false,
+          removeEmptyChunks: false,
+          mergeDuplicateChunks: false,
+          minimizer: []  // Remove all minimizers
+        };
+
+        return webpackConfig;
+      }
 
       // Phase 4: Optimize for production with aggressive bundle splitting
       if (process.env.NODE_ENV === 'production') {

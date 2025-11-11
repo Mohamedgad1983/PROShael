@@ -6,6 +6,9 @@
     "src/components/Settings/PasswordManagement.tsx",
     "src/components/Settings/MultiRoleManagement.tsx",
     "src/components/Settings/SettingsPage.tsx",
+    "src/components/Settings/AccessControl.tsx",
+    "src/features/access-control/**/*",
+    "src/force-include-access-control.ts",
     "*.css"
   ],
   "dependencies": {
@@ -53,6 +56,7 @@
     "start": "craco start",
     "build": "set NODE_OPTIONS=--max-old-space-size=8192 && craco build",
     "build:fast": "set NODE_OPTIONS=--max-old-space-size=8192 && set GENERATE_SOURCEMAP=false && craco build",
+    "build:emergency": "node build-emergency.js",
     "test": "craco test",
     "eject": "react-scripts eject",
     "test:ci": "craco test --coverage --watchAll=false --testTimeout=10000",

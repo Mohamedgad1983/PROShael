@@ -1,3 +1,8 @@
+// CRITICAL: Force-include Access Control component
+// This import MUST stay at the top to prevent tree-shaking
+// DO NOT REMOVE - Required for production builds
+import './force-include-access-control';
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';

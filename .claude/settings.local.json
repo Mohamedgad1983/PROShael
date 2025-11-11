@@ -137,7 +137,12 @@
       "Bash(timeout 120 bash:*)",
       "Bash(while [ ! -f build/static/js/main.*.js ])",
       "Bash(do sleep 2)",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(npm run build:emergency:*)",
+      "Bash(set NODE_OPTIONS=--max-old-space-size=8192)",
+      "Bash(set BUILD_MODE=emergency)",
+      "Bash(find:*)",
+      "Bash(node verify-access-control.js:*)"
     ],
     "deny": [],
     "ask": []
