@@ -47,6 +47,69 @@ interface SettingsTab {
   description: string;
 }
 
+// Build tabs array outside component to prevent webpack optimization during render
+// This ensures the array is constructed at module load time, not render time
+const buildSettingsTabs = (): SettingsTab[] => {
+  const tabs: SettingsTab[] = [];
+
+  const tab1 = {
+    id: 'user-management',
+    label: 'إدارة المستخدمين والصلاحيات',
+    icon: UsersIcon,
+    requiredRole: ['super_admin'],
+    description: 'إدارة المستخدمين وتعيين الأدوار والصلاحيات'
+  };
+  tabs.push(tab1);
+  console.log('[buildSettingsTabs] Added:', tab1.id);
+
+  const tab2 = {
+    id: 'multi-role-management',
+    label: 'إدارة الأدوار المتعددة',
+    icon: UserGroupIcon,
+    requiredRole: ['super_admin'],
+    description: 'تعيين أدوار متعددة مع فترات زمنية محددة'
+  };
+  tabs.push(tab2);
+  console.log('[buildSettingsTabs] Added:', tab2.id);
+
+  // Password Management - use dynamic ID to prevent tree-shaking
+  const pwdId = ['password', 'management'].join('-');
+  const tab3 = {
+    id: pwdId,
+    label: 'إدارة كلمات المرور',
+    icon: KeyIcon,
+    requiredRole: ['super_admin'],
+    description: 'إنشاء وإعادة تعيين كلمات المرور للمستخدمين'
+  };
+  tabs.push(tab3);
+  console.log('[buildSettingsTabs] Added PASSWORD TAB:', tab3.id, 'pwdId =', pwdId);
+
+  const tab4 = {
+    id: 'system-settings',
+    label: 'إعدادات النظام',
+    icon: ServerIcon,
+    requiredRole: ['super_admin'],
+    description: 'إعدادات النظام العامة والتكوينات'
+  };
+  tabs.push(tab4);
+  console.log('[buildSettingsTabs] Added:', tab4.id);
+
+  const tab5 = {
+    id: 'audit-logs',
+    label: 'سجلات التدقيق',
+    icon: ShieldCheckIcon,
+    requiredRole: ['super_admin'],
+    description: 'عرض سجلات النظام والأنشطة'
+  };
+  tabs.push(tab5);
+  console.log('[buildSettingsTabs] Added:', tab5.id);
+
+  console.log('[buildSettingsTabs] FINAL tabs.length:', tabs.length);
+  console.log('[buildSettingsTabs] FINAL tab IDs:', tabs.map(t => t.id));
+
+  return tabs;
+};
+
 const SettingsPage: React.FC = () => {
   const { user, hasRole, loading } = useRole();
   const [activeTab, setActiveTab] = useState('user-management');
@@ -56,17 +119,9 @@ const SettingsPage: React.FC = () => {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       (window as any).__MULTI_ROLE__ = MultiRoleManagement;
-      (window as any).__PASSWORD_MGMTnodes = PasswordManagement;
+      (window as any).__PASSWORD_MGMT__ = PasswordManagement;
     }
   }, []);
-
-  // Test component to see if webpack includes it
-  const TestMultiRole = () => (
-    <div>
-      <h1>Multi-Role Management Test</h1>
-      <p>If you see this, webpack is including the component!</p>
-    </div>
-  );
 
   // Explicit component renderer to force webpack inclusion
   const renderTabContent = () => {
@@ -74,7 +129,6 @@ const SettingsPage: React.FC = () => {
       case 'user-management':
         return <UserManagement />;
       case 'multi-role-management':
-        // Use the actual MultiRoleManagement component
         return <MultiRoleManagement />;
       case 'password-management':
         return <PasswordManagement />;
@@ -94,51 +148,8 @@ const SettingsPage: React.FC = () => {
     console.log('SettingsPage - Has super_admin role:', hasRole(['super_admin']));
   }, [user, loading, hasRole]);
 
-  // Settings tabs configuration - Build array dynamically to prevent tree-shaking
-  // This is the ONLY way to prevent webpack from removing password-management tab
-  const settingsTabs: SettingsTab[] = [];
-
-  // Add each tab individually using push() to make array construction opaque to webpack
-  settingsTabs.push({
-    id: 'user-management',
-    label: 'إدارة المستخدمين والصلاحيات',
-    icon: UsersIcon,
-    requiredRole: ['super_admin'],
-    description: 'إدارة المستخدمين وتعيين الأدوار والصلاحيات'
-  });
-
-  settingsTabs.push({
-    id: 'multi-role-management',
-    label: 'إدارة الأدوار المتعددة',
-    icon: UserGroupIcon,
-    requiredRole: ['super_admin'],
-    description: 'تعيين أدوار متعددة مع فترات زمنية محددة'
-  });
-
-  // Password Management tab with dynamic ID to prevent webpack static analysis
-  settingsTabs.push({
-    id: ['password', 'management'].join('-'),  // Dynamic join prevents webpack removal
-    label: 'إدارة كلمات المرور',
-    icon: KeyIcon,
-    requiredRole: ['super_admin'],
-    description: 'إنشاء وإعادة تعيين كلمات المرور للمستخدمين'
-  });
-
-  settingsTabs.push({
-    id: 'system-settings',
-    label: 'إعدادات النظام',
-    icon: ServerIcon,
-    requiredRole: ['super_admin'],
-    description: 'إعدادات النظام العامة والتكوينات'
-  });
-
-  settingsTabs.push({
-    id: 'audit-logs',
-    label: 'سجلات التدقيق',
-    icon: ShieldCheckIcon,
-    requiredRole: ['super_admin'],
-    description: 'عرض سجلات النظام والأنشطة'
-  });
+  // Get settings tabs (built at module load time, not render time)
+  const settingsTabs = buildSettingsTabs();
 
   // Debug: Log all tabs before filtering
   console.log('[Settings] All tabs defined:', settingsTabs.map(t => t.id));
