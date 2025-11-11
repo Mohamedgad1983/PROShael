@@ -465,6 +465,8 @@ const Settings = () => {
                       return <UserManagement />;
                     case 'multi-role-management':
                       return <MultiRoleManagement />;
+                    case 'password-management':
+                      return <AccessControl />;
                     case 'system-settings':
                       return <SystemSettings />;
                     case 'audit-logs':
