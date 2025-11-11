@@ -33,10 +33,11 @@ module.exports = {
 
       // Phase 4: Optimize for production with aggressive bundle splitting
       if (process.env.NODE_ENV === 'production') {
-        // Optimize for production (tree-shaking disabled to prevent component exclusion)
+        // NUCLEAR: Disable ALL optimization to debug tree-shaking issue
         webpackConfig.optimization.usedExports = false;
         webpackConfig.optimization.sideEffects = false;
-        webpackConfig.optimization.minimize = true;  // Re-enabled with dynamic ID workaround
+        webpackConfig.optimization.minimize = false;  // DISABLED to prevent minifier from removing code
+        webpackConfig.optimization.concatenateModules = false;  // Disable scope hoisting
 
         // Advanced code splitting strategy
         webpackConfig.optimization.splitChunks = {

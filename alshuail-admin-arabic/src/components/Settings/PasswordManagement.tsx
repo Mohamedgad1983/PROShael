@@ -17,6 +17,11 @@ import {
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
 
+// FORCE WEBPACK INCLUSION - This side effect prevents tree-shaking
+if (typeof window !== 'undefined') {
+  (window as any).__PASSWORD_MGMT_LOADED__ = true;
+}
+
 interface User {
   id: string;
   email: string;
@@ -27,9 +32,7 @@ interface User {
   hasPassword: boolean;
 }
 
-interface PasswordManagementProps {}
-
-const PasswordManagement: React.FC<PasswordManagementProps> = () => {
+const PasswordManagement: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);

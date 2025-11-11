@@ -127,7 +127,17 @@
       "Bash(__NEW_LINE__ echo \"TEST 1: User Search (Valid)\")",
       "Bash(__NEW_LINE__ echo \"\")",
       "Bash(GENERATE_SOURCEMAP=false npm run build:*)",
-      "Bash(md5sum:*)"
+      "Bash(md5sum:*)",
+      "Bash(GENERATE_SOURCEMAP=false npm run build:production:*)",
+      "Bash(export GENERATE_SOURCEMAP=false)",
+      "Bash(npm cache clean:*)",
+      "WebFetch(domain:48dafbbf.alshuail-admin.pages.dev)",
+      "Bash(GENERATE_SOURCEMAP=false npm run build:fast:*)",
+      "Bash(set GENERATE_SOURCEMAP=false)",
+      "Bash(timeout 120 bash:*)",
+      "Bash(while [ ! -f build/static/js/main.*.js ])",
+      "Bash(do sleep 2)",
+      "Bash(done)"
     ],
     "deny": [],
     "ask": []
