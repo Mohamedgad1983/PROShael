@@ -1,6 +1,7 @@
 /**
  * Audit Logs Component
  * System audit trail and activity logs viewer
+ * MIGRATED: Now uses shared component system for consistency
  */
 
 import React, { useState, useEffect } from 'react';
@@ -15,6 +16,12 @@ import {
   XCircleIcon,
   InformationCircleIcon
 } from '@heroicons/react/24/outline';
+import { SettingsCard } from './shared/SettingsCard';
+import { SettingsButton } from './shared/SettingsButton';
+import { SettingsInput } from './shared/SettingsInput';
+import { SettingsSelect } from './shared/SettingsSelect';
+import { StatusBadge } from './shared/StatusBadge';
+import { commonStyles, COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from './sharedStyles';
 
 interface AuditLog {
   id: string;
@@ -141,15 +148,39 @@ const AuditLogs: React.FC = () => {
     return matchesSearch && matchesModule && matchesSeverity;
   });
 
-  // Styles
-  const getSeverityStyle = (severity: AuditLog['severity']) => {
-    const styles = {
-      info: { bg: '#DBEAFE', color: '#1E40AF', icon: InformationCircleIcon },
-      warning: { bg: '#FED7AA', color: '#C2410C', icon: ExclamationTriangleIcon },
-      error: { bg: '#FEE2E2', color: '#DC2626', icon: XCircleIcon },
-      success: { bg: '#D1FAE5', color: '#065F46', icon: CheckCircleIcon }
+  // Helper functions
+  const getSeverityData = (severity: AuditLog['severity']) => {
+    const data = {
+      info: {
+        type: 'info' as const,
+        icon: InformationCircleIcon,
+        label: 'معلومات',
+        bg: COLORS.infoBg,
+        color: COLORS.info
+      },
+      warning: {
+        type: 'warning' as const,
+        icon: ExclamationTriangleIcon,
+        label: 'تحذير',
+        bg: COLORS.warningBg,
+        color: COLORS.warning
+      },
+      error: {
+        type: 'error' as const,
+        icon: XCircleIcon,
+        label: 'خطأ',
+        bg: COLORS.errorBg,
+        color: COLORS.error
+      },
+      success: {
+        type: 'success' as const,
+        icon: CheckCircleIcon,
+        label: 'نجاح',
+        bg: COLORS.successBg,
+        color: COLORS.success
+      }
     };
-    return styles[severity];
+    return data[severity];
   };
 
   const getModuleLabel = (module: string) => {
@@ -167,312 +198,320 @@ const AuditLogs: React.FC = () => {
   };
 
   const getActionColor = (action: string) => {
-    if (action.includes('حذف')) return '#DC2626';
-    if (action.includes('إضافة') || action.includes('إنشاء')) return '#059669';
-    if (action.includes('تحديث') || action.includes('تغيير')) return '#D97706';
-    return '#6B7280';
+    if (action.includes('حذف')) return COLORS.error;
+    if (action.includes('إضافة') || action.includes('إنشاء')) return COLORS.success;
+    if (action.includes('تحديث') || action.includes('تغيير')) return COLORS.warning;
+    return COLORS.gray600;
+  };
+
+  // Component styles
+  const headerStyle: React.CSSProperties = {
+    fontSize: TYPOGRAPHY['2xl'],
+    fontWeight: TYPOGRAPHY.bold,
+    color: COLORS.gray900,
+    marginBottom: SPACING.sm,
+    display: 'flex',
+    alignItems: 'center',
+    gap: SPACING.sm
+  };
+
+  const subtitleStyle: React.CSSProperties = {
+    color: COLORS.gray500,
+    fontSize: TYPOGRAPHY.sm,
+    marginBottom: SPACING['2xl']
+  };
+
+  const statsGridStyle: React.CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+    gap: SPACING.lg,
+    marginBottom: SPACING['2xl']
+  };
+
+  const statsCardStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: SPACING.md,
+    padding: SPACING.lg
+  };
+
+  const filterContainerStyle: React.CSSProperties = {
+    display: 'flex',
+    gap: SPACING.lg,
+    marginBottom: SPACING.xl,
+    flexWrap: 'wrap'
+  };
+
+  const searchWrapperStyle: React.CSSProperties = {
+    flex: 1,
+    minWidth: '200px',
+    position: 'relative'
+  };
+
+  const searchIconStyle: React.CSSProperties = {
+    width: '20px',
+    height: '20px',
+    position: 'absolute',
+    right: '15px',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    color: COLORS.gray500,
+    pointerEvents: 'none'
+  };
+
+  const timelineLineStyle: React.CSSProperties = {
+    position: 'absolute',
+    right: '30px',
+    top: '20px',
+    bottom: '20px',
+    width: '2px',
+    background: 'linear-gradient(180deg, #E5E7EB 0%, transparent 100%)'
+  };
+
+  const timelineItemStyle: React.CSSProperties = {
+    display: 'flex',
+    gap: SPACING.xl,
+    marginBottom: SPACING['2xl'],
+    position: 'relative'
+  };
+
+  const logContentStyle: React.CSSProperties = {
+    flex: 1,
+    background: 'rgba(0, 0, 0, 0.02)',
+    borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING.lg,
+    border: `1px solid ${COLORS.gray200}`
+  };
+
+  const logHeaderStyle: React.CSSProperties = {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: SPACING.sm
+  };
+
+  const moduleTagStyle: React.CSSProperties = {
+    padding: '3px 8px',
+    background: 'rgba(0, 0, 0, 0.05)',
+    borderRadius: BORDER_RADIUS.sm,
+    marginLeft: SPACING.sm,
+    fontSize: TYPOGRAPHY.xs
+  };
+
+  const timestampStyle: React.CSSProperties = {
+    textAlign: 'left',
+    fontSize: TYPOGRAPHY.xs,
+    color: COLORS.gray400,
+    display: 'flex',
+    alignItems: 'center',
+    gap: SPACING.xs
+  };
+
+  const userInfoStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    fontSize: TYPOGRAPHY.sm,
+    color: COLORS.gray700
+  };
+
+  const changesBoxStyle: React.CSSProperties = {
+    marginTop: SPACING.lg,
+    padding: SPACING.sm,
+    background: 'rgba(0, 0, 0, 0.02)',
+    borderRadius: BORDER_RADIUS.md,
+    fontSize: TYPOGRAPHY.xs
+  };
+
+  const codeStyle: React.CSSProperties = {
+    background: COLORS.white,
+    padding: '2px 6px',
+    borderRadius: BORDER_RADIUS.sm,
+    direction: 'ltr',
+    display: 'inline-block',
+    fontFamily: 'monospace'
   };
 
   return (
     <div>
-      <h2 style={{
-        fontSize: '24px',
-        fontWeight: '700',
-        color: '#1F2937',
-        marginBottom: '10px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px'
-      }}>
+      <h2 style={headerStyle}>
         <ShieldCheckIcon style={{ width: '28px', height: '28px' }} />
         سجلات التدقيق والنشاطات
       </h2>
-      <p style={{ color: '#6B7280', fontSize: '14px', marginBottom: '30px' }}>
+      <p style={subtitleStyle}>
         عرض جميع النشاطات والعمليات التي تمت في النظام
       </p>
 
       {/* Statistics Cards */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: '15px',
-        marginBottom: '30px'
-      }}>
-        {['info', 'success', 'warning', 'error'].map(severity => {
-          const style = getSeverityStyle(severity as AuditLog['severity']);
-          const Icon = style.icon;
+      <div style={statsGridStyle}>
+        {(['info', 'success', 'warning', 'error'] as const).map(severity => {
+          const data = getSeverityData(severity);
+          const Icon = data.icon;
           const count = logs.filter(l => l.severity === severity).length;
 
           return (
-            <div key={severity} style={{
-              background: style.bg,
-              borderRadius: '12px',
-              padding: '15px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px'
-            }}>
-              <Icon style={{ width: '24px', height: '24px', color: style.color }} />
+            <SettingsCard key={severity} style={{ ...statsCardStyle, background: data.bg }}>
+              <Icon style={{ width: '24px', height: '24px', color: data.color }} />
               <div>
-                <div style={{ fontSize: '20px', fontWeight: '700', color: style.color }}>
+                <div style={{ fontSize: TYPOGRAPHY.xl, fontWeight: TYPOGRAPHY.bold, color: data.color }}>
                   {count}
                 </div>
-                <div style={{ fontSize: '12px', color: style.color, opacity: 0.8 }}>
-                  {severity === 'info' && 'معلومات'}
-                  {severity === 'success' && 'نجاح'}
-                  {severity === 'warning' && 'تحذير'}
-                  {severity === 'error' && 'خطأ'}
+                <div style={{ fontSize: TYPOGRAPHY.xs, color: data.color, opacity: 0.8 }}>
+                  {data.label}
                 </div>
               </div>
-            </div>
+            </SettingsCard>
           );
         })}
       </div>
 
       {/* Filters */}
-      <div style={{
-        display: 'flex',
-        gap: '15px',
-        marginBottom: '20px',
-        flexWrap: 'wrap'
-      }}>
-        <div style={{
-          flex: 1,
-          minWidth: '200px',
-          position: 'relative'
-        }}>
-          <MagnifyingGlassIcon style={{
-            width: '20px',
-            height: '20px',
-            position: 'absolute',
-            right: '15px',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            color: '#6B7280'
-          }} />
-          <input
-            type="text"
-            placeholder="البحث في السجلات..."
+      <div style={filterContainerStyle}>
+        <div style={searchWrapperStyle}>
+          <MagnifyingGlassIcon style={searchIconStyle} />
+          <SettingsInput
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '12px 45px 12px 15px',
-              borderRadius: '12px',
-              border: '1px solid rgba(0, 0, 0, 0.1)',
-              fontSize: '14px',
-              outline: 'none'
-            }}
+            onChange={setSearchTerm}
+            placeholder="البحث في السجلات..."
+            style={{ paddingRight: '45px' }}
           />
         </div>
 
-        <select
+        <SettingsSelect
           value={selectedModule}
-          onChange={(e) => setSelectedModule(e.target.value)}
-          style={{
-            padding: '12px 20px',
-            borderRadius: '12px',
-            border: '1px solid rgba(0, 0, 0, 0.1)',
-            fontSize: '14px',
-            cursor: 'pointer',
-            minWidth: '150px'
-          }}
-        >
-          <option value="all">كل الأقسام</option>
-          <option value="user_management">إدارة المستخدمين</option>
-          <option value="financial">النظام المالي</option>
-          <option value="family_tree">شجرة العائلة</option>
-          <option value="authentication">المصادقة</option>
-        </select>
+          onChange={setSelectedModule}
+          options={[
+            { value: 'all', label: 'كل الأقسام' },
+            { value: 'user_management', label: 'إدارة المستخدمين' },
+            { value: 'financial', label: 'النظام المالي' },
+            { value: 'family_tree', label: 'شجرة العائلة' },
+            { value: 'authentication', label: 'المصادقة' }
+          ]}
+          style={{ minWidth: '150px' }}
+        />
 
-        <select
+        <SettingsSelect
           value={selectedSeverity}
-          onChange={(e) => setSelectedSeverity(e.target.value)}
-          style={{
-            padding: '12px 20px',
-            borderRadius: '12px',
-            border: '1px solid rgba(0, 0, 0, 0.1)',
-            fontSize: '14px',
-            cursor: 'pointer',
-            minWidth: '150px'
-          }}
-        >
-          <option value="all">كل المستويات</option>
-          <option value="info">معلومات</option>
-          <option value="success">نجاح</option>
-          <option value="warning">تحذير</option>
-          <option value="error">خطأ</option>
-        </select>
+          onChange={setSelectedSeverity}
+          options={[
+            { value: 'all', label: 'كل المستويات' },
+            { value: 'info', label: 'معلومات' },
+            { value: 'success', label: 'نجاح' },
+            { value: 'warning', label: 'تحذير' },
+            { value: 'error', label: 'خطأ' }
+          ]}
+          style={{ minWidth: '150px' }}
+        />
 
-        <button
+        <SettingsButton
+          variant="primary"
+          icon={<ArrowPathIcon style={{ width: '16px', height: '16px' }} />}
           onClick={fetchAuditLogs}
-          style={{
-            padding: '12px 20px',
-            borderRadius: '12px',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            color: 'white',
-            border: 'none',
-            fontSize: '14px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}
+          style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
         >
-          <ArrowPathIcon style={{ width: '16px', height: '16px' }} />
           تحديث
-        </button>
+        </SettingsButton>
       </div>
 
       {/* Logs Timeline */}
-      <div style={{
-        background: 'white',
-        borderRadius: '12px',
-        border: '1px solid rgba(0, 0, 0, 0.1)',
-        padding: '20px'
-      }}>
+      <SettingsCard>
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '40px', color: '#6B7280' }}>
+          <div style={{ textAlign: 'center', padding: SPACING['4xl'], color: COLORS.gray400 }}>
             جاري التحميل...
           </div>
         ) : filteredLogs.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px', color: '#6B7280' }}>
+          <div style={{ textAlign: 'center', padding: SPACING['4xl'], color: COLORS.gray400 }}>
             لا توجد سجلات
           </div>
         ) : (
           <div style={{ position: 'relative' }}>
             {/* Timeline Line */}
-            <div style={{
-              position: 'absolute',
-              right: '30px',
-              top: '20px',
-              bottom: '20px',
-              width: '2px',
-              background: 'linear-gradient(180deg, #E5E7EB 0%, transparent 100%)'
-            }} />
+            <div style={timelineLineStyle} />
 
             {filteredLogs.map((log, index) => {
-              const severityStyle = getSeverityStyle(log.severity);
-              const Icon = severityStyle.icon;
+              const severityData = getSeverityData(log.severity);
+              const Icon = severityData.icon;
 
               return (
-                <div key={log.id} style={{
-                  display: 'flex',
-                  gap: '20px',
-                  marginBottom: index < filteredLogs.length - 1 ? '30px' : '0',
-                  position: 'relative'
-                }}>
+                <div
+                  key={log.id}
+                  style={{
+                    ...timelineItemStyle,
+                    marginBottom: index < filteredLogs.length - 1 ? SPACING['2xl'] : '0'
+                  }}
+                >
                   {/* Timeline Icon */}
                   <div style={{
                     width: '40px',
                     height: '40px',
                     borderRadius: '50%',
-                    background: severityStyle.bg,
+                    background: severityData.bg,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0,
                     zIndex: 1,
-                    border: `2px solid ${severityStyle.color}`
+                    border: `2px solid ${severityData.color}`
                   }}>
-                    <Icon style={{ width: '20px', height: '20px', color: severityStyle.color }} />
+                    <Icon style={{ width: '20px', height: '20px', color: severityData.color }} />
                   </div>
 
                   {/* Log Content */}
-                  <div style={{
-                    flex: 1,
-                    background: 'rgba(0, 0, 0, 0.02)',
-                    borderRadius: '12px',
-                    padding: '15px',
-                    border: '1px solid rgba(0, 0, 0, 0.05)'
-                  }}>
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'flex-start',
-                      marginBottom: '10px'
-                    }}>
+                  <div style={logContentStyle}>
+                    <div style={logHeaderStyle}>
                       <div>
                         <div style={{
-                          fontSize: '16px',
-                          fontWeight: '600',
+                          fontSize: TYPOGRAPHY.base,
+                          fontWeight: TYPOGRAPHY.semibold,
                           color: getActionColor(log.action),
-                          marginBottom: '5px'
+                          marginBottom: SPACING.xs
                         }}>
                           {log.action}
                         </div>
-                        <div style={{ fontSize: '13px', color: '#6B7280' }}>
-                          <span style={{
-                            padding: '3px 8px',
-                            background: 'rgba(0, 0, 0, 0.05)',
-                            borderRadius: '6px',
-                            marginLeft: '8px'
-                          }}>
+                        <div style={{ fontSize: TYPOGRAPHY.xs, color: COLORS.gray500 }}>
+                          <span style={moduleTagStyle}>
                             {getModuleLabel(log.module)}
                           </span>
                           {log.entityType && (
-                            <span style={{ marginRight: '8px' }}>
+                            <span style={{ marginRight: SPACING.sm }}>
                               • {log.entityType} #{log.entityId}
                             </span>
                           )}
                         </div>
                       </div>
 
-                      <div style={{ textAlign: 'left', fontSize: '12px', color: '#9CA3AF' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                          <ClockIcon style={{ width: '14px', height: '14px' }} />
-                          {new Date(log.createdAt).toLocaleString('ar-SA')}
+                      <div style={timestampStyle}>
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: SPACING.xs }}>
+                            <ClockIcon style={{ width: '14px', height: '14px' }} />
+                            {new Date(log.createdAt).toLocaleString('ar-SA')}
+                          </div>
+                          <div style={{ marginTop: SPACING.xs }}>{log.ipAddress}</div>
                         </div>
-                        <div style={{ marginTop: '5px' }}>{log.ipAddress}</div>
                       </div>
                     </div>
 
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      fontSize: '14px',
-                      color: '#4B5563'
-                    }}>
+                    <div style={userInfoStyle}>
                       <UserIcon style={{ width: '16px', height: '16px' }} />
-                      <span style={{ fontWeight: '500' }}>{log.userName || log.userEmail}</span>
-                      <span style={{ color: '#9CA3AF', fontSize: '12px' }}>({log.userEmail})</span>
+                      <span style={{ fontWeight: TYPOGRAPHY.medium }}>{log.userName || log.userEmail}</span>
+                      <span style={{ color: COLORS.gray400, fontSize: TYPOGRAPHY.xs }}>({log.userEmail})</span>
                     </div>
 
                     {/* Show changed values if available */}
                     {(log.oldValues || log.newValues) && (
-                      <div style={{
-                        marginTop: '15px',
-                        padding: '10px',
-                        background: 'rgba(0, 0, 0, 0.02)',
-                        borderRadius: '8px',
-                        fontSize: '13px'
-                      }}>
+                      <div style={changesBoxStyle}>
                         {log.oldValues && (
-                          <div style={{ marginBottom: '5px' }}>
-                            <span style={{ color: '#DC2626', fontWeight: '600' }}>قديم:</span>{' '}
-                            <code style={{
-                              background: 'white',
-                              padding: '2px 6px',
-                              borderRadius: '4px',
-                              direction: 'ltr',
-                              display: 'inline-block'
-                            }}>
+                          <div style={{ marginBottom: SPACING.xs }}>
+                            <span style={{ color: COLORS.error, fontWeight: TYPOGRAPHY.semibold }}>قديم:</span>{' '}
+                            <code style={codeStyle}>
                               {JSON.stringify(log.oldValues, null, 2)}
                             </code>
                           </div>
                         )}
                         {log.newValues && (
                           <div>
-                            <span style={{ color: '#059669', fontWeight: '600' }}>جديد:</span>{' '}
-                            <code style={{
-                              background: 'white',
-                              padding: '2px 6px',
-                              borderRadius: '4px',
-                              direction: 'ltr',
-                              display: 'inline-block'
-                            }}>
+                            <span style={{ color: COLORS.success, fontWeight: TYPOGRAPHY.semibold }}>جديد:</span>{' '}
+                            <code style={codeStyle}>
                               {JSON.stringify(log.newValues, null, 2)}
                             </code>
                           </div>
@@ -485,7 +524,7 @@ const AuditLogs: React.FC = () => {
             })}
           </div>
         )}
-      </div>
+      </SettingsCard>
     </div>
   );
 };

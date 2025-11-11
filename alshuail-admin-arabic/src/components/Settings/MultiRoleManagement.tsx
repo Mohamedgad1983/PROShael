@@ -25,6 +25,9 @@ import multiRoleService, {
   UpdateRoleAssignmentRequest
 } from '../../services/multiRoleService';
 import { HijriDatePicker } from '../Common/HijriDatePicker';
+// Import shared styles for consistent design
+import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, commonStyles, getMessageStyle } from './sharedStyles';
+import { SettingsButton, StatusBadge } from './shared';
 
 const MultiRoleManagement: React.FC = () => {
   // State management
@@ -290,54 +293,49 @@ const MultiRoleManagement: React.FC = () => {
     return new Date(date).toLocaleDateString('ar-SA');
   };
 
-  // Styles
+  // Styles using shared design system
   const containerStyle: React.CSSProperties = {
     direction: 'rtl'
   };
 
   const headerStyle: React.CSSProperties = {
-    marginBottom: '30px'
+    marginBottom: SPACING['3xl']
   };
 
   const titleStyle: React.CSSProperties = {
-    fontSize: '24px',
-    fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: '10px',
+    fontSize: TYPOGRAPHY['2xl'],
+    fontWeight: TYPOGRAPHY.bold,
+    color: COLORS.gray800,
+    marginBottom: SPACING.sm,
     display: 'flex',
     alignItems: 'center',
-    gap: '10px'
+    gap: SPACING.sm
   };
 
   const descriptionStyle: React.CSSProperties = {
-    fontSize: '14px',
-    color: '#6B7280',
-    marginBottom: '20px'
+    fontSize: TYPOGRAPHY.base,
+    color: COLORS.gray500,
+    marginBottom: SPACING.xl
   };
 
   const searchContainerStyle: React.CSSProperties = {
     position: 'relative',
-    marginBottom: '20px'
+    marginBottom: SPACING.xl
   };
 
   const searchInputStyle: React.CSSProperties = {
-    width: '100%',
-    padding: '12px 45px 12px 15px',
-    borderRadius: '12px',
-    border: '1px solid rgba(0, 0, 0, 0.1)',
-    fontSize: '14px',
-    outline: 'none',
-    transition: 'all 0.3s ease'
+    ...commonStyles.input,
+    padding: `${SPACING.md} 45px ${SPACING.md} ${SPACING.lg}`
   };
 
   const searchIconStyle: React.CSSProperties = {
     position: 'absolute',
-    right: '15px',
+    right: SPACING.lg,
     top: '50%',
     transform: 'translateY(-50%)',
     width: '20px',
     height: '20px',
-    color: '#9CA3AF'
+    color: COLORS.gray400
   };
 
   const searchResultsStyle: React.CSSProperties = {
@@ -345,45 +343,35 @@ const MultiRoleManagement: React.FC = () => {
     top: '100%',
     left: 0,
     right: 0,
-    background: 'white',
-    borderRadius: '12px',
+    background: COLORS.white,
+    borderRadius: BORDER_RADIUS.lg,
     boxShadow: '0 10px 40px rgba(0, 0, 0, 0.15)',
-    marginTop: '8px',
+    marginTop: SPACING.sm,
     maxHeight: '300px',
     overflowY: 'auto',
     zIndex: 10
   };
 
   const searchResultItemStyle: React.CSSProperties = {
-    padding: '12px 15px',
+    padding: `${SPACING.md} ${SPACING.lg}`,
     cursor: 'pointer',
-    borderBottom: '1px solid rgba(0, 0, 0, 0.05)',
+    borderBottom: `1px solid ${COLORS.border}`,
     transition: 'background 0.2s ease'
   };
 
   const selectedUserCardStyle: React.CSSProperties = {
     background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
-    borderRadius: '16px',
-    padding: '20px',
-    marginBottom: '30px',
+    borderRadius: BORDER_RADIUS.xl,
+    padding: SPACING.xl,
+    marginBottom: SPACING['3xl'],
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between'
   };
 
   const buttonStyle: React.CSSProperties = {
-    padding: '10px 20px',
-    borderRadius: '12px',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    color: 'white',
-    border: 'none',
-    fontSize: '14px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    transition: 'all 0.3s ease',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px'
+    ...commonStyles.button.primary,
+    padding: `${SPACING.sm} ${SPACING.xl}`
   };
 
   const tableStyle: React.CSSProperties = {
@@ -392,18 +380,18 @@ const MultiRoleManagement: React.FC = () => {
   };
 
   const thStyle: React.CSSProperties = {
-    padding: '12px',
+    padding: SPACING.md,
     textAlign: 'right' as const,
-    borderBottom: '2px solid rgba(0, 0, 0, 0.1)',
-    fontSize: '14px',
-    fontWeight: '600',
-    color: '#374151'
+    borderBottom: `2px solid ${COLORS.border}`,
+    fontSize: TYPOGRAPHY.base,
+    fontWeight: TYPOGRAPHY.semibold,
+    color: COLORS.gray700
   };
 
   const tdStyle: React.CSSProperties = {
-    padding: '15px 12px',
-    borderBottom: '1px solid rgba(0, 0, 0, 0.05)',
-    fontSize: '14px'
+    padding: `${SPACING.lg} ${SPACING.md}`,
+    borderBottom: `1px solid ${COLORS.border}`,
+    fontSize: TYPOGRAPHY.base
   };
 
   const modalOverlayStyle: React.CSSProperties = {
@@ -420,9 +408,9 @@ const MultiRoleManagement: React.FC = () => {
   };
 
   const modalContentStyle: React.CSSProperties = {
-    background: 'white',
-    borderRadius: '20px',
-    padding: '30px',
+    background: COLORS.white,
+    borderRadius: BORDER_RADIUS['2xl'],
+    padding: SPACING['3xl'],
     maxWidth: '600px',
     width: '90%',
     maxHeight: '90vh',
@@ -431,21 +419,16 @@ const MultiRoleManagement: React.FC = () => {
   };
 
   const inputStyle: React.CSSProperties = {
-    width: '100%',
-    padding: '12px',
-    borderRadius: '12px',
-    border: '1px solid rgba(0, 0, 0, 0.1)',
-    fontSize: '14px',
-    outline: 'none',
-    marginBottom: '15px'
+    ...commonStyles.input,
+    marginBottom: SPACING.lg
   };
 
   const labelStyle: React.CSSProperties = {
     display: 'block',
-    marginBottom: '8px',
-    fontSize: '14px',
-    fontWeight: '600',
-    color: '#374151'
+    marginBottom: SPACING.sm,
+    fontSize: TYPOGRAPHY.base,
+    fontWeight: TYPOGRAPHY.semibold,
+    color: COLORS.gray700
   };
 
   return (
@@ -463,16 +446,7 @@ const MultiRoleManagement: React.FC = () => {
 
       {/* Notification */}
       {notification && (
-        <div style={{
-          padding: '15px 20px',
-          borderRadius: '12px',
-          marginBottom: '20px',
-          background: notification.type === 'success' ? '#D1FAE5' : '#FEE2E2',
-          color: notification.type === 'success' ? '#065F46' : '#991B1B',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px'
-        }}>
+        <div style={getMessageStyle(notification.type)}>
           {notification.type === 'success' ? (
             <CheckCircleIcon style={{ width: '20px', height: '20px' }} />
           ) : (

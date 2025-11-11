@@ -24,6 +24,10 @@ import AuditLogs from './AuditLogs';
 import MultiRoleManagement from './MultiRoleManagement';
 // CRITICAL: Import from feature package to prevent tree-shaking
 import AccessControl, { __KEEP_ACCESS_CONTROL__ } from '../../features/access-control';
+// Import shared styles for consistent design
+import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, commonStyles } from './sharedStyles';
+import { SettingsCard } from './shared';
+import { PerformanceProfiler, PerformanceUtils } from './shared/PerformanceProfiler';
 
 // CRITICAL: Reference the keep symbol to create explicit dependency
 // DO NOT REMOVE - This prevents Webpack from tree-shaking the component
@@ -125,24 +129,52 @@ const SettingsPage: React.FC = () => {
       // Store components in window to prevent tree shaking
       (window as any).__MULTI_ROLE__ = MultiRoleManagement;
       (window as any).__ACCESS_CONTROL__ = AccessControl;
+
+      // Expose performance utilities globally for debugging
+      (window as any).__PERFORMANCE__ = PerformanceUtils;
+      console.log('[SettingsPage] Performance monitoring enabled. Access via window.__PERFORMANCE__');
     }
   }, []);
 
-  // Explicit component renderer
+  // Explicit component renderer with performance profiling
   const renderTabContent = () => {
     switch (activeTab) {
       case 'user-management':
-        return <UserManagement />;
+        return (
+          <PerformanceProfiler id="UserManagement">
+            <UserManagement />
+          </PerformanceProfiler>
+        );
       case 'multi-role-management':
-        return <MultiRoleManagement />;
+        return (
+          <PerformanceProfiler id="MultiRoleManagement">
+            <MultiRoleManagement />
+          </PerformanceProfiler>
+        );
       case 'password-management':
-        return <AccessControl />;
+        return (
+          <PerformanceProfiler id="AccessControl">
+            <AccessControl />
+          </PerformanceProfiler>
+        );
       case 'system-settings':
-        return <SystemSettings />;
+        return (
+          <PerformanceProfiler id="SystemSettings">
+            <SystemSettings />
+          </PerformanceProfiler>
+        );
       case 'audit-logs':
-        return <AuditLogs />;
+        return (
+          <PerformanceProfiler id="AuditLogs">
+            <AuditLogs />
+          </PerformanceProfiler>
+        );
       default:
-        return <UserManagement />;
+        return (
+          <PerformanceProfiler id="UserManagement">
+            <UserManagement />
+          </PerformanceProfiler>
+        );
     }
   };
 
@@ -221,102 +253,82 @@ const SettingsPage: React.FC = () => {
 
   console.log('[Settings] Available tabs after filtering:', availableTabs.map(t => t.id));
 
+  // Use shared styles for consistent design and performance
   const containerStyle: React.CSSProperties = {
-    minHeight: '100vh',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    padding: '20px',
-    direction: 'rtl'
+    ...commonStyles.container,
+    padding: SPACING.xl
   };
 
   const headerStyle: React.CSSProperties = {
-    background: 'rgba(255, 255, 255, 0.95)',
-    backdropFilter: 'blur(20px)',
-    borderRadius: '20px',
-    padding: '30px',
-    marginBottom: '30px',
-    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.1)',
+    ...commonStyles.card,
+    padding: SPACING['3xl'],
+    marginBottom: SPACING['3xl'],
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between'
   };
 
   const titleStyle: React.CSSProperties = {
-    fontSize: '32px',
-    fontWeight: '700',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '15px'
+    ...commonStyles.header,
+    fontSize: TYPOGRAPHY['3xl'],
+    gap: SPACING.lg
   };
 
   const mainContentStyle: React.CSSProperties = {
     display: 'grid',
     gridTemplateColumns: '300px 1fr',
-    gap: '30px',
+    gap: SPACING['3xl'],
     maxWidth: '1400px',
     margin: '0 auto'
   };
 
   const sidebarStyle: React.CSSProperties = {
-    background: 'rgba(255, 255, 255, 0.95)',
-    backdropFilter: 'blur(20px)',
-    borderRadius: '20px',
-    padding: '20px',
-    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.1)',
+    ...commonStyles.card,
+    padding: SPACING.xl,
     height: 'fit-content',
     position: 'sticky' as const,
-    top: '20px'
+    top: SPACING.xl
   };
 
   const contentAreaStyle: React.CSSProperties = {
-    background: 'rgba(255, 255, 255, 0.95)',
-    backdropFilter: 'blur(20px)',
-    borderRadius: '20px',
-    padding: '30px',
-    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.1)',
+    ...commonStyles.card,
+    padding: SPACING['3xl'],
     minHeight: '600px'
   };
 
   const tabButtonStyle = (isActive: boolean): React.CSSProperties => ({
     width: '100%',
-    padding: '15px',
-    marginBottom: '10px',
-    background: isActive
-      ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-      : 'transparent',
-    color: isActive ? 'white' : '#4B5563',
-    border: isActive ? 'none' : '1px solid rgba(0, 0, 0, 0.1)',
-    borderRadius: '12px',
-    fontSize: '14px',
-    fontWeight: isActive ? '600' : '500',
+    padding: SPACING.lg,
+    marginBottom: SPACING.sm,
+    background: isActive ? COLORS.primaryGradient : 'transparent',
+    color: isActive ? COLORS.white : COLORS.gray600,
+    border: isActive ? 'none' : `1px solid ${COLORS.border}`,
+    borderRadius: BORDER_RADIUS.lg,
+    fontSize: TYPOGRAPHY.base,
+    fontWeight: isActive ? TYPOGRAPHY.semibold : TYPOGRAPHY.medium,
     cursor: 'pointer',
     transition: 'all 0.3s ease',
     display: 'flex',
     alignItems: 'center',
-    gap: '12px',
+    gap: SPACING.md,
     textAlign: 'right' as const
   });
 
   const sectionTitleStyle: React.CSSProperties = {
-    fontSize: '12px',
-    color: '#9CA3AF',
-    marginBottom: '15px',
-    paddingRight: '10px',
-    fontWeight: '600',
+    fontSize: TYPOGRAPHY.xs,
+    color: COLORS.gray400,
+    marginBottom: SPACING.lg,
+    paddingRight: SPACING.sm,
+    fontWeight: TYPOGRAPHY.semibold,
     textTransform: 'uppercase',
     letterSpacing: '0.5px'
   };
 
   const roleIndicatorStyle: React.CSSProperties = {
+    ...commonStyles.badge.success,
     display: 'inline-block',
-    padding: '6px 12px',
     background: 'linear-gradient(135deg, #34D399 0%, #10B981 100%)',
-    color: 'white',
-    borderRadius: '20px',
-    fontSize: '12px',
-    fontWeight: '600'
+    borderRadius: BORDER_RADIUS.full
   };
 
   return (
@@ -347,7 +359,7 @@ const SettingsPage: React.FC = () => {
                 onClick={() => setActiveTab(tab.id)}
                 onMouseEnter={(e) => {
                   if (activeTab !== tab.id) {
-                    e.currentTarget.style.background = 'rgba(102, 126, 234, 0.1)';
+                    e.currentTarget.style.background = COLORS.primaryLight;
                     e.currentTarget.style.transform = 'translateX(-5px)';
                   }
                 }}
@@ -363,9 +375,9 @@ const SettingsPage: React.FC = () => {
                   <div>{tab.label}</div>
                   {activeTab === tab.id && (
                     <div style={{
-                      fontSize: '11px',
+                      fontSize: TYPOGRAPHY.xs,
                       opacity: 0.9,
-                      marginTop: '2px'
+                      marginTop: SPACING.xs
                     }}>
                       {tab.description}
                     </div>
@@ -409,25 +421,25 @@ const SettingsPage: React.FC = () => {
         {/* Content Area */}
         <div style={contentAreaStyle}>
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '40px' }}>
-              <div style={{ fontSize: '18px', color: '#9CA3AF', marginBottom: '20px' }}>
+            <div style={{ textAlign: 'center', padding: SPACING['4xl'] }}>
+              <div style={{ fontSize: TYPOGRAPHY.lg, color: COLORS.gray400, marginBottom: SPACING.xl }}>
                 جاري تحميل الإعدادات...
               </div>
             </div>
           ) : !user ? (
-            <div style={{ textAlign: 'center', padding: '40px' }}>
-              <ShieldCheckIcon style={{ width: '60px', height: '60px', margin: '0 auto', color: '#9CA3AF' }} />
-              <div style={{ fontSize: '18px', color: '#6B7280', marginTop: '20px' }}>
+            <div style={{ textAlign: 'center', padding: SPACING['4xl'] }}>
+              <ShieldCheckIcon style={{ width: '60px', height: '60px', margin: '0 auto', color: COLORS.gray400 }} />
+              <div style={{ fontSize: TYPOGRAPHY.lg, color: COLORS.gray500, marginTop: SPACING.xl }}>
                 الرجاء تسجيل الدخول لعرض الإعدادات
               </div>
             </div>
           ) : !hasRole(['super_admin']) ? (
-            <div style={{ textAlign: 'center', padding: '40px' }}>
-              <ShieldCheckIcon style={{ width: '60px', height: '60px', margin: '0 auto', color: '#EF4444' }} />
-              <div style={{ fontSize: '18px', color: '#6B7280', marginTop: '20px' }}>
+            <div style={{ textAlign: 'center', padding: SPACING['4xl'] }}>
+              <ShieldCheckIcon style={{ width: '60px', height: '60px', margin: '0 auto', color: COLORS.error }} />
+              <div style={{ fontSize: TYPOGRAPHY.lg, color: COLORS.gray500, marginTop: SPACING.xl }}>
                 ليس لديك صلاحيات لعرض هذه الصفحة
               </div>
-              <div style={{ fontSize: '14px', color: '#9CA3AF', marginTop: '10px' }}>
+              <div style={{ fontSize: TYPOGRAPHY.base, color: COLORS.gray400, marginTop: SPACING.sm }}>
                 الدور الحالي: {user.roleAr || user.role}
               </div>
             </div>

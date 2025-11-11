@@ -14,6 +14,9 @@ import {
   ArrowPathIcon
 } from '@heroicons/react/24/outline';
 import axios from 'axios';
+// Import shared styles for consistent design
+import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, commonStyles, getMessageStyle } from './sharedStyles';
+import { SettingsButton } from './shared';
 
 interface SystemSettings {
   system_name: string;
@@ -193,42 +196,37 @@ const SystemSettingsEnhanced: React.FC = () => {
     }
   };
 
+  // Use shared styles for consistent design
   const inputStyle: React.CSSProperties = {
-    width: '100%',
-    padding: '12px',
-    borderRadius: '12px',
-    border: '1px solid rgba(0, 0, 0, 0.1)',
-    fontSize: '14px',
-    outline: 'none',
-    transition: 'all 0.3s ease'
+    ...commonStyles.input
   };
 
   const errorInputStyle: React.CSSProperties = {
     ...inputStyle,
-    borderColor: '#EF4444',
-    background: '#FEF2F2'
+    borderColor: COLORS.error,
+    background: COLORS.errorBg
   };
 
   const labelStyle: React.CSSProperties = {
     display: 'block',
-    marginBottom: '8px',
-    fontSize: '14px',
-    fontWeight: '600',
-    color: '#374151'
+    marginBottom: SPACING.sm,
+    fontSize: TYPOGRAPHY.base,
+    fontWeight: TYPOGRAPHY.semibold,
+    color: COLORS.gray700
   };
 
   const sectionStyle: React.CSSProperties = {
-    marginBottom: '30px',
-    padding: '20px',
-    background: 'rgba(0, 0, 0, 0.02)',
-    borderRadius: '16px'
+    marginBottom: SPACING['3xl'],
+    padding: SPACING.xl,
+    background: COLORS.gray100,
+    borderRadius: BORDER_RADIUS.xl
   };
 
   if (loading) {
     return (
-      <div style={{ textAlign: 'center', padding: '40px' }}>
+      <div style={{ textAlign: 'center', padding: SPACING['4xl'] }}>
         <ArrowPathIcon style={{ width: '40px', height: '40px', margin: '0 auto', animation: 'spin 1s linear infinite' }} />
-        <div style={{ marginTop: '20px', fontSize: '16px', color: '#6B7280' }}>
+        <div style={{ marginTop: SPACING.xl, fontSize: TYPOGRAPHY.lg, color: COLORS.gray500 }}>
           جاري تحميل الإعدادات...
         </div>
       </div>
@@ -237,25 +235,18 @@ const SystemSettingsEnhanced: React.FC = () => {
 
   if (!settings) {
     return (
-      <div style={{ textAlign: 'center', padding: '40px' }}>
-        <ExclamationCircleIcon style={{ width: '60px', height: '60px', margin: '0 auto', color: '#EF4444' }} />
-        <div style={{ marginTop: '20px', fontSize: '16px', color: '#6B7280' }}>
+      <div style={{ textAlign: 'center', padding: SPACING['4xl'] }}>
+        <ExclamationCircleIcon style={{ width: '60px', height: '60px', margin: '0 auto', color: COLORS.error }} />
+        <div style={{ marginTop: SPACING.xl, fontSize: TYPOGRAPHY.lg, color: COLORS.gray500 }}>
           فشل تحميل الإعدادات
         </div>
-        <button
+        <SettingsButton
+          variant="primary"
           onClick={fetchSettings}
-          style={{
-            marginTop: '20px',
-            padding: '10px 20px',
-            borderRadius: '8px',
-            background: '#3B82F6',
-            color: 'white',
-            border: 'none',
-            cursor: 'pointer'
-          }}
+          style={{marginTop: SPACING.xl}}
         >
           إعادة المحاولة
-        </button>
+        </SettingsButton>
       </div>
     );
   }

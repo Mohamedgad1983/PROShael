@@ -14,6 +14,8 @@ import {
   LockClosedIcon,
   LockOpenIcon
 } from '@heroicons/react/24/outline';
+import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, commonStyles, getMessageStyle } from './sharedStyles';
+import { SettingsButton, StatusBadge } from './shared';
 
 // Remove /api suffix if present to avoid double /api in URL
 const API_URL = (process.env.REACT_APP_API_URL || 'https://proshael.onrender.com').replace(/\/api$/, '');
@@ -153,10 +155,14 @@ const AccessControl: React.FC = () => {
             : 'تم إعادة تعيين كلمة المرور بنجاح'
         });
 
-        // Reset form
+        // Clear sensitive data from memory immediately
         setNewPassword('');
         setConfirmPassword('');
         setForceOverwrite(false);
+
+        // Overwrite password strings to prevent memory leaks
+        newPassword = '';
+        confirmPassword = '';
 
         // Refresh user info
         handleSearch();
@@ -205,79 +211,42 @@ const AccessControl: React.FC = () => {
   );
 
   const containerStyle: React.CSSProperties = {
-    padding: '20px',
+    padding: SPACING.xl,
     direction: 'rtl'
   };
 
   const headerStyle: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
-    gap: '12px',
-    marginBottom: '30px',
-    paddingBottom: '20px',
-    borderBottom: '2px solid #E5E7EB'
+    gap: SPACING.md,
+    marginBottom: SPACING['3xl'],
+    paddingBottom: SPACING.xl,
+    borderBottom: `2px solid ${COLORS.gray200}`
   };
 
   const titleStyle: React.CSSProperties = {
-    fontSize: '24px',
-    fontWeight: '700',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent'
+    ...commonStyles.header,
+    fontSize: TYPOGRAPHY['2xl']
   };
 
   const searchSectionStyle: React.CSSProperties = {
-    background: '#F9FAFB',
-    borderRadius: '12px',
-    padding: '20px',
-    marginBottom: '20px'
+    background: COLORS.gray50,
+    borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING.xl,
+    marginBottom: SPACING.xl
   };
 
   const searchBoxStyle: React.CSSProperties = {
     display: 'flex',
-    gap: '10px',
-    marginBottom: '20px'
+    gap: SPACING.sm,
+    marginBottom: SPACING.xl
   };
 
   const inputStyle: React.CSSProperties = {
-    flex: 1,
-    padding: '12px 16px',
-    border: '1px solid #D1D5DB',
-    borderRadius: '8px',
-    fontSize: '14px',
-    outline: 'none'
+    ...commonStyles.input
   };
 
-  const buttonStyle = (variant: 'primary' | 'secondary' | 'danger' = 'primary'): React.CSSProperties => {
-    const variants = {
-      primary: {
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        color: 'white'
-      },
-      secondary: {
-        background: '#F3F4F6',
-        color: '#374151'
-      },
-      danger: {
-        background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
-        color: 'white'
-      }
-    };
-
-    return {
-      padding: '12px 24px',
-      border: 'none',
-      borderRadius: '8px',
-      fontSize: '14px',
-      fontWeight: '600',
-      cursor: 'pointer',
-      transition: 'all 0.3s ease',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      ...variants[variant]
-    };
-  };
+  // Removed - using SettingsButton component instead
 
   const resultsGridStyle: React.CSSProperties = {
     display: 'grid',
@@ -310,26 +279,7 @@ const AccessControl: React.FC = () => {
     border: '1px solid #E5E7EB'
   };
 
-  const messageStyle = (type: 'success' | 'error' | 'warning'): React.CSSProperties => {
-    const colors = {
-      success: { bg: '#D1FAE5', text: '#065F46', border: '#10B981' },
-      error: { bg: '#FEE2E2', text: '#991B1B', border: '#EF4444' },
-      warning: { bg: '#FEF3C7', text: '#92400E', border: '#F59E0B' }
-    };
-
-    return {
-      background: colors[type].bg,
-      color: colors[type].text,
-      border: `1px solid ${colors[type].border}`,
-      borderRadius: '8px',
-      padding: '12px 16px',
-      marginBottom: '20px',
-      fontSize: '14px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '10px'
-    };
-  };
+  // Removed - using getMessageStyle from sharedStyles instead
 
   return (
     <div style={containerStyle}>
@@ -346,7 +296,7 @@ const AccessControl: React.FC = () => {
 
       {/* Message */}
       {message && (
-        <div style={messageStyle(message.type)}>
+        <div style={getMessageStyle(message.type)}>
           {message.type === 'success' && <CheckCircleIcon style={{ width: '20px', height: '20px' }} />}
           {message.type === 'error' && <XCircleIcon style={{ width: '20px', height: '20px' }} />}
           {message.type === 'warning' && <ExclamationTriangleIcon style={{ width: '20px', height: '20px' }} />}
@@ -368,14 +318,14 @@ const AccessControl: React.FC = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
           />
-          <button
-            style={buttonStyle('primary')}
+          <SettingsButton
+            variant="primary"
             onClick={handleSearch}
             disabled={searching}
+            icon={<MagnifyingGlassIcon style={{ width: '18px', height: '18px' }} />}
           >
-            <MagnifyingGlassIcon style={{ width: '18px', height: '18px' }} />
             {searching ? 'جاري البحث...' : 'بحث'}
-          </button>
+          </SettingsButton>
         </div>
 
         {/* Search Results */}
@@ -499,20 +449,20 @@ const AccessControl: React.FC = () => {
             </div>
           )}
 
-          <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-            <button
-              style={buttonStyle(selectedUser.hasPassword ? 'danger' : 'primary')}
+          <div style={{ display: 'flex', gap: SPACING.sm, marginTop: SPACING.xl }}>
+            <SettingsButton
+              variant={selectedUser.hasPassword ? 'danger' : 'primary'}
               onClick={() => handlePasswordOperation(selectedUser.hasPassword ? 'reset' : 'create')}
               disabled={loading || !newPassword || !confirmPassword}
+              icon={<KeyIcon style={{ width: '18px', height: '18px' }} />}
             >
-              <KeyIcon style={{ width: '18px', height: '18px' }} />
               {loading
                 ? 'جاري المعالجة...'
                 : (selectedUser.hasPassword ? 'إعادة تعيين كلمة المرور' : 'إنشاء كلمة المرور')
               }
-            </button>
-            <button
-              style={buttonStyle('secondary')}
+            </SettingsButton>
+            <SettingsButton
+              variant="secondary"
               onClick={() => {
                 setSelectedUser(null);
                 setNewPassword('');
@@ -521,7 +471,7 @@ const AccessControl: React.FC = () => {
               }}
             >
               إلغاء
-            </button>
+            </SettingsButton>
           </div>
         </div>
       )}

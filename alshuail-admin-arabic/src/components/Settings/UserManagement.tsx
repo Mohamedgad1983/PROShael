@@ -1,15 +1,15 @@
-﻿/**
+/**
  * User Management Component
  * RBAC user and role management for Super Admin
+ * Migrated to use shared styles and components
  */
 
-import React, {  useState, useEffect , useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   UserIcon,
   UserGroupIcon,
   ShieldCheckIcon,
   PencilIcon,
-  TrashIcon,
   PlusIcon,
   MagnifyingGlassIcon,
   CheckCircleIcon,
@@ -19,6 +19,13 @@ import {
   KeyIcon
 } from '@heroicons/react/24/outline';
 import { ROLE_DISPLAY_NAMES, UserRole } from '../../contexts/RoleContext';
+import { SettingsCard } from './shared/SettingsCard';
+import { SettingsButton } from './shared/SettingsButton';
+import { SettingsInput } from './shared/SettingsInput';
+import { SettingsSelect } from './shared/SettingsSelect';
+import { SettingsTable, SettingsTableColumn } from './shared/SettingsTable';
+import { StatusBadge } from './shared/StatusBadge';
+import { commonStyles, COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from './sharedStyles';
 
 interface User {
   id: string;
@@ -50,7 +57,6 @@ const UserManagement: React.FC = () => {
     password: ''
   });
 
-  // Mock data - replace with actual API calls
   useEffect(() => {
     fetchUsers();
   }, []);
@@ -128,7 +134,6 @@ const UserManagement: React.FC = () => {
   const handleRoleChange = async (userId: string, newRole: UserRole) => {
     setSaving(true);
     try {
-      // Make API call to update role
       const response = await fetch(`http://localhost:3001/api/users/${userId}/assign-role`, {
         method: 'POST',
         headers: {
@@ -158,17 +163,14 @@ const UserManagement: React.FC = () => {
     setMessage(null);
 
     try {
-      // Validate form fields
       if (!newUser.email || !newUser.name || !newUser.phone || !newUser.password) {
         setMessage({ type: 'error', text: 'يرجى ملء جميع الحقول المطلوبة' });
         setSaving(false);
         return;
       }
 
-      // Mock API call - replace with actual API when backend is ready
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Create new user object
       const userToAdd: User = {
         id: String(Date.now()),
         email: newUser.email,
@@ -180,13 +182,10 @@ const UserManagement: React.FC = () => {
         createdAt: new Date().toISOString().split('T')[0]
       };
 
-      // Add to users list (in production, this would be done via API)
       setUsers(prev => [...prev, userToAdd]);
-
       setMessage({ type: 'success', text: 'تم إضافة المستخدم بنجاح' });
       setShowAddModal(false);
 
-      // Reset form
       setNewUser({
         email: '',
         phone: '',
@@ -202,19 +201,15 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  // Performance optimized event handlers (moved outside getRoleNameAr)
   const handleRefresh = useCallback(() => {
-    // Refresh users list
     window.location.reload();
   }, []);
 
   const handleFilterChange = useCallback((filterType: string, value: any) => {
-    // Filter logic here
     console.log('Filter changed:', filterType, value);
   }, []);
 
   const handlePageChange = useCallback((page: number) => {
-    // Pagination logic here
     console.log('Page changed:', page);
   }, []);
 
@@ -229,6 +224,17 @@ const UserManagement: React.FC = () => {
     return roleMap[role] || role;
   };
 
+  const getRoleBadgeType = (role: UserRole): 'success' | 'error' | 'warning' | 'info' => {
+    const typeMap: Record<UserRole, 'success' | 'error' | 'warning' | 'info'> = {
+      super_admin: 'error',
+      financial_manager: 'success',
+      family_tree_admin: 'info',
+      occasions_initiatives_diyas_admin: 'warning',
+      user_member: 'info'
+    };
+    return typeMap[role] || 'info';
+  };
+
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -237,66 +243,15 @@ const UserManagement: React.FC = () => {
     return matchesSearch && matchesRole;
   });
 
-  // Styles
-  const statsCardStyle: React.CSSProperties = {
-    background: 'rgba(255, 255, 255, 0.9)',
-    backdropFilter: 'blur(20px)',
-    borderRadius: '16px',
-    padding: '20px',
-    border: '1px solid rgba(0, 0, 0, 0.1)',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '15px',
-    transition: 'all 0.3s ease'
+  const roleStats = {
+    super_admin: users.filter(u => u.role === 'super_admin').length,
+    financial_manager: users.filter(u => u.role === 'financial_manager').length,
+    family_tree_admin: users.filter(u => u.role === 'family_tree_admin').length,
+    occasions_initiatives_diyas_admin: users.filter(u => u.role === 'occasions_initiatives_diyas_admin').length,
+    user_member: users.filter(u => u.role === 'user_member').length
   };
 
-  const tableStyle: React.CSSProperties = {
-    width: '100%',
-    borderCollapse: 'separate',
-    borderSpacing: '0',
-    marginTop: '20px'
-  };
-
-  const thStyle: React.CSSProperties = {
-    padding: '15px',
-    textAlign: 'right',
-    borderBottom: '2px solid rgba(0, 0, 0, 0.1)',
-    fontSize: '13px',
-    fontWeight: '600',
-    color: '#4B5563',
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px'
-  };
-
-  const tdStyle: React.CSSProperties = {
-    padding: '15px',
-    borderBottom: '1px solid rgba(0, 0, 0, 0.05)',
-    fontSize: '14px',
-    color: '#1F2937'
-  };
-
-  const roleTagStyle = (role: UserRole): React.CSSProperties => {
-    const colors: Record<UserRole, { bg: string; text: string }> = {
-      super_admin: { bg: '#DC2626', text: 'white' },
-      financial_manager: { bg: '#059669', text: 'white' },
-      family_tree_admin: { bg: '#7C3AED', text: 'white' },
-      occasions_initiatives_diyas_admin: { bg: '#EA580C', text: 'white' },
-      user_member: { bg: '#6B7280', text: 'white' }
-    };
-
-    const color = colors[role] || colors.user_member;
-
-    return {
-      display: 'inline-block',
-      padding: '6px 12px',
-      backgroundColor: color.bg,
-      color: color.text,
-      borderRadius: '20px',
-      fontSize: '12px',
-      fontWeight: '600'
-    };
-  };
-
+  // Styles using shared style system
   const modalOverlayStyle: React.CSSProperties = {
     position: 'fixed',
     top: 0,
@@ -312,240 +267,295 @@ const UserManagement: React.FC = () => {
   };
 
   const modalContentStyle: React.CSSProperties = {
-    background: 'white',
-    borderRadius: '20px',
-    padding: '30px',
+    background: COLORS.white,
+    borderRadius: BORDER_RADIUS['2xl'],
+    padding: SPACING['3xl'],
     width: '500px',
     maxHeight: '80vh',
     overflowY: 'auto',
-    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)'
+    boxShadow: SHADOWS.premium
   };
 
-  // Role statistics
-  const roleStats = {
-    super_admin: users.filter(u => u.role === 'super_admin').length,
-    financial_manager: users.filter(u => u.role === 'financial_manager').length,
-    family_tree_admin: users.filter(u => u.role === 'family_tree_admin').length,
-    occasions_initiatives_diyas_admin: users.filter(u => u.role === 'occasions_initiatives_diyas_admin').length,
-    user_member: users.filter(u => u.role === 'user_member').length
+  const statsCardStyle: React.CSSProperties = {
+    ...commonStyles.card,
+    display: 'flex',
+    alignItems: 'center',
+    gap: SPACING.lg,
+    transition: 'all 0.3s ease'
   };
+
+  const searchInputStyle: React.CSSProperties = {
+    ...commonStyles.input,
+    paddingRight: '45px'
+  };
+
+  const roleOptions = [
+    { value: 'all', label: 'كل الأدوار' },
+    { value: 'super_admin', label: 'المدير الأعلى' },
+    { value: 'financial_manager', label: 'المدير المالي' },
+    { value: 'family_tree_admin', label: 'مدير شجرة العائلة' },
+    { value: 'occasions_initiatives_diyas_admin', label: 'مدير المناسبات' },
+    { value: 'user_member', label: 'عضو عادي' }
+  ];
+
+  // Table columns definition
+  const tableColumns: SettingsTableColumn<User>[] = [
+    {
+      key: 'user',
+      label: 'المستخدم',
+      render: (user) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: SPACING.md }}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            borderRadius: '50%',
+            background: COLORS.primaryGradient,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: COLORS.white,
+            fontWeight: TYPOGRAPHY.semibold,
+            fontSize: TYPOGRAPHY.sm
+          }}>
+            {user.name ? user.name[0] : user.email[0].toUpperCase()}
+          </div>
+          <div>
+            <div style={{ fontWeight: TYPOGRAPHY.semibold }}>{user.name || user.email}</div>
+            <div style={{ fontSize: TYPOGRAPHY.xs, color: COLORS.gray500 }}>{user.email}</div>
+            {user.phone && (
+              <div style={{ fontSize: TYPOGRAPHY.xs, color: COLORS.gray500 }}>{user.phone}</div>
+            )}
+          </div>
+        </div>
+      )
+    },
+    {
+      key: 'role',
+      label: 'الدور الحالي',
+      render: (user) => (
+        <StatusBadge type={getRoleBadgeType(user.role)}>
+          {user.roleAr}
+        </StatusBadge>
+      )
+    },
+    {
+      key: 'status',
+      label: 'الحالة',
+      render: (user) => (
+        <StatusBadge
+          type={user.isActive ? 'success' : 'error'}
+          icon={
+            <div style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: user.isActive ? COLORS.success : COLORS.error
+            }} />
+          }
+        >
+          {user.isActive ? 'نشط' : 'غير نشط'}
+        </StatusBadge>
+      )
+    },
+    {
+      key: 'createdAt',
+      label: 'تاريخ الإنضمام',
+      render: (user) => (
+        <span style={{ fontSize: TYPOGRAPHY.sm, color: COLORS.gray500 }}>
+          {new Date(user.createdAt).toLocaleDateString('ar-SA')}
+        </span>
+      )
+    },
+    {
+      key: 'lastLogin',
+      label: 'آخر دخول',
+      render: (user) => (
+        <span style={{ fontSize: TYPOGRAPHY.sm, color: COLORS.gray500 }}>
+          {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString('ar-SA') : 'لم يدخل بعد'}
+        </span>
+      )
+    },
+    {
+      key: 'actions',
+      label: 'الإجراءات',
+      render: (user) => (
+        <SettingsButton
+          variant="secondary"
+          icon={<PencilIcon style={{ width: '16px', height: '16px' }} />}
+          onClick={() => {
+            setSelectedUser(user);
+            setShowEditModal(true);
+          }}
+        >
+          تعديل
+        </SettingsButton>
+      )
+    }
+  ];
 
   return (
     <div>
       {/* Header */}
-      <div style={{ marginBottom: '30px' }}>
+      <div style={{ marginBottom: SPACING['3xl'] }}>
         <h2 style={{
-          fontSize: '24px',
-          fontWeight: '700',
-          color: '#1F2937',
-          marginBottom: '10px',
+          ...commonStyles.header,
           display: 'flex',
           alignItems: 'center',
-          gap: '10px'
+          gap: SPACING.md
         }}>
           <UserGroupIcon style={{ width: '28px', height: '28px' }} />
           إدارة المستخدمين والصلاحيات
         </h2>
-        <p style={{ color: '#6B7280', fontSize: '14px' }}>
+        <p style={{ color: COLORS.gray500, fontSize: TYPOGRAPHY.sm }}>
           إدارة المستخدمين وتعيين الأدوار والصلاحيات لكل مستخدم في النظام
         </p>
       </div>
 
-      {/* Statistics */}
+      {/* Statistics Cards */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: '15px',
-        marginBottom: '30px'
+        gap: SPACING.lg,
+        marginBottom: SPACING['3xl']
       }}>
-        <div style={statsCardStyle}>
+        <SettingsCard style={statsCardStyle}>
           <div style={{
             width: '40px',
             height: '40px',
-            borderRadius: '10px',
+            borderRadius: BORDER_RADIUS.lg,
             background: 'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
           }}>
-            <ShieldCheckIcon style={{ width: '20px', height: '20px', color: 'white' }} />
+            <ShieldCheckIcon style={{ width: '20px', height: '20px', color: COLORS.white }} />
           </div>
           <div>
-            <div style={{ fontSize: '24px', fontWeight: '700' }}>{roleStats.super_admin}</div>
-            <div style={{ fontSize: '12px', color: '#6B7280' }}>مدير أعلى</div>
+            <div style={{ fontSize: TYPOGRAPHY['2xl'], fontWeight: TYPOGRAPHY.bold }}>{roleStats.super_admin}</div>
+            <div style={{ fontSize: TYPOGRAPHY.xs, color: COLORS.gray500 }}>مدير أعلى</div>
           </div>
-        </div>
+        </SettingsCard>
 
-        <div style={statsCardStyle}>
+        <SettingsCard style={statsCardStyle}>
           <div style={{
             width: '40px',
             height: '40px',
-            borderRadius: '10px',
+            borderRadius: BORDER_RADIUS.lg,
             background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
           }}>
-            <UserIcon style={{ width: '20px', height: '20px', color: 'white' }} />
+            <UserIcon style={{ width: '20px', height: '20px', color: COLORS.white }} />
           </div>
           <div>
-            <div style={{ fontSize: '24px', fontWeight: '700' }}>{roleStats.financial_manager}</div>
-            <div style={{ fontSize: '12px', color: '#6B7280' }}>مدير مالي</div>
+            <div style={{ fontSize: TYPOGRAPHY['2xl'], fontWeight: TYPOGRAPHY.bold }}>{roleStats.financial_manager}</div>
+            <div style={{ fontSize: TYPOGRAPHY.xs, color: COLORS.gray500 }}>مدير مالي</div>
           </div>
-        </div>
+        </SettingsCard>
 
-        <div style={statsCardStyle}>
+        <SettingsCard style={statsCardStyle}>
           <div style={{
             width: '40px',
             height: '40px',
-            borderRadius: '10px',
+            borderRadius: BORDER_RADIUS.lg,
             background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
           }}>
-            <UserIcon style={{ width: '20px', height: '20px', color: 'white' }} />
+            <UserIcon style={{ width: '20px', height: '20px', color: COLORS.white }} />
           </div>
           <div>
-            <div style={{ fontSize: '24px', fontWeight: '700' }}>{roleStats.family_tree_admin}</div>
-            <div style={{ fontSize: '12px', color: '#6B7280' }}>مدير شجرة</div>
+            <div style={{ fontSize: TYPOGRAPHY['2xl'], fontWeight: TYPOGRAPHY.bold }}>{roleStats.family_tree_admin}</div>
+            <div style={{ fontSize: TYPOGRAPHY.xs, color: COLORS.gray500 }}>مدير شجرة</div>
           </div>
-        </div>
+        </SettingsCard>
 
-        <div style={statsCardStyle}>
+        <SettingsCard style={statsCardStyle}>
           <div style={{
             width: '40px',
             height: '40px',
-            borderRadius: '10px',
+            borderRadius: BORDER_RADIUS.lg,
             background: 'linear-gradient(135deg, #6B7280 0%, #4B5563 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
           }}>
-            <UserIcon style={{ width: '20px', height: '20px', color: 'white' }} />
+            <UserIcon style={{ width: '20px', height: '20px', color: COLORS.white }} />
           </div>
           <div>
-            <div style={{ fontSize: '24px', fontWeight: '700' }}>{roleStats.user_member}</div>
-            <div style={{ fontSize: '12px', color: '#6B7280' }}>عضو عادي</div>
+            <div style={{ fontSize: TYPOGRAPHY['2xl'], fontWeight: TYPOGRAPHY.bold }}>{roleStats.user_member}</div>
+            <div style={{ fontSize: TYPOGRAPHY.xs, color: COLORS.gray500 }}>عضو عادي</div>
           </div>
-        </div>
+        </SettingsCard>
       </div>
 
       {/* Filters */}
       <div style={{
         display: 'flex',
-        gap: '15px',
-        marginBottom: '20px',
+        gap: SPACING.lg,
+        marginBottom: SPACING.xl,
         flexWrap: 'wrap'
       }}>
-        <div style={{
-          flex: 1,
-          minWidth: '200px',
-          position: 'relative'
-        }}>
+        <div style={{ flex: 1, minWidth: '200px', position: 'relative' }}>
           <MagnifyingGlassIcon style={{
             width: '20px',
             height: '20px',
             position: 'absolute',
-            right: '15px',
+            right: SPACING.lg,
             top: '50%',
             transform: 'translateY(-50%)',
-            color: '#6B7280'
+            color: COLORS.gray500
           }} />
           <input
             type="text"
             placeholder="البحث عن مستخدم..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '12px 45px 12px 15px',
-              borderRadius: '12px',
-              border: '1px solid rgba(0, 0, 0, 0.1)',
-              fontSize: '14px',
-              outline: 'none',
-              transition: 'all 0.3s ease'
-            }}
+            style={searchInputStyle}
           />
         </div>
 
-        <select
+        <SettingsSelect
+          label=""
           value={selectedRole}
-          onChange={(e) => setSelectedRole(e.target.value)}
-          style={{
-            padding: '12px 20px',
-            borderRadius: '12px',
-            border: '1px solid rgba(0, 0, 0, 0.1)',
-            fontSize: '14px',
-            outline: 'none',
-            cursor: 'pointer',
-            minWidth: '150px'
-          }}
-        >
-          <option value="all">كل الأدوار</option>
-          <option value="super_admin">المدير الأعلى</option>
-          <option value="financial_manager">المدير المالي</option>
-          <option value="family_tree_admin">مدير شجرة العائلة</option>
-          <option value="occasions_initiatives_diyas_admin">مدير المناسبات</option>
-          <option value="user_member">عضو عادي</option>
-        </select>
+          onChange={setSelectedRole}
+          options={roleOptions}
+          style={{ minWidth: '150px', marginBottom: 0 }}
+        />
 
-        <button
+        <SettingsButton
+          variant="primary"
+          icon={<ArrowPathIcon style={{ width: '16px', height: '16px' }} />}
           onClick={fetchUsers}
-          style={{
-            padding: '12px 20px',
-            borderRadius: '12px',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            color: 'white',
-            border: 'none',
-            fontSize: '14px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            transition: 'all 0.3s ease'
-          }}
         >
-          <ArrowPathIcon style={{ width: '16px', height: '16px' }} />
           تحديث
-        </button>
+        </SettingsButton>
 
-        <button
+        <SettingsButton
+          variant="primary"
+          icon={<PlusIcon style={{ width: '16px', height: '16px' }} />}
           onClick={() => setShowAddModal(true)}
-          style={{
-            padding: '12px 20px',
-            borderRadius: '12px',
-            background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-            color: 'white',
-            border: 'none',
-            fontSize: '14px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            transition: 'all 0.3s ease'
-          }}
+          style={{ background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)' }}
         >
-          <PlusIcon style={{ width: '16px', height: '16px' }} />
           إضافة مستخدم
-        </button>
+        </SettingsButton>
       </div>
 
       {/* Message */}
       {message && (
         <div style={{
-          padding: '12px 20px',
-          borderRadius: '12px',
-          marginBottom: '20px',
+          padding: `${SPACING.md} ${SPACING.xl}`,
+          borderRadius: BORDER_RADIUS.lg,
+          marginBottom: SPACING.xl,
           display: 'flex',
           alignItems: 'center',
-          gap: '10px',
-          backgroundColor: message.type === 'success' ? '#D1FAE5' :
-                         message.type === 'error' ? '#FEE2E2' : '#DBEAFE',
-          color: message.type === 'success' ? '#065F46' :
-                message.type === 'error' ? '#991B1B' : '#1E40AF'
+          gap: SPACING.md,
+          backgroundColor: message.type === 'success' ? COLORS.successBg :
+                         message.type === 'error' ? COLORS.errorBg : COLORS.infoBg,
+          color: message.type === 'success' ? COLORS.successText :
+                message.type === 'error' ? COLORS.errorText : COLORS.infoText
         }}>
           {message.type === 'success' && <CheckCircleIcon style={{ width: '20px', height: '20px' }} />}
           {message.type === 'error' && <XCircleIcon style={{ width: '20px', height: '20px' }} />}
@@ -554,238 +564,95 @@ const UserManagement: React.FC = () => {
         </div>
       )}
 
-      {/* Users Table */}
-      <div style={{
-        overflowX: 'auto',
-        background: 'white',
-        borderRadius: '12px',
-        border: '1px solid rgba(0, 0, 0, 0.1)'
-      }}>
-        <table style={tableStyle}>
-          <thead>
-            <tr>
-              <th style={thStyle}>المستخدم</th>
-              <th style={thStyle}>الدور الحالي</th>
-              <th style={thStyle}>الحالة</th>
-              <th style={thStyle}>تاريخ الإنضمام</th>
-              <th style={thStyle}>آخر دخول</th>
-              <th style={thStyle}>الإجراءات</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={6} style={{ ...tdStyle, textAlign: 'center', padding: '40px' }}>
-                  جاري التحميل...
-                </td>
-              </tr>
-            ) : filteredUsers.length === 0 ? (
-              <tr>
-                <td colSpan={6} style={{ ...tdStyle, textAlign: 'center', padding: '40px' }}>
-                  لا توجد نتائج
-                </td>
-              </tr>
-            ) : (
-              filteredUsers.map(user => (
-                <tr key={user.id} style={{
-                  transition: 'background 0.2s ease',
-                  cursor: 'pointer'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(0, 0, 0, 0.02)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent';
-                }}>
-                  <td style={tdStyle}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '50%',
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'white',
-                        fontWeight: '600',
-                        fontSize: '14px'
-                      }}>
-                        {user.name ? user.name[0] : user.email[0].toUpperCase()}
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: '600' }}>{user.name || user.email}</div>
-                        <div style={{ fontSize: '12px', color: '#6B7280' }}>{user.email}</div>
-                        {user.phone && (
-                          <div style={{ fontSize: '12px', color: '#6B7280' }}>{user.phone}</div>
-                        )}
-                      </div>
-                    </div>
-                  </td>
-                  <td style={tdStyle}>
-                    <span style={roleTagStyle(user.role)}>
-                      {user.roleAr}
-                    </span>
-                  </td>
-                  <td style={tdStyle}>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px'
-                    }}>
-                      <div style={{
-                        width: '8px',
-                        height: '8px',
-                        borderRadius: '50%',
-                        backgroundColor: user.isActive ? '#10B981' : '#EF4444'
-                      }} />
-                      <span style={{
-                        fontSize: '13px',
-                        color: user.isActive ? '#059669' : '#DC2626'
-                      }}>
-                        {user.isActive ? 'نشط' : 'غير نشط'}
-                      </span>
-                    </div>
-                  </td>
-                  <td style={{ ...tdStyle, fontSize: '13px', color: '#6B7280' }}>
-                    {new Date(user.createdAt).toLocaleDateString('ar-SA')}
-                  </td>
-                  <td style={{ ...tdStyle, fontSize: '13px', color: '#6B7280' }}>
-                    {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString('ar-SA') : 'لم يدخل بعد'}
-                  </td>
-                  <td style={tdStyle}>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button
-                        onClick={() => {
-                          setSelectedUser(user);
-                          setShowEditModal(true);
-                        }}
-                        style={{
-                          padding: '8px',
-                          borderRadius: '8px',
-                          border: '1px solid rgba(0, 0, 0, 0.1)',
-                          background: 'white',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-                          e.currentTarget.style.borderColor = 'transparent';
-                          const icon = e.currentTarget.querySelector('svg');
-                          if (icon) (icon as SVGElement).style.color = 'white';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.background = 'white';
-                          e.currentTarget.style.borderColor = 'rgba(0, 0, 0, 0.1)';
-                          const icon = e.currentTarget.querySelector('svg');
-                          if (icon) (icon as SVGElement).style.color = '#6B7280';
-                        }}
-                      >
-                        <PencilIcon style={{ width: '16px', height: '16px', color: '#6B7280' }} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      {/* Users Table using SettingsTable */}
+      <SettingsCard>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: SPACING['4xl'], color: COLORS.gray400 }}>
+            جاري التحميل...
+          </div>
+        ) : (
+          <SettingsTable
+            columns={tableColumns}
+            data={filteredUsers}
+            keyExtractor={(user) => user.id}
+            emptyMessage="لا توجد نتائج"
+          />
+        )}
+      </SettingsCard>
 
       {/* Edit Role Modal */}
       {showEditModal && selectedUser && (
         <div style={modalOverlayStyle} onClick={() => setShowEditModal(false)}>
           <div style={modalContentStyle} onClick={(e) => e.stopPropagation()}>
             <h3 style={{
-              fontSize: '20px',
-              fontWeight: '700',
-              marginBottom: '20px',
+              ...commonStyles.header,
+              fontSize: TYPOGRAPHY.xl,
+              marginBottom: SPACING.xl,
               display: 'flex',
               alignItems: 'center',
-              gap: '10px'
+              gap: SPACING.md
             }}>
               <KeyIcon style={{ width: '24px', height: '24px' }} />
               تغيير دور المستخدم
             </h3>
 
-            <div style={{
-              padding: '20px',
-              background: 'rgba(0, 0, 0, 0.02)',
-              borderRadius: '12px',
-              marginBottom: '20px'
+            <SettingsCard style={{
+              padding: SPACING.xl,
+              background: COLORS.gray50,
+              marginBottom: SPACING.xl
             }}>
-              <div style={{ marginBottom: '10px' }}>
+              <div style={{ marginBottom: SPACING.md }}>
                 <strong>المستخدم:</strong> {selectedUser.name || selectedUser.email}
               </div>
-              <div style={{ marginBottom: '10px' }}>
+              <div style={{ marginBottom: SPACING.md }}>
                 <strong>البريد الإلكتروني:</strong> {selectedUser.email}
               </div>
               <div>
                 <strong>الدور الحالي:</strong>{' '}
-                <span style={roleTagStyle(selectedUser.role)}>{selectedUser.roleAr}</span>
+                <StatusBadge type={getRoleBadgeType(selectedUser.role)}>
+                  {selectedUser.roleAr}
+                </StatusBadge>
               </div>
-            </div>
+            </SettingsCard>
 
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{
-                display: 'block',
-                marginBottom: '10px',
-                fontSize: '14px',
-                fontWeight: '600',
-                color: '#374151'
-              }}>
-                اختر الدور الجديد:
-              </label>
-              <select
-                defaultValue={selectedUser.role}
-                onChange={(e) => {
-                  setSelectedUser({
-                    ...selectedUser,
-                    role: e.target.value as UserRole
-                  });
-                }}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  borderRadius: '12px',
-                  border: '1px solid rgba(0, 0, 0, 0.1)',
-                  fontSize: '14px',
-                  cursor: 'pointer'
-                }}
-              >
-                {Object.entries(ROLE_DISPLAY_NAMES).map(([role, names]) => (
-                  <option key={role} value={role}>
-                    {names.ar}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <SettingsSelect
+              label="اختر الدور الجديد"
+              value={selectedUser.role}
+              onChange={(value) => {
+                setSelectedUser({
+                  ...selectedUser,
+                  role: value as UserRole
+                });
+              }}
+              options={Object.entries(ROLE_DISPLAY_NAMES).map(([role, names]) => ({
+                value: role,
+                label: names.ar
+              }))}
+            />
 
             {/* Role Permissions Display */}
             <div style={{
-              padding: '15px',
-              background: 'rgba(251, 191, 36, 0.1)',
-              borderRadius: '12px',
-              marginBottom: '20px'
+              padding: SPACING.lg,
+              background: COLORS.warningBg,
+              borderRadius: BORDER_RADIUS.lg,
+              marginTop: SPACING.xl,
+              marginBottom: SPACING.xl
             }}>
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px',
-                marginBottom: '10px',
-                color: '#92400E'
+                gap: SPACING.sm,
+                marginBottom: SPACING.md,
+                color: COLORS.warningText
               }}>
                 <ExclamationTriangleIcon style={{ width: '20px', height: '20px' }} />
                 <strong>صلاحيات الدور المختار:</strong>
               </div>
               <ul style={{
                 margin: '0',
-                paddingRight: '20px',
-                fontSize: '13px',
-                color: '#78350F',
+                paddingRight: SPACING.xl,
+                fontSize: TYPOGRAPHY.sm,
+                color: COLORS.warningText,
                 lineHeight: '1.8'
               }}>
                 {selectedUser.role === 'super_admin' && (
@@ -831,41 +698,22 @@ const UserManagement: React.FC = () => {
 
             <div style={{
               display: 'flex',
-              gap: '10px',
+              gap: SPACING.md,
               justifyContent: 'flex-end'
             }}>
-              <button
+              <SettingsButton
+                variant="secondary"
                 onClick={() => setShowEditModal(false)}
-                style={{
-                  padding: '12px 24px',
-                  borderRadius: '12px',
-                  border: '1px solid rgba(0, 0, 0, 0.1)',
-                  background: 'white',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
               >
                 إلغاء
-              </button>
-              <button
+              </SettingsButton>
+              <SettingsButton
+                variant="primary"
                 onClick={() => handleRoleChange(selectedUser.id, selectedUser.role)}
                 disabled={saving}
-                style={{
-                  padding: '12px 24px',
-                  borderRadius: '12px',
-                  background: saving ? '#9CA3AF' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  color: 'white',
-                  border: 'none',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  cursor: saving ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
               >
                 {saving ? 'جاري الحفظ...' : 'حفظ التغييرات'}
-              </button>
+              </SettingsButton>
             </div>
           </div>
         </div>
@@ -876,172 +724,76 @@ const UserManagement: React.FC = () => {
         <div style={modalOverlayStyle} onClick={() => setShowAddModal(false)}>
           <div style={modalContentStyle} onClick={(e) => e.stopPropagation()}>
             <h3 style={{
-              fontSize: '20px',
-              fontWeight: '700',
-              marginBottom: '24px',
+              ...commonStyles.header,
+              fontSize: TYPOGRAPHY.xl,
+              marginBottom: SPACING['2xl'],
               display: 'flex',
               alignItems: 'center',
-              gap: '10px'
+              gap: SPACING.md
             }}>
-              <PlusIcon style={{ width: '24px', height: '24px', color: '#10B981' }} />
+              <PlusIcon style={{ width: '24px', height: '24px', color: COLORS.success }} />
               إضافة مستخدم جديد
             </h3>
 
-            <div style={{ display: 'grid', gap: '16px' }}>
-              {/* Name Field */}
-              <div>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '8px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  color: '#374151'
-                }}>
-                  الاسم الكامل *
-                </label>
-                <input
-                  type="text"
-                  value={newUser.name}
-                  onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(0, 0, 0, 0.1)',
-                    fontSize: '14px',
-                    outline: 'none'
-                  }}
-                  placeholder="أدخل الاسم الكامل"
-                />
-              </div>
+            <div style={{ display: 'grid', gap: SPACING.lg }}>
+              <SettingsInput
+                label="الاسم الكامل"
+                value={newUser.name}
+                onChange={(value) => setNewUser({ ...newUser, name: value })}
+                placeholder="أدخل الاسم الكامل"
+                required
+              />
 
-              {/* Email Field */}
-              <div>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '8px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  color: '#374151'
-                }}>
-                  البريد الإلكتروني *
-                </label>
-                <input
-                  type="email"
-                  value={newUser.email}
-                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(0, 0, 0, 0.1)',
-                    fontSize: '14px',
-                    outline: 'none'
-                  }}
-                  placeholder="example@alshuail.com"
-                  dir="ltr"
-                />
-              </div>
+              <SettingsInput
+                label="البريد الإلكتروني"
+                type="email"
+                value={newUser.email}
+                onChange={(value) => setNewUser({ ...newUser, email: value })}
+                placeholder="example@alshuail.com"
+                required
+              />
 
-              {/* Phone Field */}
-              <div>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '8px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  color: '#374151'
-                }}>
-                  رقم الهاتف *
-                </label>
-                <input
-                  type="tel"
-                  value={newUser.phone}
-                  onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(0, 0, 0, 0.1)',
-                    fontSize: '14px',
-                    outline: 'none'
-                  }}
-                  placeholder="05XXXXXXXX"
-                  dir="ltr"
-                />
-              </div>
+              <SettingsInput
+                label="رقم الهاتف"
+                type="tel"
+                value={newUser.phone}
+                onChange={(value) => setNewUser({ ...newUser, phone: value })}
+                placeholder="05XXXXXXXX"
+                required
+              />
 
-              {/* Password Field */}
-              <div>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '8px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  color: '#374151'
-                }}>
-                  كلمة المرور *
-                </label>
-                <input
-                  type="password"
-                  value={newUser.password}
-                  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid rgba(0, 0, 0, 0.1)',
-                    fontSize: '14px',
-                    outline: 'none'
-                  }}
-                  placeholder="••••••••"
-                  dir="ltr"
-                />
-              </div>
+              <SettingsInput
+                label="كلمة المرور"
+                type="password"
+                value={newUser.password}
+                onChange={(value) => setNewUser({ ...newUser, password: value })}
+                placeholder="••••••••"
+                required
+              />
 
-              {/* Role Selection */}
-              <div>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '8px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  color: '#374151'
-                }}>
-                  الدور الوظيفي *
-                </label>
-                <select
-                  value={newUser.role}
-                  onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    borderRadius: '8px',
-                    border: '2px solid #007AFF',
-                    fontSize: '14px',
-                    outline: 'none',
-                    cursor: 'pointer',
-                    backgroundColor: '#FFFFFF',
-                    color: '#1F2937'
-                  }}
-                >
-                  <option value="super_admin">المدير الأعلى</option>
-                  <option value="financial_manager">المدير المالي</option>
-                  <option value="family_tree_admin">مدير شجرة العائلة</option>
-                  <option value="occasions_initiatives_diyas_admin">مدير المناسبات والمبادرات والديات</option>
-                  <option value="user_member">عضو عادي</option>
-                </select>
-              </div>
+              <SettingsSelect
+                label="الدور الوظيفي"
+                value={newUser.role}
+                onChange={(value) => setNewUser({ ...newUser, role: value })}
+                options={[
+                  { value: 'super_admin', label: 'المدير الأعلى' },
+                  { value: 'financial_manager', label: 'المدير المالي' },
+                  { value: 'family_tree_admin', label: 'مدير شجرة العائلة' },
+                  { value: 'occasions_initiatives_diyas_admin', label: 'مدير المناسبات والمبادرات والديات' },
+                  { value: 'user_member', label: 'عضو عادي' }
+                ]}
+                required
+              />
             </div>
 
-            {/* Action Buttons */}
             <div style={{
               display: 'flex',
-              gap: '12px',
-              marginTop: '24px',
+              gap: SPACING.md,
+              marginTop: SPACING['2xl'],
               justifyContent: 'flex-end'
             }}>
-              <button
+              <SettingsButton
+                variant="secondary"
                 onClick={() => {
                   setShowAddModal(false);
                   setNewUser({
@@ -1052,37 +804,17 @@ const UserManagement: React.FC = () => {
                     password: ''
                   });
                 }}
-                style={{
-                  padding: '12px 24px',
-                  borderRadius: '12px',
-                  background: '#F3F4F6',
-                  color: '#6B7280',
-                  border: 'none',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
               >
                 إلغاء
-              </button>
-              <button
+              </SettingsButton>
+              <SettingsButton
+                variant="primary"
                 onClick={handleAddUser}
                 disabled={saving}
-                style={{
-                  padding: '12px 24px',
-                  borderRadius: '12px',
-                  background: saving ? '#9CA3AF' : 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                  color: 'white',
-                  border: 'none',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  cursor: saving ? 'not-allowed' : 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
+                style={{ background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)' }}
               >
                 {saving ? 'جاري الإضافة...' : 'إضافة المستخدم'}
-              </button>
+              </SettingsButton>
             </div>
           </div>
         </div>
@@ -1091,6 +823,4 @@ const UserManagement: React.FC = () => {
   );
 };
 
-
-// Phase 4: Performance Optimization - Memoize to prevent unnecessary re-renders
 export default React.memo(UserManagement);
