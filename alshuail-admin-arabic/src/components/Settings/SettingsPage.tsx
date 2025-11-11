@@ -22,33 +22,10 @@ import UserManagement from './UserManagement';
 import SystemSettings from './SystemSettingsEnhanced';
 import AuditLogs from './AuditLogs';
 
-// Import MultiRoleManagement directly (not lazy) to debug webpack issue
-import MultiRoleManagement from './MultiRoleManagement';
-import PasswordManagement from './PasswordManagement';
-
-// DEBUG: Verify imports loaded successfully
-console.error('[DEBUG] MultiRoleManagement type:', typeof MultiRoleManagement);
-console.error('[DEBUG] PasswordManagement type:', typeof PasswordManagement);
-console.error('[DEBUG] MultiRoleManagement equals PasswordManagement?', MultiRoleManagement === PasswordManagement);
-
-// NUCLEAR OPTION: Force webpack inclusion by actually creating elements
-// This CANNOT be tree-shaken as it's a side effect at module load time
-const _forceIncludePasswordMgmt = PasswordManagement ? true : false;
-const _forceIncludeMultiRole = MultiRoleManagement ? true : false;
-
-// Force webpack to see these are used (prevent tree-shaking)
-const FORCE_INCLUDE_COMPONENTS = {
-  MultiRoleManagement,
-  PasswordManagement,
-  _forceIncludePasswordMgmt,
-  _forceIncludeMultiRole
-};
-
-// Force include tab IDs for webpack - make them used via object
-const FORCE_INCLUDE_TAB_IDS = {
-  pwd: 'password-management',
-  multi: 'multi-role-management'
-};
+// CRITICAL FIX: Use dynamic imports to force webpack inclusion
+// Static imports get tree-shaken because webpack thinks they're unreachable
+const MultiRoleManagement = React.lazy(() => import('./MultiRoleManagement'));
+const PasswordManagement = React.lazy(() => import('./PasswordManagement'));
 
 interface SettingsTab {
   id: string;
@@ -75,48 +52,56 @@ const MULTI_ROLE_TAB: SettingsTab = {
   description: 'تعيين أدوار متعددة مع فترات زمنية محددة'
 };
 
-const PASSWORD_MANAGEMENT_TAB: SettingsTab = {
-  id: 'password-management',
-  label: 'إدارة كلمات المرور',
-  icon: KeyIcon,
-  requiredRole: ['super_admin'],
-  description: 'إنشاء وإعادة تعيين كلمات المرور للمستخدمين'
-};
-
-const SYSTEM_SETTINGS_TAB: SettingsTab = {
-  id: 'system-settings',
-  label: 'إعدادات النظام',
-  icon: ServerIcon,
-  requiredRole: ['super_admin'],
-  description: 'إعدادات النظام العامة والتكوينات'
-};
-
-const AUDIT_LOGS_TAB: SettingsTab = {
-  id: 'audit-logs',
-  label: 'سجلات التدقيق',
-  icon: ShieldCheckIcon,
-  requiredRole: ['super_admin'],
-  description: 'عرض سجلات النظام والأنشطة'
-};
-
-// Force webpack to see PASSWORD_MANAGEMENT_TAB is used (side effect)
-const _pwdTabForce = PASSWORD_MANAGEMENT_TAB.id.length > 0;
-
-// Build tabs array from module-level constants
+// SOLUTION: Build tabs dynamically at runtime to prevent webpack analysis
 const buildSettingsTabs = (): SettingsTab[] => {
-  const tabs = [
-    USER_MANAGEMENT_TAB,
-    MULTI_ROLE_TAB,
-    PASSWORD_MANAGEMENT_TAB,
-    SYSTEM_SETTINGS_TAB,
-    AUDIT_LOGS_TAB
-  ];
+  // Create tabs array at runtime - webpack cannot analyze this
+  const tabs: SettingsTab[] = [];
 
-  // Write to window for debugging (webpack can't remove this)
-  if (typeof window !== 'undefined') {
-    (window as any).__TABS_BUILT__ = tabs.map(t => t.id);
-    (window as any).__PWD_TAB_FORCE__ = _pwdTabForce;
-  }
+  // User Management
+  tabs.push({
+    id: 'user-management',
+    label: 'إدارة المستخدمين والصلاحيات',
+    icon: UsersIcon,
+    requiredRole: ['super_admin'],
+    description: 'إدارة المستخدمين وتعيين الأدوار والصلاحيات'
+  });
+
+  // Multi-Role Management
+  tabs.push({
+    id: 'multi-role-management',
+    label: 'إدارة الأدوار المتعددة',
+    icon: UserGroupIcon,
+    requiredRole: ['super_admin'],
+    description: 'تعيين أدوار متعددة مع فترات زمنية محددة'
+  });
+
+  // Password Management - BUILD ID AT RUNTIME
+  const pwdParts = ['password', 'management'];
+  tabs.push({
+    id: pwdParts[0] + '-' + pwdParts[1],
+    label: 'إدارة كلمات المرور',
+    icon: KeyIcon,
+    requiredRole: ['super_admin'],
+    description: 'إنشاء وإعادة تعيين كلمات المرور للمستخدمين'
+  });
+
+  // System Settings
+  tabs.push({
+    id: 'system-settings',
+    label: 'إعدادات النظام',
+    icon: ServerIcon,
+    requiredRole: ['super_admin'],
+    description: 'إعدادات النظام العامة والتكوينات'
+  });
+
+  // Audit Logs
+  tabs.push({
+    id: 'audit-logs',
+    label: 'سجلات التدقيق',
+    icon: ShieldCheckIcon,
+    requiredRole: ['super_admin'],
+    description: 'عرض سجلات النظام والأنشطة'
+  });
 
   return tabs;
 };
@@ -134,15 +119,23 @@ const SettingsPage: React.FC = () => {
     }
   }, []);
 
-  // Explicit component renderer to force webpack inclusion
+  // Explicit component renderer with Suspense for lazy-loaded components
   const renderTabContent = () => {
     switch (activeTab) {
       case 'user-management':
         return <UserManagement />;
       case 'multi-role-management':
-        return <MultiRoleManagement />;
+        return (
+          <React.Suspense fallback={<div style={{textAlign: 'center', padding: '40px'}}>جاري التحميل...</div>}>
+            <MultiRoleManagement />
+          </React.Suspense>
+        );
       case 'password-management':
-        return <PasswordManagement />;
+        return (
+          <React.Suspense fallback={<div style={{textAlign: 'center', padding: '40px'}}>جاري التحميل...</div>}>
+            <PasswordManagement />
+          </React.Suspense>
+        );
       case 'system-settings':
         return <SystemSettings />;
       case 'audit-logs':
@@ -159,8 +152,44 @@ const SettingsPage: React.FC = () => {
     console.log('SettingsPage - Has super_admin role:', hasRole(['super_admin']));
   }, [user, loading, hasRole]);
 
-  // Get settings tabs (built at module load time, not render time)
-  const settingsTabs = buildSettingsTabs();
+  // NUCLEAR WORKAROUND: Inline tab definitions to bypass webpack tree-shaking
+  const settingsTabs = React.useMemo(() => [
+    {
+      id: 'user-management',
+      label: 'إدارة المستخدمين والصلاحيات',
+      icon: UsersIcon,
+      requiredRole: ['super_admin'],
+      description: 'إدارة المستخدمين وتعيين الأدوار والصلاحيات'
+    },
+    {
+      id: 'multi-role-management',
+      label: 'إدارة الأدوار المتعددة',
+      icon: UserGroupIcon,
+      requiredRole: ['super_admin'],
+      description: 'تعيين أدوار متعددة مع فترات زمنية محددة'
+    },
+    {
+      id: 'password-management',
+      label: 'إدارة كلمات المرور',
+      icon: KeyIcon,
+      requiredRole: ['super_admin'],
+      description: 'إنشاء وإعادة تعيين كلمات المرور للمستخدمين'
+    },
+    {
+      id: 'system-settings',
+      label: 'إعدادات النظام',
+      icon: ServerIcon,
+      requiredRole: ['super_admin'],
+      description: 'إعدادات النظام العامة والتكوينات'
+    },
+    {
+      id: 'audit-logs',
+      label: 'سجلات التدقيق',
+      icon: ShieldCheckIcon,
+      requiredRole: ['super_admin'],
+      description: 'عرض سجلات النظام والأنشطة'
+    }
+  ], []);
 
   // Debug: Log all tabs before filtering
   console.log('[Settings] All tabs defined:', settingsTabs.map(t => t.id));

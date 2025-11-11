@@ -33,11 +33,25 @@ module.exports = {
 
       // Phase 4: Optimize for production with aggressive bundle splitting
       if (process.env.NODE_ENV === 'production') {
-        // NUCLEAR: Disable ALL optimization to debug tree-shaking issue
+        // WORKAROUND: Re-enable minification but keep tree-shaking disabled
         webpackConfig.optimization.usedExports = false;
         webpackConfig.optimization.sideEffects = false;
-        webpackConfig.optimization.minimize = false;  // DISABLED to prevent minifier from removing code
-        webpackConfig.optimization.concatenateModules = false;  // Disable scope hoisting
+        webpackConfig.optimization.minimize = true;  // Re-enabled for production bundle size
+        webpackConfig.optimization.concatenateModules = false;  // Keep disabled
+
+        // Configure minimizer to preserve Settings components
+        webpackConfig.optimization.minimizer = webpackConfig.optimization.minimizer || [];
+        if (webpackConfig.optimization.minimizer.length > 0) {
+          const TerserPlugin = webpackConfig.optimization.minimizer[0];
+          if (TerserPlugin && TerserPlugin.constructor.name === 'TerserPlugin') {
+            TerserPlugin.options = TerserPlugin.options || {};
+            TerserPlugin.options.terserOptions = TerserPlugin.options.terserOptions || {};
+            TerserPlugin.options.terserOptions.compress = TerserPlugin.options.terserOptions.compress || {};
+            // Disable dead code elimination for Settings components
+            TerserPlugin.options.terserOptions.compress.dead_code = false;
+            TerserPlugin.options.terserOptions.compress.unused = false;
+          }
+        }
 
         // Advanced code splitting strategy
         webpackConfig.optimization.splitChunks = {
