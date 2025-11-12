@@ -7,7 +7,6 @@ import express from 'express';
 import { authenticateToken } from '../middleware/auth.js';
 import { upload, supabase, BUCKET_NAME, generateFilePath } from '../config/documentStorage.js';
 import { log } from '../utils/logger.js';
-import { validateProfileUpdates, isEmailUnique, isPhoneUnique } from '../utils/profileValidation.js';
 
 const router = express.Router();
 
