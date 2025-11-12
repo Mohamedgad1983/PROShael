@@ -42,6 +42,7 @@ import memberSuspensionRoutes from './src/routes/memberSuspensionRoutes.js';
 import deviceTokenRoutes from './src/routes/deviceTokenRoutes.js';
 import multiRoleManagementRoutes from './src/routes/multiRoleManagement.js';
 import passwordManagementRoutes from './src/routes/passwordManagement.js';
+import profileRoutes from './src/routes/profile.js';
 import { log } from './src/utils/logger.js';
 import { config } from './src/config/env.js';
 import { errorHandler } from './src/utils/errorCodes.js';
@@ -277,6 +278,9 @@ app.use('/api/multi-role', multiRoleManagementRoutes);
 
 // Password Management APIs - Superadmin password creation and reset
 app.use('/api/password-management', passwordManagementRoutes);
+
+// User Profile APIs - Profile info and avatar management
+app.use('/api/user/profile', profileRoutes);
 
 // Enhanced health check endpoint
 app.get('/api/health', async (req, res) => {

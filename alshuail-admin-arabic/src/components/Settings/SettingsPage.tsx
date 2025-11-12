@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import {
   CogIcon,
   UsersIcon,
+  UserIcon,
   UserGroupIcon,
   ShieldCheckIcon,
   BellIcon,
@@ -22,6 +23,7 @@ import UserManagement from './UserManagement';
 import SystemSettings from './SystemSettingsEnhanced';
 import AuditLogs from './AuditLogs';
 import MultiRoleManagement from './MultiRoleManagement';
+import ProfileSettings from './ProfileSettings';
 // CRITICAL: Import from feature package to prevent tree-shaking
 import AccessControl, { __KEEP_ACCESS_CONTROL__ } from '../../features/access-control';
 // Import shared styles for consistent design
@@ -139,6 +141,12 @@ const SettingsPage: React.FC = () => {
   // Explicit component renderer with performance profiling
   const renderTabContent = () => {
     switch (activeTab) {
+      case 'profile-settings':
+        return (
+          <PerformanceProfiler id="ProfileSettings">
+            <ProfileSettings />
+          </PerformanceProfiler>
+        );
       case 'user-management':
         return (
           <PerformanceProfiler id="UserManagement">
@@ -189,6 +197,13 @@ const SettingsPage: React.FC = () => {
   // Webpack semantic analysis is so aggressive it removes even runtime-constructed arrays
   // This is the ONLY approach that works - define tabs as plain objects outside component
   const SETTINGS_TABS_HARDCODED = [
+    {
+      id: 'profile-settings',
+      label: 'الملف الشخصي',
+      icon: UserIcon,
+      requiredRole: [], // Available to all users
+      description: 'إدارة الصورة الشخصية والمعلومات'
+    },
     {
       id: 'user-management',
       label: 'إدارة المستخدمين والصلاحيات',
