@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { UserIcon, PhotoIcon, XMarkIcon, CheckCircleIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline';
+import { UserIcon, PhotoIcon, XMarkIcon, CheckCircleIcon, ExclamationCircleIcon, EyeIcon, EyeSlashIcon, LockClosedIcon } from '@heroicons/react/24/outline';
 import axios from 'axios';
 import { useRole } from '../../contexts/RoleContext';
 import {
@@ -27,6 +27,72 @@ interface Message {
   text: string;
 }
 
+interface NotificationToggleProps {
+  label: string;
+  description: string;
+  checked: boolean;
+  disabled: boolean;
+  onChange?: () => void;
+}
+
+const NotificationToggle: React.FC<NotificationToggleProps> = ({ label, description, checked, disabled, onChange }) => (
+  <div
+    style={{
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: SPACING.lg,
+      background: COLORS.white,
+      borderRadius: BORDER_RADIUS.md,
+      border: `1px solid ${COLORS.border}`,
+      opacity: disabled ? 0.6 : 1,
+      cursor: disabled ? 'not-allowed' : 'pointer'
+    }}
+    onClick={!disabled && onChange ? onChange : undefined}
+  >
+    <div>
+      <div style={{ fontSize: TYPOGRAPHY.base, fontWeight: TYPOGRAPHY.medium, color: COLORS.gray900, marginBottom: SPACING.xs }}>
+        {label}
+      </div>
+      <div style={{ fontSize: TYPOGRAPHY.sm, color: COLORS.gray500 }}>
+        {description}
+      </div>
+    </div>
+    <div style={{
+      width: '48px',
+      height: '24px',
+      borderRadius: '12px',
+      background: checked ? COLORS.primary : COLORS.gray300,
+      position: 'relative' as const,
+      transition: 'background 0.3s ease'
+    }}>
+      <div style={{
+        width: '20px',
+        height: '20px',
+        borderRadius: '50%',
+        background: COLORS.white,
+        position: 'absolute' as const,
+        top: '2px',
+        left: checked ? '26px' : '2px',
+        transition: 'left 0.3s ease',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+      }} />
+    </div>
+  </div>
+);
+
+interface FieldError {
+  field: string;
+  message: string;
+  message_en: string;
+}
+
+interface ProfileFormData {
+  full_name: string;
+  email: string;
+  phone: string;
+}
+
 const ProfileSettings: React.FC = () => {
   const { user, refreshUserRole } = useRole();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -36,10 +102,105 @@ const ProfileSettings: React.FC = () => {
   const [message, setMessage] = useState<Message | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch user profile on mount
+  // Edit mode state
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [formData, setFormData] = useState<ProfileFormData>({
+    full_name: '',
+    email: '',
+    phone: ''
+  });
+  const [originalData, setOriginalData] = useState<ProfileFormData>({
+    full_name: '',
+    email: '',
+    phone: ''
+  });
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  // Notification preferences state
+  const [notificationPreferences, setNotificationPreferences] = useState({
+    email_notifications: true,
+    push_notifications: false,
+    member_updates: true,
+    financial_alerts: true,
+    system_updates: false
+  });
+  const [savingNotifications, setSavingNotifications] = useState(false);
+
+  // Password change state
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    new: false,
+    confirm: false
+  });
+  const [passwordErrors, setPasswordErrors] = useState<Record<string, string>>({});
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState<'weak' | 'medium' | 'strong' | null>(null);
+
+  // Fetch user profile and notifications on mount
   useEffect(() => {
     fetchUserProfile();
+    fetchNotificationPreferences();
   }, []);
+
+  const fetchNotificationPreferences = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_BASE}/api/user/profile/notifications`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.data.success) {
+        setNotificationPreferences(response.data.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch notification preferences:', error);
+    }
+  };
+
+  const handleNotificationToggle = async (key: keyof typeof notificationPreferences) => {
+    const newValue = !notificationPreferences[key];
+
+    // Optimistic update
+    setNotificationPreferences(prev => ({
+      ...prev,
+      [key]: newValue
+    }));
+
+    // Save to backend
+    setSavingNotifications(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.put(
+        `${API_BASE}/api/user/profile/notifications`,
+        { [key]: newValue },
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+
+      if (response.data.success) {
+        setMessage({ type: 'success', text: 'تم تحديث إعدادات الإشعارات بنجاح' });
+        setTimeout(() => setMessage(null), 3000);
+      }
+    } catch (error: any) {
+      // Revert on error
+      setNotificationPreferences(prev => ({
+        ...prev,
+        [key]: !newValue
+      }));
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.message || 'فشل في تحديث إعدادات الإشعارات'
+      });
+      setTimeout(() => setMessage(null), 3000);
+    } finally {
+      setSavingNotifications(false);
+    }
+  };
 
   const fetchUserProfile = async () => {
     try {
@@ -50,9 +211,126 @@ const ProfileSettings: React.FC = () => {
 
       if (response.data.success) {
         setAvatarUrl(response.data.data.avatar_url);
+        // Initialize form data and original data
+        const profileData = {
+          full_name: response.data.data.full_name || '',
+          email: response.data.data.email || '',
+          phone: response.data.data.phone || ''
+        };
+        setFormData(profileData);
+        setOriginalData(profileData);
       }
     } catch (error) {
       console.error('Failed to fetch profile:', error);
+    }
+  };
+
+  // Handle edit mode toggle
+  const handleEditModeToggle = () => {
+    if (isEditMode) {
+      // Cancel edit - reset form data to original
+      setFormData(originalData);
+      setFieldErrors({});
+      setMessage(null);
+    }
+    setIsEditMode(!isEditMode);
+  };
+
+  // Handle input change
+  const handleInputChange = (field: keyof ProfileFormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: e.target.value
+    }));
+    // Clear field error when user starts typing
+    if (fieldErrors[field]) {
+      setFieldErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+  };
+
+  // Handle save profile
+  const handleSaveProfile = async () => {
+    try {
+      setSaving(true);
+      setMessage(null);
+      setFieldErrors({});
+
+      // Prepare update data (only changed fields)
+      const updates: Partial<ProfileFormData> = {};
+      if (formData.full_name !== originalData.full_name) updates.full_name = formData.full_name;
+      if (formData.email !== originalData.email) updates.email = formData.email;
+      if (formData.phone !== originalData.phone) updates.phone = formData.phone;
+
+      // Check if any changes made
+      if (Object.keys(updates).length === 0) {
+        setMessage({
+          type: 'info',
+          text: 'لم يتم إجراء أي تغييرات'
+        });
+        return;
+      }
+
+      const token = localStorage.getItem('token');
+      const response = await axios.put(
+        `${API_BASE}/api/user/profile`,
+        updates,
+        {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
+
+      if (response.data.success) {
+        setMessage({
+          type: 'success',
+          text: 'تم تحديث المعلومات بنجاح'
+        });
+        setIsEditMode(false);
+
+        // Refresh user context to update globally
+        await refreshUserRole();
+
+        // Refresh profile data
+        await fetchUserProfile();
+      }
+    } catch (error: any) {
+      console.error('Profile update error:', error);
+
+      // Handle validation errors
+      if (error.response?.status === 400 && error.response?.data?.errors) {
+        const errors: Record<string, string> = {};
+        error.response.data.errors.forEach((err: FieldError) => {
+          errors[err.field] = err.message;
+        });
+        setFieldErrors(errors);
+        setMessage({
+          type: 'error',
+          text: error.response.data.message || 'بيانات غير صالحة'
+        });
+      } else if (error.response?.status === 409) {
+        // Uniqueness conflict
+        const errors: Record<string, string> = {};
+        if (error.response.data.errors) {
+          error.response.data.errors.forEach((err: FieldError) => {
+            errors[err.field] = err.message;
+          });
+        }
+        setFieldErrors(errors);
+        setMessage({
+          type: 'error',
+          text: error.response.data.message || 'القيمة مستخدمة بالفعل'
+        });
+      } else {
+        setMessage({
+          type: 'error',
+          text: error.response?.data?.message || 'فشل في تحديث المعلومات'
+        });
+      }
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -202,6 +480,140 @@ const ProfileSettings: React.FC = () => {
     }
   };
 
+  // Password strength calculator
+  const calculatePasswordStrength = (password: string): 'weak' | 'medium' | 'strong' => {
+    let strength = 0;
+    if (password.length >= 8) strength++;
+    if (password.length >= 12) strength++;
+    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
+    if (/\d/.test(password)) strength++;
+    if (/[^a-zA-Z\d]/.test(password)) strength++;
+
+    if (strength <= 2) return 'weak';
+    if (strength <= 3) return 'medium';
+    return 'strong';
+  };
+
+  // Handle password input change
+  const handlePasswordChange = (field: keyof typeof passwordData) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setPasswordData(prev => ({ ...prev, [field]: value }));
+
+    // Calculate strength for new password
+    if (field === 'newPassword') {
+      if (value) {
+        setPasswordStrength(calculatePasswordStrength(value));
+      } else {
+        setPasswordStrength(null);
+      }
+    }
+
+    // Clear field error
+    if (passwordErrors[field]) {
+      setPasswordErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+  };
+
+  // Toggle password visibility
+  const togglePasswordVisibility = (field: 'current' | 'new' | 'confirm') => {
+    setShowPasswords(prev => ({ ...prev, [field]: !prev[field] }));
+  };
+
+  // Validate password change form
+  const validatePasswordForm = (): boolean => {
+    const errors: Record<string, string> = {};
+
+    if (!passwordData.currentPassword) {
+      errors.currentPassword = 'كلمة المرور الحالية مطلوبة';
+    }
+
+    if (!passwordData.newPassword) {
+      errors.newPassword = 'كلمة المرور الجديدة مطلوبة';
+    } else if (passwordData.newPassword.length < 8) {
+      errors.newPassword = 'كلمة المرور يجب أن تكون 8 أحرف على الأقل';
+    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(passwordData.newPassword)) {
+      errors.newPassword = 'يجب أن تحتوي على أحرف كبيرة وصغيرة وأرقام';
+    }
+
+    if (!passwordData.confirmPassword) {
+      errors.confirmPassword = 'تأكيد كلمة المرور مطلوب';
+    } else if (passwordData.newPassword !== passwordData.confirmPassword) {
+      errors.confirmPassword = 'كلمتا المرور غير متطابقتين';
+    }
+
+    if (passwordData.currentPassword && passwordData.newPassword &&
+        passwordData.currentPassword === passwordData.newPassword) {
+      errors.newPassword = 'كلمة المرور الجديدة يجب أن تكون مختلفة عن الحالية';
+    }
+
+    setPasswordErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  // Handle password change submission
+  const handleChangePassword = async () => {
+    if (!validatePasswordForm()) return;
+
+    try {
+      setChangingPassword(true);
+      setMessage(null);
+
+      const token = localStorage.getItem('token');
+      const response = await axios.post(
+        `${API_BASE}/api/user/profile/change-password`,
+        {
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword
+        },
+        {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }
+      );
+
+      if (response.data.success) {
+        setMessage({
+          type: 'success',
+          text: 'تم تغيير كلمة المرور بنجاح'
+        });
+
+        // Clear form
+        setPasswordData({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        });
+        setPasswordStrength(null);
+        setPasswordErrors({});
+      }
+    } catch (error: any) {
+      console.error('Password change error:', error);
+
+      if (error.response?.status === 401) {
+        setPasswordErrors({ currentPassword: 'كلمة المرور الحالية غير صحيحة' });
+        setMessage({
+          type: 'error',
+          text: 'كلمة المرور الحالية غير صحيحة'
+        });
+      } else if (error.response?.status === 429) {
+        setMessage({
+          type: 'error',
+          text: 'تم تجاوز عدد المحاولات. يرجى المحاولة لاحقاً'
+        });
+      } else {
+        setMessage({
+          type: 'error',
+          text: error.response?.data?.message || 'فشل في تغيير كلمة المرور'
+        });
+      }
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
   // Auto-dismiss success messages after 5 seconds
   useEffect(() => {
     if (message && message.type === 'success') {
@@ -315,7 +727,7 @@ const ProfileSettings: React.FC = () => {
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
             ) : (
-              <span>{getInitials(user?.name)}</span>
+              <span>{getInitials(originalData.full_name)}</span>
             )}
           </div>
 
@@ -369,27 +781,47 @@ const ProfileSettings: React.FC = () => {
           </div>
         )}
 
-        {/* User Info (Read-only for now) */}
+        {/* User Info */}
         <div style={{ marginTop: SPACING['4xl'], paddingTop: SPACING['4xl'], borderTop: `1px solid ${COLORS.border}` }}>
-          <div style={{ fontSize: TYPOGRAPHY.lg, fontWeight: TYPOGRAPHY.semibold, marginBottom: SPACING.xl, color: COLORS.gray900 }}>
-            المعلومات الشخصية
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.xl }}>
+            <div style={{ fontSize: TYPOGRAPHY.lg, fontWeight: TYPOGRAPHY.semibold, color: COLORS.gray900 }}>
+              المعلومات الشخصية
+            </div>
+
+            {!isEditMode && (
+              <SettingsButton
+                variant="secondary"
+                onClick={handleEditModeToggle}
+              >
+                تعديل المعلومات
+              </SettingsButton>
+            )}
           </div>
 
           <div style={{ display: 'grid', gap: SPACING.lg }}>
             <SettingsInput
               label="الاسم الكامل"
-              value={user?.name || ''}
-              disabled
+              value={isEditMode ? formData.full_name : originalData.full_name}
+              disabled={!isEditMode}
+              onChange={isEditMode ? handleInputChange('full_name') : undefined}
+              error={fieldErrors.full_name}
+              required={isEditMode}
             />
             <SettingsInput
               label="البريد الإلكتروني"
-              value={user?.email || ''}
-              disabled
+              value={isEditMode ? formData.email : (user?.email || '')}
+              disabled={!isEditMode}
+              onChange={isEditMode ? handleInputChange('email') : undefined}
+              error={fieldErrors.email}
+              required={isEditMode}
             />
             <SettingsInput
               label="رقم الهاتف"
-              value={user?.phone || ''}
-              disabled
+              value={isEditMode ? formData.phone : originalData.phone}
+              disabled={!isEditMode}
+              onChange={isEditMode ? handleInputChange('phone') : undefined}
+              error={fieldErrors.phone}
+              placeholder="05xxxxxxxx"
             />
             <SettingsInput
               label="الدور"
@@ -398,15 +830,359 @@ const ProfileSettings: React.FC = () => {
             />
           </div>
 
+          {isEditMode && (
+            <div style={{ display: 'flex', gap: SPACING.md, marginTop: SPACING.xl }}>
+              <SettingsButton
+                variant="primary"
+                onClick={handleSaveProfile}
+                disabled={saving}
+              >
+                {saving ? 'جاري الحفظ...' : 'حفظ التغييرات'}
+              </SettingsButton>
+              <SettingsButton
+                variant="secondary"
+                onClick={handleEditModeToggle}
+                disabled={saving}
+              >
+                إلغاء
+              </SettingsButton>
+            </div>
+          )}
+        </div>
+
+        {/* Notification Settings Section */}
+        <div style={{ marginTop: SPACING['4xl'], paddingTop: SPACING['4xl'], borderTop: `1px solid ${COLORS.border}` }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.xl }}>
+            <div>
+              <div style={{ fontSize: TYPOGRAPHY.lg, fontWeight: TYPOGRAPHY.semibold, color: COLORS.gray900 }}>
+                إعدادات الإشعارات
+              </div>
+              <div style={{ fontSize: TYPOGRAPHY.sm, color: COLORS.gray500, marginTop: SPACING.xs }}>
+                قم بتخصيص تفضيلات الإشعارات الخاصة بك
+              </div>
+            </div>
+            {savingNotifications && (
+              <div style={{ fontSize: TYPOGRAPHY.sm, color: COLORS.primary }}>
+                جاري الحفظ...
+              </div>
+            )}
+          </div>
+
+          {/* Notification Options */}
           <div style={{
-            marginTop: SPACING.xl,
-            padding: SPACING.lg,
-            background: COLORS.infoBg,
-            borderRadius: BORDER_RADIUS.md,
-            fontSize: TYPOGRAPHY.sm,
-            color: COLORS.infoText
+            display: 'grid',
+            gap: SPACING.lg,
+            padding: SPACING.xl,
+            background: COLORS.gray50,
+            borderRadius: BORDER_RADIUS.lg
           }}>
-            💡 سيتم إضافة إمكانية تعديل المعلومات الشخصية قريباً
+            {/* Email Notifications */}
+            <NotificationToggle
+              label="إشعارات البريد الإلكتروني"
+              description="استقبل التنبيهات المهمة عبر البريد الإلكتروني"
+              checked={notificationPreferences.email_notifications}
+              disabled={savingNotifications}
+              onChange={() => handleNotificationToggle('email_notifications')}
+            />
+
+            {/* Push Notifications */}
+            <NotificationToggle
+              label="إشعارات المتصفح"
+              description="استقبل تنبيهات فورية في المتصفح"
+              checked={notificationPreferences.push_notifications}
+              disabled={savingNotifications}
+              onChange={() => handleNotificationToggle('push_notifications')}
+            />
+
+            {/* Member Updates */}
+            <NotificationToggle
+              label="تحديثات الأعضاء"
+              description="إشعارات عند تغيير حالة الأعضاء أو معلوماتهم"
+              checked={notificationPreferences.member_updates}
+              disabled={savingNotifications}
+              onChange={() => handleNotificationToggle('member_updates')}
+            />
+
+            {/* Financial Alerts */}
+            <NotificationToggle
+              label="التنبيهات المالية"
+              description="إشعارات المعاملات المالية والمدفوعات"
+              checked={notificationPreferences.financial_alerts}
+              disabled={savingNotifications}
+              onChange={() => handleNotificationToggle('financial_alerts')}
+            />
+
+            {/* System Updates */}
+            <NotificationToggle
+              label="تحديثات النظام"
+              description="إشعارات الصيانة والتحديثات الجديدة"
+              checked={notificationPreferences.system_updates}
+              disabled={savingNotifications}
+              onChange={() => handleNotificationToggle('system_updates')}
+            />
+          </div>
+        </div>
+
+        {/* Password Change Section */}
+        <div style={{ marginTop: SPACING['4xl'], paddingTop: SPACING['4xl'], borderTop: `1px solid ${COLORS.border}` }}>
+          <div style={{ marginBottom: SPACING.xl }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: SPACING.md, marginBottom: SPACING.xs }}>
+              <LockClosedIcon style={{ width: '24px', height: '24px', color: COLORS.primary }} />
+              <div style={{ fontSize: TYPOGRAPHY.lg, fontWeight: TYPOGRAPHY.semibold, color: COLORS.gray900 }}>
+                تغيير كلمة المرور
+              </div>
+            </div>
+            <div style={{ fontSize: TYPOGRAPHY.sm, color: COLORS.gray500 }}>
+              قم بتحديث كلمة المرور الخاصة بك للحفاظ على أمان حسابك
+            </div>
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gap: SPACING.lg,
+            padding: SPACING.xl,
+            background: COLORS.gray50,
+            borderRadius: BORDER_RADIUS.lg
+          }}>
+            {/* Current Password */}
+            <div>
+              <label style={{
+                display: 'block',
+                fontSize: TYPOGRAPHY.sm,
+                fontWeight: TYPOGRAPHY.medium,
+                color: COLORS.gray700,
+                marginBottom: SPACING.xs
+              }}>
+                كلمة المرور الحالية <span style={{ color: COLORS.error }}>*</span>
+              </label>
+              <div style={{ position: 'relative' as const }}>
+                <input
+                  type={showPasswords.current ? 'text' : 'password'}
+                  value={passwordData.currentPassword}
+                  onChange={handlePasswordChange('currentPassword')}
+                  disabled={changingPassword}
+                  style={{
+                    width: '100%',
+                    padding: `${SPACING.md} ${SPACING['5xl']} ${SPACING.md} ${SPACING.md}`,
+                    border: `1px solid ${passwordErrors.currentPassword ? COLORS.error : COLORS.border}`,
+                    borderRadius: BORDER_RADIUS.md,
+                    fontSize: TYPOGRAPHY.base,
+                    outline: 'none',
+                    transition: 'border-color 0.2s',
+                    background: changingPassword ? COLORS.gray100 : COLORS.white
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => togglePasswordVisibility('current')}
+                  disabled={changingPassword}
+                  style={{
+                    position: 'absolute' as const,
+                    left: SPACING.md,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: changingPassword ? 'not-allowed' : 'pointer',
+                    padding: SPACING.xs,
+                    color: COLORS.gray500
+                  }}
+                >
+                  {showPasswords.current ?
+                    <EyeSlashIcon style={{ width: '20px', height: '20px' }} /> :
+                    <EyeIcon style={{ width: '20px', height: '20px' }} />
+                  }
+                </button>
+              </div>
+              {passwordErrors.currentPassword && (
+                <div style={{
+                  fontSize: TYPOGRAPHY.sm,
+                  color: COLORS.error,
+                  marginTop: SPACING.xs
+                }}>
+                  {passwordErrors.currentPassword}
+                </div>
+              )}
+            </div>
+
+            {/* New Password */}
+            <div>
+              <label style={{
+                display: 'block',
+                fontSize: TYPOGRAPHY.sm,
+                fontWeight: TYPOGRAPHY.medium,
+                color: COLORS.gray700,
+                marginBottom: SPACING.xs
+              }}>
+                كلمة المرور الجديدة <span style={{ color: COLORS.error }}>*</span>
+              </label>
+              <div style={{ position: 'relative' as const }}>
+                <input
+                  type={showPasswords.new ? 'text' : 'password'}
+                  value={passwordData.newPassword}
+                  onChange={handlePasswordChange('newPassword')}
+                  disabled={changingPassword}
+                  style={{
+                    width: '100%',
+                    padding: `${SPACING.md} ${SPACING['5xl']} ${SPACING.md} ${SPACING.md}`,
+                    border: `1px solid ${passwordErrors.newPassword ? COLORS.error : COLORS.border}`,
+                    borderRadius: BORDER_RADIUS.md,
+                    fontSize: TYPOGRAPHY.base,
+                    outline: 'none',
+                    transition: 'border-color 0.2s',
+                    background: changingPassword ? COLORS.gray100 : COLORS.white
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => togglePasswordVisibility('new')}
+                  disabled={changingPassword}
+                  style={{
+                    position: 'absolute' as const,
+                    left: SPACING.md,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: changingPassword ? 'not-allowed' : 'pointer',
+                    padding: SPACING.xs,
+                    color: COLORS.gray500
+                  }}
+                >
+                  {showPasswords.new ?
+                    <EyeSlashIcon style={{ width: '20px', height: '20px' }} /> :
+                    <EyeIcon style={{ width: '20px', height: '20px' }} />
+                  }
+                </button>
+              </div>
+              {passwordErrors.newPassword && (
+                <div style={{
+                  fontSize: TYPOGRAPHY.sm,
+                  color: COLORS.error,
+                  marginTop: SPACING.xs
+                }}>
+                  {passwordErrors.newPassword}
+                </div>
+              )}
+              {/* Password Strength Indicator */}
+              {passwordStrength && (
+                <div style={{ marginTop: SPACING.md }}>
+                  <div style={{ display: 'flex', gap: SPACING.xs, marginBottom: SPACING.xs }}>
+                    <div style={{
+                      flex: 1,
+                      height: '4px',
+                      borderRadius: '2px',
+                      background: passwordStrength === 'weak' ? COLORS.error :
+                                 passwordStrength === 'medium' ? '#F59E0B' :
+                                 COLORS.success
+                    }} />
+                    <div style={{
+                      flex: 1,
+                      height: '4px',
+                      borderRadius: '2px',
+                      background: passwordStrength === 'medium' || passwordStrength === 'strong' ?
+                                 (passwordStrength === 'medium' ? '#F59E0B' : COLORS.success) :
+                                 COLORS.gray300
+                    }} />
+                    <div style={{
+                      flex: 1,
+                      height: '4px',
+                      borderRadius: '2px',
+                      background: passwordStrength === 'strong' ? COLORS.success : COLORS.gray300
+                    }} />
+                  </div>
+                  <div style={{
+                    fontSize: TYPOGRAPHY.sm,
+                    color: passwordStrength === 'weak' ? COLORS.error :
+                           passwordStrength === 'medium' ? '#F59E0B' :
+                           COLORS.success
+                  }}>
+                    {passwordStrength === 'weak' ? 'ضعيفة' :
+                     passwordStrength === 'medium' ? 'متوسطة' :
+                     'قوية'}
+                  </div>
+                </div>
+              )}
+              <div style={{
+                fontSize: TYPOGRAPHY.xs,
+                color: COLORS.gray500,
+                marginTop: SPACING.xs
+              }}>
+                8 أحرف على الأقل، أحرف كبيرة وصغيرة، وأرقام
+              </div>
+            </div>
+
+            {/* Confirm Password */}
+            <div>
+              <label style={{
+                display: 'block',
+                fontSize: TYPOGRAPHY.sm,
+                fontWeight: TYPOGRAPHY.medium,
+                color: COLORS.gray700,
+                marginBottom: SPACING.xs
+              }}>
+                تأكيد كلمة المرور الجديدة <span style={{ color: COLORS.error }}>*</span>
+              </label>
+              <div style={{ position: 'relative' as const }}>
+                <input
+                  type={showPasswords.confirm ? 'text' : 'password'}
+                  value={passwordData.confirmPassword}
+                  onChange={handlePasswordChange('confirmPassword')}
+                  disabled={changingPassword}
+                  style={{
+                    width: '100%',
+                    padding: `${SPACING.md} ${SPACING['5xl']} ${SPACING.md} ${SPACING.md}`,
+                    border: `1px solid ${passwordErrors.confirmPassword ? COLORS.error : COLORS.border}`,
+                    borderRadius: BORDER_RADIUS.md,
+                    fontSize: TYPOGRAPHY.base,
+                    outline: 'none',
+                    transition: 'border-color 0.2s',
+                    background: changingPassword ? COLORS.gray100 : COLORS.white
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => togglePasswordVisibility('confirm')}
+                  disabled={changingPassword}
+                  style={{
+                    position: 'absolute' as const,
+                    left: SPACING.md,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: changingPassword ? 'not-allowed' : 'pointer',
+                    padding: SPACING.xs,
+                    color: COLORS.gray500
+                  }}
+                >
+                  {showPasswords.confirm ?
+                    <EyeSlashIcon style={{ width: '20px', height: '20px' }} /> :
+                    <EyeIcon style={{ width: '20px', height: '20px' }} />
+                  }
+                </button>
+              </div>
+              {passwordErrors.confirmPassword && (
+                <div style={{
+                  fontSize: TYPOGRAPHY.sm,
+                  color: COLORS.error,
+                  marginTop: SPACING.xs
+                }}>
+                  {passwordErrors.confirmPassword}
+                </div>
+              )}
+            </div>
+
+            {/* Submit Button */}
+            <div style={{ marginTop: SPACING.md }}>
+              <SettingsButton
+                variant="primary"
+                onClick={handleChangePassword}
+                disabled={changingPassword || !passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword}
+              >
+                {changingPassword ? 'جاري التغيير...' : 'تغيير كلمة المرور'}
+              </SettingsButton>
+            </div>
           </div>
         </div>
       </SettingsCard>
@@ -426,7 +1202,6 @@ const ProfileSettings: React.FC = () => {
                 variant="primary"
                 onClick={handleUpload}
                 disabled={uploading}
-                loading={uploading}
               >
                 {uploading ? 'جاري الرفع...' : 'حفظ الصورة'}
               </SettingsButton>
@@ -446,3 +1221,4 @@ const ProfileSettings: React.FC = () => {
 };
 
 export default ProfileSettings;
+
