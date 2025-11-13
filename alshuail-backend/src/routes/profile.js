@@ -4,11 +4,27 @@
  */
 
 import express from 'express';
+import bcrypt from 'bcrypt';
 import { authenticateToken } from '../middleware/auth.js';
 import { upload, supabase, BUCKET_NAME, generateFilePath } from '../config/documentStorage.js';
 import { log } from '../utils/logger.js';
 
 const router = express.Router();
+
+// Rate limiting for password changes (5 attempts per hour per user)
+const passwordChangeAttempts = new Map();
+const MAX_PASSWORD_ATTEMPTS = 5;
+const PASSWORD_ATTEMPT_WINDOW = 60 * 60 * 1000; // 1 hour in milliseconds
+
+// Cleanup old attempts every 10 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [userId, data] of passwordChangeAttempts.entries()) {
+    if (now - data.firstAttempt > PASSWORD_ATTEMPT_WINDOW) {
+      passwordChangeAttempts.delete(userId);
+    }
+  }
+}, 10 * 60 * 1000);
 
 /**
  * GET /api/user/profile
@@ -578,6 +594,145 @@ router.put('/', authenticateToken, async (req, res) => {
       success: false,
       message: 'فشل في تحديث الملف الشخصي',
       message_en: 'Failed to update profile',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+/**
+ * POST /api/user/change-password
+ * Change user password with security validation
+ */
+router.post('/change-password', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { currentPassword, newPassword } = req.body;
+
+    // Rate limiting check
+    const now = Date.now();
+    const userAttempts = passwordChangeAttempts.get(userId);
+
+    if (userAttempts) {
+      if (now - userAttempts.firstAttempt > PASSWORD_ATTEMPT_WINDOW) {
+        // Window expired, reset
+        passwordChangeAttempts.delete(userId);
+      } else if (userAttempts.count >= MAX_PASSWORD_ATTEMPTS) {
+        log.warn(`Password change rate limit exceeded for user ${userId}`);
+        return res.status(429).json({
+          success: false,
+          message: 'تم تجاوز عدد المحاولات. يرجى المحاولة لاحقاً',
+          message_en: 'Too many attempts. Please try again later'
+        });
+      }
+    }
+
+    // Validate required fields
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'كلمة المرور الحالية والجديدة مطلوبة',
+        message_en: 'Current and new password are required'
+      });
+    }
+
+    // Validate password strength
+    if (newPassword.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: 'كلمة المرور الجديدة يجب أن تكون 8 أحرف على الأقل',
+        message_en: 'New password must be at least 8 characters long'
+      });
+    }
+
+    if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(newPassword)) {
+      return res.status(400).json({
+        success: false,
+        message: 'كلمة المرور يجب أن تحتوي على أحرف كبيرة وصغيرة وأرقام',
+        message_en: 'Password must contain uppercase, lowercase letters and numbers'
+      });
+    }
+
+    // Prevent same password
+    if (currentPassword === newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'كلمة المرور الجديدة يجب أن تكون مختلفة عن الحالية',
+        message_en: 'New password must be different from current password'
+      });
+    }
+
+    // Track attempt
+    if (!userAttempts) {
+      passwordChangeAttempts.set(userId, { count: 1, firstAttempt: now });
+    } else {
+      userAttempts.count++;
+    }
+
+    // Get current password hash from auth.users
+    const { data: userData, error: userError } = await supabase
+      .from('auth.users')
+      .select('encrypted_password')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (userError || !userData) {
+      log.error('Error fetching user for password change:', userError);
+      return res.status(404).json({
+        success: false,
+        message: 'المستخدم غير موجود',
+        message_en: 'User not found'
+      });
+    }
+
+    // Verify current password
+    const isValidPassword = await bcrypt.compare(currentPassword, userData.encrypted_password);
+    if (!isValidPassword) {
+      log.warn(`Invalid current password for user ${userId}`);
+      return res.status(401).json({
+        success: false,
+        message: 'كلمة المرور الحالية غير صحيحة',
+        message_en: 'Current password is incorrect'
+      });
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+    // Update password in auth.users
+    const { error: updateError } = await supabase
+      .from('auth.users')
+      .update({
+        encrypted_password: hashedPassword,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', userId);
+
+    if (updateError) {
+      log.error('Password update error:', updateError);
+      throw updateError;
+    }
+
+    // Log password change audit trail
+    log.info(`Password changed successfully for user ${userId}`, {
+      userId,
+      timestamp: new Date().toISOString(),
+      action: 'password_change'
+    });
+
+    // Reset rate limit counter on success
+    passwordChangeAttempts.delete(userId);
+
+    res.json({
+      success: true,
+      message: 'تم تغيير كلمة المرور بنجاح',
+      message_en: 'Password changed successfully'
+    });
+  } catch (error) {
+    log.error('Error in POST /change-password:', error);
+    res.status(500).json({
+      success: false,
+      message: 'فشل في تغيير كلمة المرور',
+      message_en: 'Failed to change password',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
