@@ -1421,4 +1421,413 @@ router.delete('/appearance-settings/reset-rate-limit', authenticateToken, async 
   }
 });
 
+// ============================================================================
+// LANGUAGE & REGION SETTINGS ENDPOINTS (Feature 5.3)
+// ============================================================================
+
+// Rate limiting for language settings updates
+const languageSettingsAttempts = new Map();
+const MAX_LANGUAGE_UPDATES = 10;
+const LANGUAGE_UPDATE_WINDOW = 60 * 60 * 1000; // 1 hour
+
+// Cleanup old language attempts every 10 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [userId, data] of languageSettingsAttempts.entries()) {
+    if (now - data.firstAttempt > LANGUAGE_UPDATE_WINDOW) {
+      languageSettingsAttempts.delete(userId);
+    }
+  }
+}, 10 * 60 * 1000);
+
+/**
+ * GET /api/user/profile/language-settings
+ * Retrieve user's language and region settings
+ */
+router.get('/language-settings', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    log.info(`Fetching language settings for user ${userId}`);
+
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('language_settings')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (userError) {
+      log.error('Database error fetching language settings:', userError);
+      throw userError;
+    }
+
+    if (!userData) {
+      return res.status(404).json({
+        success: false,
+        message: 'المستخدم غير موجود',
+        message_en: 'User not found'
+      });
+    }
+
+    log.info(`Language settings retrieved successfully for user ${userId}`);
+
+    res.json({
+      success: true,
+      settings: userData.language_settings,
+      message: 'تم جلب إعدادات اللغة والمنطقة بنجاح',
+      message_en: 'Language settings retrieved successfully'
+    });
+  } catch (error) {
+    log.error('Error fetching language settings:', error);
+    res.status(500).json({
+      success: false,
+      message: 'فشل في جلب إعدادات اللغة والمنطقة',
+      message_en: 'Failed to retrieve language settings'
+    });
+  }
+});
+
+/**
+ * PUT /api/user/profile/language-settings
+ * Update user's language and region settings
+ */
+router.put('/language-settings', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const updateData = req.body;
+
+    log.info(`Updating language settings for user ${userId}`, { updateData });
+
+    // Rate limiting check
+    const now = Date.now();
+    const attempts = languageSettingsAttempts.get(userId);
+
+    if (attempts) {
+      if (attempts.count >= MAX_LANGUAGE_UPDATES) {
+        const timeLeft = Math.ceil((LANGUAGE_UPDATE_WINDOW - (now - attempts.firstAttempt)) / 60000);
+        log.warn(`Rate limit exceeded for user ${userId}`);
+        return res.status(429).json({
+          success: false,
+          message: `تم تجاوز الحد الأقصى للمحاولات. يرجى المحاولة بعد ${timeLeft} دقيقة`,
+          message_en: `Rate limit exceeded. Please try again in ${timeLeft} minutes`,
+          retryAfter: timeLeft
+        });
+      }
+      attempts.count++;
+    } else {
+      languageSettingsAttempts.set(userId, { count: 1, firstAttempt: now });
+    }
+
+    // Validation: Check if there's data to update
+    if (!updateData || Object.keys(updateData).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'لا توجد بيانات للتحديث',
+        message_en: 'No data to update'
+      });
+    }
+
+    // Validation: language
+    if (updateData.language !== undefined) {
+      if (typeof updateData.language !== 'string') {
+        return res.status(400).json({
+          success: false,
+          message: 'language يجب أن يكون نص',
+          message_en: 'language must be a string'
+        });
+      }
+      const validLanguages = ['ar', 'en', 'both'];
+      if (!validLanguages.includes(updateData.language)) {
+        return res.status(400).json({
+          success: false,
+          message: `language يجب أن يكون: ${validLanguages.join(', ')}`,
+          message_en: `language must be one of: ${validLanguages.join(', ')}`
+        });
+      }
+    }
+
+    // Validation: region (2-letter ISO code)
+    if (updateData.region !== undefined) {
+      if (typeof updateData.region !== 'string') {
+        return res.status(400).json({
+          success: false,
+          message: 'region يجب أن يكون نص',
+          message_en: 'region must be a string'
+        });
+      }
+      const regionRegex = /^[A-Z]{2}$/;
+      if (!regionRegex.test(updateData.region)) {
+        return res.status(400).json({
+          success: false,
+          message: 'region يجب أن يكون رمز ISO من حرفين (مثال: SA)',
+          message_en: 'region must be a 2-letter ISO code (e.g., SA)'
+        });
+      }
+    }
+
+    // Validation: currency (3-letter ISO code)
+    if (updateData.currency !== undefined) {
+      if (typeof updateData.currency !== 'string') {
+        return res.status(400).json({
+          success: false,
+          message: 'currency يجب أن يكون نص',
+          message_en: 'currency must be a string'
+        });
+      }
+      const currencyRegex = /^[A-Z]{3}$/;
+      if (!currencyRegex.test(updateData.currency)) {
+        return res.status(400).json({
+          success: false,
+          message: 'currency يجب أن يكون رمز ISO من ثلاثة أحرف (مثال: SAR)',
+          message_en: 'currency must be a 3-letter ISO code (e.g., SAR)'
+        });
+      }
+    }
+
+    // Validation: date_format
+    if (updateData.date_format !== undefined) {
+      if (typeof updateData.date_format !== 'string') {
+        return res.status(400).json({
+          success: false,
+          message: 'date_format يجب أن يكون نص',
+          message_en: 'date_format must be a string'
+        });
+      }
+      const validDateFormats = ['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'];
+      if (!validDateFormats.includes(updateData.date_format)) {
+        return res.status(400).json({
+          success: false,
+          message: `date_format يجب أن يكون: ${validDateFormats.join(', ')}`,
+          message_en: `date_format must be one of: ${validDateFormats.join(', ')}`
+        });
+      }
+    }
+
+    // Validation: time_format
+    if (updateData.time_format !== undefined) {
+      if (typeof updateData.time_format !== 'string') {
+        return res.status(400).json({
+          success: false,
+          message: 'time_format يجب أن يكون نص',
+          message_en: 'time_format must be a string'
+        });
+      }
+      const validTimeFormats = ['12h', '24h'];
+      if (!validTimeFormats.includes(updateData.time_format)) {
+        return res.status(400).json({
+          success: false,
+          message: `time_format يجب أن يكون: ${validTimeFormats.join(', ')}`,
+          message_en: `time_format must be one of: ${validTimeFormats.join(', ')}`
+        });
+      }
+    }
+
+    // Validation: number_format
+    if (updateData.number_format !== undefined) {
+      if (typeof updateData.number_format !== 'string') {
+        return res.status(400).json({
+          success: false,
+          message: 'number_format يجب أن يكون نص',
+          message_en: 'number_format must be a string'
+        });
+      }
+      const validNumberFormats = ['western', 'arabic'];
+      if (!validNumberFormats.includes(updateData.number_format)) {
+        return res.status(400).json({
+          success: false,
+          message: `number_format يجب أن يكون: ${validNumberFormats.join(', ')}`,
+          message_en: `number_format must be one of: ${validNumberFormats.join(', ')}`
+        });
+      }
+    }
+
+    // Validation: week_start
+    if (updateData.week_start !== undefined) {
+      if (typeof updateData.week_start !== 'string') {
+        return res.status(400).json({
+          success: false,
+          message: 'week_start يجب أن يكون نص',
+          message_en: 'week_start must be a string'
+        });
+      }
+      const validWeekStarts = ['saturday', 'sunday', 'monday'];
+      if (!validWeekStarts.includes(updateData.week_start)) {
+        return res.status(400).json({
+          success: false,
+          message: `week_start يجب أن يكون: ${validWeekStarts.join(', ')}`,
+          message_en: `week_start must be one of: ${validWeekStarts.join(', ')}`
+        });
+      }
+    }
+
+    // Validation: timezone (basic check for valid string format)
+    if (updateData.timezone !== undefined) {
+      if (typeof updateData.timezone !== 'string') {
+        return res.status(400).json({
+          success: false,
+          message: 'timezone يجب أن يكون نص',
+          message_en: 'timezone must be a string'
+        });
+      }
+      // Basic validation: timezone should contain a slash (e.g., "Asia/Riyadh")
+      if (!updateData.timezone.includes('/')) {
+        return res.status(400).json({
+          success: false,
+          message: 'timezone يجب أن يكون منطقة زمنية صالحة (مثال: Asia/Riyadh)',
+          message_en: 'timezone must be a valid timezone (e.g., Asia/Riyadh)'
+        });
+      }
+    }
+
+    // Fetch current settings to merge with updates
+    const { data: currentUser, error: fetchError } = await supabase
+      .from('users')
+      .select('language_settings')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (fetchError) {
+      log.error('Error fetching current language settings:', fetchError);
+      throw fetchError;
+    }
+
+    if (!currentUser) {
+      return res.status(404).json({
+        success: false,
+        message: 'المستخدم غير موجود',
+        message_en: 'User not found'
+      });
+    }
+
+    // Merge updates with existing settings (partial update support)
+    const updatedSettings = {
+      ...currentUser.language_settings,
+      ...updateData
+    };
+
+    // Remove updated_at if user provided it (we control this field)
+    delete updatedSettings.updated_at;
+
+    // Update database
+    const { data: updatedUser, error: updateError } = await supabase
+      .from('users')
+      .update({ language_settings: updatedSettings })
+      .eq('id', userId)
+      .select('language_settings')
+      .single();
+
+    if (updateError) {
+      log.error('Error updating language settings:', updateError);
+
+      // Handle database constraint violations
+      if (updateError.code === '23514') {
+        return res.status(400).json({
+          success: false,
+          message: 'بيانات الإعدادات غير صالحة',
+          message_en: 'Invalid settings data',
+          details: updateError.message
+        });
+      }
+
+      throw updateError;
+    }
+
+    log.info(`Language settings updated successfully for user ${userId}`, {
+      oldSettings: currentUser.language_settings,
+      newSettings: updatedUser.language_settings
+    });
+
+    res.json({
+      success: true,
+      settings: updatedUser.language_settings,
+      message: 'تم تحديث إعدادات اللغة والمنطقة بنجاح',
+      message_en: 'Language settings updated successfully'
+    });
+  } catch (error) {
+    log.error('Error updating language settings:', error);
+    res.status(500).json({
+      success: false,
+      message: 'فشل في تحديث إعدادات اللغة والمنطقة',
+      message_en: 'Failed to update language settings'
+    });
+  }
+});
+
+/**
+ * DELETE /api/user/profile/language-settings
+ * Reset language settings to defaults
+ */
+router.delete('/language-settings', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    log.info(`Resetting language settings to defaults for user ${userId}`);
+
+    // Default language settings
+    const defaultSettings = {
+      language: 'ar',
+      region: 'SA',
+      timezone: 'Asia/Riyadh',
+      date_format: 'DD/MM/YYYY',
+      time_format: '12h',
+      number_format: 'western',
+      currency: 'SAR',
+      week_start: 'saturday'
+    };
+
+    // Update database with defaults
+    const { data: updatedUser, error: updateError } = await supabase
+      .from('users')
+      .update({ language_settings: defaultSettings })
+      .eq('id', userId)
+      .select('language_settings')
+      .single();
+
+    if (updateError) {
+      log.error('Error resetting language settings:', updateError);
+      throw updateError;
+    }
+
+    log.info(`Language settings reset to defaults for user ${userId}`);
+
+    res.json({
+      success: true,
+      settings: updatedUser.language_settings,
+      message: 'تم إعادة تعيين إعدادات اللغة والمنطقة إلى الافتراضية بنجاح',
+      message_en: 'Language settings reset to defaults successfully'
+    });
+  } catch (error) {
+    log.error('Error resetting language settings:', error);
+    res.status(500).json({
+      success: false,
+      message: 'فشل في إعادة تعيين إعدادات اللغة والمنطقة',
+      message_en: 'Failed to reset language settings'
+    });
+  }
+});
+
+/**
+ * DELETE /api/user/profile/language-settings/reset-rate-limit
+ * Reset rate limit for language settings updates (for testing)
+ */
+router.delete('/language-settings/reset-rate-limit', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    languageSettingsAttempts.delete(userId);
+
+    log.info(`Rate limit reset for language settings - user ${userId}`);
+
+    res.json({
+      success: true,
+      message: 'تم إعادة تعيين حد المحاولات بنجاح',
+      message_en: 'Rate limit reset successfully'
+    });
+  } catch (error) {
+    log.error('Error resetting rate limit:', error);
+    res.status(500).json({
+      success: false,
+      message: 'فشل في إعادة تعيين حد المحاولات',
+      message_en: 'Failed to reset rate limit'
+    });
+  }
+});
+
 export default router;
