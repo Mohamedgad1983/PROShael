@@ -668,10 +668,10 @@ router.post('/change-password', authenticateToken, async (req, res) => {
       userAttempts.count++;
     }
 
-    // Get current password hash from auth.users
+    // Get current password hash from users table
     const { data: userData, error: userError } = await supabase
-      .from('auth.users')
-      .select('encrypted_password')
+      .from('users')
+      .select('password_hash')
       .eq('id', userId)
       .maybeSingle();
 
@@ -684,8 +684,17 @@ router.post('/change-password', authenticateToken, async (req, res) => {
       });
     }
 
+    if (!userData.password_hash) {
+      log.error(`No password hash found for user ${userId}`);
+      return res.status(400).json({
+        success: false,
+        message: 'لا يمكن تغيير كلمة المرور لهذا الحساب',
+        message_en: 'Cannot change password for this account'
+      });
+    }
+
     // Verify current password
-    const isValidPassword = await bcrypt.compare(currentPassword, userData.encrypted_password);
+    const isValidPassword = await bcrypt.compare(currentPassword, userData.password_hash);
     if (!isValidPassword) {
       log.warn(`Invalid current password for user ${userId}`);
       return res.status(401).json({
@@ -698,11 +707,11 @@ router.post('/change-password', authenticateToken, async (req, res) => {
     // Hash new password
     const hashedPassword = await bcrypt.hash(newPassword, 12);
 
-    // Update password in auth.users
+    // Update password in users table
     const { error: updateError } = await supabase
-      .from('auth.users')
+      .from('users')
       .update({
-        encrypted_password: hashedPassword,
+        password_hash: hashedPassword,
         updated_at: new Date().toISOString()
       })
       .eq('id', userId);
