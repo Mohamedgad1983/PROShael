@@ -25,6 +25,7 @@ import SystemSettings from './SystemSettingsEnhanced';
 import AuditLogs from './AuditLogs';
 import MultiRoleManagement from './MultiRoleManagement';
 import ProfileSettings from './ProfileSettings';
+import AppearanceSettings from './AppearanceSettings';
 // CRITICAL: Import from feature package to prevent tree-shaking
 import AccessControl, { __KEEP_ACCESS_CONTROL__ } from '../../features/access-control';
 // Import shared styles for consistent design
@@ -176,6 +177,12 @@ const SettingsPage: React.FC = () => {
         return (
           <PerformanceProfiler id="AuditLogs">
             <AuditLogs />
+          </PerformanceProfiler>
+        );
+      case 'appearance-settings':
+        return (
+          <PerformanceProfiler id="AppearanceSettings">
+            <AppearanceSettings />
           </PerformanceProfiler>
         );
       default:
@@ -402,24 +409,37 @@ const SettingsPage: React.FC = () => {
           })}
 
           {/* Additional Settings Categories */}
-          <div style={{ ...sectionTitleStyle, marginTop: '30px' }}>إعدادات أخرى</div>
+          <div style={{ ...sectionTitleStyle, marginTop: '30px' }}>إعدادات إضافية</div>
 
           <button
-            style={tabButtonStyle(false)}
-            disabled
-            title="قريباً"
+            style={tabButtonStyle(activeTab === 'appearance-settings')}
+            onClick={() => setActiveTab('appearance-settings')}
+            onMouseEnter={(e) => {
+              if (activeTab !== 'appearance-settings') {
+                e.currentTarget.style.background = COLORS.primaryLight;
+                e.currentTarget.style.transform = 'translateX(-5px)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (activeTab !== 'appearance-settings') {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.transform = 'translateX(0)';
+              }
+            }}
           >
-            <BellIcon style={{ width: '20px', height: '20px', opacity: 0.5 }} />
-            <span style={{ opacity: 0.5 }}>الإشعارات (قريباً)</span>
-          </button>
-
-          <button
-            style={tabButtonStyle(false)}
-            disabled
-            title="قريباً"
-          >
-            <PaintBrushIcon style={{ width: '20px', height: '20px', opacity: 0.5 }} />
-            <span style={{ opacity: 0.5 }}>المظهر (قريباً)</span>
+            <PaintBrushIcon style={{ width: '20px', height: '20px' }} />
+            <div style={{ textAlign: 'right', flex: 1 }}>
+              <div>المظهر</div>
+              {activeTab === 'appearance-settings' && (
+                <div style={{
+                  fontSize: TYPOGRAPHY.xs,
+                  opacity: 0.9,
+                  marginTop: SPACING.xs
+                }}>
+                  تخصيص المظهر والألوان والخطوط
+                </div>
+              )}
+            </div>
           </button>
 
           <button
