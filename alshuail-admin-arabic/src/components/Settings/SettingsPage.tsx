@@ -26,6 +26,7 @@ import AuditLogs from './AuditLogs';
 import MultiRoleManagement from './MultiRoleManagement';
 import ProfileSettings from './ProfileSettings';
 import AppearanceSettings from './AppearanceSettings';
+import LanguageSettings from './LanguageSettings';
 // CRITICAL: Import from feature package to prevent tree-shaking
 import AccessControl, { __KEEP_ACCESS_CONTROL__ } from '../../features/access-control';
 // Import shared styles for consistent design
@@ -183,6 +184,12 @@ const SettingsPage: React.FC = () => {
         return (
           <PerformanceProfiler id="AppearanceSettings">
             <AppearanceSettings />
+          </PerformanceProfiler>
+        );
+      case 'language-settings':
+        return (
+          <PerformanceProfiler id="LanguageSettings">
+            <LanguageSettings />
           </PerformanceProfiler>
         );
       default:
@@ -443,12 +450,34 @@ const SettingsPage: React.FC = () => {
           </button>
 
           <button
-            style={tabButtonStyle(false)}
-            disabled
-            title="قريباً"
+            style={tabButtonStyle(activeTab === 'language-settings')}
+            onClick={() => setActiveTab('language-settings')}
+            onMouseEnter={(e) => {
+              if (activeTab !== 'language-settings') {
+                e.currentTarget.style.background = COLORS.primaryLight;
+                e.currentTarget.style.transform = 'translateX(-5px)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (activeTab !== 'language-settings') {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.transform = 'translateX(0)';
+              }
+            }}
           >
-            <GlobeAltIcon style={{ width: '20px', height: '20px', opacity: 0.5 }} />
-            <span style={{ opacity: 0.5 }}>اللغة والمنطقة (قريباً)</span>
+            <GlobeAltIcon style={{ width: '20px', height: '20px' }} />
+            <div style={{ textAlign: 'right', flex: 1 }}>
+              <div>اللغة والمنطقة</div>
+              {activeTab === 'language-settings' && (
+                <div style={{
+                  fontSize: TYPOGRAPHY.xs,
+                  opacity: 0.9,
+                  marginTop: SPACING.xs
+                }}>
+                  تخصيص اللغة والمنطقة وتنسيق التاريخ والوقت
+                </div>
+              )}
+            </div>
           </button>
         </div>
 
