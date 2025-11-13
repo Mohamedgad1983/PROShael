@@ -1141,4 +1141,284 @@ router.delete('/notification-settings/reset-rate-limit', authenticateToken, asyn
   }
 });
 
+// ============================================================================
+// APPEARANCE SETTINGS ENDPOINTS (Feature 5.2)
+// ============================================================================
+
+// Rate limiting for appearance settings updates
+const appearanceSettingsAttempts = new Map();
+const MAX_APPEARANCE_UPDATES = 10;
+const APPEARANCE_UPDATE_WINDOW = 60 * 60 * 1000; // 1 hour
+
+// Cleanup old appearance attempts every 10 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [userId, data] of appearanceSettingsAttempts.entries()) {
+    if (now - data.firstAttempt > APPEARANCE_UPDATE_WINDOW) {
+      appearanceSettingsAttempts.delete(userId);
+    }
+  }
+}, 10 * 60 * 1000);
+
+/**
+ * GET /api/user/profile/appearance-settings
+ * Retrieve user's appearance/theme settings
+ */
+router.get('/appearance-settings', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    log.info(`Fetching appearance settings for user ${userId}`);
+
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('appearance_settings')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (userError) {
+      log.error('Database error fetching appearance settings:', userError);
+      throw userError;
+    }
+
+    if (!userData) {
+      return res.status(404).json({
+        success: false,
+        message: 'المستخدم غير موجود',
+        message_en: 'User not found'
+      });
+    }
+
+    log.info(`Appearance settings retrieved successfully for user ${userId}`);
+
+    res.json({
+      success: true,
+      settings: userData.appearance_settings,
+      message: 'تم جلب إعدادات المظهر بنجاح',
+      message_en: 'Appearance settings retrieved successfully'
+    });
+  } catch (error) {
+    log.error('Error fetching appearance settings:', error);
+    res.status(500).json({
+      success: false,
+      message: 'فشل في جلب إعدادات المظهر',
+      message_en: 'Failed to retrieve appearance settings'
+    });
+  }
+});
+
+/**
+ * PUT /api/user/profile/appearance-settings
+ * Update user's appearance/theme settings
+ */
+router.put('/appearance-settings', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const updateData = req.body;
+
+    log.info(`Updating appearance settings for user ${userId}`, { updateData });
+
+    // Rate limiting check
+    const now = Date.now();
+    const attempts = appearanceSettingsAttempts.get(userId);
+
+    if (attempts) {
+      if (attempts.count >= MAX_APPEARANCE_UPDATES) {
+        const timeLeft = Math.ceil((APPEARANCE_UPDATE_WINDOW - (now - attempts.firstAttempt)) / 60000);
+        log.warn(`Rate limit exceeded for user ${userId}`);
+        return res.status(429).json({
+          success: false,
+          message: `تم تجاوز الحد الأقصى للمحاولات. يرجى المحاولة بعد ${timeLeft} دقيقة`,
+          message_en: `Rate limit exceeded. Please try again in ${timeLeft} minutes`,
+          retryAfter: timeLeft
+        });
+      }
+      attempts.count++;
+    } else {
+      appearanceSettingsAttempts.set(userId, { count: 1, firstAttempt: now });
+    }
+
+    // Validation: Check if there's data to update
+    if (!updateData || Object.keys(updateData).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'لا توجد بيانات للتحديث',
+        message_en: 'No data to update'
+      });
+    }
+
+    // Validation: theme_mode
+    if (updateData.theme_mode !== undefined) {
+      if (typeof updateData.theme_mode !== 'string') {
+        return res.status(400).json({
+          success: false,
+          message: 'theme_mode يجب أن يكون نص',
+          message_en: 'theme_mode must be a string'
+        });
+      }
+      const validThemeModes = ['light', 'dark', 'auto'];
+      if (!validThemeModes.includes(updateData.theme_mode)) {
+        return res.status(400).json({
+          success: false,
+          message: `theme_mode يجب أن يكون: ${validThemeModes.join(', ')}`,
+          message_en: `theme_mode must be one of: ${validThemeModes.join(', ')}`
+        });
+      }
+    }
+
+    // Validation: primary_color (hex format)
+    if (updateData.primary_color !== undefined) {
+      if (typeof updateData.primary_color !== 'string') {
+        return res.status(400).json({
+          success: false,
+          message: 'primary_color يجب أن يكون نص',
+          message_en: 'primary_color must be a string'
+        });
+      }
+      const hexColorRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+      if (!hexColorRegex.test(updateData.primary_color)) {
+        return res.status(400).json({
+          success: false,
+          message: 'primary_color يجب أن يكون رمز لون hex صالح (مثال: #1976d2)',
+          message_en: 'primary_color must be a valid hex color code (e.g., #1976d2)'
+        });
+      }
+    }
+
+    // Validation: font_size
+    if (updateData.font_size !== undefined) {
+      if (typeof updateData.font_size !== 'string') {
+        return res.status(400).json({
+          success: false,
+          message: 'font_size يجب أن يكون نص',
+          message_en: 'font_size must be a string'
+        });
+      }
+      const validFontSizes = ['small', 'medium', 'large'];
+      if (!validFontSizes.includes(updateData.font_size)) {
+        return res.status(400).json({
+          success: false,
+          message: `font_size يجب أن يكون: ${validFontSizes.join(', ')}`,
+          message_en: `font_size must be one of: ${validFontSizes.join(', ')}`
+        });
+      }
+    }
+
+    // Validation: compact_mode
+    if (updateData.compact_mode !== undefined && typeof updateData.compact_mode !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        message: 'compact_mode يجب أن يكون قيمة منطقية',
+        message_en: 'compact_mode must be a boolean'
+      });
+    }
+
+    // Validation: animations_enabled
+    if (updateData.animations_enabled !== undefined && typeof updateData.animations_enabled !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        message: 'animations_enabled يجب أن يكون قيمة منطقية',
+        message_en: 'animations_enabled must be a boolean'
+      });
+    }
+
+    // Fetch current settings to merge with updates
+    const { data: currentUser, error: fetchError } = await supabase
+      .from('users')
+      .select('appearance_settings')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (fetchError) {
+      log.error('Error fetching current appearance settings:', fetchError);
+      throw fetchError;
+    }
+
+    if (!currentUser) {
+      return res.status(404).json({
+        success: false,
+        message: 'المستخدم غير موجود',
+        message_en: 'User not found'
+      });
+    }
+
+    // Merge updates with existing settings (partial update support)
+    const updatedSettings = {
+      ...currentUser.appearance_settings,
+      ...updateData
+    };
+
+    // Remove updated_at if user provided it (we control this field)
+    delete updatedSettings.updated_at;
+
+    // Update database
+    const { data: updatedUser, error: updateError } = await supabase
+      .from('users')
+      .update({ appearance_settings: updatedSettings })
+      .eq('id', userId)
+      .select('appearance_settings')
+      .single();
+
+    if (updateError) {
+      log.error('Error updating appearance settings:', updateError);
+
+      // Handle database constraint violations
+      if (updateError.code === '23514') {
+        return res.status(400).json({
+          success: false,
+          message: 'بيانات الإعدادات غير صالحة',
+          message_en: 'Invalid settings data',
+          details: updateError.message
+        });
+      }
+
+      throw updateError;
+    }
+
+    log.info(`Appearance settings updated successfully for user ${userId}`, {
+      oldSettings: currentUser.appearance_settings,
+      newSettings: updatedUser.appearance_settings
+    });
+
+    res.json({
+      success: true,
+      settings: updatedUser.appearance_settings,
+      message: 'تم تحديث إعدادات المظهر بنجاح',
+      message_en: 'Appearance settings updated successfully'
+    });
+  } catch (error) {
+    log.error('Error updating appearance settings:', error);
+    res.status(500).json({
+      success: false,
+      message: 'فشل في تحديث إعدادات المظهر',
+      message_en: 'Failed to update appearance settings'
+    });
+  }
+});
+
+/**
+ * DELETE /api/user/profile/appearance-settings/reset-rate-limit
+ * Reset rate limit for appearance settings updates (for testing)
+ */
+router.delete('/appearance-settings/reset-rate-limit', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    appearanceSettingsAttempts.delete(userId);
+
+    log.info(`Rate limit reset for appearance settings - user ${userId}`);
+
+    res.json({
+      success: true,
+      message: 'تم إعادة تعيين حد المحاولات بنجاح',
+      message_en: 'Rate limit reset successfully'
+    });
+  } catch (error) {
+    log.error('Error resetting rate limit:', error);
+    res.status(500).json({
+      success: false,
+      message: 'فشل في إعادة تعيين حد المحاولات',
+      message_en: 'Failed to reset rate limit'
+    });
+  }
+});
+
 export default router;
