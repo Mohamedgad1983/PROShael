@@ -738,4 +738,32 @@ router.post('/change-password', authenticateToken, async (req, res) => {
   }
 });
 
+/**
+ * DELETE /api/user/profile/reset-password-rate-limit
+ * Reset password change rate limit for current user (development/testing only)
+ */
+router.delete('/reset-password-rate-limit', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Clear rate limit for this user
+    passwordChangeAttempts.delete(userId);
+
+    log.info(`Password change rate limit reset for user ${userId}`);
+
+    res.json({
+      success: true,
+      message: 'تم إعادة تعيين حد المحاولات بنجاح',
+      message_en: 'Rate limit reset successfully'
+    });
+  } catch (error) {
+    log.error('Error resetting rate limit:', error);
+    res.status(500).json({
+      success: false,
+      message: 'فشل في إعادة تعيين حد المحاولات',
+      message_en: 'Failed to reset rate limit'
+    });
+  }
+});
+
 export default router;
