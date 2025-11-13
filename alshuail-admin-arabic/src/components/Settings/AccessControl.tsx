@@ -160,10 +160,6 @@ const AccessControl: React.FC = () => {
         setConfirmPassword('');
         setForceOverwrite(false);
 
-        // Overwrite password strings to prevent memory leaks
-        newPassword = '';
-        confirmPassword = '';
-
         // Refresh user info
         handleSearch();
       } else {

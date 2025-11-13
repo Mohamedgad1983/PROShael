@@ -775,4 +775,370 @@ router.delete('/reset-password-rate-limit', authenticateToken, async (req, res) 
   }
 });
 
+// ============================================================================
+// NOTIFICATION SETTINGS ENDPOINTS
+// Feature 5.1: User Notification Preferences Management
+// ============================================================================
+
+// Rate limiting for notification settings updates (10 updates per hour per user)
+const notificationSettingsAttempts = new Map();
+const MAX_NOTIFICATION_UPDATES = 10;
+const NOTIFICATION_UPDATE_WINDOW = 60 * 60 * 1000; // 1 hour in milliseconds
+
+// Cleanup old attempts every 10 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [userId, data] of notificationSettingsAttempts.entries()) {
+    if (now - data.firstAttempt > NOTIFICATION_UPDATE_WINDOW) {
+      notificationSettingsAttempts.delete(userId);
+    }
+  }
+}, 10 * 60 * 1000);
+
+/**
+ * GET /api/user/profile/notification-settings
+ * Retrieve current user's notification preferences
+ *
+ * Response:
+ * {
+ *   success: true,
+ *   settings: {
+ *     email_enabled: boolean,
+ *     sms_enabled: boolean,
+ *     push_enabled: boolean,
+ *     types: string[],
+ *     frequency: 'instant' | 'daily' | 'weekly',
+ *     quiet_hours: { start: 'HH:MM', end: 'HH:MM', overnight: boolean }
+ *   }
+ * }
+ */
+router.get('/notification-settings', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    log.info(`Fetching notification settings for user ${userId}`);
+
+    // Query user's notification settings
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('notification_settings')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (userError) {
+      log.error('Database error fetching notification settings:', userError);
+      throw userError;
+    }
+
+    if (!userData) {
+      log.warn(`User not found: ${userId}`);
+      return res.status(404).json({
+        success: false,
+        message: 'المستخدم غير موجود',
+        message_en: 'User not found'
+      });
+    }
+
+    // Return notification settings (will always have defaults due to database constraint)
+    log.info(`Successfully retrieved notification settings for user ${userId}`);
+
+    res.json({
+      success: true,
+      settings: userData.notification_settings,
+      message: 'تم جلب إعدادات الإشعارات بنجاح',
+      message_en: 'Notification settings retrieved successfully'
+    });
+
+  } catch (error) {
+    log.error('Error fetching notification settings:', error);
+    res.status(500).json({
+      success: false,
+      message: 'فشل في جلب إعدادات الإشعارات',
+      message_en: 'Failed to retrieve notification settings',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+/**
+ * PUT /api/user/profile/notification-settings
+ * Update current user's notification preferences
+ *
+ * Request Body:
+ * {
+ *   email_enabled?: boolean,
+ *   sms_enabled?: boolean,
+ *   push_enabled?: boolean,
+ *   types?: string[],
+ *   frequency?: 'instant' | 'daily' | 'weekly',
+ *   quiet_hours?: { start: 'HH:MM', end: 'HH:MM', overnight?: boolean }
+ * }
+ *
+ * Response:
+ * {
+ *   success: true,
+ *   settings: { ... updated settings ... }
+ * }
+ */
+router.put('/notification-settings', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const updateData = req.body;
+
+    log.info(`Updating notification settings for user ${userId}`, { updateData });
+
+    // Rate limiting check
+    const now = Date.now();
+    const attempts = notificationSettingsAttempts.get(userId);
+
+    if (attempts) {
+      if (now - attempts.firstAttempt < NOTIFICATION_UPDATE_WINDOW) {
+        if (attempts.count >= MAX_NOTIFICATION_UPDATES) {
+          const timeLeft = Math.ceil((NOTIFICATION_UPDATE_WINDOW - (now - attempts.firstAttempt)) / 60000);
+          log.warn(`Rate limit exceeded for user ${userId}`);
+          return res.status(429).json({
+            success: false,
+            message: `تم تجاوز الحد الأقصى للمحاولات. يرجى المحاولة بعد ${timeLeft} دقيقة`,
+            message_en: `Rate limit exceeded. Please try again in ${timeLeft} minutes`,
+            retryAfter: timeLeft
+          });
+        }
+        attempts.count++;
+      } else {
+        notificationSettingsAttempts.set(userId, { firstAttempt: now, count: 1 });
+      }
+    } else {
+      notificationSettingsAttempts.set(userId, { firstAttempt: now, count: 1 });
+    }
+
+    // Validation: Ensure at least one field is being updated
+    if (!updateData || Object.keys(updateData).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'لا توجد بيانات للتحديث',
+        message_en: 'No data to update'
+      });
+    }
+
+    // Validation: Check valid fields
+    const validFields = ['email_enabled', 'sms_enabled', 'push_enabled', 'types', 'frequency', 'quiet_hours'];
+    const invalidFields = Object.keys(updateData).filter(key => !validFields.includes(key));
+
+    if (invalidFields.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `حقول غير صالحة: ${invalidFields.join(', ')}`,
+        message_en: `Invalid fields: ${invalidFields.join(', ')}`
+      });
+    }
+
+    // Validation: Type checks
+    if (updateData.email_enabled !== undefined && typeof updateData.email_enabled !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        message: 'email_enabled يجب أن يكون قيمة منطقية',
+        message_en: 'email_enabled must be a boolean'
+      });
+    }
+
+    if (updateData.sms_enabled !== undefined && typeof updateData.sms_enabled !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        message: 'sms_enabled يجب أن يكون قيمة منطقية',
+        message_en: 'sms_enabled must be a boolean'
+      });
+    }
+
+    if (updateData.push_enabled !== undefined && typeof updateData.push_enabled !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        message: 'push_enabled يجب أن يكون قيمة منطقية',
+        message_en: 'push_enabled must be a boolean'
+      });
+    }
+
+    // Validation: Notification types
+    if (updateData.types !== undefined) {
+      if (!Array.isArray(updateData.types)) {
+        return res.status(400).json({
+          success: false,
+          message: 'types يجب أن يكون مصفوفة',
+          message_en: 'types must be an array'
+        });
+      }
+
+      if (updateData.types.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'يجب اختيار نوع إشعار واحد على الأقل',
+          message_en: 'At least one notification type must be selected'
+        });
+      }
+
+      const validTypes = ['system', 'security', 'members', 'finance', 'family_tree'];
+      const invalidTypes = updateData.types.filter(type => !validTypes.includes(type));
+
+      if (invalidTypes.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: `أنواع إشعارات غير صالحة: ${invalidTypes.join(', ')}`,
+          message_en: `Invalid notification types: ${invalidTypes.join(', ')}`
+        });
+      }
+    }
+
+    // Validation: Frequency
+    if (updateData.frequency !== undefined) {
+      const validFrequencies = ['instant', 'daily', 'weekly'];
+      if (!validFrequencies.includes(updateData.frequency)) {
+        return res.status(400).json({
+          success: false,
+          message: 'frequency يجب أن يكون: instant, daily, أو weekly',
+          message_en: 'frequency must be one of: instant, daily, weekly'
+        });
+      }
+    }
+
+    // Validation: Quiet hours
+    if (updateData.quiet_hours !== undefined) {
+      if (typeof updateData.quiet_hours !== 'object' || updateData.quiet_hours === null) {
+        return res.status(400).json({
+          success: false,
+          message: 'quiet_hours يجب أن يكون كائن',
+          message_en: 'quiet_hours must be an object'
+        });
+      }
+
+      const { start, end } = updateData.quiet_hours;
+      const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+      if (!start || !timeRegex.test(start)) {
+        return res.status(400).json({
+          success: false,
+          message: 'وقت البداية يجب أن يكون بصيغة HH:MM',
+          message_en: 'Start time must be in HH:MM format'
+        });
+      }
+
+      if (!end || !timeRegex.test(end)) {
+        return res.status(400).json({
+          success: false,
+          message: 'وقت النهاية يجب أن يكون بصيغة HH:MM',
+          message_en: 'End time must be in HH:MM format'
+        });
+      }
+
+      // Add overnight flag if times indicate overnight period
+      if (start > end) {
+        updateData.quiet_hours.overnight = true;
+      } else {
+        updateData.quiet_hours.overnight = false;
+      }
+    }
+
+    // Fetch current settings
+    const { data: currentUser, error: fetchError } = await supabase
+      .from('users')
+      .select('notification_settings')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (fetchError) {
+      log.error('Database error fetching current settings:', fetchError);
+      throw fetchError;
+    }
+
+    if (!currentUser) {
+      log.warn(`User not found: ${userId}`);
+      return res.status(404).json({
+        success: false,
+        message: 'المستخدم غير موجود',
+        message_en: 'User not found'
+      });
+    }
+
+    // Merge with existing settings (partial update support)
+    const updatedSettings = {
+      ...currentUser.notification_settings,
+      ...updateData,
+      updated_at: new Date().toISOString()
+    };
+
+    log.info(`Merged settings for user ${userId}:`, updatedSettings);
+
+    // Update database
+    const { data: updatedUser, error: updateError } = await supabase
+      .from('users')
+      .update({ notification_settings: updatedSettings })
+      .eq('id', userId)
+      .select('notification_settings')
+      .single();
+
+    if (updateError) {
+      log.error('Database error updating notification settings:', updateError);
+
+      // Check if it's a constraint violation
+      if (updateError.code === '23514') {
+        return res.status(400).json({
+          success: false,
+          message: 'البيانات المدخلة لا تتوافق مع القيود المطلوبة',
+          message_en: 'Data does not meet required constraints',
+          error: updateError.message
+        });
+      }
+
+      throw updateError;
+    }
+
+    // Log successful update in audit log
+    log.info(`Notification settings updated successfully for user ${userId}`, {
+      oldSettings: currentUser.notification_settings,
+      newSettings: updatedUser.notification_settings
+    });
+
+    res.json({
+      success: true,
+      settings: updatedUser.notification_settings,
+      message: 'تم تحديث إعدادات الإشعارات بنجاح',
+      message_en: 'Notification settings updated successfully'
+    });
+
+  } catch (error) {
+    log.error('Error updating notification settings:', error);
+    res.status(500).json({
+      success: false,
+      message: 'فشل في تحديث إعدادات الإشعارات',
+      message_en: 'Failed to update notification settings',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+/**
+ * DELETE /api/user/profile/notification-settings/reset-rate-limit
+ * Reset notification settings update rate limit for current user
+ * Utility endpoint for testing and support
+ */
+router.delete('/notification-settings/reset-rate-limit', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    notificationSettingsAttempts.delete(userId);
+
+    log.info(`Notification settings rate limit reset for user ${userId}`);
+
+    res.json({
+      success: true,
+      message: 'تم إعادة تعيين حد المحاولات بنجاح',
+      message_en: 'Rate limit reset successfully'
+    });
+  } catch (error) {
+    log.error('Error resetting notification settings rate limit:', error);
+    res.status(500).json({
+      success: false,
+      message: 'فشل في إعادة تعيين حد المحاولات',
+      message_en: 'Failed to reset rate limit'
+    });
+  }
+});
+
 export default router;

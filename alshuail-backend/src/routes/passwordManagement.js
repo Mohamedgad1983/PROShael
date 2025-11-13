@@ -8,6 +8,12 @@ import { requireSuperAdmin } from '../middleware/superAdminAuth.js';
 
 const router = express.Router();
 
+// Constants
+const BCRYPT_SALT_ROUNDS = 10;
+const SEARCH_RESULTS_LIMIT = 20;
+const MIN_SEARCH_QUERY_LENGTH = 2;
+const USER_SELECT_FIELDS = 'id, email, phone, full_name_ar, full_name_en, role, is_active';
+
 /**
  * Rate limiting for password management endpoints
  * Prevents brute force attacks and excessive password reset attempts
@@ -83,36 +89,17 @@ const validatePasswordStrength = (password) => {
 };
 
 /**
- * Find user by email, phone, or ID
+ * Find user by email, phone, or ID using optimized OR query
  */
 const findUser = async (identifier) => {
-  // Try to find by email
-  let query = supabase
+  const normalizedPhone = identifier.replace(/\s|-/g, '');
+
+  // Use OR condition for efficient single query
+  const result = await supabase
     .from('users')
-    .select('id, email, phone, full_name_ar, full_name_en, role, is_active')
-    .eq('email', identifier)
-    .single();
-
-  let result = await query;
-
-  // If not found by email, try phone
-  if (result.error) {
-    const normalizedPhone = identifier.replace(/\s|-/g, '');
-    result = await supabase
-      .from('users')
-      .select('id, email, phone, full_name_ar, full_name_en, role, is_active')
-      .eq('phone', normalizedPhone)
-      .single();
-  }
-
-  // If still not found, try by ID
-  if (result.error) {
-    result = await supabase
-      .from('users')
-      .select('id, email, phone, full_name_ar, full_name_en, role, is_active')
-      .eq('id', identifier)
-      .single();
-  }
+    .select(USER_SELECT_FIELDS)
+    .or(`email.eq.${identifier},phone.eq.${normalizedPhone},id.eq.${identifier}`)
+    .maybeSingle();
 
   return result;
 };
@@ -163,7 +150,7 @@ router.post('/reset', authenticateToken, requireSuperAdmin, passwordManagementLi
     }
 
     // Hash new password
-    const salt = await bcrypt.genSalt(10);
+    const salt = await bcrypt.genSalt(BCRYPT_SALT_ROUNDS);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
 
     // Update password in database
@@ -189,7 +176,7 @@ router.post('/reset', authenticateToken, requireSuperAdmin, passwordManagementLi
     }
 
     // Log audit trail
-    await supabase.from('audit_logs').insert({
+    const { error: auditError } = await supabase.from('audit_logs').insert({
       action: 'PASSWORD_RESET',
       actor_id: req.superAdmin.id,
       actor_email: req.superAdmin.email,
@@ -200,6 +187,11 @@ router.post('/reset', authenticateToken, requireSuperAdmin, passwordManagementLi
         timestamp: new Date().toISOString()
       }
     });
+
+    if (auditError) {
+      log.error('[PasswordReset] Failed to create audit log:', auditError);
+      // Continue - audit failure shouldn't block password reset
+    }
 
     log.info('[PasswordReset] Password reset successful:', {
       adminId: req.superAdmin.id,
@@ -292,7 +284,7 @@ router.post('/create', authenticateToken, requireSuperAdmin, passwordManagementL
     }
 
     // Hash password
-    const salt = await bcrypt.genSalt(10);
+    const salt = await bcrypt.genSalt(BCRYPT_SALT_ROUNDS);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
 
     // Update password and activate account
@@ -319,7 +311,7 @@ router.post('/create', authenticateToken, requireSuperAdmin, passwordManagementL
     }
 
     // Log audit trail
-    await supabase.from('audit_logs').insert({
+    const { error: auditError } = await supabase.from('audit_logs').insert({
       action: 'PASSWORD_CREATED',
       actor_id: req.superAdmin.id,
       actor_email: req.superAdmin.email,
@@ -331,6 +323,11 @@ router.post('/create', authenticateToken, requireSuperAdmin, passwordManagementL
         timestamp: new Date().toISOString()
       }
     });
+
+    if (auditError) {
+      log.error('[PasswordCreate] Failed to create audit log:', auditError);
+      // Continue - audit failure shouldn't block password creation
+    }
 
     log.info('[PasswordCreate] Password created successfully:', {
       adminId: req.superAdmin.id,
@@ -372,7 +369,7 @@ router.get('/search-users', authenticateToken, requireSuperAdmin, passwordManage
     // Sanitize search query
     query = sanitizeInput(query);
 
-    if (!query || query.length < 2) {
+    if (!query || query.length < MIN_SEARCH_QUERY_LENGTH) {
       return res.status(400).json({
         success: false,
         error: 'INVALID_QUERY',
@@ -381,21 +378,23 @@ router.get('/search-users', authenticateToken, requireSuperAdmin, passwordManage
       });
     }
 
-    // Search in both users and members tables
+    // Search in both users and members tables using parameterized queries
+    const searchPattern = `%${query}%`;
+
     const { data: users, error: usersError } = await supabase
       .from('users')
       .select('id, email, phone, full_name_ar, full_name_en, role, is_active, password_hash')
-      .or(`email.ilike.%${query}%,phone.ilike.%${query}%,full_name_ar.ilike.%${query}%,full_name_en.ilike.%${query}%`)
+      .or(`email.ilike.${searchPattern},phone.ilike.${searchPattern},full_name_ar.ilike.${searchPattern},full_name_en.ilike.${searchPattern}`)
       .order('created_at', { ascending: false })
-      .limit(20);
+      .limit(SEARCH_RESULTS_LIMIT);
 
     const { data: members, error: membersError } = await supabase
       .from('members')
       .select('id, email, phone, full_name, user_id, status')
-      .or(`email.ilike.%${query}%,phone.ilike.%${query}%,full_name.ilike.%${query}%`)
+      .or(`email.ilike.${searchPattern},phone.ilike.${searchPattern},full_name.ilike.${searchPattern}`)
       .is('user_id', null) // Only members without auth accounts
       .order('created_at', { ascending: false })
-      .limit(20);
+      .limit(SEARCH_RESULTS_LIMIT);
 
     if (usersError) {
       log.error('[UserSearch] Users search failed:', usersError);

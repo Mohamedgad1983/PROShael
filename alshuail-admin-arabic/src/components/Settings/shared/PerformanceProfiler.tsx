@@ -1,7 +1,7 @@
 /**
  * Performance Profiler Component
  * React Profiler wrapper for monitoring component render performance
- * Measures phase duration, interactions, and re-render causes
+ * Measures phase duration and re-render causes
  */
 
 import React, { Profiler, ProfilerOnRenderCallback } from 'react';
@@ -13,7 +13,6 @@ interface PerformanceMetrics {
   baseDuration: number;
   startTime: number;
   commitTime: number;
-  interactions: Set<any>;
 }
 
 interface PerformanceProfilerProps {
@@ -136,14 +135,13 @@ export const PerformanceProfiler: React.FC<PerformanceProfilerProps> = ({
   slowRenderThreshold = 16,
   enableLogging = process.env.NODE_ENV === 'development'
 }) => {
-  const handleRender: ProfilerOnRenderCallback = (
-    profileId,
-    phase,
-    actualDuration,
-    baseDuration,
-    startTime,
-    commitTime,
-    interactions
+  const handleRender = (
+    profileId: string,
+    phase: 'mount' | 'update',
+    actualDuration: number,
+    baseDuration: number,
+    startTime: number,
+    commitTime: number
   ) => {
     const metrics: PerformanceMetrics = {
       id: profileId,
@@ -151,8 +149,7 @@ export const PerformanceProfiler: React.FC<PerformanceProfilerProps> = ({
       actualDuration,
       baseDuration,
       startTime,
-      commitTime,
-      interactions
+      commitTime
     };
 
     // Store metrics
@@ -173,8 +170,7 @@ export const PerformanceProfiler: React.FC<PerformanceProfilerProps> = ({
         {
           actualDuration: `${actualDuration.toFixed(2)}ms`,
           baseDuration: `${baseDuration.toFixed(2)}ms`,
-          startTime: `${startTime.toFixed(2)}ms`,
-          interactions: interactions.size
+          startTime: `${startTime.toFixed(2)}ms`
         }
       );
     }

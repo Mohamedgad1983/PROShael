@@ -370,14 +370,16 @@ const AuditLogs: React.FC = () => {
         <div style={searchWrapperStyle}>
           <MagnifyingGlassIcon style={searchIconStyle} />
           <SettingsInput
+            label="البحث"
             value={searchTerm}
-            onChange={setSearchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="البحث في السجلات..."
             style={{ paddingRight: '45px' }}
           />
         </div>
 
         <SettingsSelect
+          label="القسم"
           value={selectedModule}
           onChange={setSelectedModule}
           options={[
@@ -391,6 +393,7 @@ const AuditLogs: React.FC = () => {
         />
 
         <SettingsSelect
+          label="المستوى"
           value={selectedSeverity}
           onChange={setSelectedSeverity}
           options={[

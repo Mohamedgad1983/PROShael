@@ -36,9 +36,8 @@ import FinancialReportsSimple from './Reports/FinancialReportsSimple';
 // @ts-ignore
 import TwoSectionMembers from './Members/TwoSectionMembers.jsx';
 
-// @ts-ignore
-
-import Settings from './Settings/Settings.jsx';
+// @ts-ignore - Using SettingsPage.tsx for modern Settings with profile-settings tab
+import Settings from './Settings/SettingsPage';
 
 // @ts-ignore
 import MemberStatementSearch from './MemberStatement/MemberStatementSearch.jsx';

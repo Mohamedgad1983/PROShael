@@ -22,5 +22,12 @@
   },
   "include": [
     "src"
+  ],
+  "exclude": [
+    "**/*.stories.tsx",
+    "**/*.stories.ts",
+    "**/*.test.tsx",
+    "**/*.test.ts",
+    "node_modules"
   ]
 }

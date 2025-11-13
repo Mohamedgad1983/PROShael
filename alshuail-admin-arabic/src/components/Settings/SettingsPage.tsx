@@ -1,6 +1,7 @@
 /**
  * Settings Page Component
  * Premium settings interface with RBAC user management for Super Admin
+ * Last Modified: 2025-11-12 - Fixed profile-settings tab filtering bug
  */
 
 import React, { useState, useEffect } from 'react';
@@ -252,16 +253,14 @@ const SettingsPage: React.FC = () => {
 
   // Filter tabs based on user role
   const availableTabs = settingsTabs.filter(tab => {
-    if (!tab.requiredRole) return true;
-    const hasRequiredRole = hasRole(tab.requiredRole as any);
-    console.log(`[Settings] Tab ${tab.id} - Required role: ${tab.requiredRole}, Has role: ${hasRequiredRole}`);
-
-    // TEMPORARY: Force include multi-role and password-management tabs for testing
-    const forceIncludeTabs = ['multi-role-management', ['password', 'management'].join('-')];
-    if (forceIncludeTabs.includes(tab.id)) {
-      console.log(`[Settings] FORCING ${tab.id} tab to be included`);
+    // If requiredRole is undefined or empty array, available to all users
+    if (!tab.requiredRole || tab.requiredRole.length === 0) {
+      console.log(`[Settings] Tab ${tab.id} has no role requirement - available to all`);
       return true;
     }
+
+    const hasRequiredRole = hasRole(tab.requiredRole as any);
+    console.log(`[Settings] Tab ${tab.id} - Required role: ${tab.requiredRole}, Has role: ${hasRequiredRole}`);
 
     return hasRequiredRole;
   });

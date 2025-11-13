@@ -739,7 +739,7 @@ const UserManagement: React.FC = () => {
               <SettingsInput
                 label="الاسم الكامل"
                 value={newUser.name}
-                onChange={(value) => setNewUser({ ...newUser, name: value })}
+                onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
                 placeholder="أدخل الاسم الكامل"
                 required
               />
@@ -748,7 +748,7 @@ const UserManagement: React.FC = () => {
                 label="البريد الإلكتروني"
                 type="email"
                 value={newUser.email}
-                onChange={(value) => setNewUser({ ...newUser, email: value })}
+                onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
                 placeholder="example@alshuail.com"
                 required
               />
@@ -757,7 +757,7 @@ const UserManagement: React.FC = () => {
                 label="رقم الهاتف"
                 type="tel"
                 value={newUser.phone}
-                onChange={(value) => setNewUser({ ...newUser, phone: value })}
+                onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
                 placeholder="05XXXXXXXX"
                 required
               />
@@ -766,7 +766,7 @@ const UserManagement: React.FC = () => {
                 label="كلمة المرور"
                 type="password"
                 value={newUser.password}
-                onChange={(value) => setNewUser({ ...newUser, password: value })}
+                onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
                 placeholder="••••••••"
                 required
               />

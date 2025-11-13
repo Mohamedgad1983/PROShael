@@ -9,11 +9,10 @@ import { commonStyles, COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS } from '../sha
 interface SettingsInputProps {
   label: string;
   value: string;
-  onChange: (value: string) => void;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   placeholder?: string;
   type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url';
-  error?: boolean;
-  errorMessage?: string;
+  error?: string; // Can be boolean or string (error message)
   disabled?: boolean;
   required?: boolean;
   style?: React.CSSProperties;
@@ -25,12 +24,13 @@ export const SettingsInput: React.FC<SettingsInputProps> = ({
   onChange,
   placeholder,
   type = 'text',
-  error = false,
-  errorMessage,
+  error,
   disabled = false,
   required = false,
   style
 }) => {
+  const hasError = Boolean(error);
+  const errorMessage = typeof error === 'string' ? error : undefined;
   const labelStyle: React.CSSProperties = {
     display: 'block',
     marginBottom: SPACING.sm,
@@ -41,7 +41,7 @@ export const SettingsInput: React.FC<SettingsInputProps> = ({
 
   const inputStyle: React.CSSProperties = {
     ...commonStyles.input,
-    ...(error && {
+    ...(hasError && {
       borderColor: COLORS.error,
       background: COLORS.errorBg
     }),
@@ -55,7 +55,10 @@ export const SettingsInput: React.FC<SettingsInputProps> = ({
   const errorStyle: React.CSSProperties = {
     marginTop: SPACING.xs,
     fontSize: TYPOGRAPHY.sm,
-    color: COLORS.errorText
+    color: COLORS.errorText,
+    display: 'flex',
+    alignItems: 'center',
+    gap: SPACING.xs
   };
 
   return (
@@ -67,14 +70,16 @@ export const SettingsInput: React.FC<SettingsInputProps> = ({
       <input
         type={type}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={onChange}
         placeholder={placeholder}
         disabled={disabled}
         required={required}
         style={inputStyle}
       />
-      {error && errorMessage && (
-        <div style={errorStyle}>{errorMessage}</div>
+      {hasError && errorMessage && (
+        <div style={errorStyle}>
+          ⚠️ {errorMessage}
+        </div>
       )}
     </div>
   );

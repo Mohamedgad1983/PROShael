@@ -10,6 +10,9 @@ export const COLORS = {
   primaryDark: '#764ba2',
   primaryLight: 'rgba(102, 126, 234, 0.1)',
 
+  // Primary alias
+  primary: '#667eea',
+
   // Status colors
   success: '#10B981',
   successBg: '#D1FAE5',
@@ -20,6 +23,9 @@ export const COLORS = {
   warning: '#F59E0B',
   warningBg: '#FEF3C7',
   warningText: '#92400E',
+  info: '#3B82F6',
+  infoBg: '#DBEAFE',
+  infoText: '#1E40AF',
 
   // Neutral colors (Light mode)
   white: '#FFFFFF',
