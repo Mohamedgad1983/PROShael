@@ -67,13 +67,6 @@ const AppearanceSettings: React.FC = () => {
       settings.compact_mode !== originalSettings.compact_mode ||
       settings.animations_enabled !== originalSettings.animations_enabled;
 
-    console.log('[AppearanceSettings] Change detection:', {
-      changed,
-      currentTheme: settings.theme_mode,
-      originalTheme: originalSettings.theme_mode,
-      themeModeChanged: settings.theme_mode !== originalSettings.theme_mode
-    });
-
     setHasChanges(changed);
   }, [settings, originalSettings]);
 
@@ -92,7 +85,6 @@ const AppearanceSettings: React.FC = () => {
 
       if (response.data.success) {
         const fetchedSettings = response.data.settings;
-        console.log('[AppearanceSettings] Fetched settings:', fetchedSettings);
         setSettings(fetchedSettings);
         setOriginalSettings(fetchedSettings);
         // Apply current settings
@@ -222,12 +214,7 @@ const AppearanceSettings: React.FC = () => {
   };
 
   const handleThemeModeChange = (mode: ThemeMode) => {
-    console.log('[AppearanceSettings] Changing theme mode to:', mode);
-    setSettings(prev => {
-      const newSettings = { ...prev, theme_mode: mode };
-      console.log('[AppearanceSettings] New settings:', newSettings);
-      return newSettings;
-    });
+    setSettings(prev => ({ ...prev, theme_mode: mode }));
   };
 
   const handlePrimaryColorChange = (color: string) => {
