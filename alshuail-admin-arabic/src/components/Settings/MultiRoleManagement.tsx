@@ -3,7 +3,7 @@
  * Allows super admins to assign multiple time-based roles to users
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { memo,  useState, useEffect } from 'react';
 import {
   UserGroupIcon,
   PlusIcon,
@@ -28,6 +28,8 @@ import { HijriDatePicker } from '../Common/HijriDatePicker';
 // Import shared styles for consistent design
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, commonStyles, getMessageStyle } from './sharedStyles';
 import { SettingsButton, StatusBadge } from './shared';
+
+import { logger } from '../../utils/logger';
 
 const MultiRoleManagement: React.FC = () => {
   // State management
@@ -106,7 +108,7 @@ const MultiRoleManagement: React.FC = () => {
       setRoles(data);
     } catch (error) {
       showNotification('error', 'فشل تحميل الأدوار');
-      console.error('Load roles error:', error);
+      logger.error('Load roles error:', { error });
     }
   };
 
@@ -117,7 +119,7 @@ const MultiRoleManagement: React.FC = () => {
       setAllUsersWithRoles(data.users || []);
     } catch (error) {
       // Don't show error if endpoint doesn't exist yet
-      console.log('Load all users with roles:', error);
+      logger.debug('Load all users with roles:', { error });
     } finally {
       setLoadingAllUsers(false);
     }
@@ -130,7 +132,7 @@ const MultiRoleManagement: React.FC = () => {
       setSearchResults(results);
     } catch (error) {
       showNotification('error', 'فشل البحث عن الأعضاء');
-      console.error('Search error:', error);
+      logger.error('Search error:', { error });
     } finally {
       setLoading(false);
     }
@@ -143,7 +145,7 @@ const MultiRoleManagement: React.FC = () => {
       setUserAssignments(assignments);
     } catch (error) {
       showNotification('error', 'فشل تحميل الصلاحيات');
-      console.error('Load assignments error:', error);
+      logger.error('Load assignments error:', { error });
     } finally {
       setLoading(false);
     }
@@ -181,7 +183,7 @@ const MultiRoleManagement: React.FC = () => {
     } catch (error: any) {
       const errorMsg = error.response?.data?.error || 'فشل تعيين الصلاحية';
       showNotification('error', errorMsg);
-      console.error('Assign role error:', error);
+      logger.error('Assign role error:', { error });
     } finally {
       setLoading(false);
     }
@@ -209,7 +211,7 @@ const MultiRoleManagement: React.FC = () => {
     } catch (error: any) {
       const errorMsg = error.response?.data?.error || 'فشل تحديث الصلاحية';
       showNotification('error', errorMsg);
-      console.error('Update assignment error:', error);
+      logger.error('Update assignment error:', { error });
     } finally {
       setLoading(false);
     }
@@ -231,7 +233,7 @@ const MultiRoleManagement: React.FC = () => {
     } catch (error: any) {
       const errorMsg = error.response?.data?.error || 'فشل إلغاء الصلاحية';
       showNotification('error', errorMsg);
-      console.error('Revoke assignment error:', error);
+      logger.error('Revoke assignment error:', { error });
     } finally {
       setLoading(false);
     }
@@ -926,4 +928,4 @@ const MultiRoleManagement: React.FC = () => {
   );
 };
 
-export default MultiRoleManagement;
+export default memo(MultiRoleManagement);

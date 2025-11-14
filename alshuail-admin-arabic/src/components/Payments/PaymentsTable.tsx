@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { memo,  useState, useMemo } from 'react';
 import {
   EyeIcon,
   CheckCircleIcon,
@@ -539,4 +539,4 @@ const PaymentsTable: React.FC<PaymentsTableProps> = ({
   );
 };
 
-export default PaymentsTable;
+export default memo(PaymentsTable);

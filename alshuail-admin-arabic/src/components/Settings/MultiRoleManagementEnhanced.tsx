@@ -3,7 +3,7 @@
  * Shows all users with role assignments for Super Admin overview
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { memo,  useState, useEffect } from 'react';
 import {
   UserGroupIcon,
   PlusIcon,
@@ -28,6 +28,8 @@ import multiRoleService, {
 } from '../../services/multiRoleService';
 import { HijriDatePicker } from '../Common/HijriDatePicker';
 import axios from 'axios';
+
+import { logger } from '../../utils/logger';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
@@ -100,7 +102,7 @@ const MultiRoleManagementEnhanced: React.FC = () => {
       setRoles(data);
     } catch (error) {
       showNotification('error', 'فشل تحميل الأدوار');
-      console.error('Load roles error:', error);
+      logger.error('Load roles error:', { error });
     }
   };
 
@@ -144,7 +146,7 @@ const MultiRoleManagementEnhanced: React.FC = () => {
               });
             }
           } catch (error) {
-            console.log(`No roles for user ${user.name}`);
+            logger.debug(`No roles for user ${user.name}`);
           }
         }
 
@@ -153,7 +155,7 @@ const MultiRoleManagementEnhanced: React.FC = () => {
         setAllUsersWithRoles(usersWithRoles);
       }
     } catch (error) {
-      console.error('Load all users with roles error:', error);
+      logger.error('Load all users with roles error:', { error });
       // Try alternative search to find users with roles
       searchForUsersWithRoles();
     } finally {
@@ -185,13 +187,13 @@ const MultiRoleManagementEnhanced: React.FC = () => {
             }
           }
         } catch (error) {
-          console.log(`Search error for term ${term}:`, error);
+          logger.debug(`Search error for term ${term}:`, { error });
         }
       }
 
       setAllUsersWithRoles(usersWithRolesData);
     } catch (error) {
-      console.error('Alternative search error:', error);
+      logger.error('Alternative search error:', { error });
     }
   };
 
@@ -202,7 +204,7 @@ const MultiRoleManagementEnhanced: React.FC = () => {
       setSearchResults(results);
     } catch (error) {
       showNotification('error', 'فشل البحث عن الأعضاء');
-      console.error('Search error:', error);
+      logger.error('Search error:', { error });
     } finally {
       setLoading(false);
     }
@@ -215,7 +217,7 @@ const MultiRoleManagementEnhanced: React.FC = () => {
       setUserAssignments(assignments);
     } catch (error) {
       showNotification('error', 'فشل تحميل الصلاحيات');
-      console.error('Load assignments error:', error);
+      logger.error('Load assignments error:', { error });
     } finally {
       setLoading(false);
     }
@@ -275,7 +277,7 @@ const MultiRoleManagementEnhanced: React.FC = () => {
       loadAllUsersWithRoles(); // Reload the list
     } catch (error) {
       showNotification('error', 'فشل تعيين الصلاحية');
-      console.error('Assign role error:', error);
+      logger.error('Assign role error:', { error });
     } finally {
       setLoading(false);
     }
@@ -308,7 +310,7 @@ const MultiRoleManagementEnhanced: React.FC = () => {
       loadAllUsersWithRoles(); // Reload the list
     } catch (error) {
       showNotification('error', 'فشل تحديث الصلاحية');
-      console.error('Update assignment error:', error);
+      logger.error('Update assignment error:', { error });
     } finally {
       setLoading(false);
     }
@@ -331,7 +333,7 @@ const MultiRoleManagementEnhanced: React.FC = () => {
       loadAllUsersWithRoles(); // Reload the list
     } catch (error) {
       showNotification('error', 'فشل إلغاء الصلاحية');
-      console.error('Revoke assignment error:', error);
+      logger.error('Revoke assignment error:', { error });
     } finally {
       setLoading(false);
     }
@@ -1060,4 +1062,4 @@ const MultiRoleManagementEnhanced: React.FC = () => {
   );
 };
 
-export default MultiRoleManagementEnhanced;
+export default memo(MultiRoleManagementEnhanced);

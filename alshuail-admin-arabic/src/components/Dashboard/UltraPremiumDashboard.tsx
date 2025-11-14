@@ -21,6 +21,8 @@ import {
 } from '@heroicons/react/24/outline';
 import { StarIcon } from '@heroicons/react/24/solid';
 
+import { logger } from '../../utils/logger';
+
 // Enhanced Type definitions with better TypeScript support
 interface MenuItem {
   id: string;
@@ -86,7 +88,7 @@ const AlShuailDashboard: React.FC = () => {
 
   useEffect(() => {
     setMounted(true);
-    console.log('Dashboard mounted successfully');
+    logger.debug('Dashboard mounted successfully');
   }, []);
 
   if (!mounted) {

@@ -4,7 +4,9 @@
  * Measures phase duration and re-render causes
  */
 
-import React, { Profiler, ProfilerOnRenderCallback } from 'react';
+import React, { memo,  Profiler, ProfilerOnRenderCallback } from 'react';
+
+import { logger } from '../../../utils/logger';
 
 interface PerformanceMetrics {
   id: string;
@@ -165,8 +167,7 @@ export const PerformanceProfiler: React.FC<PerformanceProfilerProps> = ({
 
     // Log slow renders
     if (enableLogging && actualDuration > slowRenderThreshold) {
-      console.warn(
-        `[Performance] Slow ${phase} detected in "${profileId}": ${actualDuration.toFixed(2)}ms`,
+      logger.warn(`[Performance] Slow ${phase} detected in "${profileId}": ${actualDuration.toFixed(2)}ms`,
         {
           actualDuration: `${actualDuration.toFixed(2)}ms`,
           baseDuration: `${baseDuration.toFixed(2)}ms`,
@@ -177,8 +178,7 @@ export const PerformanceProfiler: React.FC<PerformanceProfilerProps> = ({
 
     // Log all renders in verbose mode
     if (enableLogging && process.env.REACT_APP_VERBOSE_PROFILING === 'true') {
-      console.log(
-        `[Performance] ${phase} in "${profileId}": ${actualDuration.toFixed(2)}ms`,
+      logger.debug(`[Performance] ${phase} in "${profileId}": ${actualDuration.toFixed(2)}ms`,
         {
           actualDuration: `${actualDuration.toFixed(2)}ms`,
           baseDuration: `${baseDuration.toFixed(2)}ms`,
@@ -205,4 +205,4 @@ export const PerformanceProfiler: React.FC<PerformanceProfilerProps> = ({
   );
 };
 
-export default PerformanceProfiler;
+export default memo(PerformanceProfiler);

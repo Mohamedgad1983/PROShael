@@ -3,7 +3,7 @@
  * General system configuration and settings
  */
 
-import React, { useState } from 'react';
+import React, { memo,  useState } from 'react';
 import {
   ServerIcon,
   CpuChipIcon,
@@ -308,4 +308,4 @@ const SystemSettings: React.FC = () => {
   );
 };
 
-export default SystemSettings;
+export default memo(SystemSettings);

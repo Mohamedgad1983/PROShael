@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { memo,  useState } from 'react';
 import {
   BellIcon,
   PauseIcon,
@@ -177,4 +177,4 @@ const ActionButtons = ({ member, userRole, onSuspend, onNotify }) => {
   );
 };
 
-export default ActionButtons;
+export default memo(ActionButtons);

@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { memo,  useState } from 'react';
 import './CompactAddMember.css';
 import memberService from '../../services/memberService';
+import { logger } from '../../utils/logger';
+
 import {
   UserIcon,
   PhoneIcon,
@@ -160,12 +162,12 @@ const CompactAddMember = ({ onMemberAdded }) => {
         profile_completed: false // Will be set to true once they complete profile
       };
 
-      console.log('📤 Sending new member data:', memberData);
+      logger.debug('📤 Sending new member data:', { memberData });
 
       // Call the actual API
       const response = await memberService.addMember(memberData);
 
-      console.log('📥 Add member response:', response);
+      logger.debug('📥 Add member response:', { response });
 
       if (response.success) {
         setSuccess(true);
@@ -194,7 +196,7 @@ const CompactAddMember = ({ onMemberAdded }) => {
         throw new Error(response.error || 'Failed to add member');
       }
     } catch (error) {
-      console.error('❌ Error adding member:', error);
+      logger.error('❌ Error adding member:', { error });
       setErrors({ submit: error.message || 'حدث خطأ في إضافة العضو' });
     } finally {
       setLoading(false);
@@ -504,4 +506,4 @@ const CompactAddMember = ({ onMemberAdded }) => {
   );
 };
 
-export default CompactAddMember;
+export default memo(CompactAddMember);

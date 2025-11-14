@@ -20,6 +20,8 @@ import '../../styles/mobile/Profile.css';
 import { getMemberProfile, getMemberBalance } from '../../services/mobileApi';
 import { formatBothCalendars } from '../../utils/hijriDate';
 
+import { logger } from '../../utils/logger';
+
 interface MemberProfile {
   id: string;
   full_name: string;
@@ -51,11 +53,11 @@ const Profile: React.FC = () => {
       // Fetch member profile and balance
       const [profileResponse, balanceResponse] = await Promise.all([
         getMemberProfile().catch(err => {
-          console.error('Profile fetch error:', err);
+          logger.error('Profile fetch error:', { err });
           return null;
         }),
         getMemberBalance().catch(err => {
-          console.error('Balance fetch error:', err);
+          logger.error('Balance fetch error:', { err });
           return null;
         })
       ]);
@@ -97,7 +99,7 @@ const Profile: React.FC = () => {
         }
       }
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      logger.error('Error fetching profile:', { error });
       // Try to use cached data
       const userData = localStorage.getItem('user');
       if (userData) {

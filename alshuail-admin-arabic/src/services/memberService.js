@@ -1,5 +1,7 @@
 import { apiService } from './api.js';
 
+import { logger } from '../utils/logger';
+
 /**
  * Member Management Service
  * Handles all member-related API operations including Excel import,
@@ -42,7 +44,7 @@ class MemberService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('API Error Response:', errorData);
+        logger.error('API Error Response:', { errorData });
 
         // Return error data instead of throwing for better handling
         return {
@@ -61,7 +63,7 @@ class MemberService {
 
       return data;
     } catch (error) {
-      console.error('API Error:', error);
+      logger.error('API Error:', { error });
       return {
         success: false,
         error: error.message || 'Network error'

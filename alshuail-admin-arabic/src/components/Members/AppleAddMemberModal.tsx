@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { memo,  useState, useEffect, useRef } from 'react';
 import {
   XMarkIcon,
   UserIcon,
@@ -19,6 +19,8 @@ import {
 } from '@heroicons/react/24/outline';
 import { CheckCircleIcon as CheckCircleIconSolid } from '@heroicons/react/24/solid';
 import { HijriDatePicker } from '../Common/HijriDatePicker';
+import { logger } from '../../utils/logger';
+
 import '../../styles/apple-design-system.css';
 
 interface AddMemberModalProps {
@@ -217,7 +219,7 @@ const AppleAddMemberModal: React.FC<AddMemberModalProps> = ({
       }, 1500);
 
     } catch (error) {
-      console.error('Error adding member:', error);
+      logger.error('Error adding member:', { error });
       setErrors([{ field: 'general', message: 'حدث خطأ أثناء إضافة العضو. يرجى المحاولة مرة أخرى.' }]);
     } finally {
       setLoading(false);
@@ -689,4 +691,4 @@ const AppleAddMemberModal: React.FC<AddMemberModalProps> = ({
   );
 };
 
-export default AppleAddMemberModal;
+export default memo(AppleAddMemberModal);

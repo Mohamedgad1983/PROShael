@@ -2,6 +2,8 @@
  * Authentication Helper Utilities
  * Handles token refresh and session management
  */
+import { logger } from './logger';
+
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
@@ -84,7 +86,7 @@ export const refreshTokenIfNeeded = async () => {
 
     return true; // Token still valid
   } catch (error) {
-    console.error('Token refresh error:', error);
+    logger.error('Token refresh error:', { error });
     return false;
   }
 };

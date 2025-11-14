@@ -1,7 +1,9 @@
 // @ts-nocheck
-import React, { useState, useEffect } from 'react';
+import React, { memo,  useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+
+import { logger } from '../../utils/logger';
 
 interface NewsItem {
     id: number;
@@ -37,7 +39,7 @@ const NewsWidget = () => {
             setNews(response.data.news || []);
             setLoading(false);
         } catch (error) {
-            console.error('Error fetching news:', error);
+            logger.error('Error fetching news:', { error });
             setLoading(false);
         }
     };
@@ -52,7 +54,7 @@ const NewsWidget = () => {
             );
             setUnreadCount(response.data.count || 0);
         } catch (error) {
-            console.error('Error fetching unread count:', error);
+            logger.error('Error fetching unread count:', { error });
         }
     };
 
@@ -231,4 +233,4 @@ const NewsWidget = () => {
     );
 };
 
-export default NewsWidget;
+export default memo(NewsWidget);

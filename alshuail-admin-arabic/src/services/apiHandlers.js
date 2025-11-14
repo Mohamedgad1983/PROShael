@@ -9,6 +9,8 @@ import analyticsService from './analyticsService.js';
 import PaymentValidationService from './paymentValidationService.js';
 import { mockDatabase, findMemberById, findPlanById, findSubscriptionById } from './mockData.js';
 
+import { logger } from '../utils/logger';
+
 // ====================
 // ERROR HANDLING UTILITIES
 // ====================
@@ -37,7 +39,7 @@ const createResponse = (success, data = null, message = '', error = null, status
  * Error handler middleware
  */
 const handleError = (error, context = 'API') => {
-  console.error(`[${context}] Error:`, error);
+  logger.error(`[${context}] Error:`, { error });
 
   // Log error details for debugging
   const errorLog = {
@@ -47,7 +49,7 @@ const handleError = (error, context = 'API') => {
     stack: error.stack
   };
 
-  console.log('Error Details:', errorLog);
+  logger.debug('Error Details:', { errorLog });
 
   return createResponse(
     false,

@@ -1,0 +1,17 @@
+
+> alshuail-admin-arabic@0.1.0 build:production
+> set REACT_APP_ENV=production && craco build
+
+Creating an optimized production build...
+Failed to compile.
+
+TS2345: Argument of type 'Metric' is not assignable to parameter of type 'string'.
+  [0m [90m 41 |[39m   [90m// Log to console in development[39m
+   [90m 42 |[39m   [36mif[39m (process[33m.[39menv[33m.[39m[33mNODE_ENV[39m [33m===[39m [32m'development'[39m) {
+  [31m[1m>[22m[39m[90m 43 |[39m     logger[33m.[39mdebug(metric)[33m;[39m
+   [90m    |[39m                  [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+   [90m 44 |[39m   }
+   [90m 45 |[39m
+   [90m 46 |[39m   [90m// You can also send to analytics here[39m[0m
+
+

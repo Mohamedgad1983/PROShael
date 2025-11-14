@@ -6,7 +6,7 @@
  * Supports different design variants while sharing core functionality
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { memo,  useState, useEffect, useCallback, useMemo } from 'react';
 import {
   FunnelIcon,
   UserGroupIcon,
@@ -33,6 +33,8 @@ import {
   ExclamationCircleIcon,
 } from '@heroicons/react/24/outline';
 import { CheckCircleIcon as CheckCircleIconSolid, StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
+
+import { logger } from '../../utils/logger';
 
 // Configuration types
 export type MembersVariant = 'apple' | 'hijri' | 'premium' | 'simple';
@@ -231,7 +233,7 @@ const UnifiedMembersManagement: React.FC<UnifiedMembersManagementProps> = ({
 
       setStatistics(mockStatistics);
     } catch (error) {
-      console.error('Error fetching members:', error);
+      logger.error('Error fetching members:', { error });
     } finally {
       setLoading(false);
     }
@@ -533,4 +535,4 @@ const UnifiedMembersManagement: React.FC<UnifiedMembersManagementProps> = ({
   );
 };
 
-export default UnifiedMembersManagement;
+export default memo(UnifiedMembersManagement);

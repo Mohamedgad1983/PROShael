@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { memo,  useState, useMemo } from 'react';
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -506,4 +506,4 @@ const dayContainerStyle: React.CSSProperties = {
   flexDirection: 'column'
 };
 
-export default OccasionsCalendar;
+export default memo(OccasionsCalendar);

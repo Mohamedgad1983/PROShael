@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { memo,  useState, useEffect } from 'react';
 import {
   XMarkIcon,
   UserIcon,
@@ -14,6 +14,8 @@ import {
 import { ARABIC_LABELS } from '../../constants/arabic';
 import { CreatePaymentFormProps, PaymentFormData, PaymentCategory, PaymentMethod, PaymentType, PaymentValidation } from './types';
 import { validatePaymentForm, formatCurrency, toArabicNumerals, generatePaymentReference } from './utils';
+
+import { logger } from '../../utils/logger';
 
 const CreatePaymentForm: React.FC<CreatePaymentFormProps> = ({
   isOpen,
@@ -113,7 +115,7 @@ const CreatePaymentForm: React.FC<CreatePaymentFormProps> = ({
       await onSubmit(formData);
       onClose();
     } catch (error) {
-      console.error('Error creating payment:', error);
+      logger.error('Error creating payment:', { error });
     } finally {
       setIsSubmitting(false);
     }
@@ -435,4 +437,4 @@ const CreatePaymentForm: React.FC<CreatePaymentFormProps> = ({
   );
 };
 
-export default CreatePaymentForm;
+export default memo(CreatePaymentForm);

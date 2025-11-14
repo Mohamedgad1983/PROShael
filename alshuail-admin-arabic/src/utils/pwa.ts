@@ -1,5 +1,7 @@
 // PWA utilities for Al-Shuail application
 // Handles installation, offline detection, and PWA-specific features
+import { logger } from './logger';
+
 
 // PWA installation interface
 interface BeforeInstallPromptEvent extends Event {
@@ -67,12 +69,12 @@ class PWAManager {
                       (window.navigator as any).standalone ||
                       document.referrer.includes('android-app://');
 
-    console.log('PWA Installation Status:', this.isInstalled ? 'Installed' : 'Not Installed');
+    logger.debug('PWA Installation Status:', {});
   }
 
   // Handle install prompt
   private handleInstallPrompt(e: Event) {
-    console.log('PWA install prompt available');
+    logger.debug('PWA install prompt available');
     e.preventDefault();
     this.deferredPrompt = e as BeforeInstallPromptEvent;
     this.emit('installAvailable', e);
@@ -80,7 +82,7 @@ class PWAManager {
 
   // Handle app installation
   private handleAppInstalled(e: Event) {
-    console.log('PWA installed successfully');
+    logger.debug('PWA installed successfully');
     this.isInstalled = true;
     this.deferredPrompt = null;
     this.emit('installed');
@@ -88,14 +90,14 @@ class PWAManager {
 
   // Handle online status change
   private handleOnlineChange() {
-    console.log('📶 Back online');
+    logger.debug('📶 Back online');
     this.isOnline = true;
     this.emit('online');
     this.showConnectionStatus('متصل بالإنترنت', 'success');
   }
 
   private handleOfflineChange() {
-    console.log('📵 Gone offline');
+    logger.debug('📵 Gone offline');
     this.isOnline = false;
     this.emit('offline');
     this.showConnectionStatus('غير متصل بالإنترنت', 'warning');
@@ -104,7 +106,7 @@ class PWAManager {
   // Public methods
   public async installApp(): Promise<boolean> {
     if (!this.deferredPrompt) {
-      console.warn('No install prompt available');
+      logger.warn('No install prompt available');
       return false;
     }
 
@@ -112,7 +114,7 @@ class PWAManager {
       this.deferredPrompt.prompt();
       const { outcome } = await this.deferredPrompt.userChoice;
 
-      console.log('Install prompt outcome:', outcome);
+      logger.debug('Install prompt outcome:', { outcome });
 
       if (outcome === 'accepted') {
         this.emit('installAccepted');
@@ -122,7 +124,7 @@ class PWAManager {
         return false;
       }
     } catch (error) {
-      console.error('Error during app installation:', error);
+      logger.error('Error during app installation:', { error });
       return false;
     }
   }
@@ -309,7 +311,7 @@ class PWAManager {
         const registration = await navigator.serviceWorker.getRegistration();
         if (registration) {
           registration.addEventListener('updatefound', () => {
-            console.log('SW update found');
+            logger.debug('SW update found');
             this.emit('updateAvailable');
           });
 
@@ -319,7 +321,7 @@ class PWAManager {
           }, 30 * 60 * 1000);
         }
       } catch (error) {
-        console.error('Error checking for updates:', error);
+        logger.error('Error checking for updates:', { error });
       }
     }
   }
@@ -338,7 +340,7 @@ class PWAManager {
         await navigator.share(shareData);
         return true;
       } catch (error) {
-        console.error('Error sharing:', error);
+        logger.error('Error sharing:', { error });
         return false;
       }
     } else {
@@ -348,7 +350,7 @@ class PWAManager {
         this.showConnectionStatus('تم نسخ الرابط', 'success');
         return true;
       } catch (error) {
-        console.error('Error copying to clipboard:', error);
+        logger.error('Error copying to clipboard:', { error });
         return false;
       }
     }

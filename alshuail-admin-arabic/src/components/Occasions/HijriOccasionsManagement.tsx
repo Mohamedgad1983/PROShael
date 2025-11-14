@@ -29,6 +29,8 @@ import {
 } from '@heroicons/react/24/outline';
 import { HijriDateDisplay, HijriDateFilter, HijriCalendarWidget } from '../Common/HijriDateDisplay';
 import { formatHijriDate, formatDualDate, getIslamicOccasion } from '../../utils/hijriDateUtils';
+import { logger } from '../../utils/logger';
+
 import '../../styles/ultra-premium-islamic-design.css';
 
 interface Occasion {
@@ -490,7 +492,7 @@ const HijriOccasionsManagement: React.FC = () => {
                 className="btn-gradient-premium"
                 onClick={(e) => {
                   e.preventDefault();
-                  console.log('Event Data:', eventData);
+                  logger.debug('Event Data:', { eventData });
                   // Here you would handle the form submission
                   setShowAddModal(false);
                 }}
@@ -731,7 +733,7 @@ const HijriOccasionsManagement: React.FC = () => {
         {/* Hijri Date Filter */}
         <HijriDateFilter
           onFilterChange={(filter) => {
-            console.log('Date filter applied:', filter);
+            logger.debug('Date filter applied:', { filter });
           }}
         />
       </div>

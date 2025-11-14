@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import {
   ClockIcon,
   MagnifyingGlassIcon,
@@ -354,4 +354,4 @@ const DiyaStatus: React.FC<DiyaStatusProps> = ({
   );
 };
 
-export default DiyaStatus;
+export default memo(DiyaStatus);

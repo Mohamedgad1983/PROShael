@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { memo,  useState, useEffect } from 'react';
 import {
   CalendarIcon,
   BanknotesIcon,
@@ -278,4 +278,4 @@ const getCategoryLabel = (category) => {
   return categories[category] || category;
 };
 
-export default HijriGroupedPayments;
+export default memo(HijriGroupedPayments);

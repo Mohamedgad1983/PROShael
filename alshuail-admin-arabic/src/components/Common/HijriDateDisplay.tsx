@@ -4,7 +4,7 @@
  * Used across all Al-Shuail Family Management System components
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { memo,  useState, useEffect } from 'react';
 import { CalendarIcon, CalendarDaysIcon, ClockIcon } from '@heroicons/react/24/outline';
 import { formatHijriDate, formatDualDate, getCurrentHijriDate, formatTimeAgo } from '../../utils/hijriDateUtils';
 import '../../styles/ultra-premium-islamic-design.css';
@@ -424,4 +424,4 @@ export const HijriDateFilter: React.FC<HijriDateFilterProps> = ({
   );
 };
 
-export default HijriDateDisplay;
+export default memo(HijriDateDisplay);

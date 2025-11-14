@@ -2,6 +2,8 @@
  * Real-time Notification Service for Al-Shuail Family Management System
  * Features: Push notifications, WebSocket integration, background sync, Arabic RTL support
  */
+import { logger } from '../utils/logger';
+
 
 class NotificationService {
   constructor() {
@@ -37,9 +39,9 @@ class NotificationService {
       // Setup background sync for offline scenarios
       this.setupBackgroundSync();
 
-      console.log('🔔 Notification service initialized successfully');
+      logger.debug('🔔 Notification service initialized successfully');
     } catch (error) {
-      console.error('❌ Failed to initialize notification service:', error);
+      logger.error('❌ Failed to initialize notification service:', { error });
     }
   }
 
@@ -72,10 +74,10 @@ class NotificationService {
         }
       });
 
-      console.log('✅ Service worker registered successfully');
+      logger.debug('✅ Service worker registered successfully');
       return registration;
     } catch (error) {
-      console.error('❌ Service worker registration failed:', error);
+      logger.error('❌ Service worker registration failed:', { error });
       throw error;
     }
   }
@@ -85,7 +87,7 @@ class NotificationService {
    */
   async requestPermission() {
     if (!('Notification' in window)) {
-      console.warn('⚠️ This browser does not support notifications');
+      logger.warn('⚠️ This browser does not support notifications');
       return false;
     }
 
@@ -98,11 +100,11 @@ class NotificationService {
     this.permissionGranted = permission === 'granted';
 
     if (!this.permissionGranted) {
-      console.warn('⚠️ Notification permission denied');
+      logger.warn('⚠️ Notification permission denied');
       return false;
     }
 
-    console.log('✅ Notification permission granted');
+    logger.debug('✅ Notification permission granted');
     return true;
   }
 
@@ -112,7 +114,7 @@ class NotificationService {
   initializeWebSocket() {
     const token = localStorage.getItem('token');
     if (!token) {
-      console.warn('⚠️ No auth token found, WebSocket connection delayed');
+      logger.warn('⚠️ No auth token found, WebSocket connection delayed');
       return;
     }
 
@@ -121,7 +123,7 @@ class NotificationService {
       this.socket = new WebSocket(`${wsUrl}?token=${token}`);
 
       this.socket.onopen = () => {
-        console.log('🌐 WebSocket connected');
+        logger.debug('🌐 WebSocket connected');
         this.isConnected = true;
         this.retryCount = 0;
 
@@ -138,23 +140,23 @@ class NotificationService {
           const data = JSON.parse(event.data);
           this.handleWebSocketMessage(data);
         } catch (error) {
-          console.error('❌ Error parsing WebSocket message:', error);
+          logger.error('❌ Error parsing WebSocket message:', { error });
         }
       };
 
       this.socket.onclose = (event) => {
-        console.log('🔌 WebSocket disconnected:', event.code);
+        logger.debug('🔌 WebSocket disconnected:', { code: event.code });
         this.isConnected = false;
         this.handleReconnection();
       };
 
       this.socket.onerror = (error) => {
-        console.error('❌ WebSocket error:', error);
+        logger.error('❌ WebSocket error:', { error });
         this.isConnected = false;
       };
 
     } catch (error) {
-      console.error('❌ Failed to initialize WebSocket:', error);
+      logger.error('❌ Failed to initialize WebSocket:', { error });
       this.handleReconnection();
     }
   }
@@ -164,14 +166,14 @@ class NotificationService {
    */
   handleReconnection() {
     if (this.retryCount >= this.maxRetries) {
-      console.error('❌ Max reconnection attempts reached');
+      logger.error('❌ Max reconnection attempts reached');
       return;
     }
 
     const delay = Math.pow(2, this.retryCount) * 1000; // Exponential backoff
     this.retryCount++;
 
-    console.log(`🔄 Attempting to reconnect in ${delay}ms (attempt ${this.retryCount})`);
+    logger.debug(`🔄 Attempting to reconnect in ${delay}ms (attempt ${this.retryCount});`);
 
     this.reconnectTimeout = setTimeout(() => {
       this.initializeWebSocket();
@@ -202,7 +204,7 @@ class NotificationService {
         this.handleFamilyAnnouncement(data);
         break;
       default:
-        console.log('📨 Received unknown message type:', data.type);
+        logger.debug('📨 Received unknown message type:', { type: data.type });
     }
   }
 
@@ -334,7 +336,7 @@ class NotificationService {
    */
   async showNotification(title, options = {}) {
     if (!this.permissionGranted) {
-      console.warn('⚠️ Cannot show notification: permission not granted');
+      logger.warn('⚠️ Cannot show notification: permission not granted');
       return;
     }
 
@@ -360,7 +362,7 @@ class NotificationService {
       this.addToNotificationHistory(title, defaultOptions);
 
     } catch (error) {
-      console.error('❌ Failed to show notification:', error);
+      logger.error('❌ Failed to show notification:', { error });
       // Queue for retry
       this.queueNotification(title, defaultOptions);
     }
@@ -426,7 +428,7 @@ class NotificationService {
       navigator.serviceWorker.ready.then(registration => {
         // Register background sync for queued notifications
         registration.sync.register('sync-notifications');
-        console.log('✅ Background sync registered');
+        logger.debug('✅ Background sync registered');
       });
     }
   }
@@ -451,7 +453,7 @@ class NotificationService {
       try {
         await this.showNotification(notification.title, notification.options);
       } catch (error) {
-        console.error('❌ Failed to process queued notification:', error);
+        logger.error('❌ Failed to process queued notification:', { error });
       }
     }
 
@@ -564,7 +566,7 @@ class NotificationService {
       const payload = JSON.parse(atob(token.split('.')[1]));
       return payload.userId || payload.id;
     } catch (error) {
-      console.error('❌ Error parsing user ID from token:', error);
+      logger.error('❌ Error parsing user ID from token:', { error });
       return null;
     }
   }
@@ -584,7 +586,7 @@ class NotificationService {
     }
 
     this.isConnected = false;
-    console.log('🔌 Notification service disconnected');
+    logger.debug('🔌 Notification service disconnected');
   }
 
   /**

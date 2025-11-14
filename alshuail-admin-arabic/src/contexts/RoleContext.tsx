@@ -5,6 +5,8 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
+import { logger } from '../utils/logger';
+
 // Role types definition
 export type UserRole =
   | 'super_admin'
@@ -179,7 +181,7 @@ export const RoleProvider: React.FC<RoleProviderProps> = ({ children }) => {
           setUser(user);
           return;
         } catch (err) {
-          console.error('Error parsing stored user:', err);
+          logger.error('Error parsing stored user:', { err });
         }
       }
 
@@ -199,7 +201,7 @@ export const RoleProvider: React.FC<RoleProviderProps> = ({ children }) => {
 
       setUser(mockUser);
     } catch (err) {
-      console.error('Error fetching user role:', err);
+      logger.error('Error fetching user role:', { err });
       setError('خطأ في جلب صلاحيات المستخدم');
       setUser(null);
     } finally {

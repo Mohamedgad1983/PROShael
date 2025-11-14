@@ -4,7 +4,7 @@
  * Allows users to customize language, region, timezone, date/time formats, and currency preferences
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { memo,  useState, useEffect } from 'react';
 import {
   LanguageIcon,
   GlobeAltIcon,
@@ -15,6 +15,8 @@ import {
   ExclamationCircleIcon
 } from '@heroicons/react/24/outline';
 import axios from 'axios';
+import { logger } from '../../utils/logger';
+
 import {
   SettingsCard,
   SettingsButton
@@ -99,7 +101,7 @@ const LanguageSettings: React.FC = () => {
         applyLanguageSettings(fetchedSettings);
       }
     } catch (error: any) {
-      console.error('Failed to fetch language settings:', error);
+      logger.error('Failed to fetch language settings:', { error });
       setMessage({
         type: 'error',
         text: error.response?.data?.message || 'فشل في جلب إعدادات اللغة والمنطقة'
@@ -153,7 +155,7 @@ const LanguageSettings: React.FC = () => {
         applyLanguageSettings(updatedSettings);
       }
     } catch (error: any) {
-      console.error('Save language settings error:', error);
+      logger.error('Save language settings error:', { error });
 
       if (error.response?.status === 429) {
         const retryAfter = error.response.data.retryAfter || 60;
@@ -207,7 +209,7 @@ const LanguageSettings: React.FC = () => {
         applyLanguageSettings(resetSettings);
       }
     } catch (error: any) {
-      console.error('Reset to defaults error:', error);
+      logger.error('Reset to defaults error:', { error });
       setMessage({
         type: 'error',
         text: error.response?.data?.message || 'فشل في إعادة تعيين الإعدادات'
@@ -599,4 +601,4 @@ const LanguageSettings: React.FC = () => {
   );
 };
 
-export default LanguageSettings;
+export default memo(LanguageSettings);

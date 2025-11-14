@@ -3,6 +3,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import ErrorDisplay from '../Common/ErrorDisplay';
 import LoadingSpinner from '../Common/LoadingSpinner';
 import ExpenseVoucher from './ExpenseVoucher';
+import { logger } from '../../utils/logger';
+
 import './ExpenseManagement.css';
 
 const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
@@ -112,7 +114,7 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
         throw new Error(data.message_ar || 'خطأ في تحميل المصروفات');
       }
     } catch (error) {
-      console.error('Error fetching expenses:', error);
+      logger.error('Error fetching expenses:', { error });
 
       let errorMessage = 'خطأ في الاتصال بالخادم';
 
@@ -145,7 +147,7 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
 
     // Validation
     if (!newExpense.title_ar || !newExpense.amount || !newExpense.category) {
-      console.log('Validation failed:', {
+      logger.debug('Validation failed:', {
         title_ar: newExpense.title_ar,
         amount: newExpense.amount,
         category: newExpense.category
@@ -235,7 +237,7 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
         throw new Error(data.message_ar || 'خطأ في إنشاء المصروف');
       }
     } catch (error) {
-      console.error('Error creating expense:', error);
+      logger.error('Error creating expense:', { error });
 
       let errorMessage = 'خطأ في الاتصال بالخادم';
 
@@ -299,7 +301,7 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
         throw new Error(data.message_ar || 'خطأ في الموافقة على المصروف');
       }
     } catch (error) {
-      console.error('Error approving expense:', error);
+      logger.error('Error approving expense:', { error });
 
       let errorMessage = 'خطأ في الموافقة على المصروف';
 
@@ -371,7 +373,7 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
         throw new Error(data.message_ar || 'خطأ في رفض المصروف');
       }
     } catch (error) {
-      console.error('Error rejecting expense:', error);
+      logger.error('Error rejecting expense:', { error });
 
       let errorMessage = 'خطأ في رفض المصروف';
 

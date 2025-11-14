@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { memo,  useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { FaCoins, FaUsers, FaCheckCircle, FaDownload, FaSearch, FaTimes } from 'react-icons/fa';
 import * as XLSX from 'xlsx';
+
+import { logger } from '../utils/logger';
 
 // API Configuration
 const API_URL = process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://proshael.onrender.com');
@@ -323,7 +325,7 @@ const DiyaDashboard = () => {
         setDiyaCases(data.data);
       }
     } catch (error) {
-      console.error('Error fetching diya dashboard:', error);
+      logger.error('Error fetching diya dashboard:', { error });
     } finally {
       setLoading(false);
     }
@@ -338,7 +340,7 @@ const DiyaDashboard = () => {
         setContributors(data.data);
       }
     } catch (error) {
-      console.error('Error fetching contributors:', error);
+      logger.error('Error fetching contributors:', { error });
     } finally {
       setModalLoading(false);
     }
@@ -534,4 +536,4 @@ const DiyaDashboard = () => {
   );
 };
 
-export default DiyaDashboard;
+export default memo(DiyaDashboard);

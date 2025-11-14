@@ -6,11 +6,13 @@
 import React from 'react';
 import UnifiedDashboard, { DASHBOARD_VARIANTS } from './UnifiedDashboard';
 
+import { logger } from '../../utils/logger';
+
 const SimpleDashboard: React.FC = () => {
   return (
     <UnifiedDashboard
       config={DASHBOARD_VARIANTS.simple}
-      onLogout={() => console.log('Logout')}
+      onLogout={() => logger.debug('Logout')}
     />
   );
 };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { memo,  useState, useEffect } from 'react';
 import {
   ChartBarIcon,
   CreditCardIcon,
@@ -537,4 +537,4 @@ const AppleSubscriptionsManagement = () => {
   );
 };
 
-export default AppleSubscriptionsManagement;
+export default memo(AppleSubscriptionsManagement);

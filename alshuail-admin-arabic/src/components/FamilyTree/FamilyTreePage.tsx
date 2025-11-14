@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import FamilyTree from './FamilyTree';
 import { useFamilyTreeData } from './useFamilyTreeData';
 import './FamilyTree.css';
@@ -90,4 +90,4 @@ const FamilyTreePage: React.FC = () => {
   );
 };
 
-export default FamilyTreePage;
+export default memo(FamilyTreePage);

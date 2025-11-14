@@ -1,5 +1,7 @@
 // IndexedDB Manager for Offline Data Storage
 // src/utils/indexedDBManager.js
+import { logger } from './logger';
+
 
 const DB_NAME = 'AlShuailDB';
 const DB_VERSION = 1;
@@ -127,7 +129,7 @@ class IndexedDBManager {
 
         await this.deleteData(STORES.offlineQueue, item.id);
       } catch (error) {
-        console.error('Failed to sync item:', error);
+        logger.error('Failed to sync item:', { error });
       }
     }
   }

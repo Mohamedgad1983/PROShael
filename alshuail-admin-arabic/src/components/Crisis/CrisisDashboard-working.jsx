@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { memo,  useState, useEffect } from 'react';
+import { logger } from '../../utils/logger';
+
 import './CrisisDashboard.css';
 
 const CrisisDashboard = () => {
@@ -30,7 +32,7 @@ const CrisisDashboard = () => {
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.data?.members) {
-          console.log('✅ Real data loaded:', data.data.statistics);
+          logger.debug('✅ Real data loaded:', { statistics: data.data.statistics });
           setCrisisData(data.data);
           setLoading(false);
           return;
@@ -38,13 +40,13 @@ const CrisisDashboard = () => {
       }
 
       // Fallback to mock data if API fails
-      console.log('⚠️ API failed, using mock data');
+      logger.debug('⚠️ API failed, using mock data');
       const mockData = generateMockData();
       setCrisisData(mockData);
       setLoading(false);
 
     } catch (apiErr) {
-      console.log('❌ API error:', apiErr.message, '- using mock data');
+      logger.debug('❌ API error:', { message: apiErr.message });
       const mockData = generateMockData();
       setCrisisData(mockData);
       setLoading(false);
@@ -336,4 +338,4 @@ const CrisisDashboard = () => {
   );
 };
 
-export default CrisisDashboard;
+export default memo(CrisisDashboard);

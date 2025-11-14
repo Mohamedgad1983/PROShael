@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { memo,  useState, useEffect } from 'react';
 import { toHijri, toGregorian } from 'hijri-converter';
 import { CalendarDaysIcon } from '@heroicons/react/24/outline';
 import CustomDropdown from './CustomDropdown';
@@ -223,4 +223,4 @@ const HijriDatePicker = ({ value, onChange, required = false, label = "التا�
   );
 };
 
-export default HijriDatePicker;
+export default memo(HijriDatePicker);

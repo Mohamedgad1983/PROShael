@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { memo,  useState, useEffect, useCallback } from 'react';
 import { memberService } from '../../services/memberService';
 import MemberImport from './MemberImport';
 import AddMemberModal from './AddMemberModal';
+import { logger } from '../../utils/logger';
+
 import {
   MagnifyingGlassIcon,
   FunnelIcon,
@@ -55,7 +57,7 @@ const MembersManagement = () => {
       const stats = await memberService.getMemberStatistics();
       setStatistics(stats);
     } catch (error) {
-      console.error('Error loading statistics:', error);
+      logger.error('Error loading statistics:', { error });
     }
   };
 
@@ -80,7 +82,7 @@ const MembersManagement = () => {
         totalPages: response.totalPages || 0
       }));
     } catch (error) {
-      console.error('Error loading members:', error);
+      logger.error('Error loading members:', { error });
       setMembers([]);
     } finally {
       setLoading(false);
@@ -127,7 +129,7 @@ const MembersManagement = () => {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Export error:', error);
+      logger.error('Export error:', { error });
       alert('حدث خطأ أثناء تصدير البيانات');
     }
   };
@@ -143,7 +145,7 @@ const MembersManagement = () => {
       alert(`تم إرسال ${result.sentCount} رسالة تذكيرية بنجاح`);
       setSelectedMembers([]);
     } catch (error) {
-      console.error('Error sending reminders:', error);
+      logger.error('Error sending reminders:', { error });
       alert('حدث خطأ أثناء إرسال التذكيرات');
     }
   };
@@ -555,4 +557,4 @@ const MembersManagement = () => {
   );
 };
 
-export default MembersManagement;
+export default memo(MembersManagement);

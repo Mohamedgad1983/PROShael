@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { memo,  useState, useEffect, useMemo, useCallback } from 'react';
 // Optimized imports - only what's actually used
 import {
   HandRaisedIcon,
@@ -26,6 +26,8 @@ import * as XLSX from 'xlsx';
 import { HijriDateDisplay } from '../Common/HijriDateDisplay';
 import { HijriDateInput } from '../Common/HijriDateInput';
 import { isOverdue, getDaysUntil } from '../../utils/hijriDateUtils';
+import { logger } from '../../utils/logger';
+
 import '../../styles/ultra-premium-islamic-design.css';
 
 // ========================================
@@ -176,10 +178,10 @@ const HijriDiyasManagement: React.FC = () => {
         }));
 
         setDiyas(transformedDiyas);
-        console.log(`✅ Loaded ${transformedDiyas.length} real Diyas from database with ${transformedDiyas.reduce((sum: number, d: Diya) => sum + d.contributorsCount, 0)} total contributors`);
+        logger.debug(`✅ Loaded ${transformedDiyas.length} real Diyas from database with ${transformedDiyas.reduce((sum: number, d: Diya) => sum + d.contributorsCount, 0)} total contributors`);
       }
     } catch (error) {
-      console.error('Error fetching diyas:', error);
+      logger.error('Error fetching diyas:', { error });
       // Keep empty array on error
       setDiyas([]);
     } finally {
@@ -216,7 +218,7 @@ const HijriDiyasManagement: React.FC = () => {
         }
       }
     } catch (error) {
-      console.error('Error fetching contributors:', error);
+      logger.error('Error fetching contributors:', { error });
     } finally {
       setContributorsLoading(false);
     }
@@ -251,7 +253,7 @@ const HijriDiyasManagement: React.FC = () => {
       }
       return [];
     } catch (error) {
-      console.error('Error fetching all contributors:', error);
+      logger.error('Error fetching all contributors:', { error });
       return [];
     }
   };
@@ -488,7 +490,7 @@ const HijriDiyasManagement: React.FC = () => {
                 <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-2 text-sm rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100">
                   إلغاء
                 </button>
-                <button type="submit" className="px-4 py-2 text-sm btn-gradient-premium" onClick={(e) => { e.preventDefault(); console.log('Diya Data:', diyaData); setShowAddModal(false); }}>
+                <button type="submit" className="px-4 py-2 text-sm btn-gradient-premium" onClick={(e) => { e.preventDefault(); logger.debug('Diya Data:', { diyaData }); setShowAddModal(false); }}>
                   إضافة
                 </button>
               </div>
@@ -1165,4 +1167,4 @@ const HijriDiyasManagement: React.FC = () => {
   );
 };
 
-export default HijriDiyasManagement;
+export default memo(HijriDiyasManagement);

@@ -1,3 +1,5 @@
+import { logger } from './utils/logger';
+
 /**
  * Force-Include Shim for Access Control Component
  *
@@ -21,11 +23,11 @@ import(
 
     // Log in development to verify loading
     if (process.env.NODE_ENV === 'development') {
-      console.log('[Force-Include] Access Control component loaded successfully');
+      logger.debug('[Force-Include] Access Control component loaded successfully');
     }
   }
 }).catch((error) => {
-  console.error('[Force-Include] Failed to load Access Control component:', error);
+  logger.error('[Force-Include] Failed to load Access Control component:', { error });
 });
 
 // ADDITIONAL SAFETY: Create module-level side-effect

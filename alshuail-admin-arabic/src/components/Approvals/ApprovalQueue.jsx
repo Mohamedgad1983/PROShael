@@ -1,5 +1,5 @@
 // Approval Queue Component - File 06 Integration
-import React, { useState, useEffect } from 'react';
+import React, { memo,  useState, useEffect } from 'react';
 import {
   CheckCircleIcon,
   XCircleIcon,
@@ -14,6 +14,8 @@ import {
 import { approvalService } from '../../services/approval.service';
 import { validateGCCPhone, formatPhoneNumber } from '../../utils/validators';
 import { REGISTRATION_STATUS, STATUS_NAMES_AR } from '../../utils/constants';
+
+import { logger } from '../../utils/logger';
 
 const ApprovalQueue = () => {
   const [pendingMembers, setPendingMembers] = useState([]);
@@ -43,7 +45,7 @@ const ApprovalQueue = () => {
       setError('');
     } catch (err) {
       setError(err.message || 'فشل في تحميل البيانات');
-      console.error('Load error:', err);
+      logger.error('Load error:', { err });
     } finally {
       setLoading(false);
     }
@@ -363,4 +365,4 @@ const ApprovalQueue = () => {
   );
 };
 
-export default ApprovalQueue;
+export default memo(ApprovalQueue);

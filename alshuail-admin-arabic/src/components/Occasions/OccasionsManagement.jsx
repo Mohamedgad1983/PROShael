@@ -1,6 +1,8 @@
 ﻿import React, {  useState, useEffect , useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { toHijri } from 'hijri-converter';
+import { logger } from '../../utils/logger';
+
 import {
   CalendarDaysIcon,
   SparklesIcon,
@@ -175,7 +177,7 @@ const OccasionsManagement = () => {
       // Load mock data - replace with actual API calls
       setOccasions(mockOccasions);
     } catch (error) {
-      console.error('Error loading occasions data:', error);
+      logger.error('Error loading occasions data:', { error });
     } finally {
       setLoading(false);
     }

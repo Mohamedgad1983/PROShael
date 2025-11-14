@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { memo,  useState, useEffect } from 'react';
 import {
   LightBulbIcon,
   SparklesIcon,
@@ -504,4 +504,4 @@ const HijriInitiativesManagement: React.FC = () => {
   );
 };
 
-export default HijriInitiativesManagement;
+export default memo(HijriInitiativesManagement);

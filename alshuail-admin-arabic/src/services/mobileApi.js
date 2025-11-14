@@ -9,6 +9,8 @@
 
 import axios from 'axios';
 
+import { logger } from '../utils/logger';
+
 // API Base URL (production)
 const API_BASE_URL = 'https://proshael.onrender.com/api';
 
@@ -57,7 +59,7 @@ apiClient.interceptors.response.use(
       const isMemberEndpoint = memberEndpoints.some(endpoint => error.config?.url?.includes(endpoint));
 
       if (isMemberEndpoint) {
-        console.error('Member endpoint failed with 401, but keeping user logged in for now');
+        logger.error('Member endpoint failed with 401, but keeping user logged in for now');
         // Don't logout, let the component handle the error
         return Promise.reject(error);
       }
@@ -68,13 +70,13 @@ apiClient.interceptors.response.use(
 
       // Only logout if it's clearly a token issue
       if (isTokenError) {
-        console.error('Token error detected, redirecting to login:', errorMessage);
+        logger.error('Token error detected, redirecting to login:', { errorMessage });
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         localStorage.removeItem('memberData');
         window.location.href = '/mobile/login';
       } else {
-        console.error('401 error but not clearly token-related, keeping user logged in');
+        logger.error('401 error but not clearly token-related, keeping user logged in');
       }
     }
     return Promise.reject(error);
@@ -91,7 +93,7 @@ export const getMemberProfile = async () => {
     const response = await apiClient.get('/member/profile');
     return response.data;
   } catch (error) {
-    console.error('Error fetching member profile:', error);
+    logger.error('Error fetching member profile:', { error });
     throw error;
   }
 };
@@ -102,7 +104,7 @@ export const getMemberBalance = async () => {
     const response = await apiClient.get('/member/balance');
     return response.data;
   } catch (error) {
-    console.error('Error fetching member balance:', error);
+    logger.error('Error fetching member balance:', { error });
     throw error;
   }
 };
@@ -119,7 +121,7 @@ export const getMemberPayments = async (params = {}) => {
     const response = await apiClient.get(url);
     return response.data;
   } catch (error) {
-    console.error('Error fetching member payments:', error);
+    logger.error('Error fetching member payments:', { error });
     throw error;
   }
 };
@@ -130,7 +132,7 @@ export const submitPayment = async (paymentData) => {
     const response = await apiClient.post('/member/payments', paymentData);
     return response.data;
   } catch (error) {
-    console.error('Error submitting payment:', error);
+    logger.error('Error submitting payment:', { error });
     throw error;
   }
 };
@@ -151,7 +153,7 @@ export const uploadReceipt = async (file, paymentId) => {
     });
     return response.data;
   } catch (error) {
-    console.error('Error uploading receipt:', error);
+    logger.error('Error uploading receipt:', { error });
     throw error;
   }
 };
@@ -168,7 +170,7 @@ export const getMemberNotifications = async (params = {}) => {
     const response = await apiClient.get(url);
     return response.data;
   } catch (error) {
-    console.error('Error fetching notifications:', error);
+    logger.error('Error fetching notifications:', { error });
     throw error;
   }
 };
@@ -179,7 +181,7 @@ export const markNotificationRead = async (notificationId) => {
     const response = await apiClient.post(`/member/notifications/${notificationId}/read`);
     return response.data;
   } catch (error) {
-    console.error('Error marking notification as read:', error);
+    logger.error('Error marking notification as read:', { error });
     throw error;
   }
 };
@@ -196,7 +198,7 @@ export const searchMembers = async (searchQuery) => {
     });
     return response.data;
   } catch (error) {
-    console.error('Error searching members:', error);
+    logger.error('Error searching members:', { error });
     throw error;
   }
 };
@@ -213,7 +215,7 @@ export const getMemberIdCard = async () => {
     });
     return response.data;
   } catch (error) {
-    console.error('Error fetching ID card:', error);
+    logger.error('Error fetching ID card:', { error });
     throw error;
   }
 };
@@ -234,7 +236,7 @@ export const getDashboardData = async () => {
   try {
     profile = await getMemberProfile();
   } catch (error) {
-    console.error('Failed to fetch profile, using localStorage:', error);
+    logger.error('Failed to fetch profile, using localStorage:', { error });
     // Fallback to localStorage data
     const userData = localStorage.getItem('user');
     if (userData) {
@@ -246,7 +248,7 @@ export const getDashboardData = async () => {
   try {
     balance = await getMemberBalance();
   } catch (error) {
-    console.error('Failed to fetch balance:', error);
+    logger.error('Failed to fetch balance:', { error });
     // Use default balance
     balance = { data: { current_balance: 0, total_paid: 0 } };
   }
@@ -255,14 +257,14 @@ export const getDashboardData = async () => {
   try {
     payments = await getMemberPayments({ limit: 5 });
   } catch (error) {
-    console.error('Failed to fetch payments:', error);
+    logger.error('Failed to fetch payments:', { error });
   }
 
   // Try to get notifications
   try {
     notifications = await getMemberNotifications({ unread: true, limit: 5 });
   } catch (error) {
-    console.error('Failed to fetch notifications:', error);
+    logger.error('Failed to fetch notifications:', { error });
   }
 
   return {

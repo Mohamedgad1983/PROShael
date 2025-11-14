@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { memo,  useState } from 'react';
 import ExpenseManagement from './ExpenseManagement';
+
+import { logger } from '../../utils/logger';
 
 const FinancialReportsSimple = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -83,7 +85,7 @@ const FinancialReportsSimple = () => {
             }}
             onExpenseChange={() => {
               // Refresh data if needed
-              console.log('Expense changed');
+              logger.debug('Expense changed');
             }}
           />
         )}
@@ -123,4 +125,4 @@ const FinancialReportsSimple = () => {
   );
 };
 
-export default FinancialReportsSimple;
+export default memo(FinancialReportsSimple);

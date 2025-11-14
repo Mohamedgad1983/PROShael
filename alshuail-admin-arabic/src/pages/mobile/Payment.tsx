@@ -14,6 +14,8 @@ import {
 } from '@heroicons/react/24/outline';
 import BottomNav from '../../components/mobile/BottomNav';
 import ReceiptUpload from './ReceiptUpload';
+import { logger } from '../../utils/logger';
+
 import '../../styles/mobile/Payment.css';
 
 interface MemberSearchResult {
@@ -73,7 +75,7 @@ const Payment: React.FC = () => {
         setSearchResults(members);
       }
     } catch (error) {
-      console.error('Error searching members:', error);
+      logger.error('Error searching members:', { error });
       // Set sample data for testing
       setSearchResults([
         { id: '1', full_name: 'محمد أحمد الشعيل', membership_number: 'M-102', phone: '0501234567', tribal_section: 'آل محمد' },
@@ -138,7 +140,7 @@ const Payment: React.FC = () => {
         alert(errorData.message || 'حدث خطأ في إرسال الدفعة');
       }
     } catch (error) {
-      console.error('Error submitting payment:', error);
+      logger.error('Error submitting payment:', { error });
       alert('حدث خطأ في إرسال الدفعة');
     } finally {
       setSubmitting(false);

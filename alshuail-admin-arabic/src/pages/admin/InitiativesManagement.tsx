@@ -7,6 +7,8 @@ import { HijriDateInput } from '../../components/Common/HijriDateInput';
 import useActiveMemberCount from '../../hooks/useActiveMemberCount';
 import MemberCountToast from '../../components/Common/MemberCountToast';
 
+import { logger } from '../../utils/logger';
+
 interface Initiative {
     id: number;
     title_ar?: string;
@@ -27,7 +29,7 @@ interface Initiative {
 
 // Force component to be included in bundle
 if (process.env.NODE_ENV !== 'test') {
-  console.log('[InitiativesManagement] Component loaded');
+  logger.debug('[InitiativesManagement] Component loaded');
 }
 
 const InitiativesManagement = () => {
@@ -66,7 +68,7 @@ const InitiativesManagement = () => {
         onCountChange: (newCount, prevCount) => {
             // Show toast when count changes
             setShowToast(true);
-            console.log(`[Initiatives] Member count changed: ${prevCount} → ${newCount}`);
+            logger.debug(`[Initiatives] Member count changed: ${prevCount} → ${newCount}`);
         }
     });
 
@@ -95,7 +97,7 @@ const InitiativesManagement = () => {
             setInitiatives(response.data.initiatives || []);
             setLoading(false);
         } catch (error) {
-            console.error('Fetch error:', error);
+            logger.error('Fetch error:', { error });
             setInitiatives([]);
             setLoading(false);
         }

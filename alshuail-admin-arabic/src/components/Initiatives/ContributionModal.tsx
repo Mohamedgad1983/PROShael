@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { memo,  useState } from 'react';
 import {
   XMarkIcon,
   CurrencyDollarIcon,
@@ -466,4 +466,4 @@ const ContributionModal: React.FC<ContributionModalProps> = ({
   );
 };
 
-export default ContributionModal;
+export default memo(ContributionModal);

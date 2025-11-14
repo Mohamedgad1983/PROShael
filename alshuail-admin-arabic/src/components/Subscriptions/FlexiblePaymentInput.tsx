@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { memo,  useState, useEffect } from 'react';
 import { CreditCardIcon, ExclamationTriangleIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 
 interface FlexiblePaymentInputProps {
@@ -244,4 +244,4 @@ const FlexiblePaymentInput: React.FC<FlexiblePaymentInputProps> = ({
   );
 };
 
-export default FlexiblePaymentInput;
+export default memo(FlexiblePaymentInput);

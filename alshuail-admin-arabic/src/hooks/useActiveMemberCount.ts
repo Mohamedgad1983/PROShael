@@ -22,6 +22,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 
+import { logger } from '../utils/logger';
+
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
 const DEFAULT_REFRESH_INTERVAL = 10000; // 10 seconds
 
@@ -91,7 +93,7 @@ export const useActiveMemberCount = (options: UseActiveMemberCountOptions = {}):
                     });
                 }
 
-                console.log(`[useActiveMemberCount] Count changed: ${count} → ${newCount}`);
+                logger.debug(`[useActiveMemberCount] Count changed: ${count} → ${newCount}`);
             } else {
                 setHasChanged(false);
             }
@@ -101,9 +103,9 @@ export const useActiveMemberCount = (options: UseActiveMemberCountOptions = {}):
             setLastUpdated(new Date());
             isFirstFetch.current = false;
 
-            console.log(`[useActiveMemberCount] Updated: ${newCount} active members`);
+            logger.debug(`[useActiveMemberCount] Updated: ${newCount} active members`);
         } catch (err: any) {
-            console.error('[useActiveMemberCount] Error fetching count:', err);
+            logger.error('[useActiveMemberCount] Error fetching count:', { err });
             setError(err.message || 'Failed to fetch member count');
         } finally {
             setLoading(false);
@@ -132,7 +134,7 @@ export const useActiveMemberCount = (options: UseActiveMemberCountOptions = {}):
         // Cleanup interval on unmount
         return () => {
             clearInterval(interval);
-            console.log('[useActiveMemberCount] Cleanup: Stopped auto-refresh');
+            logger.debug('[useActiveMemberCount] Cleanup: Stopped auto-refresh');
         };
     }, [fetchMemberCount, refreshInterval]);
 

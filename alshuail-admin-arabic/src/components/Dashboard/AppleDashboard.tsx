@@ -26,6 +26,8 @@ import {
   DocumentIcon
 } from '@heroicons/react/24/outline';
 import { StarIcon } from '@heroicons/react/24/solid';
+import { logger } from '../../utils/logger';
+
 import '../../styles/apple-design-system.css';
 
 // Enhanced Type definitions
@@ -265,7 +267,7 @@ const AppleDashboard: React.FC<AppleDashboardProps> = ({ onLogout }) => {
       icon: UsersIcon,
       color: 'system-blue',
       bgGradient: 'from-blue-500 to-indigo-600',
-      action: () => console.log('Add Member')
+      action: () => logger.debug('Add Member')
     },
     {
       id: 'record-payment',
@@ -273,7 +275,7 @@ const AppleDashboard: React.FC<AppleDashboardProps> = ({ onLogout }) => {
       icon: CreditCardIcon,
       color: 'system-green',
       bgGradient: 'from-green-500 to-emerald-600',
-      action: () => console.log('Record Payment')
+      action: () => logger.debug('Record Payment')
     },
     {
       id: 'create-event',
@@ -281,7 +283,7 @@ const AppleDashboard: React.FC<AppleDashboardProps> = ({ onLogout }) => {
       icon: CalendarDaysIcon,
       color: 'system-purple',
       bgGradient: 'from-purple-500 to-pink-600',
-      action: () => console.log('Create Event')
+      action: () => logger.debug('Create Event')
     },
     {
       id: 'send-notification',
@@ -290,7 +292,7 @@ const AppleDashboard: React.FC<AppleDashboardProps> = ({ onLogout }) => {
       color: 'system-orange',
       bgGradient: 'from-orange-500 to-red-600',
       count: 3,
-      action: () => console.log('Send Notification')
+      action: () => logger.debug('Send Notification')
     },
   ], []);
 

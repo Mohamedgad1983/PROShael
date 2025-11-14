@@ -4,7 +4,7 @@
  * Allows users to customize theme mode, colors, font size, and UI preferences
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { memo,  useState, useEffect } from 'react';
 import {
   PaintBrushIcon,
   SunIcon,
@@ -35,6 +35,9 @@ import {
   DEFAULT_APPEARANCE_SETTINGS,
   applyAllAppearanceSettings
 } from '../../types/appearanceSettings';
+import { useTheme } from '../../contexts/ThemeContext';
+
+import { logger } from '../../utils/logger';
 
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5001';
 
@@ -44,6 +47,9 @@ interface Message {
 }
 
 const AppearanceSettings: React.FC = () => {
+  // Theme context for instant dark mode switching
+  const { updateTheme } = useTheme();
+
   const [settings, setSettings] = useState<AppearanceSettingsType>(DEFAULT_APPEARANCE_SETTINGS);
   const [originalSettings, setOriginalSettings] = useState<AppearanceSettingsType>(DEFAULT_APPEARANCE_SETTINGS);
   const [loading, setLoading] = useState(true);
@@ -73,7 +79,15 @@ const AppearanceSettings: React.FC = () => {
   // Apply live preview
   useEffect(() => {
     applyAllAppearanceSettings(settings);
-  }, [settings]);
+
+    // Also update ThemeProvider for instant dark mode
+    updateTheme({
+      mode: settings.theme_mode === 'light' ? 'light' : settings.theme_mode === 'dark' ? 'dark' : 'auto',
+      fontSize: settings.font_size,
+      compactMode: settings.compact_mode,
+      animationsEnabled: settings.animations_enabled
+    });
+  }, [settings, updateTheme]);
 
   const fetchAppearanceSettings = async () => {
     try {
@@ -91,7 +105,7 @@ const AppearanceSettings: React.FC = () => {
         applyAllAppearanceSettings(fetchedSettings);
       }
     } catch (error: any) {
-      console.error('Failed to fetch appearance settings:', error);
+      logger.error('Failed to fetch appearance settings:', { error });
       setMessage({
         type: 'error',
         text: error.response?.data?.message || 'فشل في جلب إعدادات المظهر'
@@ -144,7 +158,7 @@ const AppearanceSettings: React.FC = () => {
         applyAllAppearanceSettings(updatedSettings);
       }
     } catch (error: any) {
-      console.error('Save appearance settings error:', error);
+      logger.error('Save appearance settings error:', { error });
 
       if (error.response?.status === 429) {
         const retryAfter = error.response.data.retryAfter || 60;
@@ -203,7 +217,7 @@ const AppearanceSettings: React.FC = () => {
         applyAllAppearanceSettings(resetSettings);
       }
     } catch (error: any) {
-      console.error('Reset to defaults error:', error);
+      logger.error('Reset to defaults error:', { error });
       setMessage({
         type: 'error',
         text: error.response?.data?.message || 'فشل في إعادة تعيين الإعدادات'
@@ -742,4 +756,4 @@ const AppearanceSettings: React.FC = () => {
   );
 };
 
-export default AppearanceSettings;
+export default memo(AppearanceSettings);

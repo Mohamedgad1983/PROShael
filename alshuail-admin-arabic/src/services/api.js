@@ -1,3 +1,5 @@
+import { logger } from '../utils/logger';
+
 class APIService {
   constructor() {
     // Always use production URL in production
@@ -13,7 +15,7 @@ class APIService {
     this.maxRetries = 3;
     this.retryDelay = 1000; // 1 second
 
-    console.log('🔧 API Service initialized with baseURL:', this.baseURL);
+    logger.debug('🔧 API Service initialized with baseURL:', { baseURL: this.baseURL });
   }
 
   async request(endpoint, options = {}) {
@@ -28,7 +30,7 @@ class APIService {
     if (!options.method || options.method === 'GET') {
       const cached = this.getFromCache(cacheKey);
       if (cached) {
-        console.log('📋 Using cached data for:', endpoint);
+        logger.debug('📋 Using cached data for:', { endpoint });
         return cached;
       }
     }
@@ -49,7 +51,7 @@ class APIService {
     }
 
     try {
-      console.log('🌐 API Request:', {
+      logger.debug('🌐 API Request:', {
         url,
         method: config.method || 'GET',
         hasToken: !!config.headers['Authorization'],
@@ -71,12 +73,12 @@ class APIService {
       try {
         data = await response.json();
       } catch (parseError) {
-        console.warn('⚠️ Failed to parse JSON response:', parseError);
+        logger.warn('⚠️ Failed to parse JSON response:', { parseError });
         data = { error: 'Invalid response format' };
       }
 
       if (!response.ok) {
-        console.error('❌ API Error Response:', {
+        logger.error('❌ API Error Response:', {
           status: response.status,
           statusText: response.statusText,
           error: data.error,
@@ -86,7 +88,7 @@ class APIService {
 
         // Handle authentication errors
         if (response.status === 401 || response.status === 403) {
-          console.warn('🔑 Authentication error, attempting token refresh...');
+          logger.warn('🔑 Authentication error, attempting token refresh...');
           await this.handleAuthError();
 
           // Retry once with refreshed token if we have retries left
@@ -98,7 +100,7 @@ class APIService {
 
         // Handle server errors with retry
         if (response.status >= 500 && retries > 0) {
-          console.warn(`⏳ Server error ${response.status}, retrying in ${this.retryDelay}ms...`);
+          logger.warn(`⏳ Server error ${response.status}, retrying in ${this.retryDelay}ms...`);
           await this.delay(this.retryDelay * (this.maxRetries - retries + 1));
           return this.requestWithRetry(endpoint, options, retries - 1);
         }
@@ -106,7 +108,7 @@ class APIService {
         throw new Error(data.error || `HTTP ${response.status}: ${response.statusText}`);
       }
 
-      console.log('✅ API Success:', {
+      logger.debug('✅ API Success:', {
         endpoint,
         status: response.status,
         dataKeys: Object.keys(data)
@@ -119,7 +121,7 @@ class APIService {
 
       return data;
     } catch (error) {
-      console.error('💥 API Request Failed:', {
+      logger.error('💥 API Request Failed:', {
         endpoint,
         error: error.message,
         type: error.name,
@@ -128,7 +130,7 @@ class APIService {
 
       // Network or timeout errors - retry if we have attempts left
       if (retries > 0 && (error.name === 'AbortError' || error.name === 'TypeError' || error.message.includes('fetch'))) {
-        console.warn(`🔄 Retrying request to ${endpoint} (${retries} attempts left)...`);
+        logger.warn(`🔄 Retrying request to ${endpoint} (${retries} attempts left);...`);
         await this.delay(this.retryDelay * (this.maxRetries - retries + 1));
         return this.requestWithRetry(endpoint, options, retries - 1);
       }
@@ -137,14 +139,14 @@ class APIService {
       if (!options.method || options.method === 'GET') {
         const cached = this.getFromCache(cacheKey, true); // Get even expired cache
         if (cached) {
-          console.warn('📋 Using stale cached data as fallback for:', endpoint);
+          logger.warn('📋 Using stale cached data as fallback for:', { endpoint });
           return cached;
         }
 
         // Return mock data as last resort
         const mockData = this.getMockData(endpoint);
         if (mockData) {
-          console.warn('🎭 Using mock data as fallback for:', endpoint);
+          logger.warn('🎭 Using mock data as fallback for:', { endpoint });
           return mockData;
         }
       }
@@ -161,7 +163,7 @@ class APIService {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        console.warn('🔑 No token found, redirecting to login...');
+        logger.warn('🔑 No token found, redirecting to login...');
         this.redirectToLogin();
         return;
       }
@@ -179,15 +181,15 @@ class APIService {
         const data = await response.json();
         if (data.success && data.token) {
           localStorage.setItem('token', data.token);
-          console.log('🔑 Token refreshed successfully');
+          logger.debug('🔑 Token refreshed successfully');
           return;
         }
       }
 
-      console.warn('🔑 Token refresh failed, redirecting to login...');
+      logger.warn('🔑 Token refresh failed, redirecting to login...');
       this.redirectToLogin();
     } catch (refreshError) {
-      console.error('🔑 Token refresh error:', refreshError);
+      logger.error('🔑 Token refresh error:', { refreshError });
       this.redirectToLogin();
     }
   }
@@ -520,7 +522,7 @@ class APIService {
   // Clear cache manually
   clearCache() {
     this.cache.clear();
-    console.log('🧹 API cache cleared');
+    logger.debug('🧹 API cache cleared');
   }
 
   // Get cache status

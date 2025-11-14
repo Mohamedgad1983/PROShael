@@ -3,7 +3,7 @@
  * Full API integration with validation and error handling
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { memo,  useState, useEffect } from 'react';
 import {
   ServerIcon,
   CpuChipIcon,
@@ -17,6 +17,8 @@ import axios from 'axios';
 // Import shared styles for consistent design
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, commonStyles, getMessageStyle } from './sharedStyles';
 import { SettingsButton } from './shared';
+
+import { logger } from '../../utils/logger';
 
 interface SystemSettings {
   system_name: string;
@@ -104,7 +106,7 @@ const SystemSettingsEnhanced: React.FC = () => {
         }
       });
     } catch (err: any) {
-      console.error('Failed to fetch settings:', err);
+      logger.error('Failed to fetch settings:', { err });
       setError(err.response?.data?.message || err.message || 'فشل تحميل الإعدادات');
     } finally {
       setLoading(false);
@@ -182,7 +184,7 @@ const SystemSettingsEnhanced: React.FC = () => {
       // Refresh settings
       await fetchSettings();
     } catch (err: any) {
-      console.error('Failed to save settings:', err);
+      logger.error('Failed to save settings:', { err });
       const errorMessage = err.response?.data?.error || err.response?.data?.message || err.message || 'فشل حفظ الإعدادات';
 
       if (err.response?.data?.details) {
@@ -648,4 +650,4 @@ const SystemSettingsEnhanced: React.FC = () => {
   );
 };
 
-export default SystemSettingsEnhanced;
+export default memo(SystemSettingsEnhanced);

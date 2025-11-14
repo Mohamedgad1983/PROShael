@@ -1,6 +1,8 @@
 // @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { logger } from '../../utils/logger';
+
 import './MemberSubscriptionView.css';
 
 // ========================================
@@ -51,7 +53,7 @@ const MemberSubscriptionView: React.FC = () => {
       const { data } = await axios.get(`${API_BASE}/api/subscriptions/member/subscription`, axiosConfig);
       setSubscription(data.subscription);
     } catch (error) {
-      console.error('فشل في تحميل الاشتراك:', error);
+      logger.error('فشل في تحميل الاشتراك:', { error });
     } finally {
       setLoading(false);
     }
@@ -62,7 +64,7 @@ const MemberSubscriptionView: React.FC = () => {
       const { data } = await axios.get(`${API_BASE}/api/subscriptions/member/subscription/payments?limit=10`, axiosConfig);
       setPayments(data.payments);
     } catch (error) {
-      console.error('فشل في تحميل السجل:', error);
+      logger.error('فشل في تحميل السجل:', { error });
     }
   };
 

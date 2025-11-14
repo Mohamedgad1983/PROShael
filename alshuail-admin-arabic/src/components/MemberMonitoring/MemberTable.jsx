@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { memo,  useState } from 'react';
 import ActionButtons from './ActionButtons';
 import {
   UserIcon,
@@ -215,4 +215,4 @@ const MemberTable = ({ members, userRole, onSuspend, onNotify }) => {
   );
 };
 
-export default MemberTable;
+export default memo(MemberTable);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { memo,  useState, useEffect } from 'react';
 import {
   XMarkIcon,
   CheckCircleIcon,
@@ -464,4 +464,4 @@ const RSVPModal: React.FC<RSVPModalProps> = ({
   );
 };
 
-export default RSVPModal;
+export default memo(RSVPModal);

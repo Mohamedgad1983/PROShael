@@ -16,6 +16,8 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
+import { logger } from '../../utils/logger';
+
 interface Initiative {
     id: number;
     title_ar?: string;
@@ -100,7 +102,7 @@ const InitiativeReport = () => {
             setStats(response.data.stats);
             setLoading(false);
         } catch (error) {
-            console.error('Error fetching initiative report:', error);
+            logger.error('Error fetching initiative report:', { error });
             setLoading(false);
         }
     };
@@ -115,7 +117,7 @@ const InitiativeReport = () => {
             setNonContributors(response.data.nonContributors || []);
             setNonContributorStats(response.data.stats);
         } catch (error) {
-            console.error('Error fetching non-contributors:', error);
+            logger.error('Error fetching non-contributors:', { error });
         }
     };
 

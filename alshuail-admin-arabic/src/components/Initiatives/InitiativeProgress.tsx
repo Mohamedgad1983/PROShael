@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import {
   ChartBarIcon,
   UsersIcon,
@@ -408,4 +408,4 @@ const InitiativeProgress: React.FC<InitiativeProgressProps> = ({
   );
 };
 
-export default InitiativeProgress;
+export default memo(InitiativeProgress);

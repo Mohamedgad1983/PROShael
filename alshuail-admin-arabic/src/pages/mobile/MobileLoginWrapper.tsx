@@ -2,8 +2,10 @@
 import React from 'react';
 import MobileLogin from './Login';
 
+import { logger } from '../../utils/logger';
+
 const MobileLoginWrapper = () => {
-  console.log('🚀 MobileLoginWrapper component rendered!');
+  logger.debug('🚀 MobileLoginWrapper component rendered!');
 
   // Clear any existing admin session when accessing mobile login
   const user = localStorage.getItem('user');
@@ -11,7 +13,7 @@ const MobileLoginWrapper = () => {
     try {
       const userData = JSON.parse(user);
       if (userData.role === 'admin' || userData.role === 'super_admin' || userData.role === 'moderator') {
-        console.log('Clearing admin session for mobile login...');
+        logger.debug('Clearing admin session for mobile login...');
         localStorage.removeItem('user');
         localStorage.removeItem('token');
         localStorage.removeItem('isLoggedIn');
@@ -23,7 +25,7 @@ const MobileLoginWrapper = () => {
         return null;
       }
     } catch (e) {
-      console.error('Error parsing user data:', e);
+      logger.error('Error parsing user data:', { e });
     }
   }
 

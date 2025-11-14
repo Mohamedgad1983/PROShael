@@ -2,15 +2,19 @@ import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 import './styles/modern-login.css';
+import './styles/theme.css';
 import StyledDashboard from './components/StyledDashboard';
 import MemberRegistration from './components/Members/MemberRegistration';
 import AppleRegistrationForm from './components/Members/AppleRegistrationForm';
 import PremiumRegistration from './components/Registration/PremiumRegistration';
 import { RoleProvider } from './contexts/RoleContext';
 import { AuthProvider } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { AdminRoute, MemberRoute, PublicRoute } from './utils/RouteGuard';
 import logo from './assets/logo.svg';
 import { showToast } from './utils/toast';
+
+import { logger } from './utils/logger';
 
 // Lazy-loaded Pages for Code Splitting
 // Mobile Pages (lazy-loaded)
@@ -114,7 +118,7 @@ const AdminDashboard: React.FC = () => {
         });
       }
     } catch (error) {
-      console.error('Login error:', error);
+      logger.error('Login error:', { error });
       showToast({
         message: 'خطأ في الاتصال بالخادم. يرجى المحاولة مرة أخرى',
         type: 'error'
@@ -255,7 +259,7 @@ const AdminDashboard: React.FC = () => {
 const App: React.FC = () => {
   // Debug current path
   React.useEffect(() => {
-    console.log('🚀 App rendered, current path:', window.location.pathname);
+    logger.debug('🚀 App rendered, current path:', { pathname: window.location.pathname });
   }, []);
 
   // If accessing standalone Mobile PWA (not React mobile routes), don't render React app
@@ -264,11 +268,12 @@ const App: React.FC = () => {
   }
 
   return (
-    <AuthProvider>
-      <RoleProvider>
-        <Router>
-          <Suspense fallback={<PageLoading />}>
-            <Routes>
+    <ThemeProvider>
+      <AuthProvider>
+        <RoleProvider>
+          <Router>
+            <Suspense fallback={<PageLoading />}>
+              <Routes>
               {/* Mobile PWA Routes - Member Interface (Prioritized) */}
               <Route path="/mobile/login" element={<MobileLogin />} />
               <Route path="/mobile/change-password" element={<MemberRoute><ChangePassword /></MemberRoute>} />
@@ -334,11 +339,12 @@ const App: React.FC = () => {
 
               {/* Catch all route - do not redirect mobile routes */}
               <Route path="*" element={<Navigate to="/login" replace />} />
-            </Routes>
-          </Suspense>
-        </Router>
-      </RoleProvider>
-    </AuthProvider>
+              </Routes>
+            </Suspense>
+          </Router>
+        </RoleProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 };
 

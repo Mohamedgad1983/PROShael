@@ -3,7 +3,7 @@
  * Consistent input styling with label, error state, and validation
  */
 
-import React from 'react';
+import React, { memo } from 'react';
 import { commonStyles, COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS } from '../sharedStyles';
 
 interface SettingsInputProps {

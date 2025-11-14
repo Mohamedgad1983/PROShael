@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { memo,  useState } from 'react';
+import { logger } from '../../utils/logger';
+
 import {
   XMarkIcon,
   UserIcon,
@@ -134,7 +136,7 @@ const PaymentConfirmationModal: React.FC<PaymentConfirmationModalProps> = ({
 
       await onConfirm(paymentData);
     } catch (error) {
-      console.error('Payment confirmation error:', error);
+      logger.error('Payment confirmation error:', { error });
     } finally {
       setIsProcessing(false);
     }
@@ -334,4 +336,4 @@ const PaymentConfirmationModal: React.FC<PaymentConfirmationModalProps> = ({
   );
 };
 
-export default PaymentConfirmationModal;
+export default memo(PaymentConfirmationModal);

@@ -5,6 +5,8 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { motion, AnimatePresence } from 'framer-motion';
+import { logger } from '../../utils/logger';
+
 import './MemberStatementSearch.css';
 import './MemberStatementSearchEnhanced.css';
 
@@ -73,7 +75,7 @@ const MemberStatementSearch = () => {
       setSearchResults(results);
       setShowAutoComplete(true);
     } catch (error) {
-      console.error('Search error:', error);
+      logger.error('Search error:', { error });
       setError('حدث خطأ في البحث');
     } finally {
       setLoading(false);
@@ -113,7 +115,7 @@ const MemberStatementSearch = () => {
           setShowAutoComplete(false); // Don't show autocomplete on initial load
         }
       } catch (error) {
-        console.error('Error loading initial members:', error);
+        logger.error('Error loading initial members:', { error });
       } finally {
         setLoading(false);
       }
@@ -274,7 +276,7 @@ const MemberStatementSearch = () => {
       const paymentsError = null;
 
       if (paymentsError && paymentsError.code !== 'PGRST116') {
-        console.error('Payments fetch error:', paymentsError);
+        logger.error('Payments fetch error:', { paymentsError });
       }
 
       // Calculate statement data
@@ -310,7 +312,7 @@ const MemberStatementSearch = () => {
 
       setShowAutoComplete(false);
     } catch (err) {
-      console.error('Error loading statement:', err);
+      logger.error('Error loading statement:', { err });
       setError('حدث خطأ في تحميل كشف الحساب');
     } finally {
       setLoading(false);
@@ -360,7 +362,7 @@ const MemberStatementSearch = () => {
         setSearchResults(results);
       }
     } catch (error) {
-      console.error('Error reloading members:', error);
+      logger.error('Error reloading members:', { error });
     } finally {
       setLoading(false);
     }

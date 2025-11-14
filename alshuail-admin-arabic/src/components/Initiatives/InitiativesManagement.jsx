@@ -1,6 +1,8 @@
 ﻿import React, {  useState, useEffect , useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { toHijri } from 'hijri-converter';
+import { logger } from '../../utils/logger';
+
 import {
   HandRaisedIcon,
   HeartIcon,
@@ -224,7 +226,7 @@ const InitiativesManagement = () => {
       // Load mock data - replace with actual API calls
       setInitiatives(mockInitiatives);
     } catch (error) {
-      console.error('Error loading initiatives data:', error);
+      logger.error('Error loading initiatives data:', { error });
     } finally {
       setLoading(false);
     }

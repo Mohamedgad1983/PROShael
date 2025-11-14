@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { HomeIcon, CreditCardIcon, BellIcon, UserIcon } from '@heroicons/react/24/outline';
 import { HomeIcon as HomeIconSolid, CreditCardIcon as CreditCardIconSolid, BellIcon as BellIconSolid, UserIcon as UserIconSolid } from '@heroicons/react/24/solid';
@@ -80,4 +80,4 @@ const BottomNav = ({ unreadNotifications = 0 }) => {
   );
 };
 
-export default BottomNav;
+export default memo(BottomNav);

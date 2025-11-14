@@ -3,11 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "sideEffects": [
-    "src/components/Settings/PasswordManagement.tsx",
     "src/components/Settings/MultiRoleManagement.tsx",
     "src/components/Settings/SettingsPage.tsx",
     "src/components/Settings/AccessControl.tsx",
-    "src/components/Settings/PasswordManagementTabDefinition.ts",
     "src/features/access-control/**/*",
     "src/force-include-access-control.ts",
     "*.css"

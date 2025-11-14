@@ -6,6 +6,8 @@ import { RoleProvider } from './contexts/RoleContext';
 import { AuthProvider } from './contexts/AuthContext';
 import logo from './assets/logo.svg';
 
+import { logger } from './utils/logger';
+
 // Lazy load heavy components
 const StyledDashboard = lazy(() => import('./components/StyledDashboard'));
 const MemberRegistration = lazy(() => import('./components/Members/MemberRegistration'));
@@ -106,7 +108,7 @@ const AdminDashboard: React.FC = React.memo(() => {
         alert(data.error || 'فشل تسجيل الدخول');
       }
     } catch (error) {
-      console.error('Login error:', error);
+      logger.error('Login error:', { error });
       alert('خطأ في الاتصال بالخادم');
     } finally {
       setIsLoading(false);

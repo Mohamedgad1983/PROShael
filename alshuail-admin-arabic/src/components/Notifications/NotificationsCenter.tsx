@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { memo,  useState, useEffect } from 'react';
 import {
   PlusIcon,
   BellIcon,
@@ -26,6 +26,8 @@ import { ARABIC_LABELS } from '../../constants/arabic';
 import { formatArabicNumber, formatArabicPercentage, getRelativeTimeArabic } from '../../utils/arabic';
 import { useResponsive, getTouchStyles, getResponsiveGridStyles, getResponsiveSpacing } from '../../utils/responsive';
 import { useStaggeredAnimation, injectAnimationKeyframes } from '../../utils/animations';
+
+import { logger } from '../../utils/logger';
 
 // Mock data for testing
 const mockNotifications: Notification[] = [
@@ -245,7 +247,7 @@ const NotificationsCenter: React.FC = () => {
       setNotifications(prev => [newNotification, ...prev]);
       setShowCreateModal(false);
     } catch (error) {
-      console.error('Error creating notification:', error);
+      logger.error('Error creating notification:', { error });
     } finally {
       setLoading(false);
     }
@@ -260,7 +262,7 @@ const NotificationsCenter: React.FC = () => {
           : notification
       ));
     } catch (error) {
-      console.error('Error marking as read:', error);
+      logger.error('Error marking as read:', { error });
     }
   };
 
@@ -270,7 +272,7 @@ const NotificationsCenter: React.FC = () => {
         // API call would go here
         setNotifications(prev => prev.filter(n => n.id !== notification.id));
       } catch (error) {
-        console.error('Error deleting notification:', error);
+        logger.error('Error deleting notification:', { error });
       }
     }
   };
@@ -702,4 +704,4 @@ const NotificationsCenter: React.FC = () => {
   );
 };
 
-export default NotificationsCenter;
+export default memo(NotificationsCenter);

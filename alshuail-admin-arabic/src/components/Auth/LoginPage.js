@@ -4,6 +4,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import './LoginPage.css';
 import logo from '../../assets/logo.svg';
 
+import { logger } from '../../utils/logger';
+
 const LoginPage = ({ onLogin = () => {} }) => {
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -57,7 +59,7 @@ const LoginPage = ({ onLogin = () => {} }) => {
         setError(result.error || 'خطأ في تسجيل الدخول');
       }
     } catch (error) {
-      console.error('Login error:', error);
+      logger.error('Login error:', { error });
       setError('خطأ في الاتصال بالخادم');
     } finally {
       setLoading(false);

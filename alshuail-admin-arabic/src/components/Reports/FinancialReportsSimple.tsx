@@ -1,6 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { memo,  useState, useRef, useEffect } from 'react';
 // @ts-ignore
 import ExpenseManagement from './ExpenseManagement';
+
+import { logger } from '../../utils/logger';
 
 // Hijri date conversion helper
 const getHijriDate = () => {
@@ -73,7 +75,7 @@ const FinancialReportsSimple: React.FC = () => {
         alert('خطأ في تصدير التقرير');
       }
     } catch (error) {
-      console.error('Export error:', error);
+      logger.error('Export error:', { error });
       alert('خطأ في تصدير التقرير');
     } finally {
       setLoading(false);
@@ -106,7 +108,7 @@ const FinancialReportsSimple: React.FC = () => {
         alert('خطأ في تصدير التقرير');
       }
     } catch (error) {
-      console.error('Export error:', error);
+      logger.error('Export error:', { error });
       alert('خطأ في تصدير التقرير');
     } finally {
       setLoading(false);
@@ -291,7 +293,7 @@ const FinancialReportsSimple: React.FC = () => {
             }}
             onExpenseChange={() => {
               // Refresh data if needed
-              console.log('Expense changed');
+              logger.debug('Expense changed');
             }}
           />
         )}
@@ -475,4 +477,4 @@ const FinancialReportsSimple: React.FC = () => {
   );
 };
 
-export default FinancialReportsSimple;
+export default memo(FinancialReportsSimple);

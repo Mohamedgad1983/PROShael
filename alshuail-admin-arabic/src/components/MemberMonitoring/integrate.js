@@ -6,6 +6,8 @@
 /*
 // @ts-ignore
 import MemberMonitoringDashboard from './MemberMonitoring/MemberMonitoringDashboard.jsx';
+import { logger } from '../../utils/logger';
+
 */
 
 // STEP 2: Add Navigation Item
@@ -24,19 +26,19 @@ import MemberMonitoringDashboard from './MemberMonitoring/MemberMonitoringDashbo
 // The StyledDashboard.tsx file is too large for automatic editing.
 // Please manually add the above three changes to integrate the Member Monitoring Dashboard.
 
-console.log('Member Monitoring Dashboard Integration Guide');
-console.log('============================================');
-console.log('1. Import added at line 71');
-console.log('2. Navigation item added at line 977');
-console.log('3. Route section added at line 4381');
-console.log('');
-console.log('Dashboard Features:');
-console.log('- 299 members with mock data');
-console.log('- Advanced multi-level filters');
-console.log('- Excel export functionality');
-console.log('- Permission-based actions');
-console.log('- Arabic typography with Cairo font');
-console.log('- Full RTL support');
-console.log('- Responsive design');
-console.log('');
-console.log('Access the test page at: /test-monitoring.html');
+logger.debug('Member Monitoring Dashboard Integration Guide');
+logger.debug('============================================');
+logger.debug('1. Import added at line 71');
+logger.debug('2. Navigation item added at line 977');
+logger.debug('3. Route section added at line 4381');
+logger.debug('');
+logger.debug('Dashboard Features:', {});
+logger.debug('- 299 members with mock data');
+logger.debug('- Advanced multi-level filters');
+logger.debug('- Excel export functionality');
+logger.debug('- Permission-based actions');
+logger.debug('- Arabic typography with Cairo font');
+logger.debug('- Full RTL support');
+logger.debug('- Responsive design');
+logger.debug('');
+logger.debug('Access the test page at: /test-monitoring.html');

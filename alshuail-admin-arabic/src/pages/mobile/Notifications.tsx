@@ -12,6 +12,8 @@ import {
   CheckIcon
 } from '@heroicons/react/24/outline';
 import BottomNav from '../../components/mobile/BottomNav';
+import { logger } from '../../utils/logger';
+
 import '../../styles/mobile/Notifications.css';
 
 interface Notification {
@@ -93,7 +95,7 @@ const Notifications: React.FC = () => {
         setNotifications(data);
       }
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      logger.error('Error fetching notifications:', { error });
     } finally {
       setLoading(false);
     }
@@ -131,7 +133,7 @@ const Notifications: React.FC = () => {
         )
       );
     } catch (error) {
-      console.error('Error marking notification as read:', error);
+      logger.error('Error marking notification as read:', { error });
     }
   };
 
@@ -152,7 +154,7 @@ const Notifications: React.FC = () => {
         prev.map(n => ({ ...n, is_read: true }))
       );
     } catch (error) {
-      console.error('Error marking all as read:', error);
+      logger.error('Error marking all as read:', { error });
     }
   };
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { memo,  useState, useEffect } from 'react';
 import {
   BanknotesIcon,
   ClockIcon,
@@ -15,6 +15,8 @@ import {
 import { ARABIC_LABELS } from '../../constants/arabic';
 import { PaymentStatistics, PaymentFilters, PaymentsOverviewProps } from './types';
 import { formatCurrency, toArabicNumerals, calculatePaymentStats } from './utils';
+
+import { logger } from '../../utils/logger';
 
 const PaymentsOverview: React.FC<PaymentsOverviewProps> = ({
   onCreatePayment,
@@ -319,7 +321,7 @@ const PaymentsOverview: React.FC<PaymentsOverviewProps> = ({
             <button
               onClick={() => {
                 // Export functionality
-                console.log('Exporting payments...');
+                logger.debug('Exporting payments...');
               }}
               className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 text-blue-300 rounded-lg hover:bg-blue-500/30 transition-colors"
             >
@@ -378,4 +380,4 @@ const PaymentsOverview: React.FC<PaymentsOverviewProps> = ({
   );
 };
 
-export default PaymentsOverview;
+export default memo(PaymentsOverview);

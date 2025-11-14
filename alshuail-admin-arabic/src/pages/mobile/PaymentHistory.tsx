@@ -16,6 +16,8 @@ import '../../styles/mobile/PaymentHistory.css';
 import { getMemberPayments } from '../../services/mobileApi';
 import { formatBothCalendars } from '../../utils/hijriDate';
 
+import { logger } from '../../utils/logger';
+
 interface Payment {
   id: string;
   amount: number;
@@ -94,7 +96,7 @@ const PaymentHistory: React.FC = () => {
 
       setPayments(formattedPayments);
     } catch (error) {
-      console.error('Error fetching payments:', error);
+      logger.error('Error fetching payments:', { error });
       // Set sample data for testing
       setPayments([
         {

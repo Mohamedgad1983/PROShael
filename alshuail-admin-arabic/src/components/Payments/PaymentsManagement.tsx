@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { memo,  useState, useEffect } from 'react';
 import { ARABIC_LABELS } from '../../constants/arabic';
 import PaymentsOverview from './PaymentsOverview';
 import PaymentsTable from './PaymentsTable';
 import CreatePaymentForm from './CreatePaymentForm';
 import PaymentDetailsModal from './PaymentDetailsModal';
+import { logger } from '../../utils/logger';
+
 import {
   Payment,
   PaymentFilters,
@@ -230,7 +232,7 @@ const PaymentsManagement: React.FC = () => {
       // Show success notification
       alert('تم إنشاء الدفعة بنجاح');
     } catch (error) {
-      console.error('Error creating payment:', error);
+      logger.error('Error creating payment:', { error });
       alert('حدث خطأ أثناء إنشاء الدفعة');
     } finally {
       setLoading(false);
@@ -297,7 +299,7 @@ const PaymentsManagement: React.FC = () => {
         setSelectedPayment(null);
       }
     } catch (error) {
-      console.error('Error performing payment action:', error);
+      logger.error('Error performing payment action:', { error });
       alert('حدث خطأ أثناء تنفيذ الإجراء');
     } finally {
       setLoading(false);
@@ -357,4 +359,4 @@ const PaymentsManagement: React.FC = () => {
   );
 };
 
-export default PaymentsManagement;
+export default memo(PaymentsManagement);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { memo,  useState, useEffect } from 'react';
 import {
   PlusIcon,
   LightBulbIcon,
@@ -27,6 +27,8 @@ import { formatArabicNumber, formatArabicCurrency, formatArabicPercentage } from
 import { apiService } from '../../services/api';
 import { useResponsive, getTouchStyles, getResponsiveGridStyles, getResponsiveSpacing } from '../../utils/responsive';
 import { useStaggeredAnimation, injectAnimationKeyframes } from '../../utils/animations';
+
+import { logger } from '../../utils/logger';
 
 // Mock data for testing
 const mockInitiatives: Initiative[] = [
@@ -202,7 +204,7 @@ const InitiativesOverview: React.FC = () => {
       setShowContributionModal(false);
       setSelectedInitiative(null);
     } catch (error) {
-      console.error('Error creating contribution:', error);
+      logger.error('Error creating contribution:', { error });
     } finally {
       setLoading(false);
     }
@@ -400,7 +402,7 @@ const InitiativesOverview: React.FC = () => {
           <button
             style={primaryButtonStyle}
             onClick={() => {
-              console.log('Create initiative button clicked');
+              logger.debug('Create initiative button clicked');
               setShowCreateModal(true);
             }}
             onMouseEnter={(e) => {
@@ -644,11 +646,11 @@ const InitiativesOverview: React.FC = () => {
         <CreateInitiativeModal
           isOpen={showCreateModal}
           onClose={() => {
-            console.log('Closing create modal');
+            logger.debug('Closing create modal');
             setShowCreateModal(false);
           }}
           onSubmit={(data: any) => {
-            console.log('Creating new initiative:', data);
+            logger.debug('Creating new initiative:', { data });
             // Add the new initiative to the list
             const newInitiative: Initiative = {
               id: `init-${Date.now()}`,
@@ -679,4 +681,4 @@ const InitiativesOverview: React.FC = () => {
   );
 };
 
-export default InitiativesOverview;
+export default memo(InitiativesOverview);

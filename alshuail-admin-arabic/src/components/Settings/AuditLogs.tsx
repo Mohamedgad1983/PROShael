@@ -4,7 +4,7 @@
  * MIGRATED: Now uses shared component system for consistency
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { memo,  useState, useEffect, useCallback } from 'react';
 import {
   ShieldCheckIcon,
   ClockIcon,
@@ -23,6 +23,8 @@ import { SettingsSelect } from './shared/SettingsSelect';
 import { StatusBadge } from './shared/StatusBadge';
 import { commonStyles, COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from './sharedStyles';
 
+import { logger } from '../../utils/logger';
+
 interface AuditLog {
   id: string;
   userId: string;
@@ -40,6 +42,53 @@ interface AuditLog {
   severity: 'info' | 'warning' | 'error' | 'success';
 }
 
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+const AUDIT_LOGS_ENDPOINT = `${API_BASE_URL}/api/settings/audit-logs`;
+
+const severityFromAction = (action?: string): AuditLog['severity'] => {
+  if (!action) return 'info';
+  const normalized = action.toLowerCase();
+  if (normalized.includes('delete') || normalized.includes('failed')) return 'error';
+  if (normalized.includes('create') || normalized.includes('success')) return 'success';
+  if (normalized.includes('update') || normalized.includes('permission')) return 'warning';
+  return 'info';
+};
+
+const safeParseDetails = (details: unknown): Record<string, any> => {
+  if (!details) return {};
+  if (typeof details === 'object') return details as Record<string, any>;
+  if (typeof details === 'string') {
+    try {
+      return JSON.parse(details);
+    } catch {
+      return {};
+    }
+  }
+  return {};
+};
+
+const mapAuditLog = (raw: any): AuditLog => {
+  const details = safeParseDetails(raw?.details);
+  const changes = details?.changes || {};
+
+  return {
+    id: raw?.id || `${raw?.user_id || 'log'}-${raw?.created_at || Date.now()}`,
+    userId: raw?.user_id || 'unknown',
+    userEmail: raw?.user_email || 'unknown@alshuail.com',
+    userName: details?.user_name || details?.actor_name || raw?.user_name || raw?.user_email,
+    action: details?.action || raw?.action_type || '??????',
+    module: String(details?.resource_type || 'system'),
+    entityType: details?.resource_type,
+    entityId: details?.resource_id ? String(details.resource_id) : undefined,
+    oldValues: changes?.old || changes?.previous || null,
+    newValues: changes?.new || changes?.current || null,
+    ipAddress: raw?.ip_address || '?? ?????',
+    userAgent: raw?.user_agent,
+    createdAt: raw?.created_at || new Date().toISOString(),
+    severity: severityFromAction(raw?.action_type)
+  };
+};
+
 const AuditLogs: React.FC = () => {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,92 +96,43 @@ const AuditLogs: React.FC = () => {
   const [selectedModule, setSelectedModule] = useState('all');
   const [selectedSeverity, setSelectedSeverity] = useState('all');
 
-  // Mock data - replace with actual API call
-  useEffect(() => {
-    fetchAuditLogs();
-  }, []);
+  const [message, setMessage] = useState<{ type: 'error' | 'info'; text: string } | null>(null);
 
-  const fetchAuditLogs = async () => {
+  const fetchAuditLogs = useCallback(async () => {
     setLoading(true);
+    setMessage(null);
     try {
-      // Mock audit logs data
-      const mockLogs: AuditLog[] = [
-        {
-          id: '1',
-          userId: '1',
-          userEmail: 'admin@alshuail.com',
-          userName: 'أحمد الشعيل',
-          action: 'تغيير دور المستخدم',
-          module: 'user_management',
-          entityType: 'user',
-          entityId: '5',
-          oldValues: { role: 'user_member' },
-          newValues: { role: 'financial_manager' },
-          ipAddress: '192.168.1.1',
-          createdAt: new Date().toISOString(),
-          severity: 'warning'
-        },
-        {
-          id: '2',
-          userId: '2',
-          userEmail: 'finance@alshuail.com',
-          userName: 'محمد المالي',
-          action: 'إضافة دفعة مالية',
-          module: 'financial',
-          entityType: 'payment',
-          entityId: '123',
-          newValues: { amount: 500, currency: 'SAR' },
-          ipAddress: '192.168.1.2',
-          createdAt: new Date(Date.now() - 3600000).toISOString(),
-          severity: 'success'
-        },
-        {
-          id: '3',
-          userId: '1',
-          userEmail: 'admin@alshuail.com',
-          userName: 'أحمد الشعيل',
-          action: 'تسجيل دخول',
-          module: 'authentication',
-          ipAddress: '192.168.1.1',
-          createdAt: new Date(Date.now() - 7200000).toISOString(),
-          severity: 'info'
-        },
-        {
-          id: '4',
-          userId: '3',
-          userEmail: 'tree@alshuail.com',
-          userName: 'سارة العائلة',
-          action: 'تحديث شجرة العائلة',
-          module: 'family_tree',
-          entityType: 'relationship',
-          entityId: '456',
-          ipAddress: '192.168.1.3',
-          createdAt: new Date(Date.now() - 10800000).toISOString(),
-          severity: 'info'
-        },
-        {
-          id: '5',
-          userId: '1',
-          userEmail: 'admin@alshuail.com',
-          userName: 'أحمد الشعيل',
-          action: 'حذف مستخدم',
-          module: 'user_management',
-          entityType: 'user',
-          entityId: '789',
-          oldValues: { email: 'deleted@alshuail.com' },
-          ipAddress: '192.168.1.1',
-          createdAt: new Date(Date.now() - 86400000).toISOString(),
-          severity: 'error'
-        }
-      ];
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('?? ????? ?????? ???????');
+      }
 
-      setLogs(mockLogs);
-    } catch (error) {
-      console.error('Error fetching audit logs:', error);
+      const response = await fetch(`${AUDIT_LOGS_ENDPOINT}?limit=100`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(payload?.error || payload?.message || '??? ?? ??? ??????? ?????????');
+      }
+
+      const rows = payload?.logs || payload || [];
+      setLogs(rows.map(mapAuditLog));
+    } catch (error: any) {
+      logger.error('Error fetching audit logs:', { error });
+      setLogs([]);
+      setMessage({ type: 'error', text: error?.message || '??? ?? ??? ??????? ?????????' });
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchAuditLogs();
+  }, [fetchAuditLogs]);
 
   // Filter logs
   const filteredLogs = logs.filter(log => {
@@ -416,6 +416,23 @@ const AuditLogs: React.FC = () => {
         </SettingsButton>
       </div>
 
+      {message && (
+        <SettingsCard style={{
+          marginBottom: SPACING.lg,
+          background: message.type === 'error' ? COLORS.errorBg : COLORS.infoBg,
+          color: message.type === 'error' ? COLORS.errorText : COLORS.infoText,
+          display: 'flex',
+          alignItems: 'center',
+          gap: SPACING.sm
+        }}>
+          {message.type === 'error' ? (
+            <XCircleIcon style={{ width: '20px', height: '20px' }} />
+          ) : (
+            <InformationCircleIcon style={{ width: '20px', height: '20px' }} />
+          )}
+          <span>{message.text}</span>
+        </SettingsCard>
+      )}
       {/* Logs Timeline */}
       <SettingsCard>
         {loading ? (
@@ -532,4 +549,4 @@ const AuditLogs: React.FC = () => {
   );
 };
 
-export default AuditLogs;
+export default memo(AuditLogs);

@@ -4,6 +4,8 @@ import PremiumRegistration from '../Registration/PremiumRegistration';
 import CompactAddMember from './CompactAddMember';
 import ArabicSelect from './ArabicSelect';
 import HijriDateInput from './HijriDateInput';
+import { logger } from '../../utils/logger';
+
 import './TwoSectionMembers.css';
 import {
   MagnifyingGlassIcon,
@@ -58,11 +60,11 @@ const TwoSectionMembers = () => {
         const user = JSON.parse(userData);
         role = user.role;
       } catch (e) {
-        console.error('Error parsing user data:', e);
+        logger.error('Error parsing user data:', { e });
       }
     }
 
-    console.log('Current user role:', role);
+    logger.debug('Current user role:', { role });
     return role || 'viewer';
   };
 
@@ -118,15 +120,14 @@ const TwoSectionMembers = () => {
   }, [searchQuery]);
 
   const loadMembers = async (isPagination = false, isInitial = false, isSearch = false) => {
-    console.log('🔍 Loading members...');
-    console.log('API Base URL:', memberService.baseURL);
-    console.log('Auth Token:', localStorage.getItem('token') ? 'Present' : 'Missing');
-    console.log('User Role:', getUserRole());
+    logger.debug('🔍 Loading members...');
+    logger.debug('API Base URL:', { baseURL: memberService.baseURL });
+    logger.debug('Auth Token:', { token: localStorage.getItem('token') ? 'Present' : 'Missing' });
 
     // Check cache first - include limit in cache key
     const cacheKey = `${pagination.page}-${pagination.limit}-${searchQuery}-${JSON.stringify(filters)}`;
     if (!isInitial && !isSearch && membersCache.current.has(cacheKey)) {
-      console.log('✅ Using cached data for page', pagination.page);
+      logger.debug('✅ Using cached data for page', { page: pagination.page });
       const cachedData = membersCache.current.get(cacheKey);
       setMembers(cachedData.members);
       setPagination(prev => ({
@@ -166,8 +167,8 @@ const TwoSectionMembers = () => {
         searchFilters.social_security_beneficiary = filters.social_security_beneficiary;
       }
 
-      console.log('📤 Sending request with filters:', searchFilters);
-      console.log('Page:', pagination.page, 'Limit:', pagination.limit);
+      logger.debug('📤 Sending request with filters:', { searchFilters });
+      logger.debug('Page:', { page: pagination.page, limit: pagination.limit });
 
       const response = await memberService.getMembersList(
         searchFilters,
@@ -175,14 +176,14 @@ const TwoSectionMembers = () => {
         pagination.limit
       );
 
-      console.log('✅ API Response received:', response);
+      logger.debug('✅ API Response received:', { response });
 
       // Handle API response format: { success, data, pagination }
       const membersData = response.data || response.members || [];
       const paginationData = response.pagination || {};
 
-      console.log('✅ Members count:', membersData.length);
-      console.log('✅ Total members:', paginationData.total || response.total);
+      logger.debug('✅ Members count:', { length: membersData.length });
+      logger.debug('✅ Total members:', {});
 
       setMembers(membersData);
       setPagination(prev => ({
@@ -204,15 +205,15 @@ const TwoSectionMembers = () => {
         membersCache.current.delete(firstKey);
       }
     } catch (error) {
-      console.error('❌ API Error:', error);
-      console.error('❌ Error details:', error.message);
-      console.error('❌ Error stack:', error.stack);
-      console.error('❌ Full error object:', JSON.stringify(error, null, 2));
+      logger.error('❌ API Error:', { error });
+      logger.error('❌ Error details:', { message: error.message });
+      logger.error('❌ Error stack:', { stack: error.stack });
+      logger.error('❌ Full error object:');
 
       // Show error message to user instead of silently falling back
       alert(`خطأ في تحميل البيانات: ${error.message}\n\nتحقق من:\n1. الخادم يعمل على المنفذ 5001\n2. الاتصال بقاعدة البيانات`);
 
-      console.log('⚠️ Setting empty members array due to error');
+      logger.debug('⚠️ Setting empty members array due to error');
       setMembers([]);
       setPagination(prev => ({
         ...prev,
@@ -222,7 +223,7 @@ const TwoSectionMembers = () => {
     } finally {
       setLoading(false);
       setIsSearching(false);
-      console.log('✅ Loading complete');
+      logger.debug('✅ Loading complete');
     }
   };
 
@@ -267,7 +268,7 @@ const TwoSectionMembers = () => {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Export error:', error);
+      logger.error('Export error:', { error });
       alert('حدث خطأ في تصدير البيانات');
     }
   };
@@ -324,7 +325,7 @@ const TwoSectionMembers = () => {
               alert('لم يتم العثور على بيانات صالحة للاستيراد');
             }
           } catch (error) {
-            console.error('Import error:', error);
+            logger.error('Import error:', { error });
             alert('حدث خطأ في استيراد البيانات');
           }
         };
@@ -343,7 +344,7 @@ const TwoSectionMembers = () => {
 
   const handlePageSizeChange = (newSize) => {
     const newLimit = parseInt(newSize);
-    console.log('🔄 Changing page size to:', newLimit);
+    logger.debug('🔄 Changing page size to:', { newLimit });
     // Clear cache when page size changes
     membersCache.current.clear();
     // Update pagination with new limit and reset to page 1
@@ -385,7 +386,7 @@ const TwoSectionMembers = () => {
       // Keep the 0 for display
     }
 
-    console.log('🌍 Detected country code:', detectedCountryCode, 'from phone:', member.phone);
+    logger.debug('🌍 Detected country code:', { detectedCountryCode, phone: member.phone });
 
     // Ensure all fields are properly populated with empty strings for form inputs
     const memberToEdit = {
@@ -406,9 +407,9 @@ const TwoSectionMembers = () => {
       countryCode: detectedCountryCode,
       full_name: member.full_name || ''
     };
-    console.log('🖊️ Opening edit modal with member:', memberToEdit);
-    console.log('Gender value:', memberToEdit.gender);
-    console.log('Tribal section value:', memberToEdit.tribal_section);
+    logger.debug('🖊️ Opening edit modal with member:', { memberToEdit });
+    logger.debug('Gender value:', { gender: memberToEdit.gender });
+    logger.debug('Tribal section value:', { tribal_section: memberToEdit.tribal_section });
     setEditingMember(memberToEdit);
     setActiveEditTab('personal'); // Reset to personal tab when opening
     setShowEditModal(true);
@@ -420,13 +421,13 @@ const TwoSectionMembers = () => {
   };
 
   const handleEditChange = (field, value) => {
-    console.log(`📝 Field changed: ${field} = ${value}`);
+    logger.debug(`📝 Field changed: ${field} = ${value}`);
     setEditingMember(prev => {
       const updated = {
         ...prev,
         [field]: value
       };
-      console.log('Updated member state:', updated);
+      logger.debug('Updated member state:', { updated });
       return updated;
     });
   };
@@ -434,7 +435,7 @@ const TwoSectionMembers = () => {
   // Simple logging for debugging select values
   useEffect(() => {
     if (editingMember && showEditModal) {
-      console.log('🔍 Edit modal opened with member data:', {
+      logger.debug('🔍 Edit modal opened with member data:', {
         id: editingMember.id,
         name: editingMember.full_name,
         gender: editingMember.gender,
@@ -448,7 +449,7 @@ const TwoSectionMembers = () => {
       setLoading(true);
 
       // Log the current state of editingMember to debug
-      console.log('🔍 Current editingMember state:', editingMember);
+      logger.debug('🔍 Current editingMember state:', { editingMember });
 
       // Combine country code with phone number
       const countryCode = editingMember.countryCode || '966';
@@ -462,9 +463,9 @@ const TwoSectionMembers = () => {
         phoneWithCountry = countryCode + phoneWithCountry;
       }
 
-      console.log('📞 Phone before save:', editingMember.phone);
-      console.log('🌍 Country code:', countryCode);
-      console.log('📞 Phone with country:', phoneWithCountry);
+      logger.debug('📞 Phone before save:', { phone: editingMember.phone });
+      logger.debug('🌍 Country code:', { countryCode });
+      logger.debug('📞 Phone with country:', { phoneWithCountry });
 
       // Prepare the update data with all fields - using the exact values from editingMember
       const updateData = {
@@ -506,14 +507,14 @@ const TwoSectionMembers = () => {
         }
       });
 
-      console.log('📤 Sending data to backend:', JSON.stringify(cleanedData, null, 2));
+      logger.debug('📤 Sending data to backend:');
 
       const response = await memberService.updateMember(editingMember.id, cleanedData);
 
-      console.log('📥 Update response from backend:', response);
+      logger.debug('📥 Update response from backend:', { response });
 
       if (response.success) {
-        console.log('✅ Update successful! Response data:', response.data);
+        logger.debug('✅ Update successful! Response data:', { data: response.data });
 
         // Update the local state with the response data
         const updatedMembers = members.map(member =>
@@ -530,12 +531,12 @@ const TwoSectionMembers = () => {
         await new Promise(resolve => setTimeout(resolve, 500));
         await loadMembers();
 
-        console.log('✅ Data reloaded after update');
+        logger.debug('✅ Data reloaded after update');
       } else {
         throw new Error(response.error || 'Failed to update member');
       }
     } catch (error) {
-      console.error('❌ Error updating member:', error);
+      logger.error('❌ Error updating member:', { error });
       alert('حدث خطأ في تحديث البيانات: ' + error.message);
     } finally {
       setLoading(false);
@@ -550,7 +551,7 @@ const TwoSectionMembers = () => {
         alert('تم حذف العضو بنجاح');
         loadMembers(); // Reload the list
       } catch (error) {
-        console.error('Error deleting member:', error);
+        logger.error('Error deleting member:', { error });
         alert('حدث خطأ في حذف العضو: ' + error.message);
       } finally {
         setLoading(false);
@@ -1048,7 +1049,7 @@ const TwoSectionMembers = () => {
                       name="tribal_section"
                       value={editingMember?.tribal_section || ''}
                       onChange={(e) => {
-                        console.log('Tribal section changed to:', e.target.value);
+                        logger.debug('Tribal section changed to:', { value: e.target.value });
                         handleEditChange('tribal_section', e.target.value);
                       }}
                       placeholder="اختر الفخذ"
@@ -1070,7 +1071,7 @@ const TwoSectionMembers = () => {
                       name="gender"
                       value={editingMember?.gender || ''}
                       onChange={(e) => {
-                        console.log('Gender changed to:', e.target.value);
+                        logger.debug('Gender changed to:', { value: e.target.value });
                         handleEditChange('gender', e.target.value);
                       }}
                       placeholder="اختر الجنس"
@@ -1269,7 +1270,7 @@ const TwoSectionMembers = () => {
                             const file = e.target.files[0];
                             if (file) {
                               // You can handle file upload here
-                              console.log('Member photo selected:', file);
+                              logger.debug('Member photo selected:', { file });
                               handleEditChange('photo_file', file);
                             }
                           }}
@@ -1293,7 +1294,7 @@ const TwoSectionMembers = () => {
                             // Handle file upload
                             const file = e.target.files[0];
                             if (file) {
-                              console.log('National ID selected:', file);
+                              logger.debug('National ID selected:', { file });
                               handleEditChange('national_id_file', file);
                             }
                           }}

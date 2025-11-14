@@ -4,13 +4,15 @@
  * Features glassmorphism effects, sophisticated animations, and full RTL support
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { memo,  useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import UserManagement from './UserManagement';
 import SystemSettings from './SystemSettings';
 import AuditLogs from './AuditLogs';
 import MultiRoleManagement from './MultiRoleManagement';
 import AccessControl from './AccessControl';
+import { logger } from '../../utils/logger';
+
 import '../Members/AppleDesignSystem.css';
 import {
   CogIcon,
@@ -90,14 +92,14 @@ const Settings = () => {
       const parsedUser = JSON.parse(storedUser);
       userRole = parsedUser.role;
     } catch (e) {
-      console.error('Error parsing stored user:', e);
+      logger.error('Error parsing stored user:', { e });
     }
   }
 
   // Debug logging
-  console.log('[Settings] User role:', userRole);
-  console.log('[Settings] User data:', user);
-  console.log('[Settings] hasRole function available:', typeof hasRole === 'function');
+  logger.debug('[Settings] User role:', { userRole });
+  logger.debug('[Settings] User data:', { user });
+  logger.debug('[Settings] hasRole function available:', {});
 
   // Filter tabs based on user role - always show for admin/super_admin
   const availableTabs = settingsTabs.filter(tab => {
@@ -121,8 +123,8 @@ const Settings = () => {
   });
 
   // Debug available tabs
-  console.log('[Settings] Available tabs:', availableTabs.map(t => t.id));
-  console.log('[Settings] Active tab:', activeTab);
+  logger.debug('[Settings] Available tabs:'));
+  logger.debug('[Settings] Active tab:', { activeTab });
 
   // Set first available tab as default
   useEffect(() => {
@@ -512,4 +514,4 @@ const Settings = () => {
   );
 };
 
-export default Settings;
+export default memo(Settings);

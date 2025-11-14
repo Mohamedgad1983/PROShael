@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { memo,  useState, useCallback, useEffect } from 'react';
 import './FlexiblePayment.css';
 
 // Define interfaces for type safety
@@ -392,4 +392,4 @@ const FlexiblePayment: React.FC<FlexiblePaymentProps> = ({
   );
 };
 
-export default FlexiblePayment;
+export default memo(FlexiblePayment);

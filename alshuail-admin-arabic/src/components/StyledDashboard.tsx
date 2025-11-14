@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { memo,  useMemo, useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import {
@@ -4449,4 +4449,4 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
   );
 };
 
-export default StyledDashboard;
+export default memo(StyledDashboard);

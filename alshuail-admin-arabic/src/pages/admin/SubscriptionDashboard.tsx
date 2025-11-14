@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { logger } from '../../utils/logger';
+
 import './SubscriptionDashboard.css';
 
 // ========================================
@@ -59,7 +61,7 @@ const SubscriptionDashboard: React.FC = () => {
       const { data } = await axios.get(`${API_BASE}/api/subscriptions/admin/subscriptions/stats`, axiosConfig);
       setStats(data);
     } catch (error) {
-      console.error('فشل في تحميل الإحصائيات:', error);
+      logger.error('فشل في تحميل الإحصائيات:', { error });
     }
   };
 
@@ -86,7 +88,7 @@ const SubscriptionDashboard: React.FC = () => {
       setSubscriptions(data.subscriptions);
       setTotalPages(Math.ceil(data.total / 20));
     } catch (error) {
-      console.error('فشل في تحميل الاشتراكات:', error);
+      logger.error('فشل في تحميل الاشتراكات:', { error });
     } finally {
       setLoading(false);
     }
@@ -118,7 +120,7 @@ const SubscriptionDashboard: React.FC = () => {
       fetchSubscriptions();
       setShowPaymentModal(false);
     } catch (error) {
-      console.error('فشل في تسجيل الدفعة:', error);
+      logger.error('فشل في تسجيل الدفعة:', { error });
       alert('حدث خطأ أثناء تسجيل الدفعة');
     }
   };
@@ -134,7 +136,7 @@ const SubscriptionDashboard: React.FC = () => {
 
       alert(`تم إرسال التذكير بنجاح! (${data.sent} رسالة)`);
     } catch (error) {
-      console.error('فشل في إرسال التذكير:', error);
+      logger.error('فشل في إرسال التذكير:', { error });
       alert('حدث خطأ أثناء إرسال التذكير');
     }
   };

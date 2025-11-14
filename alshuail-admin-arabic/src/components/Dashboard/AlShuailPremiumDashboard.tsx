@@ -23,6 +23,8 @@ import {
   StarIcon
 } from '@heroicons/react/24/outline';
 import { Line } from 'react-chartjs-2';
+import { logger } from '../../utils/logger';
+
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -181,7 +183,7 @@ const AlShuailPremiumDashboard: React.FC = () => {
         setMembers(enhancedMembers);
       }
     } catch (error) {
-      console.error('Error fetching members:', error);
+      logger.error('Error fetching members:', { error });
     } finally {
       setLoading(false);
     }

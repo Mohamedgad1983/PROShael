@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { memo,  useState, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { FaUpload, FaFileAlt, FaFilePdf, FaImage, FaSearch, FaFilter, FaTrash, FaDownload, FaEye } from 'react-icons/fa';
+import { logger } from '../../utils/logger';
+
 import './DocumentManager.css';
 
 const DOCUMENT_CATEGORIES = {
@@ -52,7 +54,7 @@ const DocumentManager = () => {
 
       // Handle authentication errors
       if (response.status === 401 || response.status === 403) {
-        console.warn('🔑 Authentication error, redirecting to login...');
+        logger.warn('🔑 Authentication error, redirecting to login...');
         localStorage.removeItem('token');
         window.location.href = '/login';
         return;
@@ -63,7 +65,7 @@ const DocumentManager = () => {
         setDocuments(data.data || []);
       }
     } catch (error) {
-      console.error('Error fetching documents:', error);
+      logger.error('Error fetching documents:', { error });
     } finally {
       setLoading(false);
     }
@@ -81,7 +83,7 @@ const DocumentManager = () => {
 
       // Handle authentication errors
       if (response.status === 401 || response.status === 403) {
-        console.warn('🔑 Authentication error, redirecting to login...');
+        logger.warn('🔑 Authentication error, redirecting to login...');
         localStorage.removeItem('token');
         window.location.href = '/login';
         return;
@@ -92,7 +94,7 @@ const DocumentManager = () => {
         setStats(data.data);
       }
     } catch (error) {
-      console.error('Error fetching stats:', error);
+      logger.error('Error fetching stats:', { error });
     }
   };
 
@@ -157,11 +159,11 @@ const DocumentManager = () => {
       } else {
         const errorData = await response.json().catch(() => ({}));
         const errorMessage = errorData.error || errorData.message || `فشل رفع المستند (${response.status})`;
-        console.error('Upload failed:', response.status, errorData);
+        logger.error('Upload failed:', { status: response.status, errorData });
         alert(`فشل رفع المستند: ${errorMessage}`);
       }
     } catch (error) {
-      console.error('Upload error:', error);
+      logger.error('Upload error:', { error });
       alert('حدث خطأ أثناء رفع المستند');
     } finally {
       setLoading(false);
@@ -188,7 +190,7 @@ const DocumentManager = () => {
         alert('تم حذف المستند بنجاح');
       }
     } catch (error) {
-      console.error('Delete error:', error);
+      logger.error('Delete error:', { error });
     }
   };
 
@@ -360,4 +362,4 @@ const DocumentManager = () => {
   );
 };
 
-export default DocumentManager;
+export default memo(DocumentManager);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { memo,  useState } from 'react';
 import {
   XMarkIcon,
   CalendarIcon,
@@ -643,4 +643,4 @@ const CreateOccasionModal: React.FC<CreateOccasionModalProps> = ({
   );
 };
 
-export default CreateOccasionModal;
+export default memo(CreateOccasionModal);

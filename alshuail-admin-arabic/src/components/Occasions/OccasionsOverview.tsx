@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { memo,  useState, useEffect } from 'react';
 import {
   PlusIcon,
   CalendarDaysIcon,
@@ -18,6 +18,8 @@ import { ARABIC_LABELS } from '../../constants/arabic';
 import { apiService } from '../../services/api';
 import { useResponsive } from '../../utils/responsive';
 import { formatArabicNumber } from '../../utils/arabic';
+
+import { logger } from '../../utils/logger';
 
 // Mock data for testing
 const mockOccasions: Occasion[] = [
@@ -113,7 +115,7 @@ const OccasionsOverview: React.FC = () => {
 
   // Debug logging for modal state
   useEffect(() => {
-    console.log('showCreateModal state changed:', showCreateModal);
+    logger.debug('showCreateModal state changed:', { showCreateModal });
   }, [showCreateModal]);
 
   // Load occasions from API
@@ -149,12 +151,12 @@ const OccasionsOverview: React.FC = () => {
           throw new Error('فشل في جلب البيانات');
         }
       } catch (apiError) {
-        console.warn('API call failed, using mock data:', apiError);
+        logger.warn('API call failed, using mock data:', { apiError });
         setOccasions(mockOccasions);
         setError('تم استخدام البيانات التجريبية - تحقق من الاتصال بالخادم');
       }
     } catch (err) {
-      console.error('Error loading occasions:', err);
+      logger.error('Error loading occasions:', { err });
       setOccasions(mockOccasions);
       setError('خطأ في تحميل البيانات');
     } finally {
@@ -223,7 +225,7 @@ const OccasionsOverview: React.FC = () => {
           throw new Error(response.message_ar || 'فشل في إنشاء المناسبة');
         }
       } catch (apiError) {
-        console.warn('API creation failed, adding locally:', apiError);
+        logger.warn('API creation failed, adding locally:', { apiError });
 
         // Fallback to local addition
         const newOccasion: Occasion = {
@@ -243,7 +245,7 @@ const OccasionsOverview: React.FC = () => {
         setError('تم إضافة المناسبة محلياً - تحقق من الاتصال بالخادم');
       }
     } catch (error) {
-      console.error('Error creating occasion:', error);
+      logger.error('Error creating occasion:', { error });
       setError('خطأ في إنشاء المناسبة');
     } finally {
       setLoading(false);
@@ -277,7 +279,7 @@ const OccasionsOverview: React.FC = () => {
 
       setShowRSVPModal(false);
     } catch (error) {
-      console.error('Error submitting RSVP:', error);
+      logger.error('Error submitting RSVP:', { error });
     } finally {
       setLoading(false);
     }
@@ -465,7 +467,7 @@ const OccasionsOverview: React.FC = () => {
           <button
             style={primaryButtonStyle}
             onClick={() => {
-              console.log('Create button clicked');
+              logger.debug('Create button clicked');
               setShowCreateModal(true);
             }}
             onMouseEnter={(e) => {
@@ -694,7 +696,7 @@ const OccasionsOverview: React.FC = () => {
         <CreateOccasionModal
           isOpen={showCreateModal}
           onClose={() => {
-            console.log('Modal closing');
+            logger.debug('Modal closing');
             setShowCreateModal(false);
             setSelectedOccasion(null);
           }}
@@ -721,4 +723,4 @@ const OccasionsOverview: React.FC = () => {
   );
 };
 
-export default OccasionsOverview;
+export default memo(OccasionsOverview);

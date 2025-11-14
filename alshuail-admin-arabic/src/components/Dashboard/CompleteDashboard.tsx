@@ -27,6 +27,8 @@ import {
   ChartOptions
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
+import { logger } from '../../utils/logger';
+
 import './CompleteDashboard.css';
 
 // Enhanced TypeScript interfaces with proper typing
@@ -120,7 +122,7 @@ const CompleteDashboard = () => {
           setLoading(false);
         }, 1000);
       } catch (error) {
-        console.error('Error fetching dashboard data:', error);
+        logger.error('Error fetching dashboard data:', { error });
         setLoading(false);
       }
     };

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import './ExpenseVoucher.css';
 import logo from '../../assets/logo.svg';
 
@@ -326,4 +326,4 @@ const ExpenseVoucher = ({ expense, onClose }) => {
   );
 };
 
-export default ExpenseVoucher;
+export default memo(ExpenseVoucher);

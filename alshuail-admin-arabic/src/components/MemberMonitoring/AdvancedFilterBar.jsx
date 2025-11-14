@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { memo,  useState, useEffect } from 'react';
 import { MagnifyingGlassIcon, FunnelIcon, ArrowDownTrayIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 const AdvancedFilterBar = ({ filters, setFilters, onApplyFilters, onClearFilters, onExport }) => {
@@ -279,4 +279,4 @@ const AdvancedFilterBar = ({ filters, setFilters, onApplyFilters, onClearFilters
   );
 };
 
-export default AdvancedFilterBar;
+export default memo(AdvancedFilterBar);

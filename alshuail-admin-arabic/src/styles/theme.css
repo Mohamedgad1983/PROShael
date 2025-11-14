@@ -1,0 +1,240 @@
+/**
+ * Global Theme Styles
+ * Dark mode and theme customization support
+ *
+ * @version 1.0.0
+ * @date 2025-01-13
+ */
+
+/* ============================================================================
+   CSS VARIABLES - LIGHT MODE (DEFAULT)
+   ============================================================================ */
+
+:root {
+  /* Primary Colors */
+  --color-primary-50: #EFF6FF;
+  --color-primary-100: #DBEAFE;
+  --color-primary-200: #BFDBFE;
+  --color-primary-300: #93C5FD;
+  --color-primary-400: #60A5FA;
+  --color-primary-500: #3B82F6;
+  --color-primary-600: #2563EB;
+  --color-primary-700: #1D4ED8;
+  --color-primary-800: #1E40AF;
+  --color-primary-900: #1E3A8A;
+
+  /* Background Colors */
+  --color-background: #FFFFFF;
+  --color-surface: #F9FAFB;
+  --color-elevated: #F3F4F6;
+
+  /* Text Colors */
+  --color-text-primary: #111827;
+  --color-text-secondary: #6B7280;
+  --color-text-tertiary: #9CA3AF;
+
+  /* Border Colors */
+  --color-border: #E5E7EB;
+  --color-border-strong: #D1D5DB;
+
+  /* Semantic Colors */
+  --color-success: #10B981;
+  --color-error: #EF4444;
+  --color-warning: #F59E0B;
+  --color-info: #3B82F6;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+}
+
+/* ============================================================================
+   DARK MODE COLORS
+   ============================================================================ */
+
+.dark-mode {
+  /* Background Colors */
+  --color-background: #0F172A;
+  --color-surface: #1E293B;
+  --color-elevated: #334155;
+
+  /* Text Colors */
+  --color-text-primary: #F1F5F9;
+  --color-text-secondary: #CBD5E1;
+  --color-text-tertiary: #94A3B8;
+
+  /* Border Colors */
+  --color-border: #334155;
+  --color-border-strong: #475569;
+
+  /* Shadows - darker in dark mode */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.6);
+}
+
+/* ============================================================================
+   THEME APPLICATION
+   ============================================================================ */
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Disable animations when preference is set */
+.no-animations,
+.no-animations * {
+  animation-duration: 0s !important;
+  transition-duration: 0s !important;
+}
+
+/* Compact mode - reduced spacing */
+.compact-mode {
+  --spacing-multiplier: 0.75;
+}
+
+/* ============================================================================
+   COMPONENT OVERRIDES FOR DARK MODE
+   ============================================================================ */
+
+/* Cards */
+.dark-mode .bg-white {
+  background-color: var(--color-surface) !important;
+}
+
+.dark-mode .bg-gray-50 {
+  background-color: var(--color-background) !important;
+}
+
+.dark-mode .bg-gray-100 {
+  background-color: var(--color-surface) !important;
+}
+
+.dark-mode .bg-gray-200 {
+  background-color: var(--color-elevated) !important;
+}
+
+/* Text */
+.dark-mode .text-gray-900,
+.dark-mode .text-gray-800,
+.dark-mode .text-gray-700 {
+  color: var(--color-text-primary) !important;
+}
+
+.dark-mode .text-gray-600,
+.dark-mode .text-gray-500 {
+  color: var(--color-text-secondary) !important;
+}
+
+.dark-mode .text-gray-400 {
+  color: var(--color-text-tertiary) !important;
+}
+
+/* Borders */
+.dark-mode .border-gray-200,
+.dark-mode .border-gray-300 {
+  border-color: var(--color-border) !important;
+}
+
+.dark-mode .border-gray-400 {
+  border-color: var(--color-border-strong) !important;
+}
+
+/* Inputs */
+.dark-mode input,
+.dark-mode textarea,
+.dark-mode select {
+  background-color: var(--color-elevated) !important;
+  color: var(--color-text-primary) !important;
+  border-color: var(--color-border) !important;
+}
+
+.dark-mode input::placeholder,
+.dark-mode textarea::placeholder {
+  color: var(--color-text-tertiary) !important;
+}
+
+/* Buttons - preserve their colors but adjust hover states */
+.dark-mode button:not(.btn-primary):not(.btn-success):not(.btn-error):not(.btn-warning) {
+  background-color: var(--color-elevated) !important;
+  color: var(--color-text-primary) !important;
+}
+
+/* Dropdowns and Menus */
+.dark-mode .dropdown-menu,
+.dark-mode .menu {
+  background-color: var(--color-surface) !important;
+  border-color: var(--color-border) !important;
+}
+
+/* Tables */
+.dark-mode table {
+  background-color: var(--color-surface) !important;
+}
+
+.dark-mode th {
+  background-color: var(--color-elevated) !important;
+  color: var(--color-text-primary) !important;
+  border-color: var(--color-border) !important;
+}
+
+.dark-mode td {
+  color: var(--color-text-primary) !important;
+  border-color: var(--color-border) !important;
+}
+
+.dark-mode tr:hover {
+  background-color: var(--color-elevated) !important;
+}
+
+/* Modals and Dialogs */
+.dark-mode .modal,
+.dark-mode .dialog {
+  background-color: var(--color-surface) !important;
+}
+
+.dark-mode .modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.7) !important;
+}
+
+/* Shadows */
+.dark-mode .shadow-sm {
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.dark-mode .shadow-md,
+.dark-mode .shadow {
+  box-shadow: var(--shadow-md) !important;
+}
+
+.dark-mode .shadow-lg {
+  box-shadow: var(--shadow-lg) !important;
+}
+
+.dark-mode .shadow-xl {
+  box-shadow: var(--shadow-xl) !important;
+}
+
+/* Scrollbars - dark mode */
+.dark-mode ::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.dark-mode ::-webkit-scrollbar-track {
+  background: var(--color-background);
+}
+
+.dark-mode ::-webkit-scrollbar-thumb {
+  background: var(--color-elevated);
+  border-radius: 6px;
+}
+
+.dark-mode ::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-strong);
+}

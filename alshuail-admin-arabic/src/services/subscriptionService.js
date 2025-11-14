@@ -12,6 +12,8 @@ import {
 } from './mockData.js';
 import PaymentValidationService from './paymentValidationService.js';
 
+import { logger } from '../utils/logger';
+
 // ====================
 // UTILITY FUNCTIONS
 // ====================
@@ -168,7 +170,7 @@ export const getSubscriptionPlans = async (filters = {}) => {
       message: 'تم جلب خطط الاشتراك بنجاح'
     };
   } catch (error) {
-    console.error('Error fetching subscription plans:', error);
+    logger.error('Error fetching subscription plans:', { error });
     return {
       success: false,
       data: [],
@@ -228,7 +230,7 @@ export const createSubscriptionPlan = async (planData) => {
       message: 'تم إنشاء الخطة بنجاح'
     };
   } catch (error) {
-    console.error('Error creating subscription plan:', error);
+    logger.error('Error creating subscription plan:', { error });
     return {
       success: false,
       error: 'حدث خطأ أثناء إنشاء الخطة',
@@ -288,7 +290,7 @@ export const updateSubscriptionPlan = async (planId, planData) => {
       message: 'تم تحديث الخطة بنجاح'
     };
   } catch (error) {
-    console.error('Error updating subscription plan:', error);
+    logger.error('Error updating subscription plan:', { error });
     return {
       success: false,
       error: 'حدث خطأ أثناء تحديث الخطة',
@@ -333,7 +335,7 @@ export const deleteSubscriptionPlan = async (planId) => {
       message: 'تم حذف الخطة بنجاح'
     };
   } catch (error) {
-    console.error('Error deleting subscription plan:', error);
+    logger.error('Error deleting subscription plan:', { error });
     return {
       success: false,
       error: 'حدث خطأ أثناء حذف الخطة',
@@ -457,7 +459,7 @@ export const assignSubscriptionToMember = async (memberId, planId, options = {})
       message: 'تم إنشاء الاشتراك بنجاح'
     };
   } catch (error) {
-    console.error('Error assigning subscription to member:', error);
+    logger.error('Error assigning subscription to member:', { error });
     return {
       success: false,
       error: 'حدث خطأ أثناء إنشاء الاشتراك',
@@ -510,7 +512,7 @@ export const getSubscriptionsByMember = async (memberId) => {
       message: 'تم جلب اشتراكات العضو بنجاح'
     };
   } catch (error) {
-    console.error('Error fetching member subscriptions:', error);
+    logger.error('Error fetching member subscriptions:', { error });
     return {
       success: false,
       error: 'حدث خطأ أثناء جلب اشتراكات العضو',
@@ -597,7 +599,7 @@ export const getAllSubscriptions = async (filters = {}) => {
       message: 'تم جلب الاشتراكات بنجاح'
     };
   } catch (error) {
-    console.error('Error fetching all subscriptions:', error);
+    logger.error('Error fetching all subscriptions:', { error });
     return {
       success: false,
       error: 'حدث خطأ أثناء جلب الاشتراكات',
@@ -652,7 +654,7 @@ export const updateSubscriptionStatus = async (subscriptionId, status, notes = '
       message: `تم تحديث حالة الاشتراك إلى: ${status}`
     };
   } catch (error) {
-    console.error('Error updating subscription status:', error);
+    logger.error('Error updating subscription status:', { error });
     return {
       success: false,
       error: 'حدث خطأ أثناء تحديث حالة الاشتراك',
@@ -780,7 +782,7 @@ export const createFlexibleSubscription = async (subscriptionData) => {
       message: `تم إنشاء الاشتراك المرن بنجاح بمبلغ ${amountValidation.formatted.arabic}`
     };
   } catch (error) {
-    console.error('Error creating flexible subscription:', error);
+    logger.error('Error creating flexible subscription:', { error });
     return {
       success: false,
       error: 'حدث خطأ أثناء إنشاء الاشتراك المرن',
@@ -913,7 +915,7 @@ export const updateSubscriptionAmount = async (subscriptionId, newAmount, option
       message: `تم تحديث مبلغ الاشتراك بنجاح إلى ${amountValidation.formatted.arabic}`
     };
   } catch (error) {
-    console.error('Error updating subscription amount:', error);
+    logger.error('Error updating subscription amount:', { error });
     return {
       success: false,
       error: 'حدث خطأ أثناء تحديث مبلغ الاشتراك',
@@ -956,7 +958,7 @@ export const getActiveSubscriptionByMember = async (memberId) => {
       message: 'تم العثور على اشتراك نشط'
     };
   } catch (error) {
-    console.error('Error getting active subscription:', error);
+    logger.error('Error getting active subscription:', { error });
     return {
       success: false,
       error: 'حدث خطأ أثناء البحث عن الاشتراك النشط',
@@ -992,7 +994,7 @@ const createFlexiblePaymentRecord = async (subscription, amount) => {
     mockDatabase.payments.push(payment);
     return payment;
   } catch (error) {
-    console.error('Error creating flexible payment record:', error);
+    logger.error('Error creating flexible payment record:', { error });
     throw new Error('فشل في إنشاء سجل الدفع');
   }
 };
@@ -1051,7 +1053,7 @@ export const getMemberSubscriptionStatus = async (memberId) => {
       message: 'تم جلب حالة اشتراك العضو بنجاح'
     };
   } catch (error) {
-    console.error('Error getting member subscription status:', error);
+    logger.error('Error getting member subscription status:', { error });
     return {
       success: false,
       error: 'حدث خطأ أثناء جلب حالة الاشتراك',

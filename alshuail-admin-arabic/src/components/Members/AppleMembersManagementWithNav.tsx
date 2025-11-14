@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import AppleMembersManagement from './AppleMembersManagement';
 
 interface Props {
@@ -39,4 +39,4 @@ const AppleMembersManagementWithNav: React.FC<Props> = ({ onAddMemberClick }) =>
   return <AppleMembersManagement />;
 };
 
-export default AppleMembersManagementWithNav;
+export default memo(AppleMembersManagementWithNav);

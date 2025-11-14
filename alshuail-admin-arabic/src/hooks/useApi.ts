@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { apiService } from '../services/api.js';
 
+import { logger } from '../utils/logger';
+
 export type NullableNumber = number | null | undefined;
 
 export interface DashboardMemberStats {
@@ -105,7 +107,7 @@ export const useDashboardData = (): DashboardDataHook => {
           setLoading(true);
         }
 
-        console.log('📊 Fetching dashboard data...');
+        logger.debug('📊 Fetching dashboard data...');
         const response = await typedApiService.getDashboardStats();
         const payload = extractData(response, emptyDashboardData);
 
@@ -113,7 +115,7 @@ export const useDashboardData = (): DashboardDataHook => {
           setData(payload);
           setError(null);
           setRetryCount(0); // Reset retry count on success
-          console.log('✅ Dashboard data loaded successfully');
+          logger.debug('✅ Dashboard data loaded successfully');
         }
       } catch (err) {
         if (!isMounted) {
@@ -121,7 +123,7 @@ export const useDashboardData = (): DashboardDataHook => {
         }
 
         const errorMessage = toErrorMessage(err);
-        console.error('❌ Dashboard data fetch failed:', errorMessage);
+        logger.error('❌ Dashboard data fetch failed:', { errorMessage });
 
         // Only show error and use empty data if we've exhausted retries
         if (retryCount >= MAX_ERROR_RETRIES) {
@@ -134,7 +136,7 @@ export const useDashboardData = (): DashboardDataHook => {
           // Schedule retry
           retryTimeout = setTimeout(() => {
             if (isMounted) {
-              console.log(`🔄 Retrying dashboard fetch (attempt ${retryCount + 1}/${MAX_ERROR_RETRIES})...`);
+              logger.debug(`🔄 Retrying dashboard fetch (attempt ${retryCount + 1}/${MAX_ERROR_RETRIES});...`);
               fetchData(true);
             }
           }, ERROR_RETRY_DELAY * (retryCount + 1));
@@ -173,16 +175,16 @@ export const useMembers = () => {
         setLoading(true);
       }
 
-      console.log('👥 Fetching members data...');
+      logger.debug('👥 Fetching members data...');
       const response = await typedApiService.getMembers();
       const membersData = extractData(response, []);
 
       setMembers(membersData);
       setError(null);
-      console.log(`✅ Loaded ${membersData.length} members successfully`);
+      logger.debug(`✅ Loaded ${membersData.length} members successfully`);
     } catch (err) {
       const errorMessage = toErrorMessage(err);
-      console.error('❌ Members fetch failed:', errorMessage);
+      logger.error('❌ Members fetch failed:', { errorMessage });
       setError(`فشل في تحميل بيانات الأعضاء: ${errorMessage}`);
       // Don't clear members data on error, keep existing data
       if (members.length === 0) {

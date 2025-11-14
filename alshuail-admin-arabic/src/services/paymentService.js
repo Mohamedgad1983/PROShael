@@ -2,6 +2,8 @@
  * Payment Service - Al-Shuail Family Admin Dashboard
  * Complete payment processing and business logic
  */
+import { logger } from '../utils/logger';
+
 
 import {
   mockDatabase,
@@ -143,7 +145,7 @@ export const updatePaymentStatus = async (subscriptionId, status, options = {}) 
       message: `تم تحديث حالة الدفع إلى: ${getPaymentStatusArabic(status)}`
     };
   } catch (error) {
-    console.error('Error updating payment status:', error);
+    logger.error('Error updating payment status:', { error });
     return {
       success: false,
       error: 'حدث خطأ أثناء تحديث حالة الدفع',
@@ -207,7 +209,7 @@ export const getOverduePayments = async (daysOverdue = 0) => {
       message: `تم العثور على ${overduePayments.length} دفعة متأخرة`
     };
   } catch (error) {
-    console.error('Error fetching overdue payments:', error);
+    logger.error('Error fetching overdue payments:', { error });
     return {
       success: false,
       error: 'حدث خطأ أثناء جلب الدفعات المتأخرة',
@@ -338,7 +340,7 @@ export const generatePaymentReminders = async (options = {}) => {
       message: `تم إنشاء ${reminders.length} تذكير دفع`
     };
   } catch (error) {
-    console.error('Error generating payment reminders:', error);
+    logger.error('Error generating payment reminders:', { error });
     return {
       success: false,
       error: 'حدث خطأ أثناء إنشاء تذكيرات الدفع',
@@ -430,7 +432,7 @@ export const processPayment = async (paymentId, paymentData) => {
       message: 'تم معالجة الدفع بنجاح'
     };
   } catch (error) {
-    console.error('Error processing payment:', error);
+    logger.error('Error processing payment:', { error });
     return {
       success: false,
       error: 'حدث خطأ أثناء معالجة الدفع',
@@ -487,7 +489,7 @@ export const getPaymentHistory = async (subscriptionId) => {
       message: 'تم جلب تاريخ المدفوعات بنجاح'
     };
   } catch (error) {
-    console.error('Error fetching payment history:', error);
+    logger.error('Error fetching payment history:', { error });
     return {
       success: false,
       error: 'حدث خطأ أثناء جلب تاريخ المدفوعات',

@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { memo,  useState } from 'react';
 import VisualAlertSystem, { AlertBadge } from './VisualAlertSystem';
+import { logger } from '../../utils/logger';
+
 import './StatementSearch.css';
 
 const StatementSearch = () => {
@@ -61,7 +63,7 @@ const StatementSearch = () => {
       setSearchResults(results);
 
     } catch (err) {
-      console.error('Search error:', err);
+      logger.error('Search error:', { err });
       setError(err.message || 'حدث خطأ أثناء البحث');
     } finally {
       setLoading(false);
@@ -262,4 +264,4 @@ const StatementSearch = () => {
   );
 };
 
-export default StatementSearch;
+export default memo(StatementSearch);

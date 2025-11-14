@@ -27,6 +27,8 @@ import {
   BuildingOfficeIcon
 } from '@heroicons/react/24/outline';
 import { CheckCircleIcon as CheckCircleIconSolid, StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
+import { logger } from '../../utils/logger';
+
 import './PremiumRegistration.css';
 
 interface FormData {
@@ -171,7 +173,7 @@ const PremiumRegistration: React.FC = () => {
       try {
         setFormData(JSON.parse(savedData));
       } catch (e) {
-        console.error('Failed to load saved data');
+        logger.error('Failed to load saved data');
       }
     }
   }, []);
@@ -293,7 +295,7 @@ const PremiumRegistration: React.FC = () => {
         throw new Error('Registration failed');
       }
     } catch (error) {
-      console.error('Submission error:', error);
+      logger.error('Submission error:', { error });
       setErrors([{ field: 'submit', message: 'حدث خطأ أثناء التسجيل. يرجى المحاولة مرة أخرى.' }]);
     } finally {
       setIsSubmitting(false);

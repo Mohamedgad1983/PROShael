@@ -10,9 +10,11 @@
 
 import * as hijriConverter from 'hijri-converter';
 
+import { logger } from './logger';
+
 // Force side effect to prevent tree-shaking
 if (process.env.NODE_ENV !== 'test') {
-  console.log('[Hijri Date Utils] Module loaded');
+  logger.debug('[Hijri Date Utils] Module loaded');
 }
 
 /**
@@ -87,7 +89,7 @@ export const toHijri = (date = new Date()) => {
       formatted: `${hijriDate.hd} ${HIJRI_MONTHS[hijriDate.hm - 1]} ${hijriDate.hy}هـ`
     };
   } catch (error) {
-    console.error('Error converting to Hijri:', error);
+    logger.error('Error converting to Hijri:', { error });
     return null;
   }
 };

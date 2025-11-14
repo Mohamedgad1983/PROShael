@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import {
   CalendarIcon,
   ClockIcon,
@@ -414,4 +414,4 @@ const OccasionCard: React.FC<OccasionCardProps> = ({
   );
 };
 
-export default OccasionCard;
+export default memo(OccasionCard);

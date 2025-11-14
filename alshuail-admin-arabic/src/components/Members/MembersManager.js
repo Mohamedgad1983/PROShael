@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { logger } from '../../utils/logger';
+
 import './MembersManager.css';
 
 const MembersManager = () => {
@@ -52,7 +54,7 @@ const MembersManager = () => {
         setRoles(data.data.roles || []);
       }
     } catch (error) {
-      console.error('Error loading roles:', error);
+      logger.error('Error loading roles:', { error });
     }
   };
 

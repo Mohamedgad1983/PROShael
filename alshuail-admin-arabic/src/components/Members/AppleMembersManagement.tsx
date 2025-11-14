@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { memo,  useState, useEffect, useCallback, useMemo } from 'react';
 import { memberService } from '../../services/memberService';
 import {
   MagnifyingGlassIcon,
@@ -29,6 +29,8 @@ import {
   BanknotesIcon
 } from '@heroicons/react/24/outline';
 import { CheckCircleIcon as CheckCircleIconSolid, StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
+import { logger } from '../../utils/logger';
+
 import '../../styles/apple-design-system.css';
 
 // Enhanced TypeScript interfaces
@@ -117,7 +119,7 @@ const AppleMembersManagement: React.FC = () => {
       const stats = await memberService.getMemberStatistics();
       setStatistics(stats);
     } catch (error) {
-      console.error('Error loading statistics:', error);
+      logger.error('Error loading statistics:', { error });
     }
   };
 
@@ -142,7 +144,7 @@ const AppleMembersManagement: React.FC = () => {
         totalPages: response.totalPages || 0
       }));
     } catch (error) {
-      console.error('Error loading members:', error);
+      logger.error('Error loading members:', { error });
       setMembers([]);
     } finally {
       setLoading(false);
@@ -721,4 +723,4 @@ const AppleMembersManagement: React.FC = () => {
   );
 };
 
-export default AppleMembersManagement;
+export default memo(AppleMembersManagement);

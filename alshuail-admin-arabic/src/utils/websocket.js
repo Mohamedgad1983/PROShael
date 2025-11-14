@@ -2,6 +2,8 @@
  * WebSocket Client with Auto-reconnection and Token Authentication
  * Features: JWT authentication, exponential backoff, event handling, offline queueing
  */
+import { logger } from './logger';
+
 
 class WebSocketClient {
   constructor(url, options = {}) {
@@ -614,13 +616,13 @@ class WebSocketClient {
 
     switch (level) {
       case 'error':
-        console.error(`${prefix} ❌ ${message}`);
+        logger.error(`${prefix} ❌ ${message}`);
         break;
       case 'warn':
-        console.warn(`${prefix} ⚠️ ${message}`);
+        logger.warn(`${prefix} ⚠️ ${message}`);
         break;
       default:
-        console.log(`${prefix} 🌐 ${message}`);
+        logger.debug(`${prefix} 🌐 ${message}`);
     }
   }
 

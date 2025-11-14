@@ -3,10 +3,12 @@
  * Allows users to manage their profile information and avatar
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { memo,  useState, useRef, useEffect } from 'react';
 import { UserIcon, PhotoIcon, XMarkIcon, CheckCircleIcon, ExclamationCircleIcon, EyeIcon, EyeSlashIcon, LockClosedIcon } from '@heroicons/react/24/outline';
 import axios from 'axios';
 import { useRole } from '../../contexts/RoleContext';
+import { logger } from '../../utils/logger';
+
 import {
   SettingsCard,
   SettingsButton,
@@ -159,7 +161,7 @@ const ProfileSettings: React.FC = () => {
         setNotificationPreferences(response.data.data);
       }
     } catch (error) {
-      console.error('Failed to fetch notification preferences:', error);
+      logger.error('Failed to fetch notification preferences:', { error });
     }
   };
 
@@ -221,7 +223,7 @@ const ProfileSettings: React.FC = () => {
         setOriginalData(profileData);
       }
     } catch (error) {
-      console.error('Failed to fetch profile:', error);
+      logger.error('Failed to fetch profile:', { error });
     }
   };
 
@@ -297,7 +299,7 @@ const ProfileSettings: React.FC = () => {
         await fetchUserProfile();
       }
     } catch (error: any) {
-      console.error('Profile update error:', error);
+      logger.error('Profile update error:', { error });
 
       // Handle validation errors
       if (error.response?.status === 400 && error.response?.data?.errors) {
@@ -424,7 +426,7 @@ const ProfileSettings: React.FC = () => {
         }
       }
     } catch (error: any) {
-      console.error('Avatar upload error:', error);
+      logger.error('Avatar upload error:', { error });
       setMessage({
         type: 'error',
         text: error.response?.data?.message || 'فشل في رفع الصورة'
@@ -470,7 +472,7 @@ const ProfileSettings: React.FC = () => {
         await refreshUserRole();
       }
     } catch (error: any) {
-      console.error('Avatar remove error:', error);
+      logger.error('Avatar remove error:', { error });
       setMessage({
         type: 'error',
         text: error.response?.data?.message || 'فشل في حذف الصورة'
@@ -590,7 +592,7 @@ const ProfileSettings: React.FC = () => {
         setPasswordErrors({});
       }
     } catch (error: any) {
-      console.error('Password change error:', error);
+      logger.error('Password change error:', { error });
 
       if (error.response?.status === 401) {
         setPasswordErrors({ currentPassword: 'كلمة المرور الحالية غير صحيحة' });

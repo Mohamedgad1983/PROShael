@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { memo,  useState, useEffect } from 'react';
+import { logger } from '../../utils/logger';
+
 import './CrisisDashboard.css';
 
 const CrisisDashboard = () => {
@@ -14,9 +16,9 @@ const CrisisDashboard = () => {
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
   // Log on component mount to debug
-  console.log('🚀 Crisis Dashboard Component Mounted');
-  console.log('🔧 Using API_URL:', API_URL);
-  console.log('🔧 process.env.REACT_APP_API_URL:', process.env.REACT_APP_API_URL);
+  logger.debug('🚀 Crisis Dashboard Component Mounted');
+  logger.debug('🔧 Using API_URL:', { API_URL });
+  logger.debug('🔧 process.env.REACT_APP_API_URL:', { REACT_APP_API_URL: process.env.REACT_APP_API_URL });
 
   // Fetch crisis data from backend with comprehensive error handling
   const fetchCrisisData = async () => {
@@ -28,10 +30,10 @@ const CrisisDashboard = () => {
       const url = `${API_URL}/api/crisis/dashboard`;
 
       // Log the exact URL we're calling
-      console.log('🔍 Crisis Dashboard - Fetching from URL:', url);
-      console.log('📡 API_URL configured as:', API_URL);
-      console.log('🔧 Environment:', process.env.NODE_ENV);
-      console.log('🔧 REACT_APP_API_URL from env:', process.env.REACT_APP_API_URL);
+      logger.debug('🔍 Crisis Dashboard - Fetching from URL:', { url });
+      logger.debug('📡 API_URL configured as:', { API_URL });
+      logger.debug('🔧 Environment:', { NODE_ENV: process.env.NODE_ENV });
+      logger.debug('🔧 REACT_APP_API_URL from env:', { REACT_APP_API_URL: process.env.REACT_APP_API_URL });
 
       // Make the fetch request with proper headers
       const response = await fetch(url, {
@@ -44,41 +46,41 @@ const CrisisDashboard = () => {
       });
 
       // Log response details
-      console.log('📡 Response received:');
-      console.log('  - Status:', response.status);
-      console.log('  - Status Text:', response.statusText);
-      console.log('  - OK:', response.ok);
-      console.log('  - URL:', response.url);
+      logger.debug('📡 Response received:', {});
+      logger.debug('  - Status:', { status: response.status });
+      logger.debug('  - Status Text:', { statusText: response.statusText });
+      logger.debug('  - OK:', { ok: response.ok });
+      logger.debug('  - URL:', { url: response.url });
 
       // Log all response headers
       const headers = {};
       response.headers.forEach((value, key) => {
         headers[key] = value;
       });
-      console.log('  - Headers:', headers);
+      logger.debug('  - Headers:', { headers });
 
       // Check content type
       const contentType = response.headers.get('content-type');
-      console.log('📡 Content-Type header:', contentType);
+      logger.debug('📡 Content-Type header:', { contentType });
 
       // If we're getting HTML instead of JSON, it's likely a redirect or wrong URL
       if (!contentType || !contentType.includes('application/json')) {
-        console.error('❌ ERROR: Response is not JSON!');
-        console.error('  - Expected: application/json');
-        console.error('  - Received:', contentType);
+        logger.error('❌ ERROR: Response is not JSON!');
+        logger.error('  - Expected: application/json');
+        logger.error('  - Received:', { contentType });
 
         // Try to read the response as text to see what we got
         const textResponse = await response.text();
-        console.error('❌ Response body (first 500 chars):');
-        console.error(textResponse.substring(0, 500));
+        logger.error('❌ Response body (first 500 chars);:', {});
+        logger.error(textResponse.substring(0, 500));
 
         // Check if it's an HTML page
         if (textResponse.includes('<!DOCTYPE') || textResponse.includes('<html')) {
-          console.error('❌ CRITICAL: Receiving HTML page instead of JSON!');
-          console.error('  - This usually means:');
-          console.error('    1. Wrong URL (frontend URL instead of backend)');
-          console.error('    2. Backend is not running on port 3001');
-          console.error('    3. CORS redirect to error page');
+          logger.error('❌ CRITICAL: Receiving HTML page instead of JSON!');
+          logger.error('  - This usually means:', {});
+          logger.error('    1. Wrong URL (frontend URL instead of backend);');
+          logger.error('    2. Backend is not running on port 3001');
+          logger.error('    3. CORS redirect to error page');
         }
 
         throw new Error(`Server returned ${contentType || 'unknown content'} instead of JSON. Check console for details.`);
@@ -86,12 +88,12 @@ const CrisisDashboard = () => {
 
       // Check if response is not OK
       if (!response.ok) {
-        console.error('❌ HTTP Error:', response.status, response.statusText);
+        logger.error('❌ HTTP Error:', { status: response.status, statusText: response.statusText });
 
         // Try to parse error message from response
         try {
           const errorData = await response.json();
-          console.error('❌ Error response data:', errorData);
+          logger.error('❌ Error response data:', { errorData });
           throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
         } catch (jsonErr) {
           // If we can't parse JSON, use status text
@@ -103,12 +105,12 @@ const CrisisDashboard = () => {
       let data;
       try {
         const responseText = await response.text();
-        console.log('📡 Raw response text length:', responseText.length);
+        logger.debug('📡 Raw response text length:', { length: responseText.length });
 
         // Parse the JSON
         data = JSON.parse(responseText);
-        console.log('✅ Successfully parsed JSON');
-        console.log('📊 Response data structure:', {
+        logger.debug('✅ Successfully parsed JSON');
+        logger.debug('📊 Response data structure:', {
           hasSuccess: 'success' in data,
           hasData: 'data' in data,
           hasStatistics: 'statistics' in data,
@@ -118,43 +120,43 @@ const CrisisDashboard = () => {
 
         // Log first member if available for debugging
         if (data.data?.members && data.data.members.length > 0) {
-          console.log('📊 First member sample:', data.data.members[0]);
+          logger.debug('📊 First member sample:', {});
         } else if (data.members && data.members.length > 0) {
-          console.log('📊 First member sample:', data.members[0]);
+          logger.debug('📊 First member sample:', {});
         }
       } catch (parseErr) {
-        console.error('❌ JSON Parse Error:', parseErr);
-        console.error('  - Error message:', parseErr.message);
+        logger.error('❌ JSON Parse Error:', { parseErr });
+        logger.error('  - Error message:', { message: parseErr.message });
         throw new Error('Failed to parse JSON response from server');
       }
 
       // Handle different response structures
       if (data.success && data.data) {
-        console.log('✅ Setting crisis data from data.data');
+        logger.debug('✅ Setting crisis data from data.data');
         setCrisisData(data.data);
       } else if (data.statistics && data.members) {
-        console.log('✅ Setting crisis data from root level');
+        logger.debug('✅ Setting crisis data from root level');
         setCrisisData(data);
       } else {
-        console.error('❌ Unexpected data structure:', data);
-        console.error('  - Expected either: { success: true, data: {...} }');
-        console.error('  - Or: { statistics: {...}, members: [...] }');
+        logger.error('❌ Unexpected data structure:', { data });
+        logger.error('  - Expected either: { success: true, data: {...} }');
+        logger.error('  - Or: { statistics: {...}, members: [...] }');
         throw new Error('Unexpected data structure from server');
       }
 
-      console.log('✅ Crisis data successfully loaded and set');
+      logger.debug('✅ Crisis data successfully loaded and set');
 
     } catch (err) {
-      console.error('❌ FULL ERROR DETAILS:');
-      console.error('  - Error Name:', err.name);
-      console.error('  - Error Message:', err.message);
-      console.error('  - Error Stack:', err.stack);
+      logger.error('❌ FULL ERROR DETAILS:', {});
+      logger.error('  - Error Name:', { name: err.name });
+      logger.error('  - Error Message:', { message: err.message });
+      logger.error('  - Error Stack:', { stack: err.stack });
 
       // Check for specific error types
       if (err.name === 'TypeError' && err.message.includes('Failed to fetch')) {
-        console.error('❌ NETWORK ERROR: Cannot connect to backend!');
-        console.error('  - Make sure backend is running on http://localhost:3001');
-        console.error('  - Run: cd alshuail-backend && npm run dev');
+        logger.error('❌ NETWORK ERROR: Cannot connect to backend!');
+        logger.error('  - Make sure backend is running on http://localhost:3001');
+        logger.error('  - Run: cd alshuail-backend && npm run dev');
         setError('لا يمكن الاتصال بالخادم - تأكد من تشغيل الخادم على المنفذ 3001');
       } else if (err.message.includes('JSON')) {
         setError('خطأ في تنسيق البيانات من الخادم');
@@ -163,7 +165,7 @@ const CrisisDashboard = () => {
       }
 
       // Use mock data as fallback
-      console.log('📊 Using mock data as fallback');
+      logger.debug('📊 Using mock data as fallback');
       setCrisisData(generateMockData());
     } finally {
       setLoading(false);
@@ -279,24 +281,24 @@ const CrisisDashboard = () => {
           </button>
           <button
             onClick={async () => {
-              console.log('🧪 Testing direct fetch...');
+              logger.debug('🧪 Testing direct fetch...');
               try {
                 const testUrl = 'http://localhost:3001/api/crisis/dashboard';
-                console.log('Testing URL:', testUrl);
+                logger.debug('Testing URL:', { testUrl });
                 const resp = await fetch(testUrl);
                 const text = await resp.text();
-                console.log('Response headers:', resp.headers);
-                console.log('Response text (first 200 chars):', text.substring(0, 200));
+                logger.debug('Response headers:', { headers: resp.headers });
+                logger.debug('Response text (first 200 chars);:', text.substring(0, 200));
                 try {
                   const json = JSON.parse(text);
-                  console.log('✅ Parsed JSON successfully:', json);
+                  logger.debug('✅ Parsed JSON successfully:', { json });
                   alert('✅ Direct fetch successful! Check console for data.');
                 } catch (e) {
-                  console.error('❌ JSON parse failed:', e);
+                  logger.error('❌ JSON parse failed:', { e });
                   alert('❌ Failed to parse JSON. Check console.');
                 }
               } catch (err) {
-                console.error('❌ Direct fetch failed:', err);
+                logger.error('❌ Direct fetch failed:', { err });
                 alert('❌ Direct fetch failed: ' + err.message);
               }
             }}
@@ -488,4 +490,4 @@ const CrisisDashboard = () => {
   );
 };
 
-export default CrisisDashboard;
+export default memo(CrisisDashboard);

@@ -4,6 +4,8 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 
+import { logger } from './logger';
+
 /**
  * AdminRoute - Protects admin-only routes
  * Redirects members to mobile dashboard
@@ -24,7 +26,7 @@ export const AdminRoute = ({ children }) => {
 
   if (!adminRoles.includes(user.role)) {
     // User is a member, redirect to mobile dashboard
-    console.warn('Member attempted to access admin route, redirecting to mobile');
+    logger.warn('Member attempted to access admin route, redirecting to mobile');
     return <Navigate to="/mobile/dashboard" replace />;
   }
 
@@ -45,7 +47,7 @@ export const MemberRoute = ({ children }) => {
       user = JSON.parse(userStr);
     }
   } catch (error) {
-    console.error('Failed to parse user data:', error);
+    logger.error('Failed to parse user data:', { error });
     localStorage.removeItem('user');
   }
 
@@ -54,24 +56,24 @@ export const MemberRoute = ({ children }) => {
   // Check if user exists and has authentication
   if (!user || !token) {
     // Not logged in, redirect to mobile login
-    console.log('MemberRoute: No auth, redirecting to login');
+    logger.debug('MemberRoute: No auth, redirecting to login');
     return <Navigate to="/mobile/login" replace />;
   }
 
   // Allow members to access
   if (user.role === 'member') {
-    console.log('MemberRoute: Member authenticated, allowing access');
+    logger.debug('MemberRoute: Member authenticated, allowing access');
     return children;
   }
 
   // Allow admins to view member pages (for testing/support)
   if (['admin', 'super_admin', 'moderator', 'financial_manager'].includes(user.role)) {
-    console.log('MemberRoute: Admin accessing member route for testing/support, allowing access');
+    logger.debug('MemberRoute: Admin accessing member route for testing/support, allowing access');
     return children;
   }
 
   // Unknown role but has token - redirect to login
-  console.warn('MemberRoute: Unknown role, redirecting to login');
+  logger.warn('MemberRoute: Unknown role, redirecting to login');
   return <Navigate to="/mobile/login" replace />;
 };
 
@@ -118,7 +120,7 @@ export const RequireAuth = ({ children }) => {
     // User is authenticated, allow access
     return children;
   } catch (error) {
-    console.error('Invalid user data in localStorage');
+    logger.error('Invalid user data in localStorage');
     // Clear invalid data
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -148,7 +150,7 @@ export const RoleBasedRedirect = () => {
     case 'financial_manager':
       return <Navigate to="/admin/dashboard" replace />;
     default:
-      console.error('Unknown user role:', user.role);
+      logger.error('Unknown user role:', { role: user.role });
       return <Navigate to="/login" replace />;
   }
 };
@@ -204,7 +206,7 @@ export const PermissionRoute = ({ children, permission }) => {
   }
 
   // No permission, show error or redirect
-  console.error(`User lacks permission: ${permission}`);
+  logger.error(`User lacks permission: ${permission}`);
   return (
     <div style={{
       display: 'flex',

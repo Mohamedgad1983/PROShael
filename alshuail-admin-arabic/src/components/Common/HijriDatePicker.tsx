@@ -4,7 +4,7 @@
  * Provides both manual input and calendar selection
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { memo,  useState, useEffect, useRef } from 'react';
 import { CalendarIcon, ChevronLeftIcon, ChevronRightIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import {
   gregorianToHijri,
@@ -368,4 +368,4 @@ export const HijriDateRangePicker: React.FC<HijriDateRangePickerProps> = ({
   );
 };
 
-export default HijriDatePicker;
+export default memo(HijriDatePicker);

@@ -36,6 +36,8 @@ import OverviewCharts from './OverviewCharts';
 import RecentActivities from './RecentActivities';
 import styles from './styles';
 
+import { logger } from '../../utils/logger';
+
 // Type definitions
 export type DashboardVariant = 'apple' | 'islamic' | 'premium' | 'simple' | 'complete';
 export type ThemeMode = 'light' | 'dark';
@@ -130,8 +132,8 @@ export const DASHBOARD_VARIANTS: Record<DashboardVariant, DashboardConfig> = {
 
 const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
   config,
-  onLogout = () => console.log('Logout'),
-  onNavigate = (section: string) => console.log('Navigate to:', section),
+  onLogout = () => logger.debug('Logout'),
+  onNavigate = (section: string) => logger.debug('Navigate to:', { section }),
 }) => {
   const [activeSection, setActiveSection] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);

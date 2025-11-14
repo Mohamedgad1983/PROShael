@@ -4,10 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { PhoneIcon, LockClosedIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import { isBiometricAvailable, authenticateBiometric, getBiometricType } from '../../utils/biometricAuth.jsx';
+import { logger } from '../../utils/logger';
+
 import '../../styles/mobile/Login.css';
 
 const MobileLogin = () => {
-  console.log('🔴 MobileLogin component is rendering!');
+  logger.debug('🔴 MobileLogin component is rendering!');
 
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
@@ -73,7 +75,7 @@ const MobileLogin = () => {
       // Also store memberData for backward compatibility
       localStorage.setItem('memberData', JSON.stringify(user));
 
-      console.log('Login successful, user role:', user.role);
+      logger.debug('Login successful, user role:', { role: user.role });
 
       // Small delay to ensure localStorage is set
       setTimeout(() => {

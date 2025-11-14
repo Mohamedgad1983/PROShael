@@ -6,6 +6,8 @@ import axios from 'axios';
 import '../../styles/mobile/Dashboard.css';
 import { getDashboardData } from '../../services/mobileApi';
 
+import { logger } from '../../utils/logger';
+
 // API Configuration
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
 
@@ -90,7 +92,7 @@ const MobileDashboard = () => {
         // If empty array, keep existing sample data
       }
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      logger.error('Error fetching dashboard data:', { error });
       // Keep sample data visible on error
     } finally {
       setLoading(false);
@@ -141,7 +143,7 @@ const MobileDashboard = () => {
       const token = localStorage.getItem('token');
 
       if (!token) {
-        console.log('[Notifications] No token found, using sample data');
+        logger.debug('[Notifications] No token found, using sample data');
         loadSampleNotifications();
         return;
       }
@@ -158,8 +160,8 @@ const MobileDashboard = () => {
       if (response.data.success) {
         const { notifications: notifData, unreadCount: count } = response.data.data;
 
-        console.log('[Notifications] Fetched:', notifData);
-        console.log('[Notifications] Unread count:', count);
+        logger.debug('[Notifications] Fetched:', { notifData });
+        logger.debug('[Notifications] Unread count:', { count });
 
         // Update state with real data
         setNotifications(notifData);
@@ -169,7 +171,7 @@ const MobileDashboard = () => {
       }
 
     } catch (error: any) {
-      console.error('[Notifications] Fetch error:', error);
+      logger.error('[Notifications] Fetch error:', { error });
       setNotificationError(error.message);
 
       // Fallback to sample data on error
@@ -208,7 +210,7 @@ const MobileDashboard = () => {
       fetchNotifications();
 
     } catch (error) {
-      console.error('[Notifications] Mark read error:', error);
+      logger.error('[Notifications] Mark read error:', { error });
     }
   };
 
@@ -236,7 +238,7 @@ const MobileDashboard = () => {
       fetchNotifications();
 
     } catch (error) {
-      console.error('[Notifications] Mark all read error:', error);
+      logger.error('[Notifications] Mark all read error:', { error });
     }
   };
 
@@ -251,7 +253,7 @@ const MobileDashboard = () => {
     notifications.occasions.forEach(n => allNotifs.push(n));
     notifications.statements.forEach(n => allNotifs.push(n));
 
-    console.log('📋 All notifications for dropdown:', allNotifs.length);
+    logger.debug('📋 All notifications for dropdown:', { length: allNotifs.length });
 
     // Return latest 5 notifications
     return allNotifs.slice(0, 5);

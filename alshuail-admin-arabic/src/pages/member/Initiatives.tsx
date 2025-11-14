@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
+import { logger } from '../../utils/logger';
+
 const Initiatives = () => {
     const navigate = useNavigate();
     const [activeInitiatives, setActiveInitiatives] = useState([]);
@@ -42,7 +44,7 @@ const Initiatives = () => {
 
             setLoading(false);
         } catch (error) {
-            console.error('Error fetching initiatives:', error);
+            logger.error('Error fetching initiatives:', { error });
             setLoading(false);
         }
     };
@@ -59,7 +61,7 @@ const Initiatives = () => {
 
             setMyContributions(response.data.contributions || []);
         } catch (error) {
-            console.error('Error fetching contributions:', error);
+            logger.error('Error fetching contributions:', { error });
         }
     };
 

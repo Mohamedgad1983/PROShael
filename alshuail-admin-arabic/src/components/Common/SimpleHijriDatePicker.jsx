@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { memo,  useState, useEffect } from 'react';
 import { toHijri, toGregorian } from 'hijri-converter';
 import { CalendarDaysIcon } from '@heroicons/react/24/outline';
 
@@ -249,4 +249,4 @@ const SimpleHijriDatePicker = ({ value, onChange, required = false, label = "Ø§Ù
   );
 };
 
-export default SimpleHijriDatePicker;
+export default memo(SimpleHijriDatePicker);

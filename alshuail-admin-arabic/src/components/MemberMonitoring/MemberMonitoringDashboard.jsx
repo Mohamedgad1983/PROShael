@@ -7,6 +7,8 @@ import MemberMonitoringFilters from './MemberMonitoringFilters';
 import MemberMonitoringTable from './MemberMonitoringTable';
 import MemberMonitoringPagination from './MemberMonitoringPagination';
 
+import { logger } from '../../utils/logger';
+
 const MemberMonitoringDashboard = memo(() => {
   // State management
   const [members, setMembers] = useState([]);
@@ -115,9 +117,9 @@ const MemberMonitoringDashboard = memo(() => {
       setStatistics(stats);
 
     } catch (error) {
-      console.error('Error loading members:', error);
+      logger.error('Error loading members:', { error });
       // Show error message without toast for now
-      console.error('حدث خطأ في تحميل البيانات');
+      logger.error('حدث خطأ في تحميل البيانات');
     } finally {
       setLoading(false);
     }
@@ -252,7 +254,7 @@ const MemberMonitoringDashboard = memo(() => {
 
   const handleViewMemberDetails = useCallback((member) => {
     // Navigate to member details or show modal
-    console.log(`عرض تفاصيل: ${member.fullName}`);
+    logger.debug(`عرض تفاصيل: ${member.fullName}`);
   }, []);
 
   const handleContactMember = useCallback((member) => {
@@ -264,7 +266,7 @@ const MemberMonitoringDashboard = memo(() => {
 
   const handleShowNotifications = useCallback(() => {
     // Show notifications panel
-    console.log('عرض الإشعارات');
+    logger.debug('عرض الإشعارات');
   }, []);
 
   const issueCount = statistics.nonCompliantMembers + statistics.criticalMembers;

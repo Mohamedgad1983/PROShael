@@ -7,6 +7,8 @@
 
 import React from 'react';
 
+import { logger } from './logger';
+
 /**
  * Enhanced memo with custom comparison function
  * Useful for components with complex prop comparisons
@@ -59,8 +61,7 @@ export const shallowPropsEqual = (prevProps: any, nextProps: any): boolean => {
  */
 export const logRenderTime = (componentName: string, renderTime: number) => {
   if (renderTime > 16.67) { // More than one frame at 60fps
-    console.warn(
-      `⚠️  Slow render detected in ${componentName}: ${renderTime.toFixed(2)}ms (target: <16.67ms)`
+    logger.warn(`⚠️  Slow render detected in ${componentName}: ${renderTime.toFixed(2)}ms (target: <16.67ms)`
     );
   }
 };
@@ -197,7 +198,7 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
       const item = typeof window !== 'undefined' ? window.localStorage?.getItem(key) : null;
       return item ? JSON.parse(item) : initialValue;
     } catch (error) {
-      console.error(`Error reading from localStorage for key "${key}":`, error);
+      logger.error(`Error reading from localStorage for key "${key}":`, { error });
       return initialValue;
     }
   });
@@ -211,7 +212,7 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
           window.localStorage?.setItem(key, JSON.stringify(valueToStore));
         }
       } catch (error) {
-        console.error(`Error writing to localStorage for key "${key}":`, error);
+        logger.error(`Error writing to localStorage for key "${key}":`, { error });
       }
     },
     [key, storedValue]
@@ -259,14 +260,14 @@ export class PerformanceMonitor {
   end(label: string): number {
     const startTime = this.marks.get(label);
     if (!startTime) {
-      console.warn(`Performance mark "${label}" not found`);
+      logger.warn(`Performance mark "${label}" not found`);
       return 0;
     }
 
     const endTime = performance.now();
     const duration = endTime - startTime;
 
-    console.log(`⏱️  ${label}: ${duration.toFixed(2)}ms`);
+    logger.debug(`⏱️  ${label}: ${duration.toFixed(2)}ms`);
 
     this.marks.delete(label);
     return duration;

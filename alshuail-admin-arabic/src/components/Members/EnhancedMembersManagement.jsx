@@ -3,6 +3,8 @@ import { memberService } from '../../services/memberService';
 import PremiumImportMembers from './PremiumImportMembers';
 import PremiumRegistration from '../Registration/PremiumRegistration';
 import PremiumExportMembers from './PremiumExportMembers';
+import { logger } from '../../utils/logger';
+
 import './AppleDesignSystem.css';
 import {
   MagnifyingGlassIcon,
@@ -62,7 +64,7 @@ const EnhancedMembersManagement = () => {
       const stats = await memberService.getMemberStatistics();
       setStatistics(stats);
     } catch (error) {
-      console.error('Error loading statistics:', error);
+      logger.error('Error loading statistics:', { error });
     }
   };
 
@@ -87,7 +89,7 @@ const EnhancedMembersManagement = () => {
         totalPages: response.totalPages || 0
       }));
     } catch (error) {
-      console.error('Error loading members:', error);
+      logger.error('Error loading members:', { error });
       setMembers([]);
     } finally {
       setLoading(false);
@@ -134,7 +136,7 @@ const EnhancedMembersManagement = () => {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Export error:', error);
+      logger.error('Export error:', { error });
       alert('حدث خطأ أثناء تصدير البيانات');
     }
   };
@@ -150,7 +152,7 @@ const EnhancedMembersManagement = () => {
       alert(`تم إرسال ${result.sentCount} رسالة تذكيرية بنجاح`);
       setSelectedMembers([]);
     } catch (error) {
-      console.error('Error sending reminders:', error);
+      logger.error('Error sending reminders:', { error });
       alert('حدث خطأ أثناء إرسال التذكيرات');
     }
   };

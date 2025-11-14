@@ -6,6 +6,8 @@ import SimpleHijriDatePicker from '../../components/Common/SimpleHijriDatePicker
 import { HijriDateInput } from '../../components/Common/HijriDateInput';
 import useActiveMemberCount from '../../hooks/useActiveMemberCount';
 import MemberCountToast from '../../components/Common/MemberCountToast';
+import { logger } from '../../utils/logger';
+
 import '../../styles/SelectFix.css';
 
 interface NewsItem {
@@ -27,7 +29,7 @@ interface NewsItem {
 
 // Force component to be included in bundle
 if (process.env.NODE_ENV !== 'test') {
-  console.log('[NewsManagement] Component loaded');
+  logger.debug('[NewsManagement] Component loaded');
 }
 
 const NewsManagement = () => {
@@ -57,7 +59,7 @@ const NewsManagement = () => {
         onCountChange: (newCount, prevCount) => {
             // Show toast when count changes
             setShowToast(true);
-            console.log(`[News] Member count changed: ${prevCount} → ${newCount}`);
+            logger.debug(`[News] Member count changed: ${prevCount} → ${newCount}`);
         }
     });
 
@@ -100,7 +102,7 @@ const NewsManagement = () => {
 
     // Debug: Log formData changes
     useEffect(() => {
-        console.log('📊 formData changed:', {
+        logger.debug('📊 formData changed:', {
             category: formData.category,
             priority: formData.priority
         });
@@ -117,7 +119,7 @@ const NewsManagement = () => {
             setNews(response.data.news || []);
             setLoading(false);
         } catch (error) {
-            console.error('Fetch error:', error);
+            logger.error('Fetch error:', { error });
             setNews([]);
             setLoading(false);
         }
@@ -150,7 +152,7 @@ const NewsManagement = () => {
             // Check if we're editing or creating
             if (isEditMode && editingNews) {
                 // UPDATE existing news
-                console.log('🔄 Attempting PUT to:', `${API_URL}/news/${editingNews.id}`);
+                logger.debug('🔄 Attempting PUT to:', {});
 
                 const response = await axios.put(`${API_URL}/news/${editingNews.id}`, formDataToSend, {
                     headers: {
@@ -159,15 +161,15 @@ const NewsManagement = () => {
                     }
                 });
 
-                console.log('✅ PUT Response:', response.data);
+                logger.debug('✅ PUT Response:', { data: response.data });
                 alert('تم تحديث الخبر بنجاح!');
 
                 // Redirect to dashboard after successful update
                 window.location.href = '/admin/dashboard';
             } else {
                 // CREATE new news
-                console.log('🚀 Attempting POST to:', `${API_URL}/news`);
-                console.log('🔑 Token:', token ? 'Present' : 'Missing');
+                logger.debug('🚀 Attempting POST to:', {});
+                logger.debug('🔑 Token:', {});
 
                 const response = await axios.post(`${API_URL}/news`, formDataToSend, {
                     headers: {
@@ -176,7 +178,7 @@ const NewsManagement = () => {
                     }
                 });
 
-                console.log('✅ POST Response:', response.data);
+                logger.debug('✅ POST Response:', { data: response.data });
                 alert('تم إنشاء الخبر بنجاح!');
                 setShowCreateModal(false);
                 fetchNews();
@@ -722,7 +724,7 @@ const NewsManagement = () => {
                                         <select
                                             value={formData.category}
                                             onChange={(e) => {
-                                                console.log('✅ Category changed to:', e.target.value);
+                                                logger.debug('✅ Category changed to:', { value: e.target.value });
                                                 handleInputChange('category', e.target.value);
                                             }}
                                             className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 cursor-pointer transition-all"
@@ -770,7 +772,7 @@ const NewsManagement = () => {
                                         <select
                                             value={formData.priority}
                                             onChange={(e) => {
-                                                console.log('✅ Priority changed to:', e.target.value);
+                                                logger.debug('✅ Priority changed to:', { value: e.target.value });
                                                 handleInputChange('priority', e.target.value);
                                             }}
                                             className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 cursor-pointer transition-all"
@@ -817,7 +819,7 @@ const NewsManagement = () => {
                                             type="checkbox"
                                             checked={formData.is_published}
                                             onChange={(e) => {
-                                                console.log('✅ Publish status changed to:', e.target.checked);
+                                                logger.debug('✅ Publish status changed to:', { checked: e.target.checked });
                                                 handleInputChange('is_published', e.target.checked);
                                             }}
                                             className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"

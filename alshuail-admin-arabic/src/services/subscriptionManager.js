@@ -10,6 +10,8 @@ import analyticsService from './analyticsService.js';
 import apiHandlers from './apiHandlers.js';
 import { mockDatabase, getMockStats } from './mockData.js';
 
+import { logger } from '../utils/logger';
+
 // ====================
 // MAIN SUBSCRIPTION MANAGER CLASS
 // ====================
@@ -25,7 +27,7 @@ export class SubscriptionManager {
    */
   async initialize() {
     try {
-      console.log('Initializing Subscription Manager...');
+      logger.debug('Initializing Subscription Manager...');
 
       // Perform initial data validation
       await this.validateData();
@@ -34,14 +36,14 @@ export class SubscriptionManager {
       this.setupAutomaticProcesses();
 
       this.initialized = true;
-      console.log('Subscription Manager initialized successfully');
+      logger.debug('Subscription Manager initialized successfully');
 
       return {
         success: true,
         message: 'تم تهيئة مدير الاشتراكات بنجاح'
       };
     } catch (error) {
-      console.error('Failed to initialize Subscription Manager:', error);
+      logger.error('Failed to initialize Subscription Manager:', { error });
       return {
         success: false,
         error: 'فشل في تهيئة مدير الاشتراكات',
@@ -77,7 +79,7 @@ export class SubscriptionManager {
     }
 
     if (issues.length > 0) {
-      console.warn('Data integrity issues found:', issues);
+      logger.warn('Data integrity issues found:', { issues });
     }
 
     return issues;
@@ -88,12 +90,12 @@ export class SubscriptionManager {
    */
   setupAutomaticProcesses() {
     // In a real application, these would be scheduled jobs
-    console.log('Setting up automatic processes...');
+    logger.debug('Setting up automatic processes...');
 
     // Auto-update overdue payments (every hour in real app)
     if (typeof window === 'undefined') { // Only in backend environment
       // This would be a cron job or scheduled task
-      console.log('Automatic overdue payment updates configured');
+      logger.debug('Automatic overdue payment updates configured');
     }
   }
 
@@ -360,7 +362,7 @@ export class SubscriptionManager {
       payment.updated_at = new Date().toISOString();
     });
 
-    console.log(`Updated ${overduePayments.length} payments to overdue status`);
+    logger.debug(`Updated ${overduePayments.length} payments to overdue status`);
   }
 
   async cleanupOldData() {
@@ -373,7 +375,7 @@ export class SubscriptionManager {
       h => new Date(h.created_at) >= twoYearsAgo
     );
 
-    console.log(`Cleaned up ${beforeCount - mockDatabase.subscription_history.length} old history entries`);
+    logger.debug(`Cleaned up ${beforeCount - mockDatabase.subscription_history.length} old history entries`);
   }
 
   async generateScheduledReports() {
@@ -386,7 +388,7 @@ export class SubscriptionManager {
       }
     });
 
-    console.log('Generated monthly revenue report');
+    logger.debug('Generated monthly revenue report');
     return monthlyReport;
   }
 
@@ -407,7 +409,7 @@ export class SubscriptionManager {
         try {
           callback(data);
         } catch (error) {
-          console.error(`Error in event listener for ${event}:`, error);
+          logger.error(`Error in event listener for ${event}:`, { error });
         }
       });
     }
@@ -445,7 +447,7 @@ const subscriptionManager = new SubscriptionManager();
 if (typeof window === 'undefined' || process.env.NODE_ENV !== 'test') {
   subscriptionManager.initialize().then(result => {
     if (!result.success) {
-      console.error('Failed to auto-initialize Subscription Manager:', result.error);
+      logger.error('Failed to auto-initialize Subscription Manager:', { error: result.error });
     }
   });
 }

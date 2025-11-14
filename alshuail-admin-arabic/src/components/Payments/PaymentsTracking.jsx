@@ -1,6 +1,8 @@
 ﻿import React, {  useState, useEffect , useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { toHijri } from 'hijri-converter';
+import { logger } from '../../utils/logger';
+
 import {
   BanknotesIcon,
   ChartBarIcon,
@@ -165,7 +167,7 @@ const PaymentsTracking = () => {
       // Load mock data - replace with actual API calls
       setPayments(mockPayments);
     } catch (error) {
-      console.error('Error loading payments data:', error);
+      logger.error('Error loading payments data:', { error });
     } finally {
       setLoading(false);
     }

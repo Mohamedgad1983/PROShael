@@ -1,5 +1,7 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { memo,  useState, useRef, useCallback } from 'react';
 import { memberService } from '../../services/memberService';
+import { logger } from '../../utils/logger';
+
 import {
   CloudArrowUpIcon,
   DocumentArrowUpIcon,
@@ -31,7 +33,7 @@ const MemberImport = () => {
       const history = await memberService.getImportHistory();
       setImportHistory(history);
     } catch (error) {
-      console.error('Error loading import history:', error);
+      logger.error('Error loading import history:', { error });
     }
   };
 
@@ -109,7 +111,7 @@ const MemberImport = () => {
         fileInputRef.current.value = '';
       }
     } catch (error) {
-      console.error('Upload error:', error);
+      logger.error('Upload error:', { error });
       setImportResult({
         success: false,
         message: error.message || 'حدث خطأ أثناء رفع الملف',
@@ -127,7 +129,7 @@ const MemberImport = () => {
       const result = await memberService.sendRegistrationReminders();
       alert(`تم إرسال ${result.sentCount} رسالة تذكيرية بنجاح`);
     } catch (error) {
-      console.error('Error sending reminders:', error);
+      logger.error('Error sending reminders:', { error });
       alert('حدث خطأ أثناء إرسال التذكيرات');
     }
   };
@@ -382,4 +384,4 @@ const MemberImport = () => {
   );
 };
 
-export default MemberImport;
+export default memo(MemberImport);

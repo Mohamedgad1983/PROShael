@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { memo,  useState } from 'react';
+import { logger } from '../../utils/logger';
+
 import {
   XMarkIcon,
   UserIcon,
@@ -153,7 +155,7 @@ const AddMemberModal = ({ isOpen, onClose, onMemberAdded }) => {
         setError(data.error || 'حدث خطأ أثناء إضافة العضو');
       }
     } catch (error) {
-      console.error('Error adding member:', error);
+      logger.error('Error adding member:', { error });
       setError('فشل في إضافة العضو. يرجى المحاولة مرة أخرى');
     } finally {
       setLoading(false);
@@ -493,4 +495,4 @@ const AddMemberModal = ({ isOpen, onClose, onMemberAdded }) => {
   );
 };
 
-export default AddMemberModal;
+export default memo(AddMemberModal);

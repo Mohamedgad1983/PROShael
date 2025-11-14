@@ -1,5 +1,7 @@
 // Service Worker Registration with Update Detection
 // src/serviceWorkerRegistration.js
+import { logger } from './utils/logger';
+
 
 export function register() {
   if ('serviceWorker' in navigator) {
@@ -9,7 +11,7 @@ export function register() {
       navigator.serviceWorker
         .register(swUrl)
         .then((registration) => {
-          console.log('[SW] Registered successfully:', registration.scope);
+          logger.debug('[SW] Registered successfully:', { scope: registration.scope });
 
           // Check for updates periodically
           setInterval(() => {
@@ -23,7 +25,7 @@ export function register() {
               installingWorker.onstatechange = () => {
                 if (installingWorker.state === 'installed') {
                   if (navigator.serviceWorker.controller) {
-                    console.log('[SW] New content available, please refresh');
+                    logger.debug('[SW] New content available, please refresh');
 
                     // Show update notification
                     if (window.confirm('تحديث جديد متاح. هل تريد تحديث التطبيق؟')) {
@@ -31,7 +33,7 @@ export function register() {
                       window.location.reload();
                     }
                   } else {
-                    console.log('[SW] Content cached for offline use');
+                    logger.debug('[SW] Content cached for offline use');
                   }
                 }
               };
@@ -39,7 +41,7 @@ export function register() {
           };
         })
         .catch((error) => {
-          console.error('[SW] Registration failed:', error);
+          logger.error('[SW] Registration failed:', { error });
         });
 
       // Handle controller change
@@ -57,7 +59,7 @@ export function unregister() {
         registration.unregister();
       })
       .catch((error) => {
-        console.error(error.message);
+        logger.error(error.message);
       });
   }
 }

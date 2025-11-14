@@ -3,6 +3,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
+import { logger } from '../../utils/logger';
+
 const News = () => {
     const navigate = useNavigate();
     const [news, setNews] = useState([]);
@@ -30,7 +32,7 @@ const News = () => {
             );
             setUnreadCount(response.data.count || 0);
         } catch (error) {
-            console.error('Error fetching unread count:', error);
+            logger.error('Error fetching unread count:', { error });
         }
     };
 
@@ -55,7 +57,7 @@ const News = () => {
             setLoading(false);
             setRefreshing(false);
         } catch (error) {
-            console.error('Fetch error:', error);
+            logger.error('Fetch error:', { error });
             setLoading(false);
             setRefreshing(false);
         }
@@ -108,7 +110,7 @@ const News = () => {
             // Navigate to detail
             navigate(`/member/news/${newsItem.id}`);
         } catch (error) {
-            console.error('Error tracking view:', error);
+            logger.error('Error tracking view:', { error });
             navigate(`/member/news/${newsItem.id}`);
         }
     };

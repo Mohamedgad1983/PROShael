@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { memo,  useState, useEffect } from 'react';
+import { logger } from '../../utils/logger';
+
 import './HijriDateFilter.css';
 
 const HijriDateFilter = ({ onFilterChange, selectedMonth, selectedYear }) => {
@@ -26,7 +28,7 @@ const HijriDateFilter = ({ onFilterChange, selectedMonth, selectedYear }) => {
         setYears(data.data.years);
       }
     } catch (error) {
-      console.error('Error fetching Hijri calendar:', error);
+      logger.error('Error fetching Hijri calendar:', { error });
     } finally {
       setLoading(false);
     }
@@ -154,4 +156,4 @@ const HijriDateFilter = ({ onFilterChange, selectedMonth, selectedYear }) => {
   );
 };
 
-export default HijriDateFilter;
+export default memo(HijriDateFilter);

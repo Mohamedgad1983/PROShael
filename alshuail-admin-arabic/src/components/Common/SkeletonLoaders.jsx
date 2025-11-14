@@ -3,7 +3,7 @@
  * Features: Shimmer animations, mobile-specific layouts, Arabic RTL support
  */
 
-import React from 'react';
+import React, { memo } from 'react';
 import '../../styles/skeleton-loaders.css';
 
 // Base skeleton component with shimmer effect

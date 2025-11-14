@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { memo,  useState } from 'react';
 import {
   XMarkIcon,
   UserIcon,
@@ -507,4 +507,4 @@ const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({
   );
 };
 
-export default PaymentDetailsModal;
+export default memo(PaymentDetailsModal);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { memo,  useState } from 'react';
 import {
   XMarkIcon,
   BellIcon,
@@ -675,4 +675,4 @@ const CreateNotificationModal: React.FC<CreateNotificationModalProps> = ({
   );
 };
 
-export default CreateNotificationModal;
+export default memo(CreateNotificationModal);

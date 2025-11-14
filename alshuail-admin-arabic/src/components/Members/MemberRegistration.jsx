@@ -1,6 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { memo,  useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { memberService } from '../../services/memberService';
+import { logger } from '../../utils/logger';
+
 import {
   UserIcon,
   PhoneIcon,
@@ -67,7 +69,7 @@ const MemberRegistration = () => {
       setMemberData(response.member);
       setError('');
     } catch (error) {
-      console.error('Token verification error:', error);
+      logger.error('Token verification error:', { error });
       setError('رمز التسجيل غير صحيح أو منتهي الصلاحية');
     } finally {
       setLoading(false);
@@ -183,7 +185,7 @@ const MemberRegistration = () => {
         setCameraActive(true);
       }
     } catch (error) {
-      console.error('Camera error:', error);
+      logger.error('Camera error:', { error });
       alert('تعذر الوصول إلى الكاميرا. يرجى السماح بالوصول أو استخدام رفع الملف.');
     }
   };
@@ -279,7 +281,7 @@ const MemberRegistration = () => {
         navigate('/login', { replace: true });
       }, 3000);
     } catch (error) {
-      console.error('Registration error:', error);
+      logger.error('Registration error:', { error });
       setError(error.message || 'حدث خطأ أثناء إتمام التسجيل. يرجى المحاولة مرة أخرى.');
     } finally {
       setSubmitting(false);
@@ -704,4 +706,4 @@ const MemberRegistration = () => {
   );
 };
 
-export default MemberRegistration;
+export default memo(MemberRegistration);

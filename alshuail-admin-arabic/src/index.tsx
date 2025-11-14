@@ -10,6 +10,8 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { registerServiceWorker, initPerformanceMonitoring } from './utils/performance';
 
+import { logger } from './utils/logger';
+
 // Initialize performance monitoring
 initPerformanceMonitoring();
 
@@ -18,7 +20,7 @@ if ('serviceWorker' in navigator && !sessionStorage.getItem('sw_cleaned')) {
   navigator.serviceWorker.getRegistrations().then(function(registrations) {
     for(let registration of registrations) {
       registration.unregister();
-      console.log('🗑️ Service worker unregistered to clear cache');
+      logger.debug('🗑️ Service worker unregistered to clear cache');
     }
     // Mark as cleaned for this session
     sessionStorage.setItem('sw_cleaned', 'true');
@@ -38,7 +40,7 @@ root.render(
 reportWebVitals((metric) => {
   // Log to console in development
   if (process.env.NODE_ENV === 'development') {
-    console.log(metric);
+    logger.debug('Web Vitals:', { metric: metric.name, value: metric.value });
   }
 
   // You can also send to analytics here

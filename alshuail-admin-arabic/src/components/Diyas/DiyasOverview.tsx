@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { memo,  useState, useEffect } from 'react';
 import {
   PlusIcon,
   ScaleIcon,
@@ -23,6 +23,8 @@ import { ARABIC_LABELS, CURRENCY } from '../../constants/arabic';
 import { formatArabicNumber, formatArabicCurrency, formatArabicPercentage } from '../../utils/arabic';
 import { useResponsive, getTouchStyles, getResponsiveGridStyles, getResponsiveSpacing } from '../../utils/responsive';
 import { useStaggeredAnimation, injectAnimationKeyframes } from '../../utils/animations';
+
+import { logger } from '../../utils/logger';
 
 // Mock data for testing
 const mockDiyas: Diya[] = [
@@ -273,7 +275,7 @@ const DiyasOverview: React.FC = () => {
       setDiyas(prev => [newDiya, ...prev]);
       setShowCreateModal(false);
     } catch (error) {
-      console.error('Error creating diya:', error);
+      logger.error('Error creating diya:', { error });
     } finally {
       setLoading(false);
     }
@@ -286,7 +288,7 @@ const DiyasOverview: React.FC = () => {
         diya.id === diyaId ? { ...diya, status: newStatus, updatedDate: new Date() } : diya
       ));
     } catch (error) {
-      console.error('Error updating status:', error);
+      logger.error('Error updating status:', { error });
     }
   };
 
@@ -701,4 +703,4 @@ const DiyasOverview: React.FC = () => {
   );
 };
 
-export default DiyasOverview;
+export default memo(DiyasOverview);

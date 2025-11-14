@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { memo,  useState } from 'react';
 import {
   EyeIcon,
   PencilSquareIcon,
@@ -621,4 +621,4 @@ const NotificationsList: React.FC<NotificationsListProps> = ({
   );
 };
 
-export default NotificationsList;
+export default memo(NotificationsList);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { memo,  useState, useEffect } from 'react';
 import {
   UsersIcon,
   UserPlusIcon,
@@ -29,6 +29,8 @@ import {
 } from '@heroicons/react/24/outline';
 import { HijriDateDisplay, HijriDateFilter, HijriCalendarWidget } from '../Common/HijriDateDisplay';
 import { formatHijriDate, formatDualDate, calculateHijriAge, formatTimeAgo } from '../../utils/hijriDateUtils';
+import { logger } from '../../utils/logger';
+
 import '../../styles/ultra-premium-islamic-design.css';
 
 interface Member {
@@ -420,7 +422,7 @@ const HijriMembersManagement: React.FC = () => {
         <HijriDateFilter
           onFilterChange={(filter) => {
             // Filter members by join date
-            console.log('Filter applied:', filter);
+            logger.debug('Filter applied:', { filter });
           }}
         />
       </div>
@@ -530,4 +532,4 @@ const HijriMembersManagement: React.FC = () => {
   );
 };
 
-export default HijriMembersManagement;
+export default memo(HijriMembersManagement);

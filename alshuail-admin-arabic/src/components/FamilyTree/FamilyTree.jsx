@@ -13,6 +13,8 @@ import {
 } from '@heroicons/react/24/outline';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import { logger } from '../../utils/logger';
+
 import './FamilyTree.css';
 
 const FamilyTree = () => {
@@ -73,7 +75,7 @@ const FamilyTree = () => {
         }
       }
     } catch (error) {
-      console.error('Error fetching members list:', error);
+      logger.error('Error fetching members list:', { error });
     }
   }, [API_URL]);
 
@@ -117,7 +119,7 @@ const FamilyTree = () => {
         throw new Error(data.error || 'فشل في جلب بيانات شجرة العائلة');
       }
     } catch (err) {
-      console.error('Error fetching family tree:', err);
+      logger.error('Error fetching family tree:', { err });
       setError(err.message);
     } finally {
       setLoading(false);
@@ -311,7 +313,7 @@ const FamilyTree = () => {
         }
       }
     } catch (error) {
-      console.error('Error fetching member details:', error);
+      logger.error('Error fetching member details:', { error });
     }
   };
 
@@ -332,7 +334,7 @@ const FamilyTree = () => {
       link.href = canvas.toDataURL();
       link.click();
     } catch (error) {
-      console.error('Error exporting image:', error);
+      logger.error('Error exporting image:', { error });
     }
   };
 
@@ -356,7 +358,7 @@ const FamilyTree = () => {
       pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
       pdf.save(`family-tree-${Date.now()}.pdf`);
     } catch (error) {
-      console.error('Error exporting PDF:', error);
+      logger.error('Error exporting PDF:', { error });
     }
   };
 

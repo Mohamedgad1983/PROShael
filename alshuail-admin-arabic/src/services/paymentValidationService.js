@@ -3,6 +3,8 @@
  * Complete backend logic for flexible payment amount validation
  * Business rules: Minimum 50 SAR, amounts must be multiples of 50
  */
+import { logger } from '../utils/logger';
+
 
 // ====================
 // PAYMENT VALIDATION SERVICE
@@ -88,7 +90,7 @@ class PaymentValidationService {
         code: 'VALID'
       };
     } catch (error) {
-      console.error('Payment validation error:', error);
+      logger.error('Payment validation error:', { error });
       return {
         isValid: false,
         error: 'VALIDATION_FAILED',
@@ -150,7 +152,7 @@ class PaymentValidationService {
         }
       };
     } catch (error) {
-      console.error('Subscription calculation error:', error);
+      logger.error('Subscription calculation error:', { error });
       throw new Error('حدث خطأ في حساب تفاصيل الاشتراك');
     }
   }
@@ -170,7 +172,7 @@ class PaymentValidationService {
         formatted_raw: amount.toFixed(2)
       };
     } catch (error) {
-      console.error('Amount formatting error:', error);
+      logger.error('Amount formatting error:', { error });
       return {
         arabic: `${amount} ريال سعودي`,
         english: `${amount} SAR`,
@@ -312,7 +314,7 @@ class PaymentValidationService {
         message: `ترقية الاشتراك بزيادة ${this.formatAmount(upgradeDifference).arabic}`
       };
     } catch (error) {
-      console.error('Upgrade validation error:', error);
+      logger.error('Upgrade validation error:', { error });
       return {
         isValid: false,
         error: 'UPGRADE_VALIDATION_FAILED',
@@ -362,7 +364,7 @@ class PaymentValidationService {
         change_date: changeDate
       };
     } catch (error) {
-      console.error('Proration calculation error:', error);
+      logger.error('Proration calculation error:', { error });
       throw new Error('حدث خطأ في حساب المبلغ المتناسب');
     }
   }

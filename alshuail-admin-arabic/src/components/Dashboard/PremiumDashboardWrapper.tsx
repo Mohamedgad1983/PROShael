@@ -7,11 +7,13 @@
 import React from 'react';
 import UnifiedDashboard, { DASHBOARD_VARIANTS } from './UnifiedDashboard';
 
+import { logger } from '../../utils/logger';
+
 const PremiumDashboard: React.FC = () => {
   return (
     <UnifiedDashboard
       config={DASHBOARD_VARIANTS.premium}
-      onLogout={() => console.log('Logout')}
+      onLogout={() => logger.debug('Logout')}
     />
   );
 };

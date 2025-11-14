@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import {
   AcademicCapIcon,
   HeartIcon,
@@ -283,4 +283,4 @@ const InitiativeCategories: React.FC<InitiativeCategoriesProps> = ({
   );
 };
 
-export default InitiativeCategories;
+export default memo(InitiativeCategories);

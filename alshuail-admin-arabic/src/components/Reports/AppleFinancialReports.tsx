@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { memo,  useState, useEffect, useMemo } from 'react';
 import {
   BanknotesIcon,
   ArrowTrendingUpIcon,
@@ -19,6 +19,8 @@ import {
   ShareIcon
 } from '@heroicons/react/24/outline';
 import { ArrowTrendingUpIcon as ArrowTrendingUpIconSolid } from '@heroicons/react/24/solid';
+import { logger } from '../../utils/logger';
+
 import '../../styles/apple-design-system.css';
 
 // Enhanced TypeScript interfaces
@@ -154,7 +156,7 @@ const AppleFinancialReports: React.FC = () => {
       setChartData(mockChartData);
 
     } catch (error) {
-      console.error('Error loading financial data:', error);
+      logger.error('Error loading financial data:', { error });
     } finally {
       setLoading(false);
     }
@@ -625,4 +627,4 @@ const AppleFinancialReports: React.FC = () => {
   );
 };
 
-export default AppleFinancialReports;
+export default memo(AppleFinancialReports);

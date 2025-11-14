@@ -3,7 +3,7 @@
  * Allows superadmin to create and reset passwords for users
  */
 
-import React, { useState } from 'react';
+import React, { memo,  useState } from 'react';
 import {
   KeyIcon,
   MagnifyingGlassIcon,
@@ -16,6 +16,8 @@ import {
 } from '@heroicons/react/24/outline';
 import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, commonStyles, getMessageStyle } from './sharedStyles';
 import { SettingsButton, StatusBadge } from './shared';
+
+import { logger } from '../../utils/logger';
 
 // Remove /api suffix if present to avoid double /api in URL
 const API_URL = (process.env.REACT_APP_API_URL || 'https://proshael.onrender.com').replace(/\/api$/, '');
@@ -99,7 +101,7 @@ const AccessControl: React.FC = () => {
         setMessage({ type: 'error', text: data.message || 'فشل البحث عن المستخدمين' });
       }
     } catch (error) {
-      console.error('Search error:', error);
+      logger.error('Search error:', { error });
       setMessage({ type: 'error', text: 'حدث خطأ أثناء البحث' });
     } finally {
       setSearching(false);
@@ -166,7 +168,7 @@ const AccessControl: React.FC = () => {
         setMessage({ type: 'error', text: data.message || 'فشلت العملية' });
       }
     } catch (error) {
-      console.error('Password operation error:', error);
+      logger.error('Password operation error:', { error });
       setMessage({ type: 'error', text: 'حدث خطأ أثناء العملية' });
     } finally {
       setLoading(false);
@@ -475,4 +477,4 @@ const AccessControl: React.FC = () => {
   );
 };
 
-export default AccessControl;
+export default memo(AccessControl);

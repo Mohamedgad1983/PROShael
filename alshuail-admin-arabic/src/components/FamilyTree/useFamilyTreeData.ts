@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
+import { logger } from '../../utils/logger';
+
 // Arabic relationship types
 export const RELATIONSHIP_TYPES = {
   FATHER: 'أب',
@@ -156,7 +158,7 @@ export const useFamilyTreeData = () => {
       const tree = buildFamilyTree(membersData);
       setTreeData(tree);
     } catch (err) {
-      console.error('Error fetching family members:', err);
+      logger.error('Error fetching family members:', { err });
       setError('فشل في تحميل بيانات العائلة');
 
       // Use mock data as fallback
@@ -210,7 +212,7 @@ export const useFamilyTreeData = () => {
       // Refresh data
       await fetchMembers();
     } catch (err) {
-      console.error('Error adding relationship:', err);
+      logger.error('Error adding relationship:', { err });
       throw new Error('فشل في إضافة العلاقة');
     }
   }, [fetchMembers]);
@@ -231,7 +233,7 @@ export const useFamilyTreeData = () => {
       // Refresh data
       await fetchMembers();
     } catch (err) {
-      console.error('Error updating member:', err);
+      logger.error('Error updating member:', { err });
       throw new Error('فشل في تحديث البيانات');
     }
   }, [fetchMembers]);

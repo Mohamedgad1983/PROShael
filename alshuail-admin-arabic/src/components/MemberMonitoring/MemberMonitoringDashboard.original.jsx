@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { logger } from '../../utils/logger';
+
 import {
   MagnifyingGlassIcon,
   FunnelIcon,
@@ -77,7 +79,7 @@ const MemberMonitoringDashboard = () => {
       if (!forceRefresh && membersCache.current && lastFetchTime.current) {
         const timeSinceLastFetch = Date.now() - lastFetchTime.current;
         if (timeSinceLastFetch < CACHE_DURATION) {
-          console.log('✅ Using cached data');
+          logger.debug('✅ Using cached data');
           setMembers(membersCache.current);
           setInitialLoadComplete(true);
           setLoading(false);
@@ -114,7 +116,7 @@ const MemberMonitoringDashboard = () => {
 
       // If member-monitoring fails, try regular members endpoint
       if (!response.ok && response.status === 404) {
-        console.log('⚠️ Trying fallback members endpoint...');
+        logger.debug('⚠️ Trying fallback members endpoint...');
         response = await fetch(`${API_URL}/api/members?limit=500&page=1`, {
           headers,
           mode: 'cors',
@@ -125,21 +127,21 @@ const MemberMonitoringDashboard = () => {
       // Check if response is ok
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ API Error:', response.status, errorText);
+        logger.error('❌ API Error:', { status: response.status, errorText });
         throw new Error(`API Error: ${response.status}`);
       }
 
       // Parse response safely
       try {
         data = await response.json();
-        console.log('✅ API Response received:', {
+        logger.debug('✅ API Response received:', {
           hasData: !!data,
-          hasDataProp: !!(data && data.data),
+          hasDataProp: !!(data && data.data);,
           hasMembers: !!(data && data.members),
           isArray: Array.isArray(data)
         });
       } catch (parseErr) {
-        console.error('❌ Failed to parse response:', parseErr);
+        logger.error('❌ Failed to parse response:', { parseErr });
         throw new Error('Invalid response format from server');
       }
 
@@ -149,39 +151,39 @@ const MemberMonitoringDashboard = () => {
           // Standard successful response
           if (data.data.members && Array.isArray(data.data.members)) {
             membersData = data.data.members;
-            console.log('✅ Found members in data.data.members');
+            logger.debug('✅ Found members in data.data.members');
           } else if (Array.isArray(data.data)) {
             membersData = data.data;
-            console.log('✅ Found members in data.data array');
+            logger.debug('✅ Found members in data.data array');
           }
         } else if (data.members && Array.isArray(data.members)) {
           // Direct members property
           membersData = data.members;
-          console.log('✅ Found members in data.members');
+          logger.debug('✅ Found members in data.members');
         } else if (data.data && Array.isArray(data.data)) {
           // Data array directly
           membersData = data.data;
-          console.log('✅ Found members in data.data');
+          logger.debug('✅ Found members in data.data');
         } else if (Array.isArray(data)) {
           // Response is array directly
           membersData = data;
-          console.log('✅ Found members as direct array');
+          logger.debug('✅ Found members as direct array');
         }
       }
 
       // Validate we have array data
       if (!Array.isArray(membersData)) {
-        console.error('❌ Members data is not an array:', typeof membersData, membersData);
+        logger.error('❌ Members data is not an array:', { membersData });
         membersData = []; // Set to empty array to prevent crash
       }
 
-      console.log(`📊 Processing ${membersData.length} members...`);
+      logger.debug(`📊 Processing ${membersData.length} members...`);
 
       // Map the backend data to frontend format with safety checks
       const formattedMembers = membersData.map(m => {
         // Ensure m is an object
         if (!m || typeof m !== 'object') {
-          console.warn('⚠️ Invalid member object:', m);
+          logger.warn('⚠️ Invalid member object:', { m });
           return null;
         }
 
@@ -197,9 +199,9 @@ const MemberMonitoringDashboard = () => {
         };
       }).filter(m => m !== null); // Remove any null entries
 
-      console.log('✅ Formatted members:', formattedMembers.length);
+      logger.debug('✅ Formatted members:', { length: formattedMembers.length });
       if (formattedMembers.length > 0) {
-        console.log('✅ Sample member:', formattedMembers[0]);
+        logger.debug('✅ Sample member:', {});
       }
 
       // Cache the data
@@ -210,14 +212,14 @@ const MemberMonitoringDashboard = () => {
       setInitialLoadComplete(true);
       setError(null);
     } catch (err) {
-      console.error('❌ Error in fetchMembers:', err);
+      logger.error('❌ Error in fetchMembers:', { err });
 
       // Set user-friendly error message
       setError('حدث خطأ في تحميل بيانات الأعضاء. يرجى المحاولة لاحقاً.');
 
       // Use mock data in development
       if (process.env.NODE_ENV === 'development') {
-        console.log('⚠️ Loading mock data for development...');
+        logger.debug('⚠️ Loading mock data for development...');
         loadMockData();
       } else {
         // In production, set empty members to prevent crash
@@ -429,7 +431,7 @@ const MemberMonitoringDashboard = () => {
         alert('تم إيقاف العضو بنجاح');
       }
     } catch (err) {
-      console.error('Error suspending member:', err);
+      logger.error('Error suspending member:', { err });
       alert('حدث خطأ في إيقاف العضو');
     } finally {
       setShowSuspendModal(false);
@@ -581,7 +583,7 @@ const MemberMonitoringDashboard = () => {
         alert(`تم إرسال الإشعار عبر ${channel === 'all' ? 'جميع القنوات' : channel}`);
       }
     } catch (err) {
-      console.error('Error sending notification:', err);
+      logger.error('Error sending notification:', { err });
       alert('حدث خطأ في إرسال الإشعار');
     }
   };
@@ -607,7 +609,7 @@ const MemberMonitoringDashboard = () => {
         alert('تم إرسال الإشعار بنجاح');
       }
     } catch (err) {
-      console.error('Error sending notification:', err);
+      logger.error('Error sending notification:', { err });
       alert('حدث خطأ في إرسال الإشعار');
     } finally {
       setShowNotifyModal(false);
@@ -1109,7 +1111,7 @@ const MemberMonitoringDashboard = () => {
                   value={pageSize}
                   onChange={(e) => {
                     const newSize = Number(e.target.value);
-                    console.log('📄 Changing page size to:', newSize);
+                    logger.debug('📄 Changing page size to:', { newSize });
                     setPageSize(newSize);
                     setCurrentPage(1);
                   }}
@@ -1128,7 +1130,7 @@ const MemberMonitoringDashboard = () => {
                 <button
                   className="page-btn"
                   onClick={() => {
-                    console.log('⬅️ Previous page clicked, current:', currentPage);
+                    logger.debug('⬅️ Previous page clicked, current:', { currentPage });
                     setCurrentPage(prev => Math.max(1, prev - 1));
                   }}
                   disabled={currentPage === 1 || totalPages === 0}
@@ -1165,7 +1167,7 @@ const MemberMonitoringDashboard = () => {
                 <button
                   className="page-btn"
                   onClick={() => {
-                    console.log('➡️ Next page clicked, current:', currentPage, 'total:', totalPages);
+                    logger.debug('➡️ Next page clicked, current:', { currentPage, totalPages });
                     setCurrentPage(prev => Math.min(totalPages, prev + 1));
                   }}
                   disabled={currentPage >= totalPages || totalPages === 0}

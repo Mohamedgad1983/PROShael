@@ -3,7 +3,7 @@
  * Displays navigation items based on user's role
  */
 
-import React from 'react';
+import React, { memo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useRole, UserRole, ROLE_DISPLAY_NAMES } from '../../contexts/RoleContext';
 import {

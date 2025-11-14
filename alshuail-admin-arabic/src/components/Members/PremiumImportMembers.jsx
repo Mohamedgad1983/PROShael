@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { memo,  useState, useRef } from 'react';
 import {
   CloudArrowUpIcon,
   DocumentTextIcon,
@@ -20,6 +20,8 @@ import {
   CheckBadgeIcon
 } from '@heroicons/react/24/outline';
 import { memberService } from '../../services/memberService';
+import { logger } from '../../utils/logger';
+
 import './PremiumImportMembers.css';
 
 const PremiumImportMembers = () => {
@@ -248,7 +250,7 @@ const PremiumImportMembers = () => {
 
       setImportResults(results);
     } catch (error) {
-      console.error('Import error:', error);
+      logger.error('Import error:', { error });
       setImportResults({
         successful: 0,
         failed: totalRecords,
@@ -692,4 +694,4 @@ const PremiumImportMembers = () => {
   );
 };
 
-export default PremiumImportMembers;
+export default memo(PremiumImportMembers);

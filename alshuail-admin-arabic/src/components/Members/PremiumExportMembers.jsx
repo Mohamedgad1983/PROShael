@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { memo,  useState, useEffect } from 'react';
 import {
   ArrowDownTrayIcon,
   DocumentTextIcon,
@@ -20,6 +20,8 @@ import {
   CheckIcon
 } from '@heroicons/react/24/outline';
 import { memberService } from '../../services/memberService';
+import { logger } from '../../utils/logger';
+
 import './PremiumExportMembers.css';
 
 const PremiumExportMembers = () => {
@@ -108,7 +110,7 @@ const PremiumExportMembers = () => {
         total: stats.total || 0
       }));
     } catch (error) {
-      console.error('Error loading statistics:', error);
+      logger.error('Error loading statistics:', { error });
     }
   };
 
@@ -122,7 +124,7 @@ const PremiumExportMembers = () => {
         filtered: response.total || 0
       }));
     } catch (error) {
-      console.error('Error loading preview:', error);
+      logger.error('Error loading preview:', { error });
       setPreviewData([]);
     } finally {
       setLoading(false);
@@ -175,7 +177,7 @@ const PremiumExportMembers = () => {
       // Show success animation
       await new Promise(resolve => setTimeout(resolve, 500));
     } catch (error) {
-      console.error('Export error:', error);
+      logger.error('Export error:', { error });
       alert('حدث خطأ أثناء تصدير البيانات');
     } finally {
       setExporting(false);
@@ -519,4 +521,4 @@ const PremiumExportMembers = () => {
   );
 };
 
-export default PremiumExportMembers;
+export default memo(PremiumExportMembers);

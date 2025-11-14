@@ -1,6 +1,8 @@
 ﻿import React, {  useState, useEffect , useCallback } from 'react';
 import { toHijri, toGregorian } from 'hijri-converter';
 import SimpleHijriDatePicker from '../Common/SimpleHijriDatePicker';
+import { logger } from '../../utils/logger';
+
 import {
   ScaleIcon,
   BanknotesIcon,
@@ -183,7 +185,7 @@ const AppleDiyasManagement = () => {
         setDiyas(mockDiyas);
       }
     } catch (error) {
-      console.error('Error fetching diya data:', error);
+      logger.error('Error fetching diya data:', { error });
       // Fallback to mock data on error
       setDiyas(mockDiyas);
     } finally {
@@ -202,7 +204,7 @@ const AppleDiyasManagement = () => {
         setShowContributorsModal(true);
       }
     } catch (error) {
-      console.error('Error fetching contributors:', error);
+      logger.error('Error fetching contributors:', { error });
     }
   };
 

@@ -1,6 +1,8 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
 
+import { logger } from '../utils/logger';
+
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
 export interface LoginCredentials {
@@ -39,7 +41,7 @@ class AuthService {
       try {
         this.user = JSON.parse(userData);
       } catch (error) {
-        console.error('Error parsing user data:', error);
+        logger.error('Error parsing user data:', { error });
         this.logout();
       }
     }

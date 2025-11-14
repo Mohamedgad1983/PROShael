@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import {
   FunnelIcon,
   XMarkIcon,
@@ -398,4 +398,4 @@ const NotificationFilters: React.FC<NotificationFiltersProps> = ({
   );
 };
 
-export default NotificationFilters;
+export default memo(NotificationFilters);

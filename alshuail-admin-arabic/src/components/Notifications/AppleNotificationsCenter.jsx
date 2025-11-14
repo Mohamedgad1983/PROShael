@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { memo,  useState, useEffect } from 'react';
 import {
   BellIcon,
   InboxIcon,
@@ -639,4 +639,4 @@ const AppleNotificationsCenter = () => {
   );
 };
 
-export default AppleNotificationsCenter;
+export default memo(AppleNotificationsCenter);

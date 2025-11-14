@@ -1,6 +1,8 @@
 ﻿import React, {  useState, useEffect , useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { toHijri } from 'hijri-converter';
+import { logger } from '../../utils/logger';
+
 import {
   ScaleIcon,
   HandRaisedIcon,
@@ -355,7 +357,7 @@ const DiyasManagement = () => {
         setDiyas(mockDiyas);
       }
     } catch (error) {
-      console.error('Error loading diyas data:', error);
+      logger.error('Error loading diyas data:', { error });
       // Fallback to mock data on error
       setDiyas(mockDiyas);
     } finally {

@@ -3,8 +3,10 @@
  * Apple-inspired Hijri date picker with day/month/year dropdowns
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { memo,  useState, useEffect } from 'react';
 import { toGregorian, toHijri } from 'hijri-converter';
+
+import { logger } from '../../utils/logger';
 
 interface HijriDateInputProps {
   value?: string; // Hijri date in format: YYYY-MM-DD
@@ -80,7 +82,7 @@ export const HijriDateInput: React.FC<HijriDateInputProps> = ({
         const gregorianDate = `${gregorian.gy}-${String(gregorian.gm).padStart(2, '0')}-${String(gregorian.gd).padStart(2, '0')}`;
         onChange(hijriDate, gregorianDate);
       } catch (error) {
-        console.error('Error converting Hijri to Gregorian:', error);
+        logger.error('Error converting Hijri to Gregorian:', { error });
       }
     }
   }, [day, month, year, onChange]);
@@ -154,4 +156,4 @@ export const HijriDateInput: React.FC<HijriDateInputProps> = ({
   );
 };
 
-export default HijriDateInput;
+export default memo(HijriDateInput);

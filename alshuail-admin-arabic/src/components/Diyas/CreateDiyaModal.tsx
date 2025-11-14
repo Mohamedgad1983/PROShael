@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { memo,  useState } from 'react';
 import {
   XMarkIcon,
   ScaleIcon,
@@ -750,4 +750,4 @@ const CreateDiyaModal: React.FC<CreateDiyaModalProps> = ({
   );
 };
 
-export default CreateDiyaModal;
+export default memo(CreateDiyaModal);

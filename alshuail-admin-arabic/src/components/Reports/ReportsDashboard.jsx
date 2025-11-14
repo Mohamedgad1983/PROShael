@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { memo,  useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+
+import { logger } from '../../utils/logger';
 
 const ReportsDashboard = ({ dateFilter, financialSummary, onRefresh }) => {
   const { token } = useAuth();
@@ -39,7 +41,7 @@ const ReportsDashboard = ({ dateFilter, financialSummary, onRefresh }) => {
         setError(data.message_ar || 'خطأ في تحميل التحليلات');
       }
     } catch (error) {
-      console.error('Error fetching analytics:', error);
+      logger.error('Error fetching analytics:', { error });
       setError('خطأ في الاتصال بالخادم');
     } finally {
       setLoading(false);
@@ -453,4 +455,4 @@ const ReportsDashboard = ({ dateFilter, financialSummary, onRefresh }) => {
   );
 };
 
-export default ReportsDashboard;
+export default memo(ReportsDashboard);

@@ -27,6 +27,8 @@ import { SettingsTable, SettingsTableColumn } from './shared/SettingsTable';
 import { StatusBadge } from './shared/StatusBadge';
 import { commonStyles, COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from './sharedStyles';
 
+import { logger } from '../../utils/logger';
+
 interface User {
   id: string;
   email: string;
@@ -38,6 +40,54 @@ interface User {
   createdAt: string;
   lastLogin?: string;
 }
+
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+const SETTINGS_ENDPOINT = `${API_BASE_URL}/api/settings`;
+const MANAGED_ROLES: UserRole[] = [
+  'super_admin',
+  'financial_manager',
+  'family_tree_admin',
+  'occasions_initiatives_diyas_admin',
+  'user_member'
+];
+
+const normalizeRole = (role?: string | null): UserRole => {
+  if (role && MANAGED_ROLES.includes(role as UserRole)) {
+    return role as UserRole;
+  }
+  return 'user_member';
+};
+
+const getRoleNameAr = (role: string | UserRole) => {
+  const normalized = normalizeRole(role as string);
+  return ROLE_DISPLAY_NAMES[normalized]?.ar || normalized;
+};
+
+const mapServerUserToViewModel = (raw: any): User => {
+  const role = normalizeRole(raw?.role);
+  return {
+    id: raw?.id || raw?.user_id || String(Date.now()),
+    email: raw?.email || raw?.user_email || 'unknown@alshuail.com',
+    phone: raw?.phone || raw?.user_phone || undefined,
+    name: raw?.full_name || raw?.name || raw?.user_name || raw?.email,
+    role,
+    roleAr: getRoleNameAr(role),
+    isActive: raw?.is_active ?? true,
+    createdAt: raw?.created_at || new Date().toISOString(),
+    lastLogin: raw?.last_login || raw?.last_login_at || undefined
+  };
+};
+
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    throw new Error('?? ????? ?????? ???????');
+  }
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`
+  };
+};
 
 const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -57,102 +107,57 @@ const UserManagement: React.FC = () => {
     password: ''
   });
 
-  useEffect(() => {
-    fetchUsers();
+  const fetchUsers = useCallback(async () => {
+    setLoading(true);
+    setMessage(null);
+    try {
+      const response = await fetch(`${SETTINGS_ENDPOINT}/users`, {
+        headers: getAuthHeaders()
+      });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(payload?.error || payload?.message || '??? ?? ??? ?????? ??????????');
+      }
+
+      const nextUsers = (Array.isArray(payload) ? payload : payload?.data || payload?.users || [])
+        .map(mapServerUserToViewModel);
+      setUsers(nextUsers);
+    } catch (error: any) {
+      logger.error('Error fetching users:', { error });
+      setUsers([]);
+      setMessage({ type: 'error', text: error?.message || '??? ?? ??? ?????? ??????????' });
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const fetchUsers = async () => {
-    setLoading(true);
-    try {
-      // Mock data - replace with actual API call
-      const mockUsers: User[] = [
-        {
-          id: '1',
-          email: 'admin@alshuail.com',
-          phone: '0551234567',
-          name: 'أحمد الشعيل',
-          role: 'super_admin',
-          roleAr: 'المدير الأعلى',
-          isActive: true,
-          createdAt: '2024-01-01',
-          lastLogin: '2024-12-20'
-        },
-        {
-          id: '2',
-          email: 'finance@alshuail.com',
-          phone: '0552345678',
-          name: 'محمد المالي',
-          role: 'financial_manager',
-          roleAr: 'المدير المالي',
-          isActive: true,
-          createdAt: '2024-01-15',
-          lastLogin: '2024-12-19'
-        },
-        {
-          id: '3',
-          email: 'tree@alshuail.com',
-          phone: '0553456789',
-          name: 'سارة العائلة',
-          role: 'family_tree_admin',
-          roleAr: 'مدير شجرة العائلة',
-          isActive: true,
-          createdAt: '2024-02-01',
-          lastLogin: '2024-12-18'
-        },
-        {
-          id: '4',
-          email: 'events@alshuail.com',
-          phone: '0554567890',
-          name: 'فاطمة المناسبات',
-          role: 'occasions_initiatives_diyas_admin',
-          roleAr: 'مدير المناسبات والمبادرات والديات',
-          isActive: true,
-          createdAt: '2024-02-15',
-          lastLogin: '2024-12-20'
-        },
-        {
-          id: '5',
-          email: 'member1@alshuail.com',
-          phone: '0555678901',
-          name: 'خالد الشعيل',
-          role: 'user_member',
-          roleAr: 'عضو عادي',
-          isActive: true,
-          createdAt: '2024-03-01'
-        }
-      ];
-
-      setUsers(mockUsers);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      setLoading(false);
-      setMessage({ type: 'error', text: 'خطأ في جلب بيانات المستخدمين' });
-    }
-  };
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   const handleRoleChange = async (userId: string, newRole: UserRole) => {
     setSaving(true);
     try {
-      const response = await fetch(`http://localhost:3001/api/users/${userId}/assign-role`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({ roleName: newRole })
+      const response = await fetch(`${SETTINGS_ENDPOINT}/users/${userId}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ role: newRole })
       });
+      const payload = await response.json();
 
-      if (response.ok) {
-        setMessage({ type: 'success', text: 'تم تحديث الدور بنجاح' });
-        setShowEditModal(false);
-        fetchUsers();
-      } else {
-        throw new Error('Failed to update role');
+      if (!response.ok) {
+        throw new Error(payload?.error || payload?.message || 'Failed to update role');
       }
+
+      const updatedUser = mapServerUserToViewModel(payload);
+      setUsers(prev => prev.map(user => (user.id === updatedUser.id ? updatedUser : user)));
+      setSelectedUser(prev => (prev && prev.id === updatedUser.id ? updatedUser : prev));
+      setMessage({ type: 'success', text: '?? ????? ????? ?????' });
+      setShowEditModal(false);
     } catch (error) {
-      console.error('Error updating role:', error);
-      setMessage({ type: 'error', text: 'خطأ في تحديث الدور' });
+      logger.error('Error updating role:', { error });
+      setMessage({ type: 'error', text: '??? ?? ????? ?????' });
     } finally {
       setSaving(false);
     }
@@ -164,26 +169,31 @@ const UserManagement: React.FC = () => {
 
     try {
       if (!newUser.email || !newUser.name || !newUser.phone || !newUser.password) {
-        setMessage({ type: 'error', text: 'يرجى ملء جميع الحقول المطلوبة' });
+        setMessage({ type: 'error', text: '???? ??? ???? ?????? ????????' });
         setSaving(false);
         return;
       }
 
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await fetch(`${SETTINGS_ENDPOINT}/users`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          full_name: newUser.name,
+          email: newUser.email,
+          phone: newUser.phone,
+          role: newUser.role,
+          temporary_password: newUser.password
+        })
+      });
+      const payload = await response.json();
 
-      const userToAdd: User = {
-        id: String(Date.now()),
-        email: newUser.email,
-        phone: newUser.phone,
-        name: newUser.name,
-        role: newUser.role as UserRole,
-        roleAr: getRoleNameAr(newUser.role),
-        isActive: true,
-        createdAt: new Date().toISOString().split('T')[0]
-      };
+      if (!response.ok) {
+        throw new Error(payload?.error || payload?.message || '??? ?? ????? ????????');
+      }
 
-      setUsers(prev => [...prev, userToAdd]);
-      setMessage({ type: 'success', text: 'تم إضافة المستخدم بنجاح' });
+      const createdUser = mapServerUserToViewModel(payload);
+      setUsers(prev => [createdUser, ...prev]);
+      setMessage({ type: 'success', text: '?? ????? ???????? ?????' });
       setShowAddModal(false);
 
       setNewUser({
@@ -194,35 +204,24 @@ const UserManagement: React.FC = () => {
         password: ''
       });
     } catch (error) {
-      console.error('Error adding user:', error);
-      setMessage({ type: 'error', text: 'خطأ في إضافة المستخدم' });
+      logger.error('Error adding user:', { error });
+      setMessage({ type: 'error', text: '??? ?? ????? ????????' });
     } finally {
       setSaving(false);
     }
   };
 
   const handleRefresh = useCallback(() => {
-    window.location.reload();
-  }, []);
+    fetchUsers();
+  }, [fetchUsers]);
 
   const handleFilterChange = useCallback((filterType: string, value: any) => {
-    console.log('Filter changed:', filterType, value);
+    logger.debug('Filter changed:', { filterType, value });
   }, []);
 
   const handlePageChange = useCallback((page: number) => {
-    console.log('Page changed:', page);
+    logger.debug('Page changed:', { page });
   }, []);
-
-  const getRoleNameAr = (role: string) => {
-    const roleMap: { [key: string]: string } = {
-      'super_admin': 'المدير الأعلى',
-      'financial_manager': 'المدير المالي',
-      'family_tree_admin': 'مدير شجرة العائلة',
-      'occasions_initiatives_diyas_admin': 'مدير المناسبات والمبادرات',
-      'user_member': 'عضو عادي'
-    };
-    return roleMap[role] || role;
-  };
 
   const getRoleBadgeType = (role: UserRole): 'success' | 'error' | 'warning' | 'info' => {
     const typeMap: Record<UserRole, 'success' | 'error' | 'warning' | 'info'> = {

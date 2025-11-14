@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { memo,  useState } from 'react';
 import {
   UsersIcon,
   ChartBarIcon,
@@ -133,4 +133,4 @@ const FamilyTreeViewer = () => {
   );
 };
 
-export default FamilyTreeViewer;
+export default memo(FamilyTreeViewer);

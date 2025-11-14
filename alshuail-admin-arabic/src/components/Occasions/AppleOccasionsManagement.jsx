@@ -1,6 +1,8 @@
 ﻿import React, {  useState, useEffect , useCallback } from 'react';
 import { toHijri, toGregorian } from 'hijri-converter';
 import SimpleHijriDatePicker from '../Common/SimpleHijriDatePicker';
+import { logger } from '../../utils/logger';
+
 import {
   CalendarIcon,
   CalendarDaysIcon,
@@ -474,7 +476,7 @@ const AppleOccasionsManagement = () => {
               </div>
               <button
                 onClick={() => {
-                  console.log('Add button clicked!');
+                  logger.debug('Add button clicked!');
                   setShowAddModal(true);
                 }}
                 style={{ padding: '10px 20px', background: 'linear-gradient(135deg, #3B82F6, #2563EB)', color: 'white', border: 'none', borderRadius: '100px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
@@ -604,7 +606,7 @@ const AppleOccasionsManagement = () => {
       </div>
 
       {/* Add Occasion Modal */}
-      {console.log('Modal state:', showAddModal)}
+      {logger.debug('Modal state:', { showAddModal });}
       {showAddModal && (
         <div style={{
           position: 'fixed',

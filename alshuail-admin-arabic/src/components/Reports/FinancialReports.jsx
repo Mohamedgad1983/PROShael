@@ -1,10 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { memo,  useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import HijriDateFilter from '../Common/HijriDateFilter';
 import ExpenseManagement from './ExpenseManagement';
 import ReportsDashboard from './ReportsDashboard';
 import ErrorDisplay from '../Common/ErrorDisplay';
 import LoadingSpinner from '../Common/LoadingSpinner';
+import { logger } from '../../utils/logger';
+
 import './FinancialReports.css';
 
 const FinancialReports = () => {
@@ -98,7 +100,7 @@ const FinancialReports = () => {
         throw new Error(data.message_ar || 'خطأ في تحميل البيانات المالية');
       }
     } catch (error) {
-      console.error('Error fetching financial summary:', error);
+      logger.error('Error fetching financial summary:', { error });
 
       let errorMessage = 'خطأ في الاتصال بالخادم';
 
@@ -163,7 +165,7 @@ const FinancialReports = () => {
         setError('خطأ في تصدير التقرير');
       }
     } catch (error) {
-      console.error('Error exporting to Excel:', error);
+      logger.error('Error exporting to Excel:', { error });
       setError('خطأ في تصدير التقرير');
     } finally {
       setLoading(false);
@@ -202,7 +204,7 @@ const FinancialReports = () => {
         setError('خطأ في تصدير التقرير');
       }
     } catch (error) {
-      console.error('Error exporting to PDF:', error);
+      logger.error('Error exporting to PDF:', { error });
       setError('خطأ في تصدير التقرير');
     } finally {
       setLoading(false);
@@ -407,4 +409,4 @@ const FinancialReports = () => {
   );
 };
 
-export default FinancialReports;
+export default memo(FinancialReports);

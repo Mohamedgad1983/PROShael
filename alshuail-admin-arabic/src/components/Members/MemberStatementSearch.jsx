@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { memo,  useState, useCallback, useRef } from 'react';
 import './MemberStatementSearch.css';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -389,4 +389,4 @@ const MemberStatementSearch = () => {
   );
 };
 
-export default MemberStatementSearch;
+export default memo(MemberStatementSearch);

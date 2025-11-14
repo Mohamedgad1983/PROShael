@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import {
   HeartIcon,
   CalendarIcon,
@@ -551,4 +551,4 @@ const InitiativeCard: React.FC<InitiativeCardProps> = ({
   );
 };
 
-export default InitiativeCard;
+export default memo(InitiativeCard);

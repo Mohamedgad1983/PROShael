@@ -22,6 +22,8 @@ import FlexiblePaymentInput from './FlexiblePaymentInput';
 import PaymentConfirmationModal from './PaymentConfirmationModal';
 import { Member, PaymentConfirmationData, PaymentState } from './types';
 import { formatCurrency, generateTransactionId, createPaymentSummary } from './utils';
+import { logger } from '../../utils/logger';
+
 import './Subscriptions.css';
 
 interface SubscriptionPlan {
@@ -305,9 +307,9 @@ const Subscriptions: React.FC = () => {
       setActiveTab('overview');
 
       // Show success notification (you could add a notification system)
-      console.log('تم إضافة الاشتراك بنجاح');
+      logger.debug('تم إضافة الاشتراك بنجاح');
     } catch (error) {
-      console.error('خطأ في إضافة الاشتراك:', error);
+      logger.error('خطأ في إضافة الاشتراك:', { error });
       setPaymentState(prev => ({ ...prev, error: 'حدث خطأ أثناء معالجة الاشتراك' }));
     } finally {
       setPaymentState(prev => ({ ...prev, isProcessing: false }));

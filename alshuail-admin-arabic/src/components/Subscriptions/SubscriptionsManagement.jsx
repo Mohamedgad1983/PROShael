@@ -1,6 +1,8 @@
 ﻿import React, {  useState, useEffect , useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { toHijri } from 'hijri-converter';
+import { logger } from '../../utils/logger';
+
 import {
   ChartBarIcon,
   CreditCardIcon,
@@ -164,7 +166,7 @@ const SubscriptionsManagement = () => {
       setPlans(mockPlans);
       setSubscriptions(mockSubscriptions);
     } catch (error) {
-      console.error('Error loading subscriptions data:', error);
+      logger.error('Error loading subscriptions data:', { error });
     } finally {
       setLoading(false);
     }

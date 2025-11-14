@@ -6,6 +6,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import notificationService from '../services/notificationService';
 
+import { logger } from '../utils/logger';
+
 const useNotifications = () => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -30,7 +32,7 @@ const useNotifications = () => {
       setLastUpdateTime(new Date());
       setIsLoading(false);
     } catch (error) {
-      console.error('❌ Error loading notifications:', error);
+      logger.error('❌ Error loading notifications:', { error });
       setIsLoading(false);
     }
   }, []);
@@ -54,7 +56,7 @@ const useNotifications = () => {
       setPermission(granted ? 'granted' : 'denied');
       return granted;
     } catch (error) {
-      console.error('❌ Error requesting permission:', error);
+      logger.error('❌ Error requesting permission:', { error });
       return false;
     }
   }, []);
@@ -154,7 +156,7 @@ const useNotifications = () => {
 
       setLastUpdateTime(new Date());
     } catch (error) {
-      console.error('❌ Error syncing notifications:', error);
+      logger.error('❌ Error syncing notifications:', { error });
     } finally {
       setIsLoading(false);
     }

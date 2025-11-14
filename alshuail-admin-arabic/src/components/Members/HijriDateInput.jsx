@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { memo,  useState, useEffect } from 'react';
 import { toHijri, toGregorian } from 'hijri-converter';
+
+import { logger } from '../../utils/logger';
 
 const HIJRI_MONTHS = [
   { value: 1, label: 'محرم' },
@@ -108,7 +110,7 @@ const HijriDateInput = ({ label, value, onChange, className = 'form-input' }) =>
         // Notify parent with Gregorian date
         onChange(gregDate);
       } catch (error) {
-        console.error('Invalid Hijri date:', error);
+        logger.error('Invalid Hijri date:', { error });
       }
     }
   };
@@ -197,4 +199,4 @@ const HijriDateInput = ({ label, value, onChange, className = 'form-input' }) =>
   );
 };
 
-export default HijriDateInput;
+export default memo(HijriDateInput);

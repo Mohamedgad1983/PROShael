@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { memo,  useState, useEffect, useMemo } from 'react';
 import {
   CreditCardIcon,
   BanknotesIcon,
@@ -700,4 +700,4 @@ const ApplePaymentsManagement: React.FC = () => {
   );
 };
 
-export default ApplePaymentsManagement;
+export default memo(ApplePaymentsManagement);

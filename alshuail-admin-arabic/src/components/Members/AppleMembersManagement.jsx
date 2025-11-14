@@ -25,6 +25,8 @@ import {
 } from '@heroicons/react/24/outline';
 import { CheckCircleIcon as CheckCircleIconSolid, StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 import { HijriDatePicker } from '../Common/HijriDatePicker';
+import { logger } from '../../utils/logger';
+
 import './AppleRegistrationForm.css';
 
 const AppleMembersManagement = () => {
@@ -187,7 +189,7 @@ const AppleMembersManagement = () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }, 500);
     } catch (error) {
-      console.error('Submission error:', error);
+      logger.error('Submission error:', { error });
     } finally {
       setIsSubmitting(false);
     }

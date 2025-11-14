@@ -1,6 +1,8 @@
 // @ts-nocheck
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
+import { logger } from '../../utils/logger';
+
 import {
   CameraIcon,
   PhotoIcon,
@@ -116,7 +118,7 @@ const ReceiptUpload: React.FC<ReceiptUploadProps> = ({ onUploadComplete }) => {
         setUploadProgress(0);
       }
     } catch (error) {
-      console.error('Upload error:', error);
+      logger.error('Upload error:', { error });
       setError('حدث خطأ في رفع الملف');
       setUploadProgress(0);
     } finally {

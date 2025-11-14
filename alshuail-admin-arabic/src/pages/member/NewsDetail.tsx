@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 
+import { logger } from '../../utils/logger';
+
 const NewsDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -51,7 +53,7 @@ const NewsDetail = () => {
             setRelatedNews(relatedResponse.data.news || []);
             setLoading(false);
         } catch (error) {
-            console.error('Error fetching news:', error);
+            logger.error('Error fetching news:', { error });
             setLoading(false);
         }
     };
@@ -78,7 +80,7 @@ const NewsDetail = () => {
                 reactions_count: (prev.reactions_count || 0) + 1
             }));
         } catch (error) {
-            console.error('Error adding reaction:', error);
+            logger.error('Error adding reaction:', { error });
         }
     };
 
@@ -99,7 +101,7 @@ const NewsDetail = () => {
                 setTimeout(() => setShareSuccess(false), 2000);
             }
         } catch (error) {
-            console.error('Error sharing:', error);
+            logger.error('Error sharing:', { error });
         }
     };
 

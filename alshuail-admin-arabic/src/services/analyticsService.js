@@ -1,5 +1,7 @@
 // Analytics Service for User Behavior Tracking
 // src/services/analyticsService.js
+import { logger } from '../utils/logger';
+
 
 class AnalyticsService {
   constructor() {
@@ -35,7 +37,7 @@ class AnalyticsService {
     // Track performance metrics
     this.trackPerformanceMetrics();
 
-    console.log('[Analytics] Initialized');
+    logger.debug('[Analytics] Initialized');
   }
 
   generateSessionId() {
@@ -44,7 +46,7 @@ class AnalyticsService {
 
   track(eventName, properties = {}) {
     if (!this.initialized) {
-      console.warn('[Analytics] Not initialized');
+      logger.warn('[Analytics] Not initialized');
       return;
     }
 
@@ -63,7 +65,7 @@ class AnalyticsService {
     // Send to backend
     this.sendEvent(event);
 
-    console.log('[Analytics] Event tracked:', eventName, properties);
+    logger.debug('[Analytics] Event tracked:', { eventName, properties });
   }
 
   trackPageView(path) {
@@ -168,7 +170,7 @@ class AnalyticsService {
         body: JSON.stringify(event),
       });
     } catch (error) {
-      console.error('[Analytics] Failed to send event:', error);
+      logger.error('[Analytics] Failed to send event:', { error });
       // Store for retry
       this.storeEventForRetry(event);
     }

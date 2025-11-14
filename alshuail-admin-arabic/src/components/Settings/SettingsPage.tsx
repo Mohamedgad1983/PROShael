@@ -4,35 +4,32 @@
  * Last Modified: 2025-11-12 - Fixed profile-settings tab filtering bug
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { memo,  useState, useEffect } from 'react';
 import {
   CogIcon,
   UsersIcon,
   UserIcon,
   UserGroupIcon,
   ShieldCheckIcon,
-  BellIcon,
   PaintBrushIcon,
   GlobeAltIcon,
-  DocumentTextIcon,
   KeyIcon,
-  ServerIcon,
-  ChartBarIcon
+  ServerIcon
 } from '@heroicons/react/24/outline';
-import { useRole, RoleGate } from '../../contexts/RoleContext';
+import { useRole } from '../../contexts/RoleContext';
 import UserManagement from './UserManagement';
 import SystemSettings from './SystemSettingsEnhanced';
 import AuditLogs from './AuditLogs';
 import MultiRoleManagement from './MultiRoleManagement';
-import ProfileSettings from './ProfileSettings';
+import ProfileSettings from './ProfileSettings.modern';
 import AppearanceSettings from './AppearanceSettings';
-import LanguageSettings from './LanguageSettings';
+import LanguageSettings from './LanguageSettings.modern';
 // CRITICAL: Import from feature package to prevent tree-shaking
 import AccessControl, { __KEEP_ACCESS_CONTROL__ } from '../../features/access-control';
 // Import shared styles for consistent design
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, commonStyles } from './sharedStyles';
-import { SettingsCard } from './shared';
 import { PerformanceProfiler, PerformanceUtils } from './shared/PerformanceProfiler';
+import { logger } from '../../utils/logger';
 
 // CRITICAL: Reference the keep symbol to create explicit dependency
 // DO NOT REMOVE - This prevents Webpack from tree-shaking the component
@@ -46,77 +43,6 @@ interface SettingsTab {
   description: string;
 }
 
-// CRITICAL: Define ALL tabs as constants at module level to prevent tree-shaking
-const USER_MANAGEMENT_TAB: SettingsTab = {
-  id: 'user-management',
-  label: 'إدارة المستخدمين والصلاحيات',
-  icon: UsersIcon,
-  requiredRole: ['super_admin'],
-  description: 'إدارة المستخدمين وتعيين الأدوار والصلاحيات'
-};
-
-const MULTI_ROLE_TAB: SettingsTab = {
-  id: 'multi-role-management',
-  label: 'إدارة الأدوار المتعددة',
-  icon: UserGroupIcon,
-  requiredRole: ['super_admin'],
-  description: 'تعيين أدوار متعددة مع فترات زمنية محددة'
-};
-
-// SOLUTION: Build tabs dynamically at runtime to prevent webpack analysis
-const buildSettingsTabs = (): SettingsTab[] => {
-  // Create tabs array at runtime - webpack cannot analyze this
-  const tabs: SettingsTab[] = [];
-
-  // User Management
-  tabs.push({
-    id: 'user-management',
-    label: 'إدارة المستخدمين والصلاحيات',
-    icon: UsersIcon,
-    requiredRole: ['super_admin'],
-    description: 'إدارة المستخدمين وتعيين الأدوار والصلاحيات'
-  });
-
-  // Multi-Role Management
-  tabs.push({
-    id: 'multi-role-management',
-    label: 'إدارة الأدوار المتعددة',
-    icon: UserGroupIcon,
-    requiredRole: ['super_admin'],
-    description: 'تعيين أدوار متعددة مع فترات زمنية محددة'
-  });
-
-  // Password Management - BUILD ID AT RUNTIME
-  const pwdParts = ['password', 'management'];
-  tabs.push({
-    id: pwdParts[0] + '-' + pwdParts[1],
-    label: 'إدارة كلمات المرور',
-    icon: KeyIcon,
-    requiredRole: ['super_admin'],
-    description: 'إنشاء وإعادة تعيين كلمات المرور للمستخدمين'
-  });
-
-  // System Settings
-  tabs.push({
-    id: 'system-settings',
-    label: 'إعدادات النظام',
-    icon: ServerIcon,
-    requiredRole: ['super_admin'],
-    description: 'إعدادات النظام العامة والتكوينات'
-  });
-
-  // Audit Logs
-  tabs.push({
-    id: 'audit-logs',
-    label: 'سجلات التدقيق',
-    icon: ShieldCheckIcon,
-    requiredRole: ['super_admin'],
-    description: 'عرض سجلات النظام والأنشطة'
-  });
-
-  return tabs;
-};
-
 const SettingsPage: React.FC = () => {
   const { user, hasRole, loading } = useRole();
   const [activeTab, setActiveTab] = useState('user-management');
@@ -125,19 +51,20 @@ const SettingsPage: React.FC = () => {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const isLoaded = (window as any).__ACCESS_CONTROL_LOADED__;
-      console.log('[SettingsPage] Access Control loaded:', isLoaded);
+      logger.debug('Access Control loaded', { isLoaded, component: 'SettingsPage' });
 
       if (!isLoaded) {
-        console.error('[SettingsPage] CRITICAL: Access Control component not loaded!');
+        logger.error('CRITICAL: Access Control component not loaded!', undefined, { component: 'SettingsPage' });
       }
 
-      // Store components in window to prevent tree shaking
-      (window as any).__MULTI_ROLE__ = MultiRoleManagement;
-      (window as any).__ACCESS_CONTROL__ = AccessControl;
-
-      // Expose performance utilities globally for debugging
-      (window as any).__PERFORMANCE__ = PerformanceUtils;
-      console.log('[SettingsPage] Performance monitoring enabled. Access via window.__PERFORMANCE__');
+      // Development-only debug tools
+      if (process.env.NODE_ENV === 'development') {
+        (window as any).__DEV_TOOLS__ = {
+          components: { MultiRoleManagement, AccessControl },
+          performance: PerformanceUtils
+        };
+        logger.debug('Development tools exposed at window.__DEV_TOOLS__');
+      }
     }
   }, []);
 
@@ -201,11 +128,15 @@ const SettingsPage: React.FC = () => {
     }
   };
 
-  // Debug: Log user info
+  // Log user authentication state
   useEffect(() => {
-    console.log('SettingsPage - User:', user);
-    console.log('SettingsPage - Loading:', loading);
-    console.log('SettingsPage - Has super_admin role:', hasRole(['super_admin']));
+    logger.debug('User authentication state', {
+      component: 'SettingsPage',
+      userId: user?.id,
+      role: user?.role,
+      loading,
+      hasSuperAdmin: hasRole(['super_admin'])
+    });
   }, [user, loading, hasRole]);
 
   // ULTIMATE WEBPACK WORKAROUND: Hard-code EVERYTHING as constants at module level
@@ -258,28 +189,41 @@ const SettingsPage: React.FC = () => {
 
   const settingsTabs = SETTINGS_TABS_HARDCODED;
 
-  // Debug: Log all tabs before filtering
-  console.log('[Settings] All tabs defined:', settingsTabs.map(t => t.id));
-
-  // Check if MultiRoleManagement component exists
-  console.log('[Settings] MultiRoleManagement component exists?', typeof MultiRoleManagement);
-  console.log('[Settings] MultiRoleManagement component:', MultiRoleManagement);
+  // Log tabs configuration
+  logger.debug('Settings tabs configuration', {
+    component: 'SettingsPage',
+    totalTabs: settingsTabs.length,
+    tabIds: settingsTabs.map(t => t.id),
+    multiRoleExists: typeof MultiRoleManagement !== 'undefined'
+  });
 
   // Filter tabs based on user role
   const availableTabs = settingsTabs.filter(tab => {
     // If requiredRole is undefined or empty array, available to all users
     if (!tab.requiredRole || tab.requiredRole.length === 0) {
-      console.log(`[Settings] Tab ${tab.id} has no role requirement - available to all`);
+      logger.debug('Tab available to all users', {
+        component: 'SettingsPage',
+        tabId: tab.id
+      });
       return true;
     }
 
     const hasRequiredRole = hasRole(tab.requiredRole as any);
-    console.log(`[Settings] Tab ${tab.id} - Required role: ${tab.requiredRole}, Has role: ${hasRequiredRole}`);
+    logger.debug('Tab role check', {
+      component: 'SettingsPage',
+      tabId: tab.id,
+      requiredRole: tab.requiredRole,
+      hasRole: hasRequiredRole
+    });
 
     return hasRequiredRole;
   });
 
-  console.log('[Settings] Available tabs after filtering:', availableTabs.map(t => t.id));
+  logger.debug('Available tabs after filtering', {
+    component: 'SettingsPage',
+    availableTabIds: availableTabs.map(t => t.id),
+    count: availableTabs.length
+  });
 
   // Use shared styles for consistent design and performance
   const containerStyle: React.CSSProperties = {
@@ -515,4 +459,4 @@ const SettingsPage: React.FC = () => {
   );
 };
 
-export default SettingsPage;
+export default memo(SettingsPage);

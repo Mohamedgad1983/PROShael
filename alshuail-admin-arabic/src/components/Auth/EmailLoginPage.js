@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { logger } from '../../utils/logger';
+
 import './LoginPage.css';
 
 const EmailLoginPage = ({ onLogin = () => {} }) => {
@@ -44,7 +46,7 @@ const EmailLoginPage = ({ onLogin = () => {} }) => {
         setError(data.error || 'خطأ في تسجيل الدخول');
       }
     } catch (error) {
-      console.error('Login error:', error);
+      logger.error('Login error:', { error });
       setError('خطأ في الاتصال بالخادم');
     } finally {
       setLoading(false);

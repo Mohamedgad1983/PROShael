@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
+import { logger } from '../../utils/logger';
+
 const Notifications = () => {
     const navigate = useNavigate();
     const [notifications, setNotifications] = useState([]);
@@ -31,7 +33,7 @@ const Notifications = () => {
             setLoading(false);
             setRefreshing(false);
         } catch (error) {
-            console.error('Error fetching notifications:', error);
+            logger.error('Error fetching notifications:', { error });
             setLoading(false);
             setRefreshing(false);
         }
@@ -62,7 +64,7 @@ const Notifications = () => {
                 navigate(`/member/news/${notification.news_id}`);
             }
         } catch (error) {
-            console.error('Error marking as read:', error);
+            logger.error('Error marking as read:', { error });
         }
     };
 
@@ -91,7 +93,7 @@ const Notifications = () => {
                 prev.map(n => ({ ...n, is_read: true }))
             );
         } catch (error) {
-            console.error('Error marking all as read:', error);
+            logger.error('Error marking all as read:', { error });
         }
     };
 

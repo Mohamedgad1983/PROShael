@@ -1,8 +1,10 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 
+import { logger } from '../utils/logger';
+
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
-console.log('🔧 AuthContext API_BASE_URL:', API_BASE_URL);
-console.log('🔧 process.env.REACT_APP_API_URL:', process.env.REACT_APP_API_URL);
+logger.debug('🔧 AuthContext API_BASE_URL:', { API_BASE_URL });
+logger.debug('🔧 process.env.REACT_APP_API_URL:', { REACT_APP_API_URL: process.env.REACT_APP_API_URL });
 
 const AuthContext = createContext();
 
@@ -72,13 +74,13 @@ export const AuthProvider = ({ children }) => {
       try {
         parsedUser = JSON.parse(storedUser);
       } catch (parseError) {
-        console.error('Failed to parse stored user payload', parseError);
+        logger.error('Failed to parse stored user payload', { parseError });
         clearSession();
         return;
       }
 
       const verifyUrl = `${API_BASE_URL}/api/auth/verify`;
-      console.log('🔧 Verifying auth with URL:', verifyUrl);
+      logger.debug('🔧 Verifying auth with URL:', { verifyUrl });
       const response = await fetch(verifyUrl, {
         method: 'POST',
         headers: {
@@ -117,7 +119,7 @@ export const AuthProvider = ({ children }) => {
         persistSession(storedToken, verifiedUser);
       }
     } catch (error) {
-      console.error('Auth status check failed:', error);
+      logger.error('Auth status check failed:', { error });
       clearSession();
     } finally {
       setLoading(false);
@@ -169,7 +171,7 @@ export const AuthProvider = ({ children }) => {
       const errorMessage = data?.error || data?.message_ar || 'خطأ في تسجيل الدخول';
       return { success: false, error: errorMessage };
     } catch (error) {
-      console.error('Authentication error:', error);
+      logger.error('Authentication error:', { error });
       return {
         success: false,
         error: 'خطأ في الاتصال بالخادم'

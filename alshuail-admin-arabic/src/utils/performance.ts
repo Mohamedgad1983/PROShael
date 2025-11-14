@@ -1,4 +1,6 @@
 // Performance optimization utilities
+import { logger } from './logger';
+
 
 // Debounce function for search and input handlers
 export function debounce<T extends (...args: any[]) => any>(
@@ -127,7 +129,7 @@ export function measurePerformance(componentName: string) {
 
         const measure = performance.getEntriesByName(measureName)[0];
         if (measure) {
-          console.log(`${componentName} rendered in ${measure.duration.toFixed(2)}ms`);
+          logger.debug(`${componentName} rendered in ${measure.duration.toFixed(2)}ms`);
         }
 
         // Clean up marks
@@ -185,19 +187,19 @@ export async function registerServiceWorker() {
         scope: '/'
       });
 
-      console.log('🚀 PWA Service Worker registered successfully:', registration.scope);
+      logger.debug('🚀 PWA Service Worker registered successfully:', { scope: registration.scope });
 
       // Handle service worker updates
       registration.addEventListener('updatefound', () => {
         const newWorker = registration.installing;
         if (newWorker) {
-          console.log('🔄 New service worker installing...');
+          logger.debug('🔄 New service worker installing...');
 
           newWorker.addEventListener('statechange', () => {
-            console.log('SW state changed:', newWorker.state);
+            logger.debug('SW state changed:', { state: newWorker.state });
 
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              console.log('✅ New service worker available');
+              logger.debug('✅ New service worker available');
 
               // Show update notification to user
               showUpdateNotification();
@@ -208,13 +210,13 @@ export async function registerServiceWorker() {
 
       // Listen for controlling service worker change
       navigator.serviceWorker.addEventListener('controllerchange', () => {
-        console.log('🔄 Service worker controller changed, reloading...');
+        logger.debug('🔄 Service worker controller changed, reloading...');
         window.location.reload();
       });
 
       // Check if there's a waiting service worker
       if (registration.waiting) {
-        console.log('⏳ Service worker waiting to activate');
+        logger.debug('⏳ Service worker waiting to activate');
         showUpdateNotification();
       }
 
@@ -225,11 +227,11 @@ export async function registerServiceWorker() {
 
       return registration;
     } catch (error) {
-      console.error('❌ Service Worker registration failed:', error);
+      logger.error('❌ Service Worker registration failed:', { error });
       throw error;
     }
   } else {
-    console.warn('⚠️ Service Workers not supported in this browser');
+    logger.warn('⚠️ Service Workers not supported in this browser');
   }
 }
 
@@ -322,8 +324,8 @@ export function initPerformanceMonitoring() {
     try {
       const lcpObserver = new PerformanceObserver((entryList) => {
         const entries = entryList.getEntries();
-        const lastEntry = entries[entries.length - 1];
-        console.log('LCP:', lastEntry.startTime.toFixed(2) + 'ms');
+        const lastEntry = entries[entries.length - 1] as any;
+        logger.debug('LCP:', { value: `${lastEntry.renderTime || lastEntry.loadTime}ms` });
       });
       lcpObserver.observe({ type: 'largest-contentful-paint', buffered: true });
     } catch (e) {
@@ -339,7 +341,7 @@ export function initPerformanceMonitoring() {
           const fidEntry = entry as any;
           if (fidEntry.processingStart) {
             const delay = fidEntry.processingStart - fidEntry.startTime;
-            console.log('FID:', delay.toFixed(2) + 'ms');
+            logger.debug('FID:', { delay: `${delay}ms` });
           }
         });
       });
@@ -357,7 +359,7 @@ export function initPerformanceMonitoring() {
       const totalMB = (memInfo.totalJSHeapSize / 1048576).toFixed(2);
 
       if (parseFloat(usedMB) > parseFloat(totalMB) * 0.9) {
-        console.warn(`High memory usage: ${usedMB}MB / ${totalMB}MB`);
+        logger.warn(`High memory usage: ${usedMB}MB / ${totalMB}MB`);
       }
     }, 30000); // Check every 30 seconds
   }

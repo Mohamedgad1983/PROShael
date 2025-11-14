@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { memo,  useState } from 'react';
 import {
   EyeIcon,
   PencilSquareIcon,
@@ -511,4 +511,4 @@ const DiyasTable: React.FC<DiyasTableProps> = ({
   );
 };
 
-export default DiyasTable;
+export default memo(DiyasTable);
