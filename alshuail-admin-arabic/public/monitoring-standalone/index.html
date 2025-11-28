@@ -2106,16 +2106,26 @@
                 </td>
                 <td class="balance">${balance.toLocaleString('ar-SA')} ر.س</td>
                 <td>
-                    <div class="quick-actions">
-                        <button class="action-btn" onclick="viewMember('${memberId}')" title="عرض التفاصيل">
+                    <div class="action-buttons">
+                        <button class="btn-action btn-view" onclick="viewMember('${memberId}')" title="عرض التفاصيل">
                             <i class="fas fa-eye"></i>
                         </button>
-                        <button class="action-btn" onclick="whatsappMember('${memberId}')" title="واتساب">
+                        <button class="btn-action btn-history" onclick="showHistory('${memberId}')" title="السجل">
+                            <i class="fas fa-history"></i>
+                        </button>
+                        <button class="btn-action btn-notify" onclick="notifyMember('${memberId}')" title="إرسال إشعار">
+                            <i class="fas fa-bell"></i>
+                        </button>
+                        <button class="btn-action btn-whatsapp" onclick="whatsappMember('${memberId}')" title="واتساب">
                             <i class="fab fa-whatsapp"></i>
                         </button>
-                        <button class="action-btn" onclick="activateMember('${memberId}')" title="تفعيل">
-                            <i class="fas fa-check-circle"></i>
-                        </button>
+                        ${membershipStatus === 'suspended' ?
+                            `<button class="btn-action btn-success" onclick="activateMember('${memberId}')" title="تفعيل">
+                                <i class="fas fa-check"></i>
+                            </button>` :
+                            `<button class="btn-action btn-suspend" onclick="suspendMember('${memberId}')" title="إيقاف">
+                                <i class="fas fa-ban"></i>
+                            </button>`}
                     </div>
                 </td>
             `;
@@ -2891,6 +2901,13 @@
         function activateMember(id) {
             if (confirm('هل تريد تنشيط هذا العضو؟')) {
                 alert(`✅ تم تنشيط العضو #${id} بنجاح!`);
+                location.reload();
+            }
+        }
+
+        function suspendMember(id) {
+            if (confirm('هل تريد إيقاف هذا العضو؟')) {
+                alert(`⛔ تم إيقاف العضو #${id} بنجاح!`);
                 location.reload();
             }
         }
