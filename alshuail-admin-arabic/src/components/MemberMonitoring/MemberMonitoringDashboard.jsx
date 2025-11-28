@@ -48,7 +48,7 @@ const MemberMonitoringDashboard = memo(() => {
     try {
       setLoading(true);
 
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
+      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
 
       // Use the new monitoring endpoint that fetches all members without pagination
       const response = await fetch(`${API_BASE_URL}/api/members/monitoring/all`, {

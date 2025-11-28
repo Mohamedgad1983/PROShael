@@ -131,7 +131,7 @@ const HijriDiyasManagement: React.FC = () => {
   const fetchDiyas = async () => {
     setLoading(true);
     try {
-      const API_URL = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
+      const API_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
       const response = await fetch(`${API_URL}/api/diyas`, {
         headers: {
           'Content-Type': 'application/json',
@@ -197,7 +197,7 @@ const HijriDiyasManagement: React.FC = () => {
   const fetchContributors = useCallback(async (diyaId: number | string, page: number = 1, limit: number = contributorsPerPage) => {
     try {
       setContributorsLoading(true);
-      const API_URL = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
+      const API_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
       const response = await fetch(`${API_URL}/api/diya/${diyaId}/contributors?page=${page}&limit=${limit}`, {
         headers: {
           'Content-Type': 'application/json',
@@ -240,7 +240,7 @@ const HijriDiyasManagement: React.FC = () => {
   // Fetch ALL contributors for export
   const fetchAllContributorsForExport = async (diyaId: number | string) => {
     try {
-      const API_URL = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
+      const API_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
       const response = await fetch(`${API_URL}/api/diya/${diyaId}/contributors/all`, {
         headers: {
           'Content-Type': 'application/json',

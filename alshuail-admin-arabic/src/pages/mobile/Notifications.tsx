@@ -82,7 +82,7 @@ const Notifications: React.FC = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const apiUrl = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
+      const apiUrl = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
 
       const response = await fetch(`${apiUrl}/api/member/notifications`, {
         headers: {
@@ -117,7 +117,7 @@ const Notifications: React.FC = () => {
   const markAsRead = async (notificationId: string) => {
     try {
       const token = localStorage.getItem('token');
-      const apiUrl = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
+      const apiUrl = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
 
       await fetch(`${apiUrl}/api/member/notifications/${notificationId}/read`, {
         method: 'POST',
@@ -140,7 +140,7 @@ const Notifications: React.FC = () => {
   const markAllAsRead = async () => {
     try {
       const token = localStorage.getItem('token');
-      const apiUrl = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
+      const apiUrl = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
 
       await fetch(`${apiUrl}/api/member/notifications/read-all`, {
         method: 'POST',

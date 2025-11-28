@@ -44,7 +44,7 @@ const SubscriptionDashboard: React.FC = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Subscription | null>(null);
 
-  const API_BASE = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
+  const API_BASE = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
   const token = localStorage.getItem('token');
 
   const axiosConfig = {

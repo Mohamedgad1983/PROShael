@@ -91,7 +91,7 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://proshael.onrender.com'}/api/expenses?${params}`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://api.alshailfund.com'}/api/expenses?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -191,7 +191,7 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s for file upload
 
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://proshael.onrender.com'}/api/expenses`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://api.alshailfund.com'}/api/expenses`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -277,7 +277,7 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://proshael.onrender.com'}/api/expenses/${expenseId}/approval`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://api.alshailfund.com'}/api/expenses/${expenseId}/approval`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -349,7 +349,7 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://proshael.onrender.com'}/api/expenses/${expenseId}/approval`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://api.alshailfund.com'}/api/expenses/${expenseId}/approval`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

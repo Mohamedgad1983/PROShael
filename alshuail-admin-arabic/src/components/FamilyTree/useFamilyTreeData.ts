@@ -123,7 +123,7 @@ export const useFamilyTreeData = () => {
       setLoading(true);
       setError(null);
 
-      const response = await axios.get(`${process.env.REACT_APP_API_URL || 'https://proshael.onrender.com'}/api/members`, {
+      const response = await axios.get(`${process.env.REACT_APP_API_URL || 'https://api.alshailfund.com'}/api/members`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`
         }
@@ -197,7 +197,7 @@ export const useFamilyTreeData = () => {
   ) => {
     try {
       await axios.post(
-        `${process.env.REACT_APP_API_URL || 'https://proshael.onrender.com'}/api/members/${memberId}/relationships`,
+        `${process.env.REACT_APP_API_URL || 'https://api.alshailfund.com'}/api/members/${memberId}/relationships`,
         {
           relatedMemberId,
           relationshipType
@@ -221,7 +221,7 @@ export const useFamilyTreeData = () => {
   const updateMember = useCallback(async (memberId: string, updates: Partial<FamilyMember>) => {
     try {
       await axios.patch(
-        `${process.env.REACT_APP_API_URL || 'https://proshael.onrender.com'}/api/members/${memberId}`,
+        `${process.env.REACT_APP_API_URL || 'https://api.alshailfund.com'}/api/members/${memberId}`,
         updates,
         {
           headers: {

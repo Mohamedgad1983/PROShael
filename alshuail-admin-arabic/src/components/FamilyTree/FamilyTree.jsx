@@ -36,7 +36,7 @@ const FamilyTree = () => {
   const treeRef = useRef(null);
 
   // API configuration
-  const API_URL = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
+  const API_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
 
   // Tree configuration
   const treeConfig = {

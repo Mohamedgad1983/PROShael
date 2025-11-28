@@ -63,7 +63,7 @@ const DiyasManagement = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   // API URL configuration
-  const API_URL = process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://proshael.onrender.com');
+  const API_URL = process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.alshailfund.com');
 
   // Mock diyas data
   const mockDiyas = [

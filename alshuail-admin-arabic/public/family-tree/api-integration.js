@@ -9,7 +9,7 @@ const API_CONFIG = {
     // For local development
     LOCAL_API_URL: 'http://localhost:3001/api',
     // For production (update this with your actual backend URL)
-    PROD_API_URL: 'https://proshael.onrender.com/api',
+    PROD_API_URL: 'https://api.alshailfund.com/api',
 
     // Determine which URL to use based on hostname
     getApiUrl() {

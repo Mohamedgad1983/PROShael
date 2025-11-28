@@ -68,7 +68,7 @@ const ChangePassword = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const API_URL = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
+      const API_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
 
       const response = await fetch(`${API_URL}/api/auth/change-password`, {
         method: 'POST',

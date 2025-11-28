@@ -1327,7 +1327,7 @@
 
             try {
                 // Call API to update clan (implementation needed in backend)
-                const response = await fetch(`${window.FamilyTreeAPI.API_CONFIG?.PROD_API_URL || 'https://proshael.onrender.com/api'}/tree/branches/${clanId}`, {
+                const response = await fetch(`${window.FamilyTreeAPI.API_CONFIG?.PROD_API_URL || 'https://api.alshailfund.com/api'}/tree/branches/${clanId}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',

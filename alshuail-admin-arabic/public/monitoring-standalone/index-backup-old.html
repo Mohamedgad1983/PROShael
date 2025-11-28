@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>لوحة مراقبة الأعضاء المتقدمة - Al-Shuail</title>
-    <!-- Updated: 2025-11-28 02:35 PM - Production API URL and Monitoring Endpoint Fixed -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' cdn.jsdelivr.net cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' fonts.googleapis.com cdnjs.cloudflare.com; font-src fonts.googleapis.com fonts.gstatic.com cdnjs.cloudflare.com; connect-src 'self' http://localhost:3001 https://api.alshailfund.com; img-src 'self' data:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' cdn.jsdelivr.net cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' fonts.googleapis.com cdnjs.cloudflare.com; font-src fonts.googleapis.com fonts.gstatic.com cdnjs.cloudflare.com; connect-src 'self' https://api.alshailfund.com; img-src 'self' data:;">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -401,20 +400,7 @@
             width: 100%;
             border-collapse: collapse;
             background: white;
-            table-layout: fixed;
         }
-
-        /* Column width distribution */
-        th:nth-child(1), td:nth-child(1) { width: 3%; }   /* Checkbox */
-        th:nth-child(2), td:nth-child(2) { width: 7%; }   /* Member ID */
-        th:nth-child(3), td:nth-child(3) { width: 16%; }  /* Name */
-        th:nth-child(4), td:nth-child(4) { width: 10%; }  /* Phone */
-        th:nth-child(5), td:nth-child(5) { width: 9%; }   /* Branch */
-        th:nth-child(6), td:nth-child(6) { width: 7%; }   /* Member Status */
-        th:nth-child(7), td:nth-child(7) { width: 8%; }   /* Financial Status */
-        th:nth-child(8), td:nth-child(8) { width: 9%; }   /* Current Balance */
-        th:nth-child(9), td:nth-child(9) { width: 9%; }   /* Required Amount */
-        th:nth-child(10), td:nth-child(10) { width: 22%; } /* Actions */
 
         thead {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -1084,83 +1070,8 @@
             }
         }
 
-        /* Action buttons in table */
-        td .quick-actions {
-            display: flex;
-            gap: 4px;
-            justify-content: center;
-            flex-wrap: nowrap;
-        }
-
-        .action-btn {
-            background: #6366f1;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            padding: 6px 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 12px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 30px;
-            height: 30px;
-        }
-
-        .action-btn:hover {
-            background: #5568d3;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-        }
-
-        .action-btn i {
-            font-size: 14px;
-        }
-
-        /* Different colors for different actions */
-        .action-btn.view-btn {
-            background: #6366f1; /* View - Blue */
-        }
-
-        .action-btn.view-btn:hover {
-            background: #5568d3;
-        }
-
-        .action-btn.edit-btn {
-            background: #8b5cf6; /* Edit - Purple */
-        }
-
-        .action-btn.edit-btn:hover {
-            background: #7c3aed;
-        }
-
-        .action-btn.whatsapp-btn {
-            background: #10b981; /* WhatsApp - Green */
-        }
-
-        .action-btn.whatsapp-btn:hover {
-            background: #059669;
-        }
-
-        .action-btn.activate-btn {
-            background: #f59e0b; /* Activate - Orange */
-        }
-
-        .action-btn.activate-btn:hover {
-            background: #d97706;
-        }
-
-        .action-btn.delete-btn {
-            background: #ef4444; /* Delete - Red */
-        }
-
-        .action-btn.delete-btn:hover {
-            background: #dc2626;
-        }
-
-        /* Quick Actions Sidebar - More specific selector */
-        #quickActions.quick-actions {
+        /* Quick Actions Sidebar */
+        .quick-actions {
             position: fixed;
             right: -300px;
             top: 50%;
@@ -1174,7 +1085,7 @@
             z-index: 1500;
         }
 
-        #quickActions.quick-actions.active {
+        .quick-actions.active {
             right: 0;
         }
 
@@ -1361,32 +1272,80 @@
             </div>
         </div>
 
-        <!-- Filter Section - Simplified Smart Search Only -->
+        <!-- Filter Section -->
         <div class="filter-section">
-            <div id="basicFilters" class="filter-content">
-                <!-- Smart Unified Search - Single Search Box -->
-                <div class="filter-group" style="margin-bottom: 20px;">
-                    <label style="font-size: 20px; font-weight: 700; color: #667eea; display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
-                        <i class="fas fa-search"></i>
-                        البحث الذكي الشامل
-                    </label>
-                    <input
-                        type="text"
-                        id="smartSearch"
-                        class="filter-input"
-                        placeholder="ابحث برقم العضوية، الاسم، رقم الجوال، الفخذ، أو رقم الهوية..."
-                        style="font-size: 18px; padding: 18px 25px; border: 3px solid #667eea; border-radius: 15px; background: linear-gradient(to right, #f8f9fa, white); width: 100%; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);"
-                        oninput="applySmartSearch()"
-                    >
-                    <p style="font-size: 13px; color: #666; margin-top: 12px; font-style: italic; text-align: center;">
-                        💡 اكتب أي معلومة للبحث: رقم العضوية، الاسم الكامل، رقم الجوال، اسم الفخذ، أو رقم الهوية الوطنية
-                    </p>
-                </div>
+            <div class="filter-tabs">
+                <button class="filter-tab active" onclick="switchTab('basic')">
+                    <i class="fas fa-filter"></i>
+                    فلترة أساسية
+                </button>
+                <button class="filter-tab" onclick="switchTab('advanced')">
+                    <i class="fas fa-sliders-h"></i>
+                    فلترة متقدمة
+                </button>
+                <button class="filter-tab" onclick="switchTab('saved')">
+                    <i class="fas fa-bookmark"></i>
+                    فلاتر محفوظة
+                </button>
+            </div>
 
-                <div class="filter-actions" style="justify-content: center; gap: 20px;">
-                    <button class="btn btn-secondary" onclick="resetFilters()" style="padding: 12px 30px; font-size: 16px;">
+            <div id="basicFilters" class="filter-content">
+                <div class="filter-grid">
+                    <div class="filter-group">
+                        <label>رقم العضوية</label>
+                        <input type="text" id="filterMemberNumber" class="filter-input" placeholder="ابحث برقم العضوية...">
+                    </div>
+                    <div class="filter-group">
+                        <label>اسم العضو</label>
+                        <input type="text" id="filterMemberName" class="filter-input" placeholder="ابحث بالاسم...">
+                    </div>
+                    <div class="filter-group">
+                        <label>رقم الجوال</label>
+                        <input type="text" id="filterPhone" class="filter-input" placeholder="+965...">
+                    </div>
+                    <div class="filter-group">
+                        <label>الفخذ</label>
+                        <select id="filterBranch" class="filter-select">
+                            <option value="">الكل</option>
+                            <option value="رشود">رشود</option>
+                            <option value="رشيد">رشيد</option>
+                            <option value="العقاب">العقاب</option>
+                            <option value="الشبيعان">الشبيعان</option>
+                            <option value="الدغيش">الدغيش</option>
+                            <option value="الشامخ">الشامخ</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>حالة العضو</label>
+                        <select id="filterStatus" class="filter-select">
+                            <option value="">الكل</option>
+                            <option value="active">نشط</option>
+                            <option value="suspended">موقوف</option>
+                            <option value="inactive">معلق</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>الحالة المالية</label>
+                        <select id="filterPayment" class="filter-select">
+                            <option value="">الكل</option>
+                            <option value="paid">مدفوع</option>
+                            <option value="overdue">متأخر</option>
+                            <option value="partial">جزئي</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="filter-actions">
+                    <button class="btn btn-primary" onclick="applyFilters()">
+                        <i class="fas fa-search"></i>
+                        بحث
+                    </button>
+                    <button class="btn btn-secondary" onclick="resetFilters()">
                         <i class="fas fa-redo"></i>
                         إعادة تعيين
+                    </button>
+                    <button class="btn btn-outline" onclick="saveFilter()">
+                        <i class="fas fa-save"></i>
+                        حفظ الفلتر
                     </button>
                 </div>
             </div>
@@ -1398,7 +1357,7 @@
                 <h2>
                     <i class="fas fa-table"></i>
                     قائمة الأعضاء
-                    <span id="memberCountTitle" style="color: #999; font-size: 0.9rem;">(0 عضو)</span>
+                    <span style="color: #999; font-size: 0.9rem;">(100 عضو)</span>
                 </h2>
                 <div class="table-controls">
                     <button class="btn btn-success" onclick="selectAll()">
@@ -1459,6 +1418,9 @@
                                     <button class="btn-action btn-whatsapp" onclick="whatsappMember(1)" title="واتساب">
                                         <i class="fab fa-whatsapp"></i>
                                     </button>
+                                    <button class="btn-action btn-suspend" onclick="suspendMember(1)" title="إيقاف">
+                                        <i class="fas fa-ban"></i>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -1491,6 +1453,9 @@
                                     </button>
                                     <button class="btn-action btn-whatsapp" onclick="whatsappMember(2)" title="واتساب">
                                         <i class="fab fa-whatsapp"></i>
+                                    </button>
+                                    <button class="btn-action btn-suspend" onclick="suspendMember(2)" title="إيقاف">
+                                        <i class="fas fa-ban"></i>
                                     </button>
                                 </div>
                             </td>
@@ -1555,6 +1520,9 @@
                                     <button class="btn-action btn-whatsapp" onclick="whatsappMember(4)" title="واتساب">
                                         <i class="fab fa-whatsapp"></i>
                                     </button>
+                                    <button class="btn-action btn-suspend" onclick="suspendMember(4)" title="إيقاف">
+                                        <i class="fas fa-ban"></i>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -1588,11 +1556,28 @@
                                     <button class="btn-action btn-whatsapp" onclick="whatsappMember(5)" title="واتساب">
                                         <i class="fab fa-whatsapp"></i>
                                     </button>
+                                    <button class="btn-action btn-suspend" onclick="suspendMember(5)" title="إيقاف">
+                                        <i class="fas fa-ban"></i>
+                                    </button>
                                 </div>
                             </td>
                         </tr>
                     </tbody>
                 </table>
+            </div>
+
+            <!-- Pagination Controls -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 14px; color: #666;">عرض:</span>
+                    <select onchange="changePageSize(this.value)" style="padding: 5px 10px; border: 1px solid #ddd; border-radius: 5px; font-family: 'Cairo', sans-serif;">
+                        <option value="10">10 أعضاء</option>
+                        <option value="25" selected>25 عضو</option>
+                        <option value="50">50 عضو</option>
+                        <option value="100">100 عضو</option>
+                    </select>
+                </div>
+                <div class="pagination-info" style="font-size: 14px; color: #666;"></div>
             </div>
 
             <!-- Pagination -->
@@ -1964,306 +1949,9 @@
         let allMembers = [];
         let filteredMembers = [];
         let currentPage = 1;
-        const pageSize = 25;
+        let pageSize = 25;  // Changed from const to let for dynamic page size
         let subscriptionChart = null;
         let branchChart = null;
-
-        // ===== Table Rendering Functions (Moved to top for proper scope) =====
-        function renderMembersTable(members) {
-            filteredMembers = members;
-            currentPage = 1;
-
-            // Update member count in title
-            const memberCountTitle = document.getElementById('memberCountTitle');
-            if (memberCountTitle) {
-                memberCountTitle.textContent = `(${members.length} عضو)`;
-            }
-
-            renderCurrentPage();
-        }
-        // Make globally accessible immediately
-        window.renderMembersTable = renderMembersTable;
-
-        function renderCurrentPage() {
-            const tbody = document.querySelector('#membersTable tbody');
-            if (!tbody) return;
-
-            const startIndex = (currentPage - 1) * pageSize;
-            const endIndex = startIndex + pageSize;
-            const pageMembers = filteredMembers.slice(startIndex, endIndex);
-
-            tbody.innerHTML = '';
-
-            pageMembers.forEach(member => {
-                const row = createMemberRow(member);
-                tbody.appendChild(row);
-            });
-
-            updatePaginationInfo();
-        }
-        // Make globally accessible immediately
-        window.renderCurrentPage = renderCurrentPage;
-
-        // Status translation functions
-        function translateMemberStatus(status) {
-            const statusMap = {
-                'active': 'نشط',
-                'suspended': 'موقوف',
-                'pending': 'معلق',
-                'inactive': 'غير نشط'
-            };
-            return statusMap[status] || 'غير محدد';
-        }
-
-        function getMemberStatusClass(status) {
-            const classMap = {
-                'active': 'status-active',
-                'suspended': 'status-suspended',
-                'pending': 'status-pending',
-                'inactive': 'status-inactive'
-            };
-            return classMap[status] || '';
-        }
-
-        function translateFinancialStatus(status) {
-            const statusMap = {
-                'compliant': 'مدفوع',
-                'excellent': 'ممتاز',
-                'non-compliant': 'متأخر',
-                'critical': 'حرج',
-                'partial': 'جزئي'
-            };
-            return statusMap[status] || 'غير محدد';
-        }
-
-        function getPaymentStatusClass(status) {
-            const classMap = {
-                'compliant': 'payment-paid',
-                'excellent': 'payment-paid',
-                'non-compliant': 'payment-overdue',
-                'critical': 'payment-overdue',
-                'partial': 'payment-partial'
-            };
-            return classMap[status] || '';
-        }
-
-        function updatePaginationInfo() {
-            const totalMembers = filteredMembers.length;
-            const startIndex = (currentPage - 1) * pageSize + 1;
-            const endIndex = Math.min(currentPage * pageSize, totalMembers);
-
-            const paginationText = `عرض ${startIndex} - ${endIndex} من ${totalMembers} عضو`;
-            const paginationElement = document.querySelector('.pagination-info');
-            if (paginationElement) {
-                paginationElement.textContent = paginationText;
-            }
-
-            // Update pagination buttons
-            updatePaginationButtons();
-        }
-
-        function updatePaginationButtons() {
-            const totalPages = Math.ceil(filteredMembers.length / pageSize);
-            const paginationContainer = document.querySelector('.pagination');
-            if (!paginationContainer) return;
-
-            // Keep existing pagination buttons but update active state
-            const buttons = paginationContainer.querySelectorAll('.page-btn:not(.prev):not(.next)');
-            buttons.forEach((btn, index) => {
-                if (index + 1 === currentPage) {
-                    btn.classList.add('active');
-                } else {
-                    btn.classList.remove('active');
-                }
-
-                // Update onclick to use new pagination
-                btn.onclick = () => goToPage(index + 1);
-            });
-
-            // Update prev/next buttons
-            const prevBtn = paginationContainer.querySelector('.prev');
-            const nextBtn = paginationContainer.querySelector('.next');
-            if (prevBtn) prevBtn.onclick = () => goToPage(currentPage - 1);
-            if (nextBtn) nextBtn.onclick = () => goToPage(currentPage + 1);
-        }
-
-        function goToPage(page) {
-            const totalPages = Math.ceil(filteredMembers.length / pageSize);
-            if (page < 1 || page > totalPages) return;
-            currentPage = page;
-            renderCurrentPage();
-        }
-
-        function createMemberRow(member) {
-            const row = document.createElement('tr');
-
-            // Map member data - using actual database column names
-            const memberId = member.membership_number || member.id || 'N/A';
-            const name = member.full_name || 'غير محدد';
-            const phone = member.phone || 'غير محدد';
-            const branch = member.tribal_section || 'غير محدد';
-            const membershipStatus = member.membership_status || member.status || 'active';
-            const financialStatus = member.payment_status || member.balance_status || 'unknown';
-            const balance = parseFloat(member.current_balance) || parseFloat(member.total_balance) || parseFloat(member.balance) || 0;
-            const due = parseFloat(member.amount_due) || 0;
-
-            // Translate statuses
-            const memberStatusText = translateMemberStatus(membershipStatus);
-            const memberStatusClass = getMemberStatusClass(membershipStatus);
-            const paymentStatusText = translateFinancialStatus(financialStatus);
-            const paymentStatusClass = getPaymentStatusClass(financialStatus);
-
-            // Get first letter for avatar
-            const firstLetter = name.charAt(0);
-
-            row.innerHTML = `
-                <td>
-                    <input type="checkbox" class="member-checkbox" data-member-id="${memberId}" onchange="updateSelection()">
-                </td>
-                <td>
-                    <span class="member-number">${memberId}</span>
-                </td>
-                <td>
-                    <div class="member-name">
-                        <div class="member-avatar">${firstLetter}</div>
-                        <span>${name}</span>
-                    </div>
-                </td>
-                <td><span class="phone-number">${phone}</span></td>
-                <td><span class="branch-name">${branch}</span></td>
-                <td>
-                    <span class="badge ${memberStatusClass}">${memberStatusText}</span>
-                </td>
-                <td>
-                    <span class="badge ${paymentStatusClass}">${paymentStatusText}</span>
-                </td>
-                <td class="balance">${balance.toLocaleString('ar-SA')} ر.س</td>
-                <td class="amount-due">${due.toLocaleString('ar-SA')} ر.س</td>
-                <td>
-                    <div class="quick-actions">
-                        <button class="action-btn view-btn" onclick="viewMember('${memberId}')" title="عرض التفاصيل">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                        <button class="action-btn edit-btn" onclick="editMember('${memberId}')" title="تعديل">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="action-btn whatsapp-btn" onclick="whatsappMember('${memberId}')" title="واتساب">
-                            <i class="fab fa-whatsapp"></i>
-                        </button>
-                        <button class="action-btn activate-btn" onclick="activateMember('${memberId}')" title="تفعيل">
-                            <i class="fas fa-check-circle"></i>
-                        </button>
-                        <button class="action-btn delete-btn" onclick="deleteMember('${memberId}')" title="حذف">
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
-                    </div>
-                </td>
-            `;
-
-            return row;
-        }
-
-        // ===== Smart Search Function (Moved to top for proper scope) =====
-        function applySmartSearch() {
-            const searchInput = document.getElementById('smartSearch');
-            if (!searchInput) return;
-
-            const smartQuery = searchInput.value.trim().toLowerCase();
-
-            if (!smartQuery) {
-                filteredMembers = allMembers;
-            } else {
-                filteredMembers = allMembers.filter(member => {
-                    // Search in multiple fields using actual database column names
-                    const searchableFields = [
-                        member.membership_number?.toString().toLowerCase(),
-                        member.full_name?.toLowerCase(),
-                        member.phone?.toLowerCase(),
-                        member.tribal_section?.toLowerCase(),
-                        member.email?.toLowerCase(),
-                        member.national_id?.toString().toLowerCase()
-                    ];
-
-                    // Return true if any field contains the search query
-                    return searchableFields.some(field => field && field.includes(smartQuery));
-                });
-            }
-
-            currentPage = 1;
-            renderCurrentPage();
-            updateStatistics(filteredMembers);
-            updateChartsWithData(filteredMembers);
-        }
-        // Make globally accessible immediately
-        window.applySmartSearch = applySmartSearch;
-
-        // ===== Filter Functions =====
-        function applyFilters() {
-            // First apply smart search
-            applySmartSearch();
-
-            // Then apply dropdown filters on top of smart search results
-            const branch = document.getElementById('filterBranch')?.value || '';
-            const status = document.getElementById('filterStatus')?.value || '';
-            const payment = document.getElementById('filterPayment')?.value || '';
-
-            // Map Arabic status values to database values
-            const statusMap = {
-                'نشط': 'active',
-                'موقوف': 'suspended',
-                'معلق': 'pending',
-                'غير نشط': 'inactive'
-            };
-            const paymentMap = {
-                'مدفوع': 'compliant',
-                'متأخر': 'non-compliant',
-                'جزئي': 'partial'
-            };
-
-            if (branch || status || payment) {
-                filteredMembers = filteredMembers.filter(member => {
-                    const membershipStatus = member.membership_status || member.status || 'active';
-                    const paymentStatus = member.payment_status || member.balance_status || '';
-                    const branchName = member.tribal_section || '';
-
-                    const branchMatch = !branch || branchName === branch;
-                    const statusMatch = !status || membershipStatus === statusMap[status] || membershipStatus === status;
-                    const paymentMatch = !payment || paymentStatus === paymentMap[payment] || paymentStatus === payment;
-
-                    return branchMatch && statusMatch && paymentMatch;
-                });
-            }
-
-            currentPage = 1;
-            renderCurrentPage();
-            updateStatistics(filteredMembers);
-            updateChartsWithData(filteredMembers);
-        }
-
-        function resetFilters() {
-            // Reset all filter dropdowns
-            const filters = ['filterBranch', 'filterStatus', 'filterPayment', 'filterMemberNumber', 'filterMemberName', 'filterPhone'];
-            filters.forEach(filterId => {
-                const element = document.getElementById(filterId);
-                if (element) element.value = '';
-            });
-
-            // Reset smart search
-            const searchInput = document.getElementById('smartSearch');
-            if (searchInput) {
-                searchInput.value = '';
-            }
-
-            // Reset to all members
-            filteredMembers = allMembers;
-            currentPage = 1;
-            renderCurrentPage();
-            updateStatistics(allMembers);
-            updateChartsWithData(allMembers);
-        }
-        // Make globally accessible immediately
-        window.applyFilters = applyFilters;
-        window.resetFilters = resetFilters;
 
         // ===== Utility Functions =====
         function showLoadingOverlay() {
@@ -2366,10 +2054,9 @@
                 return data;
             },
 
-            async getMembers(page = 1, limit = 1000) {
-                // Use the new monitoring endpoint that fetches ALL members
+            async getMembers(page = 1, limit = 500) {
                 const data = await this.request(
-                    `${API_CONFIG.ENDPOINTS.MEMBERS}/monitoring/all`
+                    `${API_CONFIG.ENDPOINTS.MEMBERS}?page=${page}&limit=${limit}`
                 );
                 return data.members || data.data || [];
             },
@@ -2463,23 +2150,80 @@
             }
         }
 
+        // ===== Demo Data Parser for Offline Mode =====
+        function parseDemoDataToArrays() {
+            console.log('📊 Parsing demo HTML data into JavaScript arrays...');
+            try {
+                const demoRows = document.querySelectorAll('#membersTable tbody tr');
+                if (demoRows.length === 0) {
+                    console.warn('⚠️ No demo rows found in table');
+                    return;
+                }
+
+                allMembers = Array.from(demoRows).map((row, index) => {
+                    const cells = row.cells;
+
+                    // Extract membership status from the status badge
+                    const statusBadge = cells[5]?.querySelector('.member-badge');
+                    let membershipStatus = 'active';
+                    if (statusBadge) {
+                        const statusText = statusBadge.textContent.trim();
+                        if (statusText === 'نشط') membershipStatus = 'active';
+                        else if (statusText === 'موقوف') membershipStatus = 'suspended';
+                        else if (statusText === 'معلق') membershipStatus = 'pending';
+                    }
+
+                    // Extract financial status
+                    let financialStatus = 'paid';
+                    const finStatusText = cells[6]?.textContent.trim();
+                    if (finStatusText === 'مدفوع') financialStatus = 'paid';
+                    else if (finStatusText === 'متأخر') financialStatus = 'non-compliant';
+                    else if (finStatusText === 'جزئي') financialStatus = 'partial';
+
+                    // Parse balance (remove currency symbols and parse)
+                    const balanceText = cells[7]?.textContent.trim() || '0';
+                    const currentBalance = parseFloat(balanceText.replace(/[^\d.-]/g, '')) || 0;
+
+                    // Parse amount due
+                    const dueText = cells[8]?.textContent.trim() || '0';
+                    const amountDue = parseFloat(dueText.replace(/[^\d.-]/g, '')) || 0;
+
+                    return {
+                        id: index + 1,
+                        membership_number: cells[1]?.textContent.trim() || '',
+                        full_name: cells[2]?.querySelector('.member-name')?.textContent.trim() || cells[2]?.textContent.trim() || '',
+                        phone: cells[3]?.textContent.trim() || '',
+                        tribal_section: cells[4]?.textContent.trim() || '',
+                        membership_status: membershipStatus,
+                        financial_status: financialStatus,
+                        current_balance: currentBalance,
+                        amount_due: amountDue
+                    };
+                });
+
+                filteredMembers = [...allMembers];
+
+                console.log(`✅ Successfully parsed ${allMembers.length} demo members into arrays`);
+                console.log('📋 Sample member:', allMembers[0]);
+
+                // Update statistics with demo data
+                updateStatistics(allMembers);
+
+            } catch (error) {
+                console.error('❌ Error parsing demo data:', error);
+                allMembers = [];
+                filteredMembers = [];
+            }
+        }
+
         // ===== Dashboard Initialization =====
         async function initDashboard() {
             try {
                 showLoadingOverlay();
-                const members = await ApiService.getMembers();
+                const members = await ApiService.getMembers(1, 500);
 
                 allMembers = members;
                 filteredMembers = members;
-
-                console.log(`✅ Loaded ${members.length} members from monitoring endpoint`);
-
-                // Log to verify we got all members
-                if (members.length === 347) {
-                    console.log('🎉 Successfully loaded all 347 members!');
-                } else {
-                    console.warn(`⚠️ Expected 347 members, but got ${members.length}`);
-                }
 
                 updateStatistics(members);
                 updateChartsWithData(members);
@@ -2496,15 +2240,14 @@
         function updateStatistics(members) {
             const stats = {
                 total: members.length,
-                active: members.filter(m => (m.membership_status || m.status) === 'active').length,
+                active: members.filter(m => m.membership_status === 'active').length,
                 overdue: members.filter(m =>
-                    (m.payment_status || m.balance_status) === 'non-compliant' ||
-                    (m.payment_status || m.balance_status) === 'critical' ||
-                    (m.is_compliant === false)
+                    m.financial_status === 'non-compliant' ||
+                    m.financial_status === 'critical'
                 ).length,
-                suspended: members.filter(m => (m.membership_status || m.status) === 'suspended').length,
-                subscriptions: members.reduce((sum, m) => sum + (parseFloat(m.current_balance) || parseFloat(m.total_balance) || 0), 0),
-                expired: members.filter(m => (m.membership_status || m.status) === 'pending').length
+                suspended: members.filter(m => m.membership_status === 'suspended').length,
+                subscriptions: members.reduce((sum, m) => sum + (m.current_balance || 0), 0),
+                expired: members.filter(m => m.membership_status === 'pending').length
             };
 
             // Update stat cards
@@ -2515,12 +2258,6 @@
             document.querySelector('.stat-card:nth-child(5) .stat-number').textContent =
                 stats.subscriptions.toLocaleString('ar-SA') + ' ر.س';
             document.querySelector('.stat-card:nth-child(6) .stat-number').textContent = stats.expired;
-
-            // Update member count in title
-            const memberCountTitle = document.getElementById('memberCountTitle');
-            if (memberCountTitle) {
-                memberCountTitle.textContent = `(${stats.total} عضو)`;
-            }
         }
         // Listen for auth token from parent React app via postMessage
         // Set up listener immediately, before window.onload
@@ -2554,22 +2291,11 @@
                 console.log('🚀 Initializing dashboard with existing token');
                 await initDashboard();
             } else if (!token) {
-                console.log('⏳ Waiting for auth token from parent...');
-            }
-
-            // Verify functions are globally accessible
-            console.log('✅ Global functions verification:', {
-                renderCurrentPage: typeof window.renderCurrentPage,
-                renderMembersTable: typeof window.renderMembersTable,
-                applySmartSearch: typeof window.applySmartSearch,
-                applyFilters: typeof window.applyFilters
-            });
-
-            // Attach smart search event listener
-            const smartSearchInput = document.getElementById('smartSearch');
-            if (smartSearchInput) {
-                smartSearchInput.addEventListener('input', window.applySmartSearch);
-                console.log('✅ Smart search event listener attached');
+                console.log('⏳ No token found, parsing demo data for offline mode...');
+                // Parse demo HTML data into JavaScript arrays for offline functionality
+                parseDemoDataToArrays();
+                // Don't show login modal automatically - let user use demo mode
+                // showLoginModal();
             }
         };
         // Subscription Chart
@@ -2646,7 +2372,7 @@
         function updateBranchChart(members) {
             if (!branchChart) return;
 
-            // Calculate branch distribution using correct field name
+            // Calculate branch distribution
             const branchCounts = {};
             members.forEach(m => {
                 const branch = m.tribal_section || 'غير محدد';
@@ -2672,7 +2398,7 @@
 
             // Calculate total balance by members (as proxy for subscriptions)
             // If we had historical data, we'd use that instead
-            const totalBalance = members.reduce((sum, m) => sum + (parseFloat(m.current_balance) || parseFloat(m.total_balance) || 0), 0);
+            const totalBalance = members.reduce((sum, m) => sum + (m.current_balance || 0), 0);
 
             // For now, keep the chart with sample data pattern
             // In real implementation, you'd fetch historical data from backend
@@ -2719,8 +2445,204 @@
             document.querySelectorAll('.member-checkbox').forEach(cb => {
                 cb.checked = false;
             });
+            updateSelection(); // Update counter and hide bulk action bar
+        }
 
-            updateSelection();
+        // ===== Table Rendering Functions =====
+        function renderMembersTable(members) {
+            filteredMembers = members;
+            currentPage = 1;
+            renderCurrentPage();
+        }
+
+        function renderCurrentPage() {
+            const tbody = document.querySelector('#membersTable tbody');
+            if (!tbody) return;
+
+            const startIndex = (currentPage - 1) * pageSize;
+            const endIndex = startIndex + pageSize;
+            const pageMembers = filteredMembers.slice(startIndex, endIndex);
+
+            tbody.innerHTML = '';
+
+            pageMembers.forEach(member => {
+                const row = createMemberRow(member);
+                tbody.appendChild(row);
+            });
+
+            updatePaginationInfo();
+        }
+
+        function createMemberRow(member) {
+            const row = document.createElement('tr');
+
+            // Map member data - using correct API field names from members table
+            const memberId = member.membership_number || member.id || 'N/A';
+            const name = member.full_name || 'غير محدد';
+            const phone = member.phone || 'غير محدد';
+            const branch = member.tribal_section || 'غير محدد';
+            const membershipStatus = member.membership_status || 'active';
+            const financialStatus = member.financial_status || 'paid';
+            // Fix: Use explicit undefined check to preserve 0 values (same fix as statement search)
+            const balance = member.current_balance !== undefined ? member.current_balance : 0;
+            // Required amount: 3000 SAR for each member until 2025
+            const requiredAmount = 3000;
+            const due = Math.max(0, requiredAmount - balance);
+
+            // Translate statuses
+            const memberStatusText = translateMemberStatus(membershipStatus);
+            const memberStatusClass = getMemberStatusClass(membershipStatus);
+            const paymentStatusText = translateFinancialStatus(financialStatus);
+            const paymentStatusClass = getPaymentStatusClass(financialStatus);
+
+            // Get first letter for avatar
+            const firstLetter = name.charAt(0);
+
+            row.innerHTML = `
+                <td>
+                    <input type="checkbox" class="member-checkbox" data-member-id="${memberId}" onchange="updateSelection()">
+                </td>
+                <td>
+                    <span class="member-number">${memberId}</span>
+                </td>
+                <td>
+                    <div class="member-name">
+                        <div class="member-avatar">${firstLetter}</div>
+                        <span>${name}</span>
+                    </div>
+                </td>
+                <td>${phone}</td>
+                <td>${branch}</td>
+                <td>
+                    <span class="status-badge ${memberStatusClass}">${memberStatusText}</span>
+                </td>
+                <td>
+                    <span class="status-badge ${paymentStatusClass}">${paymentStatusText}</span>
+                </td>
+                <td>
+                    <span class="amount-display ${balance >= 0 ? 'positive' : 'negative'}">
+                        ${balance >= 0 ? '+' : ''}${balance.toLocaleString('ar-SA')} ر.س
+                    </span>
+                </td>
+                <td>
+                    <span class="amount-display">${due.toLocaleString('ar-SA')} ر.س</span>
+                </td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="btn-action btn-view" onclick="viewMember('${memberId}')" title="عرض التفاصيل">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn-action btn-history" onclick="showHistory('${memberId}')" title="السجل">
+                            <i class="fas fa-history"></i>
+                        </button>
+                        <button class="btn-action btn-notify" onclick="notifyMember('${memberId}')" title="إرسال إشعار">
+                            <i class="fas fa-bell"></i>
+                        </button>
+                        <button class="btn-action btn-whatsapp" onclick="whatsappMember('${memberId}')" title="واتساب">
+                            <i class="fab fa-whatsapp"></i>
+                        </button>
+                        ${membershipStatus === 'suspended' ?
+                            `<button class="btn-action btn-success" onclick="activateMember('${memberId}')" title="تفعيل">
+                                <i class="fas fa-check"></i>
+                            </button>` :
+                            `<button class="btn-action btn-suspend" onclick="suspendMember('${memberId}')" title="إيقاف">
+                                <i class="fas fa-ban"></i>
+                            </button>`}
+                    </div>
+                </td>
+            `;
+
+            return row;
+        }
+
+        // Status translation functions
+        function translateMemberStatus(status) {
+            const statusMap = {
+                'active': 'نشط',
+                'suspended': 'موقوف',
+                'pending': 'معلق',
+                'inactive': 'غير نشط'
+            };
+            return statusMap[status] || 'غير محدد';
+        }
+
+        function getMemberStatusClass(status) {
+            const classMap = {
+                'active': 'status-active',
+                'suspended': 'status-suspended',
+                'pending': 'status-pending',
+                'inactive': 'status-inactive'
+            };
+            return classMap[status] || '';
+        }
+
+        function translateFinancialStatus(status) {
+            const statusMap = {
+                'compliant': 'مدفوع',
+                'excellent': 'ممتاز',
+                'non-compliant': 'متأخر',
+                'critical': 'حرج',
+                'partial': 'جزئي'
+            };
+            return statusMap[status] || 'غير محدد';
+        }
+
+        function getPaymentStatusClass(status) {
+            const classMap = {
+                'compliant': 'payment-paid',
+                'excellent': 'payment-paid',
+                'non-compliant': 'payment-overdue',
+                'critical': 'payment-overdue',
+                'partial': 'payment-partial'
+            };
+            return classMap[status] || '';
+        }
+
+        function updatePaginationInfo() {
+            const totalMembers = filteredMembers.length;
+            const startIndex = (currentPage - 1) * pageSize + 1;
+            const endIndex = Math.min(currentPage * pageSize, totalMembers);
+
+            const paginationText = `عرض ${startIndex} - ${endIndex} من ${totalMembers} عضو`;
+            const paginationElement = document.querySelector('.pagination-info');
+            if (paginationElement) {
+                paginationElement.textContent = paginationText;
+            }
+
+            // Update pagination buttons
+            updatePaginationButtons();
+        }
+
+        function updatePaginationButtons() {
+            const totalPages = Math.ceil(filteredMembers.length / pageSize);
+            const paginationContainer = document.querySelector('.pagination');
+            if (!paginationContainer) return;
+
+            // Keep existing pagination buttons but update active state
+            const buttons = paginationContainer.querySelectorAll('.page-btn:not(.prev):not(.next)');
+            buttons.forEach((btn, index) => {
+                if (index + 1 === currentPage) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+
+                // Update onclick to use new pagination
+                btn.onclick = () => goToPage(index + 1);
+            });
+
+            // Update prev/next buttons
+            const prevBtn = paginationContainer.querySelector('.prev');
+            const nextBtn = paginationContainer.querySelector('.next');
+            if (prevBtn) prevBtn.onclick = () => goToPage(currentPage - 1);
+            if (nextBtn) nextBtn.onclick = () => goToPage(currentPage + 1);
+        }
+
+        function goToPage(page) {
+            const totalPages = Math.ceil(filteredMembers.length / pageSize);
+            if (page < 1 || page > totalPages) return;
+            currentPage = page;
+            renderCurrentPage();
         }
 
         // Export to Excel
@@ -2773,18 +2695,18 @@
 
         // ===== Member Action Functions (Updated for API Data) =====
         function viewMember(memberId) {
-            const member = allMembers.find(m => (m.member_number || m.id) === memberId);
+            const member = allMembers.find(m => (m.membership_number || m.id) === memberId);
             if (member) {
-                alert(`عرض تفاصيل العضو: ${member.full_name_arabic || member.name}\nرقم العضو: ${memberId}`);
+                alert(`عرض تفاصيل العضو: ${member.full_name || member.name}\nرقم العضو: ${memberId}`);
                 // In production, open detail modal or navigate to detail page
             }
         }
 
         function whatsappMember(memberId) {
-            const member = allMembers.find(m => (m.member_number || m.id) === memberId);
+            const member = allMembers.find(m => (m.membership_number || m.id) === memberId);
             if (member) {
-                const phone = (member.phone_number || member.phone || '').replace(/\s/g, '').replace('+', '');
-                const name = member.full_name_arabic || member.name || 'العضو';
+                const phone = (member.phone || member.phone || '').replace(/\s/g, '').replace('+', '');
+                const name = member.full_name || member.name || 'العضو';
                 const message = encodeURIComponent(`مرحباً ${name}`);
                 window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
             }
@@ -2799,26 +2721,12 @@
             }
         }
 
-        function editMember(memberId) {
-            const member = allMembers.find(m => (m.member_number || m.membership_number || m.id) === memberId);
-            if (member) {
-                alert(`✏️ تعديل بيانات العضو: ${member.full_name_arabic || member.full_name || member.name}\nرقم العضو: ${memberId}`);
-                // In production, navigate to edit page: window.location.href = `/admin/members/${memberId}/edit`;
-            }
-        }
-
-        function deleteMember(memberId) {
-            const member = allMembers.find(m => (m.member_number || m.membership_number || m.id) === memberId);
-            if (member) {
-                if (confirm(`⚠️ هل أنت متأكد من حذف العضو: ${member.full_name_arabic || member.full_name || member.name}؟\nرقم العضو: ${memberId}\n\nهذا الإجراء لا يمكن التراجع عنه!`)) {
-                    if (confirm('تأكيد نهائي: هل تريد حذف هذا العضو؟')) {
-                        alert('🗑️ تم حذف العضو بنجاح');
-                        // In production, call API to delete member
-                        // Remove from local array for immediate UI update
-                        allMembers = allMembers.filter(m => (m.member_number || m.membership_number || m.id) !== memberId);
-                        renderMembersTable(allMembers);
-                    }
-                }
+        function suspendMember(memberId) {
+            if (confirm('هل أنت متأكد من إيقاف هذا العضو?')) {
+                // In production, call API to update member status
+                alert('تم إيقاف العضو بنجاح');
+                // Refresh data
+                initDashboard();
             }
         }
 
@@ -2826,7 +2734,7 @@
         function getSelectedMembers() {
             const checkboxes = document.querySelectorAll('.member-checkbox:checked');
             const selectedIds = Array.from(checkboxes).map(cb => cb.dataset.memberId);
-            return allMembers.filter(m => selectedIds.includes(m.member_number || m.id));
+            return allMembers.filter(m => selectedIds.includes(m.membership_number || m.id));
         }
 
         // ===== Bulk Actions (Updated) =====
@@ -2851,8 +2759,8 @@
             // Open WhatsApp for each selected member
             selected.forEach((member, index) => {
                 setTimeout(() => {
-                    const phone = (member.phone_number || member.phone || '').replace(/\s/g, '').replace('+', '');
-                    const name = member.full_name_arabic || member.name || 'العضو';
+                    const phone = (member.phone || member.phone || '').replace(/\s/g, '').replace('+', '');
+                    const name = member.full_name || member.name || 'العضو';
                     const message = encodeURIComponent(`مرحباً ${name}`);
                     window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
                 }, index * 500); // Delay to avoid popup blocking
@@ -2876,10 +2784,10 @@
         function exportMembersToExcel(members) {
             try {
                 const exportData = members.map(member => ({
-                    'رقم العضو': member.member_number || member.id || '',
-                    'الاسم الكامل': member.full_name_arabic || member.name || '',
-                    'رقم الهاتف': member.phone_number || member.phone || '',
-                    'الفخذ': member.branch_arabic || member.branch || '',
+                    'رقم العضو': member.membership_number || member.id || '',
+                    'الاسم الكامل': member.full_name || member.name || '',
+                    'رقم الهاتف': member.phone || member.phone || '',
+                    'الفخذ': member.tribal_section || member.branch || '',
                     'حالة العضوية': translateMemberStatus(member.membership_status || ''),
                     'الحالة المالية': translateFinancialStatus(member.financial_status || ''),
                     'الرصيد الحالي': member.current_balance || 0,
@@ -2928,7 +2836,66 @@
             }
         }
 
-        // ===== Smart Unified Search Function =====
+        // ===== Filter Functions (Updated to work with API data) =====
+        function applyFilters() {
+            // Get filter values
+            const memberNumber = document.getElementById('filterMemberNumber')?.value?.toLowerCase() || '';
+            const memberName = document.getElementById('filterMemberName')?.value?.toLowerCase() || '';
+            const phone = document.getElementById('filterPhone')?.value || '';
+            const branch = document.getElementById('filterBranch')?.value || '';
+            const status = document.getElementById('filterStatus')?.value || '';
+            const payment = document.getElementById('filterPayment')?.value || '';
+
+            filteredMembers = allMembers.filter(member => {
+                const memberId = (member.membership_number || member.id || '').toLowerCase();
+                const name = (member.full_name || member.name || '').toLowerCase();
+                const memberPhone = member.phone || member.phone || '';
+                const memberBranch = member.tribal_section || member.branch || '';
+                const memberStatus = member.membership_status || '';
+                const paymentStatus = member.financial_status || '';
+
+                return (
+                    (!memberNumber || memberId.includes(memberNumber)) &&
+                    (!memberName || name.includes(memberName)) &&
+                    (!phone || memberPhone.includes(phone)) &&
+                    (!branch || memberBranch === branch) &&
+                    (!status || memberStatus === status) &&
+                    (!payment || paymentStatus === payment)
+                );
+            });
+
+            currentPage = 1;
+            renderCurrentPage();
+            updateStatistics(filteredMembers);
+            updateChartsWithData(filteredMembers);
+        }
+
+        function resetFilters() {
+            // Clear all filter inputs
+            const filterInputs = document.querySelectorAll('#filterMemberNumber, #filterMemberName, #filterPhone, #filterBranch, #filterStatus, #filterPayment');
+            filterInputs.forEach(input => {
+                if (input) input.value = '';
+            });
+
+            // Reset to all members
+            filteredMembers = allMembers;
+            currentPage = 1;
+            renderCurrentPage();
+            updateStatistics(allMembers);
+            updateChartsWithData(allMembers);
+        }
+
+        // Change page size
+        function changePageSize(newSize) {
+            pageSize = parseInt(newSize);
+            currentPage = 1;  // Reset to first page
+            renderCurrentPage();
+        }
+
+        // Save filter (placeholder)
+        function saveFilter() {
+            alert('💾 سيتم حفظ الفلتر قريباً...');
+        }
 
         // ===== Refresh Data Function =====
         function refreshData() {
@@ -3044,8 +3011,9 @@
             }
         }
 
-        // Live Preview Update
+        // Live Preview Update and Filter Keyboard Shortcuts
         document.addEventListener('DOMContentLoaded', function() {
+            // Notification preview
             const titleInput = document.getElementById('notificationTitle');
             const messageInput = document.getElementById('notificationMessage');
             const whatsappCheckbox = document.getElementById('sendWhatsApp');
@@ -3075,6 +3043,34 @@
             }
 
             document.getElementById('sendMobileApp').addEventListener('change', updateEstimatedCost);
+
+            // Add keyboard shortcuts for filters (Enter to search, Escape to reset)
+            const filterInputs = ['filterMemberNumber', 'filterMemberName', 'filterPhone'];
+            filterInputs.forEach(id => {
+                const input = document.getElementById(id);
+                if (input) {
+                    input.addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            applyFilters();
+                        } else if (e.key === 'Escape') {
+                            e.preventDefault();
+                            resetFilters();
+                        }
+                    });
+                }
+            });
+
+            // Add change event for select filters
+            const filterSelects = ['filterBranch', 'filterStatus', 'filterPayment'];
+            filterSelects.forEach(id => {
+                const select = document.getElementById(id);
+                if (select) {
+                    select.addEventListener('change', function() {
+                        applyFilters();  // Auto-apply when select changes
+                    });
+                }
+            });
         });
 
         function updateEstimatedCost() {

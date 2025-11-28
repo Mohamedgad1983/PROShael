@@ -9,7 +9,7 @@ import { getDashboardData } from '../../services/mobileApi';
 import { logger } from '../../utils/logger';
 
 // API Configuration
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
 
 const MobileDashboard = () => {
   const navigate = useNavigate();

@@ -44,7 +44,7 @@ const MemberStatementSearch = () => {
 
     try {
       // Use API for search
-      const API_URL = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
+      const API_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
       const token = localStorage.getItem('token');
       const response = await fetch(
         `${API_URL}/api/members?search=${encodeURIComponent(query)}&limit=10`,
@@ -87,7 +87,7 @@ const MemberStatementSearch = () => {
     const loadInitialMembers = async () => {
       setLoading(true);
       try {
-        const API_URL = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
+        const API_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
         const token = localStorage.getItem('token');
         const response = await fetch(
           `${API_URL}/api/members?limit=500`,  // Request all members (supports up to 500, current: 347)
@@ -335,7 +335,7 @@ const MemberStatementSearch = () => {
     // Reload all members to show full list
     setLoading(true);
     try {
-      const API_URL = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
+      const API_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
       const token = localStorage.getItem('token');
       const response = await fetch(
         `${API_URL}/api/members?limit=500`,

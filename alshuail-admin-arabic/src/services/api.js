@@ -5,7 +5,7 @@ class APIService {
     // Always use production URL in production
     this.baseURL = window.location.hostname === 'localhost'
       ? 'http://localhost:3001'
-      : 'https://proshael.onrender.com';
+      : 'https://api.alshailfund.com';
 
     // Cache for successful responses
     this.cache = new Map();

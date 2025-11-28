@@ -20,7 +20,7 @@ import { SettingsButton, StatusBadge } from './shared';
 import { logger } from '../../utils/logger';
 
 // Remove /api suffix if present to avoid double /api in URL
-const API_URL = (process.env.REACT_APP_API_URL || 'https://proshael.onrender.com').replace(/\/api$/, '');
+const API_URL = (process.env.REACT_APP_API_URL || 'https://api.alshailfund.com').replace(/\/api$/, '');
 
 // FORCE WEBPACK INCLUSION - This side effect prevents tree-shaking
 if (typeof window !== 'undefined') {

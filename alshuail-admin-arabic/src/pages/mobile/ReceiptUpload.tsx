@@ -80,7 +80,7 @@ const ReceiptUpload: React.FC<ReceiptUploadProps> = ({ onUploadComplete }) => {
       formData.append('receipt', selectedFile);
 
       const token = localStorage.getItem('token');
-      const apiUrl = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
+      const apiUrl = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
 
       // Simulate progress updates
       const progressInterval = setInterval(() => {

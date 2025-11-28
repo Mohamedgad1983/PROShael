@@ -57,7 +57,7 @@ const Payment: React.FC = () => {
     try {
       setSearching(true);
       const token = localStorage.getItem('token');
-      const apiUrl = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
+      const apiUrl = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
 
       const response = await fetch(
         `${apiUrl}/api/member/search?q=${encodeURIComponent(searchQuery)}`,
@@ -107,7 +107,7 @@ const Payment: React.FC = () => {
     try {
       setSubmitting(true);
       const token = localStorage.getItem('token');
-      const apiUrl = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
+      const apiUrl = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
 
       const payload = {
         amount: parseFloat(amount),

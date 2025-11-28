@@ -12,7 +12,7 @@ import axios from 'axios';
 import { logger } from '../utils/logger';
 
 // API Base URL (production)
-const API_BASE_URL = 'https://proshael.onrender.com/api';
+const API_BASE_URL = 'https://api.alshailfund.com/api';
 
 // Get auth token from localStorage
 const getAuthToken = () => {

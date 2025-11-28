@@ -11,7 +11,7 @@ const StatementSearch = () => {
   const [searchResults, setSearchResults] = useState(null);
   const [error, setError] = useState(null);
 
-  const API_URL = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
+  const API_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
 
   // Handle search
   const handleSearch = async () => {

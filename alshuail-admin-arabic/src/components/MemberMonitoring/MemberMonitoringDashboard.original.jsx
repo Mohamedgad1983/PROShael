@@ -57,7 +57,7 @@ const MemberMonitoringDashboard = () => {
   const [suspendConfirmStep, setSuspendConfirmStep] = useState(1);
 
   // API Configuration - Use environment variable or fallback to production
-  const API_URL = process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://proshael.onrender.com');
+  const API_URL = process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.alshailfund.com');
 
   // Tribal Sections (الفخذ)
   const tribalSections = [
