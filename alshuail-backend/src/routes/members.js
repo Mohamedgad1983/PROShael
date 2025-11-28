@@ -17,6 +17,7 @@ import {
   getMemberNotifications,
   updateMemberProfile
 } from '../controllers/membersController.js';
+import { getAllMembersForMonitoring } from '../controllers/membersMonitoringController.js';
 import { log } from '../utils/logger.js';
 import {
   importMembersFromExcel,
@@ -56,6 +57,7 @@ const router = express.Router();
 // Members list endpoint - requires authentication and appropriate roles
 // This endpoint returns member data based on user role permissions
 router.get('/', requireRole(['super_admin', 'admin', 'financial_manager']), getAllMembers);
+router.get('/monitoring/all', requireRole(['super_admin', 'admin', 'financial_manager']), getAllMembersForMonitoring);
 router.get('/statistics', requireRole(['super_admin', 'financial_manager']), getMemberStatistics);
 router.get('/incomplete-profiles', requireRole(['super_admin', 'financial_manager']), getIncompleteProfiles);
 router.get('/:id', requireRole(['super_admin', 'financial_manager', 'member']), getMemberById);
