@@ -94,7 +94,7 @@ const NewsManagement = () => {
         publish_date: ''
     });
 
-    const API_URL = (process.env.REACT_APP_API_URL || 'http://localhost:3001') + '/api';
+    const API_URL = (process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.alshailfund.com')) + '/api';
 
     useEffect(() => {
         fetchNews();

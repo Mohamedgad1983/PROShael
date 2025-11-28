@@ -11,9 +11,8 @@ const CrisisDashboard = () => {
   const [filterStatus, setFilterStatus] = useState('all'); // all, insufficient, sufficient
   const [refreshing, setRefreshing] = useState(false);
 
-  // CRITICAL: Force localhost:3001 for backend - DO NOT CHANGE
-  // Ignore environment variable to ensure correct backend connection
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+  // Use hostname detection for local vs production environments
+  const API_URL = process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.alshailfund.com');
 
   // Log on component mount to debug
   logger.debug('🚀 Crisis Dashboard Component Mounted');

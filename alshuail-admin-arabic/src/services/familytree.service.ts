@@ -1,7 +1,7 @@
 // Family Tree Service - File 06 Integration
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:3001/api' : 'https://api.alshailfund.com/api');
 
 // Create axios instance with auth token
 const apiClient = axios.create({

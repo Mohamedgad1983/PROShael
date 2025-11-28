@@ -275,7 +275,7 @@ const PremiumRegistration: React.FC = () => {
 
     try {
       // API call to submit the form
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/api/members/register`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.alshailfund.com')}/api/members/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

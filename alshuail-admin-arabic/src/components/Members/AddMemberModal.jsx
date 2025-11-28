@@ -115,7 +115,7 @@ const AddMemberModal = ({ isOpen, onClose, onMemberAdded }) => {
       };
 
       // Call API to create member
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/api/members/add-manual`, {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.alshailfund.com')}/api/members/add-manual`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
