@@ -22,10 +22,10 @@ const MemberMonitoringDashboard = memo(() => {
     criticalMembers: 0
   });
 
-  // Filter states
-  const [searchMemberId, setSearchMemberId] = useState('');
-  const [searchName, setSearchName] = useState('');
-  const [searchPhone, setSearchPhone] = useState('');
+  // ✅ NEW - حقل بحث واحد شامل بدلاً من 3 حقول منفصلة
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Filter states (الباقي)
   const [selectedTribalSection, setSelectedTribalSection] = useState('all');
   const [balanceFilterType, setBalanceFilterType] = useState('all');
   const [balanceComparison, setBalanceComparison] = useState('greater');
@@ -41,16 +41,17 @@ const MemberMonitoringDashboard = memo(() => {
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25); // Default to 25 for better UX
+  const [pageSize, setPageSize] = useState(25);
 
   // Load members data
   const loadMembers = useCallback(async () => {
     try {
       setLoading(true);
 
-      // Fetch ALL members from API (backend max 500, enough for our 347 members)
       const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://proshael.onrender.com';
-      const response = await fetch(`${API_BASE_URL}/api/members?limit=500&page=1`, {
+
+      // Use the new monitoring endpoint that fetches all members without pagination
+      const response = await fetch(`${API_BASE_URL}/api/members/monitoring/all`, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -60,14 +61,14 @@ const MemberMonitoringDashboard = memo(() => {
       if (!response.ok) throw new Error('Failed to load members');
 
       const { data } = await response.json();
-      const processedMembers = (data || []).map(member => {
-        // Fix: Use explicit undefined check to preserve 0 values (same fix as statement search)
-        const balance = member.current_balance !== undefined ? member.current_balance : 0;
 
-        // Required amount: 3000 SAR for each member until 2025
+      logger.info('Members loaded:', {
+        totalFetched: data?.length || 0
+      });
+      const processedMembers = (data || []).map(member => {
+        const balance = member.current_balance !== undefined ? member.current_balance : 0;
         const requiredAmount = 3000;
         const requiredPayment = Math.max(0, requiredAmount - balance);
-        const percentageComplete = Math.min(100, (balance / requiredAmount) * 100);
 
         let status = 'compliant';
         let statusText = 'ملتزم';
@@ -118,41 +119,49 @@ const MemberMonitoringDashboard = memo(() => {
 
     } catch (error) {
       logger.error('Error loading members:', { error });
-      // Show error message without toast for now
       logger.error('حدث خطأ في تحميل البيانات');
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Initial load
   useEffect(() => {
     loadMembers();
   }, [loadMembers]);
 
-  // Apply filters
+  // ✅ NEW - Apply filters with UNIFIED SEARCH
   const applyFilters = useCallback(() => {
     let filtered = [...members];
 
-    // Search filters
-    if (searchMemberId) {
-      filtered = filtered.filter(m =>
-        m.memberId?.toString().includes(searchMemberId)
-      );
+    // ✅ البحث الموحد - يبحث في كل الحقول في نفس الوقت
+    if (searchQuery && searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      
+      filtered = filtered.filter(member => {
+        // البحث في كل الحقول المهمة
+        const searchableFields = [
+          member.memberId?.toString().toLowerCase(),           // رقم العضوية
+          member.fullName?.toLowerCase(),                     // الاسم الكامل
+          member.phone?.toString(),                           // رقم الجوال
+          member.tribalSection?.toLowerCase(),                // الشعبة
+          member.membership_number?.toString().toLowerCase(), // رقم العضوية البديل
+          member.member_id?.toString().toLowerCase(),         // معرف العضو
+        ];
+
+        // إذا أي حقل يحتوي على النص المبحوث عنه
+        return searchableFields.some(field => 
+          field && field.includes(query)
+        );
+      });
+
+      logger.info('البحث الموحد:', { 
+        query, 
+        resultsCount: filtered.length,
+        originalCount: members.length 
+      });
     }
 
-    if (searchName) {
-      filtered = filtered.filter(m =>
-        m.fullName?.toLowerCase().includes(searchName.toLowerCase())
-      );
-    }
-
-    if (searchPhone) {
-      filtered = filtered.filter(m =>
-        m.phone?.includes(searchPhone)
-      );
-    }
-
+    // Tribal section filter
     if (selectedTribalSection !== 'all') {
       filtered = filtered.filter(m =>
         m.tribalSection === selectedTribalSection
@@ -197,15 +206,21 @@ const MemberMonitoringDashboard = memo(() => {
     });
 
     setFilteredMembers(filtered);
-    setCurrentPage(1); // Reset to first page when filters change
+    setCurrentPage(1);
   }, [
-    members, searchMemberId, searchName, searchPhone, selectedTribalSection,
-    balanceFilterType, balanceComparison, balanceComparisonAmount,
-    balanceRangeFrom, balanceRangeTo, balanceCategory,
-    sortField, sortDirection
+    members, 
+    searchQuery, // ✅ البحث الموحد فقط
+    selectedTribalSection,
+    balanceFilterType, 
+    balanceComparison, 
+    balanceComparisonAmount,
+    balanceRangeFrom, 
+    balanceRangeTo, 
+    balanceCategory,
+    sortField, 
+    sortDirection
   ]);
 
-  // Apply filters when dependencies change
   useEffect(() => {
     applyFilters();
   }, [applyFilters]);
@@ -237,9 +252,7 @@ const MemberMonitoringDashboard = memo(() => {
   }, []);
 
   const handleClearFilters = useCallback(() => {
-    setSearchMemberId('');
-    setSearchName('');
-    setSearchPhone('');
+    setSearchQuery(''); // ✅ مسح البحث الموحد
     setSelectedTribalSection('all');
     setBalanceFilterType('all');
     setBalanceComparisonAmount('');
@@ -253,19 +266,16 @@ const MemberMonitoringDashboard = memo(() => {
   }, []);
 
   const handleViewMemberDetails = useCallback((member) => {
-    // Navigate to member details or show modal
     logger.debug(`عرض تفاصيل: ${member.fullName}`);
   }, []);
 
   const handleContactMember = useCallback((member) => {
-    // Initiate contact with member
     if (member.phone) {
       window.open(`https://wa.me/966${member.phone.replace(/^0/, '')}`, '_blank');
     }
   }, []);
 
   const handleShowNotifications = useCallback(() => {
-    // Show notifications panel
     logger.debug('عرض الإشعارات');
   }, []);
 
@@ -280,9 +290,7 @@ const MemberMonitoringDashboard = memo(() => {
       />
 
       <MemberMonitoringFilters
-        searchMemberId={searchMemberId}
-        searchName={searchName}
-        searchPhone={searchPhone}
+        searchQuery={searchQuery} // ✅ حقل واحد فقط
         selectedTribalSection={selectedTribalSection}
         balanceFilterType={balanceFilterType}
         balanceComparison={balanceComparison}
@@ -291,9 +299,7 @@ const MemberMonitoringDashboard = memo(() => {
         balanceRangeTo={balanceRangeTo}
         balanceCategory={balanceCategory}
         showAdvancedFilters={showAdvancedFilters}
-        onSearchMemberIdChange={setSearchMemberId}
-        onSearchNameChange={setSearchName}
-        onSearchPhoneChange={setSearchPhone}
+        onSearchQueryChange={setSearchQuery} // ✅ دالة واحدة
         onTribalSectionChange={setSelectedTribalSection}
         onBalanceFilterTypeChange={setBalanceFilterType}
         onBalanceComparisonChange={setBalanceComparison}

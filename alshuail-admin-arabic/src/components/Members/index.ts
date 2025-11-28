@@ -17,5 +17,9 @@ export type { HijriMembersManagementProps } from './HijriMembersManagementWrappe
 export { default as PremiumMembersManagement } from './PremiumMembersManagementWrapper';
 export type { PremiumMembersManagementProps } from './PremiumMembersManagementWrapper';
 
+// Loading components (NEW - Phase 2)
+export { default as MemberTableSkeleton } from './MemberTableSkeleton';
+export { default as StatsCardSkeleton } from './StatsCardSkeleton';
+
 // Configuration
 export { MEMBERS_VARIANTS } from './UnifiedMembersManagement';

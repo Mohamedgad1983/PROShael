@@ -750,6 +750,12 @@
   border-color: #D1D5DB;
 }
 
+.page-ellipsis {
+  padding: 0 4px;
+  color: #9CA3AF;
+  user-select: none;
+}
+
 .page-number.active {
   background: #3B82F6;
   border-color: #3B82F6;
@@ -1032,38 +1038,56 @@
 }
 
 .member-card {
-  background: white;
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 12px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: all 0.2s ease;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 14px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.12);
+  border: 1px solid #e2e8f0;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .member-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-3px);
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.16);
 }
 
 .member-card-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 12px;
+  align-items: center;
+  margin-bottom: 14px;
+  gap: 10px;
+}
+
+.member-card-id-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.member-card-id-label {
+  font-size: 11px;
+  color: #94a3b8;
+  letter-spacing: 0.4px;
 }
 
 .member-card-id {
   font-family: monospace;
   font-size: 14px;
-  color: #6366F1;
+  color: #334155;
   font-weight: 600;
+  background: #e2e8f0;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
 }
 
 .member-card-status {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
+  gap: 6px;
+  padding: 6px 12px;
   border-radius: 20px;
   font-size: 14px;
   font-weight: 600;
@@ -1080,44 +1104,88 @@
 }
 
 .member-card-body {
-  margin-bottom: 12px;
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .member-card-name {
-  font-size: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  background: #eef2ff;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #e0e7ff;
+}
+
+.member-card-name-label {
+  font-size: 11px;
   font-weight: 600;
-  color: #1A1A1A;
-  margin-bottom: 8px;
+  color: #6366f1;
+  letter-spacing: 0.3px;
 }
 
 .member-card-info {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .member-card-info-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-size: 14px;
-  color: #6B7280;
+  color: #1f2937;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
 .member-card-info-label {
   font-weight: 500;
   color: #4B5563;
+  min-width: 70px;
 }
 
 .member-card-balance {
-  font-size: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 18px;
   font-weight: 700;
-  color: #1A1A1A;
-  margin: 8px 0;
+  color: #0f172a;
+  margin: 4px 0;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid #dbeafe;
+  background: linear-gradient(135deg, #eff6ff 0%, #e0f2fe 100%);
+}
+
+.member-card-balance-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #2563eb;
+  letter-spacing: 0.3px;
+}
+
+.member-card-balance-value {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .member-card-balance.critical {
   animation: pulse-red 1.5s infinite;
+  border-color: #fecdd3;
+  background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
 }
 
 @keyframes pulse-red {
@@ -1131,23 +1199,25 @@
 
 .member-card-deficit {
   font-size: 12px;
-  color: #DC2626;
-  margin-top: 4px;
+  color: #b91c1c;
+  margin-top: 6px;
+  font-weight: 600;
 }
 
 .member-card-actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   padding-top: 12px;
   border-top: 1px solid #E5E7EB;
 }
 
 .member-card-actions .action-btn {
   flex: 1;
-  padding: 10px;
+  padding: 10px 12px;
   font-size: 14px;
   min-width: auto;
   height: 40px;
+  border-radius: 10px;
 }
 
 /* Responsive Design */

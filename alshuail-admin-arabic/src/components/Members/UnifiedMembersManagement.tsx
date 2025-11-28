@@ -4,9 +4,11 @@
  *
  * Configuration-driven architecture replacing 20+ duplicate components
  * Supports different design variants while sharing core functionality
+ * 
+ * UPDATED: November 17, 2025 - Phase 3: Real Data Integration
  */
 
-import React, { memo,  useState, useEffect, useCallback, useMemo } from 'react';
+import React, { memo, useState, useEffect, useCallback, useMemo } from 'react';
 import {
   FunnelIcon,
   UserGroupIcon,
@@ -35,6 +37,9 @@ import {
 import { CheckCircleIcon as CheckCircleIconSolid, StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 
 import { logger } from '../../utils/logger';
+import memberService from '../../services/memberService'; // ✅ NEW - Import real service
+import MemberTableSkeleton from './MemberTableSkeleton'; // ✅ NEW - Import skeleton
+import StatsCardSkeleton from './StatsCardSkeleton'; // ✅ NEW - Import skeleton
 
 // Configuration types
 export type MembersVariant = 'apple' | 'hijri' | 'premium' | 'simple';
@@ -151,6 +156,7 @@ const UnifiedMembersManagement: React.FC<UnifiedMembersManagementProps> = ({
   const [members, setMembers] = useState<Member[]>([]);
   const [statistics, setStatistics] = useState<Statistics>({} as Statistics);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null); // ✅ NEW - Error state
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<FilterState>({
     status: '',
@@ -169,76 +175,82 @@ const UnifiedMembersManagement: React.FC<UnifiedMembersManagementProps> = ({
   const [showFilters, setShowFilters] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(config.theme === 'dark');
 
-  // Mock members data
-  const mockMembersData = useMemo(
-    () => [
-      {
-        id: '1',
-        full_name: 'أحمد محمد الشعيل',
-        phone: '966501234567',
-        email: 'ahmed@example.com',
-        status: 'active' as const,
-        profile_completed: true,
-        social_security_beneficiary: false,
-        registration_date: '2024-01-15',
-        last_payment_date: '2024-10-15',
-        total_payments: 5000,
-        membership_type: 'premium' as const,
-      },
-      {
-        id: '2',
-        full_name: 'فاطمة علي العتيبي',
-        phone: '966502345678',
-        email: 'fatima@example.com',
-        status: 'active' as const,
-        profile_completed: true,
-        social_security_beneficiary: true,
-        registration_date: '2024-02-10',
-        last_payment_date: '2024-10-10',
-        total_payments: 3000,
-        membership_type: 'standard' as const,
-      },
-    ],
-    []
-  );
-
-  // Mock statistics
-  const mockStatistics: Statistics = useMemo(
-    () => ({
-      total: 250,
-      active: 200,
-      completed_profiles: 180,
-      pending_profiles: 70,
-      social_security_beneficiaries: 45,
-      premium_members: 80,
-      total_payments: 450000,
-      new_this_month: 25,
-    }),
-    []
-  );
-
-  // Fetch members data
+  // ✅ NEW - Fetch REAL members data from API
   const fetchMembers = useCallback(async () => {
     setLoading(true);
+    setError(null); // Clear previous errors
+    
     try {
-      // Simulate API call with mock data
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      logger.info('Fetching members from API...', {
+        filters,
+        searchQuery,
+        page: pagination.page,
+        limit: pagination.limit,
+      });
 
-      setMembers(mockMembersData);
-      setPagination((prev) => ({
-        ...prev,
-        total: mockMembersData.length,
-        totalPages: Math.ceil(mockMembersData.length / pagination.limit),
-      }));
+      // ✅ Call REAL API instead of mock data
+      const response = await memberService.getMembersList(
+        {
+          ...filters,
+          search: searchQuery,
+        },
+        pagination.page,
+        pagination.limit
+      );
 
-      setStatistics(mockStatistics);
+      logger.info('API Response received:', { response });
+
+      if (response.success) {
+        // ✅ Set REAL data from Supabase
+        const membersData = response.data?.members || response.data || [];
+        setMembers(membersData);
+        
+        // ✅ Update pagination with real totals
+        const total = response.data?.total || response.pagination?.total || membersData.length;
+        setPagination((prev) => ({
+          ...prev,
+          total: total,
+          totalPages: Math.ceil(total / pagination.limit),
+        }));
+
+        // ✅ Set REAL statistics if available
+        if (response.data?.statistics) {
+          setStatistics(response.data.statistics);
+        } else {
+          // Calculate basic statistics from members data
+          setStatistics({
+            total: total,
+            active: membersData.filter((m: Member) => m.status === 'active').length,
+            completed_profiles: membersData.filter((m: Member) => m.profile_completed).length,
+            pending_profiles: membersData.filter((m: Member) => !m.profile_completed).length,
+            social_security_beneficiaries: membersData.filter((m: Member) => m.social_security_beneficiary).length,
+            premium_members: membersData.filter((m: Member) => m.membership_type === 'premium').length,
+            total_payments: membersData.reduce((sum: number, m: Member) => sum + (m.total_payments || 0), 0),
+            new_this_month: 0, // Would need to calculate from registration dates
+          });
+        }
+
+        logger.info('Members loaded successfully:', {
+          count: membersData.length,
+          total: total,
+        });
+      } else {
+        // ✅ Handle API errors
+        const errorMessage = response.error || 'فشل في تحميل بيانات الأعضاء';
+        setError(errorMessage);
+        logger.error('Failed to fetch members:', { error: response.error });
+      }
     } catch (error) {
+      // ✅ Handle network errors
+      const errorMessage = 'حدث خطأ أثناء تحميل البيانات. يرجى المحاولة مرة أخرى.';
+      setError(errorMessage);
       logger.error('Error fetching members:', { error });
     } finally {
       setLoading(false);
     }
-  }, [mockMembersData, mockStatistics, pagination.limit]);
+  }, [filters, searchQuery, pagination.page, pagination.limit]);
 
+  // Fetch data on mount and when dependencies change
   useEffect(() => {
     fetchMembers();
   }, [fetchMembers]);
@@ -261,8 +273,27 @@ const UnifiedMembersManagement: React.FC<UnifiedMembersManagementProps> = ({
     }
   };
 
-  // Render stats cards
+  // Handle refresh
+  const handleRefresh = () => {
+    fetchMembers();
+    if (onRefresh) {
+      onRefresh();
+    }
+  };
+
+  // ✅ NEW - Render stats cards with skeleton support
   const renderStatsCards = () => {
+    // Show skeleton during initial load
+    if (loading && members.length === 0) {
+      return (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+          {[1, 2, 3, 4].map((i) => (
+            <StatsCardSkeleton key={i} />
+          ))}
+        </div>
+      );
+    }
+
     const stats = [
       {
         id: 'total',
@@ -319,7 +350,7 @@ const UnifiedMembersManagement: React.FC<UnifiedMembersManagementProps> = ({
     );
   };
 
-  // Render members table
+  // ✅ NEW - Render members table with skeleton and error states
   const renderMembersTable = () => {
     return (
       <div style={{ overflowX: 'auto' }}>
@@ -328,7 +359,11 @@ const UnifiedMembersManagement: React.FC<UnifiedMembersManagementProps> = ({
             <tr style={{ borderBottom: `2px solid ${isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.2)'}` }}>
               {config.enableBulkActions && (
                 <th style={{ padding: '1rem', textAlign: 'right', fontSize: '14px' }}>
-                  <input type="checkbox" onChange={(e) => setSelectedMembers(e.target.checked ? members.map((m) => m.id) : [])} />
+                  <input 
+                    type="checkbox" 
+                    onChange={(e) => setSelectedMembers(e.target.checked ? members.map((m) => m.id) : [])}
+                    disabled={loading || error !== null}
+                  />
                 </th>
               )}
               <th style={{ padding: '1rem', textAlign: 'right', fontSize: '14px' }}>الاسم</th>
@@ -340,18 +375,48 @@ const UnifiedMembersManagement: React.FC<UnifiedMembersManagementProps> = ({
           </thead>
           <tbody>
             {loading ? (
+              // ✅ Show beautiful skeleton during loading
+              <MemberTableSkeleton rows={pagination.limit} />
+            ) : error ? (
+              // ✅ Show error state with retry button
               <tr>
                 <td colSpan={6} style={{ padding: '2rem', textAlign: 'center' }}>
-                  جاري التحميل...
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+                    <ExclamationCircleIcon style={{ width: '48px', height: '48px', color: '#ef4444' }} />
+                    <p style={{ fontSize: '16px', color: '#ef4444', margin: 0 }}>{error}</p>
+                    <button 
+                      onClick={handleRefresh}
+                      style={{
+                        padding: '0.75rem 1.5rem',
+                        background: 'rgba(255,255,255,0.1)',
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        borderRadius: '8px',
+                        color: 'white',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                      }}
+                    >
+                      إعادة المحاولة
+                    </button>
+                  </div>
                 </td>
               </tr>
             ) : members.length === 0 ? (
+              // ✅ Show empty state with nice UI
               <tr>
-                <td colSpan={6} style={{ padding: '2rem', textAlign: 'center' }}>
-                  لا توجد أعضاء
+                <td colSpan={6} style={{ padding: '4rem 2rem', textAlign: 'center' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+                    <UserGroupIcon style={{ width: '64px', height: '64px', opacity: 0.5 }} />
+                    <p style={{ fontSize: '18px', marginBottom: '0.5rem' }}>لا توجد أعضاء</p>
+                    <p style={{ fontSize: '14px', opacity: 0.7, margin: 0 }}>ابدأ بإضافة أول عضو</p>
+                  </div>
                 </td>
               </tr>
             ) : (
+              // ✅ Show actual member rows
               members.map((member) => (
                 <tr
                   key={member.id}
@@ -398,13 +463,31 @@ const UnifiedMembersManagement: React.FC<UnifiedMembersManagementProps> = ({
                   </td>
                   <td style={{ padding: '1rem', textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                      <button style={{ padding: '0.5rem', background: 'transparent', border: 'none', color: 'inherit', cursor: 'pointer' }}>
+                      <button 
+                        style={{ padding: '0.5rem', background: 'transparent', border: 'none', color: 'inherit', cursor: 'pointer' }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // View member details
+                        }}
+                      >
                         <EyeIcon style={{ width: '18px', height: '18px' }} />
                       </button>
-                      <button style={{ padding: '0.5rem', background: 'transparent', border: 'none', color: 'inherit', cursor: 'pointer' }}>
+                      <button 
+                        style={{ padding: '0.5rem', background: 'transparent', border: 'none', color: 'inherit', cursor: 'pointer' }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // Edit member
+                        }}
+                      >
                         <PencilIcon style={{ width: '18px', height: '18px' }} />
                       </button>
-                      <button style={{ padding: '0.5rem', background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}>
+                      <button 
+                        style={{ padding: '0.5rem', background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer' }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // Delete member
+                        }}
+                      >
                         <TrashIcon style={{ width: '18px', height: '18px' }} />
                       </button>
                     </div>
@@ -510,12 +593,20 @@ const UnifiedMembersManagement: React.FC<UnifiedMembersManagementProps> = ({
       </div>
 
       {/* Pagination */}
-      {pagination.totalPages > 1 && (
+      {!loading && !error && pagination.totalPages > 1 && (
         <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', alignItems: 'center' }}>
           <button
             disabled={pagination.page === 1}
             onClick={() => handlePaginationChange(pagination.page - 1)}
-            style={{ padding: '0.5rem 1rem', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '8px', color: 'white', cursor: 'pointer' }}
+            style={{ 
+              padding: '0.5rem 1rem', 
+              background: 'rgba(255,255,255,0.1)', 
+              border: 'none', 
+              borderRadius: '8px', 
+              color: 'white', 
+              cursor: pagination.page === 1 ? 'not-allowed' : 'pointer',
+              opacity: pagination.page === 1 ? 0.5 : 1,
+            }}
           >
             <ChevronLeftIcon style={{ width: '20px', height: '20px' }} />
           </button>
@@ -525,7 +616,15 @@ const UnifiedMembersManagement: React.FC<UnifiedMembersManagementProps> = ({
           <button
             disabled={pagination.page === pagination.totalPages}
             onClick={() => handlePaginationChange(pagination.page + 1)}
-            style={{ padding: '0.5rem 1rem', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '8px', color: 'white', cursor: 'pointer' }}
+            style={{ 
+              padding: '0.5rem 1rem', 
+              background: 'rgba(255,255,255,0.1)', 
+              border: 'none', 
+              borderRadius: '8px', 
+              color: 'white', 
+              cursor: pagination.page === pagination.totalPages ? 'not-allowed' : 'pointer',
+              opacity: pagination.page === pagination.totalPages ? 0.5 : 1,
+            }}
           >
             <ChevronRightIcon style={{ width: '20px', height: '20px' }} />
           </button>

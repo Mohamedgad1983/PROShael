@@ -43,7 +43,6 @@ import Settings from './Settings/SettingsPage';
 import MemberStatementSearch from './MemberStatement/MemberStatementSearch.jsx';
 
 // @ts-ignore
-
 import EnhancedMonitoringDashboard from './MemberMonitoring/EnhancedMonitoringDashboard.jsx';
 // @ts-ignore
 import DocumentManager from './Documents/DocumentManager.jsx';
@@ -472,6 +471,44 @@ const styles = {
     minHeight: '48px',
   },
 
+  menuItemContent: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '12px',
+    width: '100%',
+    minHeight: '48px',
+  },
+
+  menuItemMain: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    minWidth: 0,
+  },
+
+  menuItemText: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    alignItems: 'flex-start',
+    gap: '4px',
+    minWidth: 0,
+  },
+
+  menuItemLabel: {
+    fontSize: '16px',
+    fontWeight: 600,
+    lineHeight: 1.2,
+    color: 'inherit',
+  },
+
+  menuItemSubLabel: {
+    fontSize: '12px',
+    color: 'rgba(255, 255, 255, 0.7)',
+    lineHeight: 1.3,
+    whiteSpace: 'normal' as const,
+  },
+
   menuItemActive: {
     background:
       'linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(139, 92, 246, 0.25))',
@@ -483,6 +520,18 @@ const styles = {
     boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)',
 
     transform: 'translateX(-4px)',
+  },
+
+  menuItemMembers: {
+    background:
+      'linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(59, 130, 246, 0.08))',
+    border: '1px solid rgba(16, 185, 129, 0.25)',
+    boxShadow: '0 6px 20px rgba(16, 185, 129, 0.18)',
+  },
+
+  menuItemMembersActive: {
+    border: '2px solid rgba(16, 185, 129, 0.45)',
+    boxShadow: '0 10px 24px rgba(16, 185, 129, 0.25)',
   },
 
   menuItemHover: {
@@ -523,6 +572,40 @@ const styles = {
 
   menuIconActive: {
     transform: 'scale(1.15) rotate(5deg)',
+  },
+
+  memberPillGroup: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    marginLeft: 'auto',
+    flexWrap: 'wrap' as const,
+    justifyContent: 'flex-end',
+  },
+
+  memberPill: {
+    padding: '6px 10px',
+    borderRadius: '999px',
+    fontSize: '12px',
+    fontWeight: 700,
+    border: '1px solid transparent',
+    background: 'rgba(255, 255, 255, 0.06)',
+    color: 'rgba(255, 255, 255, 0.85)',
+    boxShadow: '0 4px 14px rgba(0, 0, 0, 0.15)',
+    whiteSpace: 'nowrap' as const,
+  },
+
+  memberPillPrimary: {
+    background:
+      'linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(59, 130, 246, 0.15))',
+    border: '1px solid rgba(16, 185, 129, 0.45)',
+    color: '#bbf7d0',
+  },
+
+  memberPillGhost: {
+    background: 'rgba(255, 255, 255, 0.12)',
+    border: '1px solid rgba(255, 255, 255, 0.2)',
+    color: '#e0e7ff',
   },
 
   content: {
@@ -1074,6 +1157,16 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
         trend: pendingShare ? -pendingShare : 0,
       },
     ];
+  }, [dashboardData]);
+
+  const memberQuickStats = useMemo(() => {
+    const members = dashboardData?.members ?? {};
+
+    return {
+      total: Number(members.total) || 0,
+      active: Number(members.active) || 0,
+      newThisMonth: Number(members.newThisMonth) || 0,
+    };
   }, [dashboardData]);
 
   // Mock Subscription Data
@@ -4090,29 +4183,32 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
             <p style={{ fontSize: '14px', color: 'rgba(255, 255, 255, 0.6)' }}>
               Shuail Al-Anzi Fund
             </p>
-          </div>
+        </div>
 
-          {menuItems.map((item) => {
-            const Icon = item.icon;
+        {menuItems.map((item) => {
+          const Icon = item.icon;
 
-            const isActive = activeSection === item.id;
+          const isActive = activeSection === item.id;
+          const isMembersItem = item.id === 'members';
 
-            return (
-              <button
-                key={item.id}
-                onClick={(e) => {
+          return (
+            <button
+              key={item.id}
+              onClick={(e) => {
                   createRipple(e);
 
-                  handleSectionChange(item.id);
-                }}
-                style={{
-                  ...styles.menuItem,
+                handleSectionChange(item.id);
+              }}
+              style={{
+                ...styles.menuItem,
+                ...(isMembersItem ? styles.menuItemMembers : {}),
 
-                  ...(isActive ? styles.menuItemActive : {}),
-                }}
-                onMouseEnter={(e) => {
-                  if (!isActive) {
-                    Object.assign(e.currentTarget.style, styles.menuItemHover);
+                ...(isActive ? styles.menuItemActive : {}),
+                ...(isActive && isMembersItem ? styles.menuItemMembersActive : {}),
+              }}
+              onMouseEnter={(e) => {
+                if (!isActive) {
+                  Object.assign(e.currentTarget.style, styles.menuItemHover);
 
                     const icon = e.currentTarget.querySelector('svg');
 
@@ -4123,7 +4219,9 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
                 }}
                 onMouseLeave={(e) => {
                   if (!isActive) {
-                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.background = isMembersItem
+                      ? styles.menuItemMembers.background
+                      : 'transparent';
 
                     e.currentTarget.style.transform = 'translateX(0)';
 
@@ -4145,15 +4243,18 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
                   }}
                 />
 
-                <Icon
-                  style={{
-                    ...styles.menuIcon,
+                <div style={styles.menuItemContent}>
+                  <Icon
+                    style={{
+                      ...styles.menuIcon,
+                      ...(isActive ? styles.menuIconActive : {}),
+                    }}
+                  />
 
-                    ...(isActive ? styles.menuIconActive : {}),
-                  }}
-                />
-
-                <span>{item.label}</span>
+                  <div style={styles.menuItemText}>
+                    <span style={styles.menuItemLabel}>{item.label}</span>
+                  </div>
+                </div>
               </button>
             );
           })}
@@ -4226,6 +4327,7 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
             const Icon = item.icon;
 
             const isActive = activeSection === item.id;
+            const isMembersItem = item.id === 'members';
 
             return (
               <button
@@ -4238,7 +4340,9 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
                 style={{
                   ...styles.menuItem,
 
+                  ...(isMembersItem ? styles.menuItemMembers : {}),
                   ...(isActive ? styles.menuItemActive : {}),
+                  ...(isActive && isMembersItem ? styles.menuItemMembersActive : {}),
                 }}
                 aria-label={item.label}
                 aria-current={isActive ? 'page' : undefined}
@@ -4251,15 +4355,18 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
                   }}
                 />
 
-                <Icon
-                  style={{
-                    ...styles.menuIcon,
+                <div style={styles.menuItemContent}>
+                  <Icon
+                    style={{
+                      ...styles.menuIcon,
+                      ...(isActive ? styles.menuIconActive : {}),
+                    }}
+                  />
 
-                    ...(isActive ? styles.menuIconActive : {}),
-                  }}
-                />
-
-                <span>{item.label}</span>
+                  <div style={styles.menuItemText}>
+                    <span style={styles.menuItemLabel}>{item.label}</span>
+                  </div>
+                </div>
               </button>
             );
           })}

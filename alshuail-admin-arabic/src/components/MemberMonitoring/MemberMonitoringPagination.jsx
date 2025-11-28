@@ -70,54 +70,56 @@ const MemberMonitoringPagination = memo(({
         <button
           onClick={handlePrevPage}
           disabled={currentPage === 1}
-          className="pagination-button prev"
+          className="page-btn"
           aria-label="الصفحة السابقة"
         >
-          <ChevronRightIcon className="w-5 h-5" />
+          <ChevronRightIcon className="page-icon" />
         </button>
 
-        {currentPage > 3 && (
-          <>
-            <button
-              onClick={() => onPageChange(1)}
-              className="pagination-button page-number"
-            >
-              1
-            </button>
-            {currentPage > 4 && <span className="pagination-ellipsis">...</span>}
-          </>
-        )}
+        <div className="page-numbers">
+          {currentPage > 3 && (
+            <>
+              <button
+                onClick={() => onPageChange(1)}
+                className="page-number"
+              >
+                1
+              </button>
+              {currentPage > 4 && <span className="page-ellipsis">...</span>}
+            </>
+          )}
 
-        {getPageNumbers().map(page => (
-          <button
-            key={page}
-            onClick={() => onPageChange(page)}
-            className={`pagination-button page-number ${page === currentPage ? 'active' : ''}`}
-            aria-current={page === currentPage ? 'page' : undefined}
-          >
-            {page}
-          </button>
-        ))}
-
-        {currentPage < totalPages - 2 && (
-          <>
-            {currentPage < totalPages - 3 && <span className="pagination-ellipsis">...</span>}
+          {getPageNumbers().map(page => (
             <button
-              onClick={() => onPageChange(totalPages)}
-              className="pagination-button page-number"
+              key={page}
+              onClick={() => onPageChange(page)}
+              className={`page-number ${page === currentPage ? 'active' : ''}`}
+              aria-current={page === currentPage ? 'page' : undefined}
             >
-              {totalPages}
+              {page}
             </button>
-          </>
-        )}
+          ))}
+
+          {currentPage < totalPages - 2 && (
+            <>
+              {currentPage < totalPages - 3 && <span className="page-ellipsis">...</span>}
+              <button
+                onClick={() => onPageChange(totalPages)}
+                className="page-number"
+              >
+                {totalPages}
+              </button>
+            </>
+          )}
+        </div>
 
         <button
           onClick={handleNextPage}
           disabled={currentPage === totalPages}
-          className="pagination-button next"
+          className="page-btn"
           aria-label="الصفحة التالية"
         >
-          <ChevronLeftIcon className="w-5 h-5" />
+          <ChevronLeftIcon className="page-icon" />
         </button>
       </div>
     </div>

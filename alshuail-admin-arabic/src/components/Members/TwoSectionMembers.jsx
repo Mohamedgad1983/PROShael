@@ -820,7 +820,15 @@ const TwoSectionMembers = () => {
 
                   {/* Show members */}
                   {members.map(member => (
-                    <tr key={member.id} className="table-row">
+                    <tr
+                      key={member.id}
+                      className="table-row clickable-row"
+                      onClick={() => {
+                        if (canEdit()) {
+                          handleEditClick(member);
+                        }
+                      }}
+                    >
                       <td className="member-name">{member.full_name}</td>
                       <td className="member-phone">{member.phone}</td>
                       <td className="member-email">{member.email || '-'}</td>
@@ -837,7 +845,11 @@ const TwoSectionMembers = () => {
                         </span>
                       </td>
                       <td className="actions-cell">
-                        <button className="action-btn view" title="عرض">
+                        <button
+                          className="action-btn view"
+                          title="عرض"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <EyeIcon />
                         </button>
                         {canEdit() ? (
@@ -845,14 +857,20 @@ const TwoSectionMembers = () => {
                             <button
                               className="action-btn edit"
                               title="تعديل"
-                              onClick={() => handleEditClick(member)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditClick(member);
+                              }}
                             >
                               <PencilIcon />
                             </button>
                             <button
                               className="action-btn delete"
                               title="حذف"
-                              onClick={() => handleDelete(member.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(member.id);
+                              }}
                             >
                               <TrashIcon />
                             </button>

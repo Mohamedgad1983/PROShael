@@ -142,7 +142,10 @@ export const AuthProvider = ({ children }) => {
   const authenticate = async (endpoint, payload) => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      const url = `${API_BASE_URL}${endpoint}`;
+      logger.debug('🔐 Attempting authentication:', { url, payload: { ...payload, password: '***' } });
+
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -158,6 +161,7 @@ export const AuthProvider = ({ children }) => {
 
         if (sessionToken && sessionUser) {
           persistSession(sessionToken, sessionUser);
+          logger.info('✅ Authentication successful:', { user: sessionUser.email || sessionUser.phone });
           return {
             success: true,
             user: sessionUser,
@@ -169,12 +173,26 @@ export const AuthProvider = ({ children }) => {
       }
 
       const errorMessage = data?.error || data?.message_ar || 'خطأ في تسجيل الدخول';
+      logger.warn('⚠️ Authentication failed:', { status: response.status, error: errorMessage });
       return { success: false, error: errorMessage };
     } catch (error) {
-      logger.error('Authentication error:', { error });
+      logger.error('❌ Authentication network error:', {
+        error: error.message,
+        endpoint,
+        baseUrl: API_BASE_URL
+      });
+
+      // More specific error messages
+      if (error.message === 'Failed to fetch') {
+        return {
+          success: false,
+          error: 'لا يمكن الاتصال بالخادم. تأكد من تشغيل الخادم على المنفذ 3001'
+        };
+      }
+
       return {
         success: false,
-        error: 'خطأ في الاتصال بالخادم'
+        error: `خطأ في الاتصال: ${error.message}`
       };
     } finally {
       setLoading(false);

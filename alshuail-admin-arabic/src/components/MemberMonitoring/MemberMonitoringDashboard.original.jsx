@@ -1065,14 +1065,20 @@ const MemberMonitoringDashboard = () => {
               {paginatedMembers.map(member => (
                 <div key={member.id} className="member-card">
                   <div className="member-card-header">
-                    <span className="member-card-id">{member.memberId}</span>
+                    <div className="member-card-id-block">
+                      <span className="member-card-id-label">رقم العضوية</span>
+                      <span className="member-card-id">{member.memberId}</span>
+                    </div>
                     <span className={`member-card-status ${member.status}`}>
                       {member.balance >= 3000 ? '🟢 ملتزم' : '🔴 غير ملتزم'}
                     </span>
                   </div>
 
                   <div className="member-card-body">
-                    <div className="member-card-name">{member.name}</div>
+                    <div className="member-card-name">
+                      <span className="member-card-name-label">الاسم</span>
+                      <span>{member.name}</span>
+                    </div>
 
                     <div className="member-card-info">
                       <div className="member-card-info-item">
@@ -1086,7 +1092,10 @@ const MemberMonitoringDashboard = () => {
                     </div>
 
                     <div className={`member-card-balance ${member.balance < 1000 ? 'critical' : ''}`}>
-                      {member.balance >= 3000 ? '🟢' : '🔴'} {member.balance.toLocaleString()} ريال
+                      <div className="member-card-balance-label">الرصيد</div>
+                      <div className="member-card-balance-value">
+                        {member.balance >= 3000 ? '🟢' : '🔴'} {member.balance.toLocaleString()} ريال
+                      </div>
                     </div>
 
                     {member.balance < 3000 && (
