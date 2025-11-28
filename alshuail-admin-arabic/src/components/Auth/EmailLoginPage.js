@@ -17,7 +17,8 @@ const EmailLoginPage = ({ onLogin = () => {} }) => {
     setError('');
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/auth/login`, {
+      const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.alshailfund.com';
+      const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
