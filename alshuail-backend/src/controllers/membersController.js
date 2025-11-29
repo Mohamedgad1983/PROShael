@@ -6,8 +6,66 @@ import { sanitizeSearchTerm, sanitizeNumber, sanitizeBoolean, sanitizePhone } fr
 import { log } from '../utils/logger.js';
 import { config } from '../config/env.js';
 
-// Transform member data to match frontend expected field names
+// Financial calculation constants for 5-year subscription (2021-2025)
+const SUBSCRIPTION_CONFIG = {
+  ANNUAL_FEE: 600,           // 600 SAR per year
+  TOTAL_EXPECTED: 3000,      // 3000 SAR total over 5 years
+  START_YEAR: 2021,
+  END_YEAR: 2025
+};
+
+// Calculate expected payment based on current date
+const calculateExpectedPayment = () => {
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth() + 1; // 1-12
+
+  // Calculate completed years since 2021
+  let yearsPassed = Math.min(5, Math.max(0, currentYear - SUBSCRIPTION_CONFIG.START_YEAR));
+
+  // If we're past the end year, full amount is expected
+  if (currentYear > SUBSCRIPTION_CONFIG.END_YEAR) {
+    return SUBSCRIPTION_CONFIG.TOTAL_EXPECTED;
+  }
+
+  // If we're in a subscription year, add partial year if past mid-year
+  if (currentYear >= SUBSCRIPTION_CONFIG.START_YEAR && currentYear <= SUBSCRIPTION_CONFIG.END_YEAR) {
+    yearsPassed = currentYear - SUBSCRIPTION_CONFIG.START_YEAR + 1;
+  }
+
+  return Math.min(SUBSCRIPTION_CONFIG.TOTAL_EXPECTED, yearsPassed * SUBSCRIPTION_CONFIG.ANNUAL_FEE);
+};
+
+// Transform member data to match frontend expected field names with correct financial calculations
 const transformMemberForFrontend = (member) => {
+  const expectedByNow = calculateExpectedPayment();
+  const currentPaid = parseFloat(member.current_balance) || parseFloat(member.total_paid) || 0;
+
+  // Calculate arrears (what they should have paid minus what they actually paid)
+  const arrears = Math.max(0, expectedByNow - currentPaid);
+
+  // Calculate remaining balance to reach full subscription
+  const requiredRemaining = Math.max(0, SUBSCRIPTION_CONFIG.TOTAL_EXPECTED - currentPaid);
+
+  // Determine financial status based on payment compliance
+  let financialStatus;
+  let isDelayed = false;
+
+  if (currentPaid >= expectedByNow) {
+    // Fully compliant - paid what's expected by now
+    financialStatus = 'compliant';
+  } else if (currentPaid >= expectedByNow * 0.8) {
+    // Partial - paid at least 80% of expected
+    financialStatus = 'partial';
+  } else if (currentPaid > 0) {
+    // Delayed - paid less than 80% of expected
+    financialStatus = 'delayed';
+    isDelayed = true;
+  } else {
+    // No payment at all
+    financialStatus = 'critical';
+    isDelayed = true;
+  }
+
   return {
     // Original fields (keep for backward compatibility)
     ...member,
@@ -16,11 +74,16 @@ const transformMemberForFrontend = (member) => {
     full_name_arabic: member.full_name || 'غير محدد',
     phone_number: member.phone || '',
     branch_arabic: member.tribal_section || 'غير محدد',
-    financial_status: member.balance_status || 'unknown',
-    // Balance fields
-    current_balance: parseFloat(member.current_balance) || 0,
-    required_balance: parseFloat(member.total_balance) || 0,
-    total_paid: parseFloat(member.total_paid) || 0,
+    // Correct financial calculations
+    current_balance: currentPaid,
+    required_balance: requiredRemaining,
+    total_paid: currentPaid,
+    arrears: arrears,
+    expected_total: SUBSCRIPTION_CONFIG.TOTAL_EXPECTED,
+    expected_by_now: expectedByNow,
+    // Financial status
+    financial_status: financialStatus,
+    is_delayed: isDelayed,
     // Status mapping
     membership_status: member.membership_status || member.status || 'unknown'
   };
