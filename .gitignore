@@ -77,3 +77,4 @@ supabase/.temp
 debug.log.playwright-mcp/*.exe
 *.exe
 .playwright-mcp/
+FiberBase/

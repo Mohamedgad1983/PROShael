@@ -1,7 +1,75 @@
 // ========================================
 // Al-Shuail PWA Service Worker
 // Enables offline functionality and caching
+// With Firebase Cloud Messaging Support
 // ========================================
+
+// Import Firebase Messaging for background notifications
+importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js');
+
+// Firebase Config
+const firebaseConfig = {
+  apiKey: "AIzaSyDV_8GEXglt-rnftvs37GaTKGKbUIth5yA",
+  authDomain: "i-o-s-shaael-gqra2n-ef788.firebaseapp.com",
+  projectId: "i-o-s-shaael-gqra2n-ef788",
+  storageBucket: "i-o-s-shaael-gqra2n-ef788.firebasestorage.app",
+  messagingSenderId: "384257332256",
+  appId: "1:384257332256:web:11d2543409f62f655ad845"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const messaging = firebase.messaging();
+
+// Handle background messages
+messaging.onBackgroundMessage((payload) => {
+  console.log('[SW] Background message received:', payload);
+  
+  const notificationTitle = payload.notification?.title || 'إشعار جديد';
+  const notificationOptions = {
+    body: payload.notification?.body || '',
+    icon: payload.notification?.icon || '/icons/icon-192.png',
+    badge: '/icons/icon-72.png',
+    vibrate: [200, 100, 200],
+    data: payload.data || {},
+    requireInteraction: true,
+    actions: [
+      { action: 'open', title: 'فتح' },
+      { action: 'close', title: 'إغلاق' }
+    ]
+  };
+
+  return self.registration.showNotification(notificationTitle, notificationOptions);
+});
+
+// Handle notification click
+self.addEventListener('notificationclick', (event) => {
+  console.log('[SW] Notification clicked:', event);
+  
+  event.notification.close();
+
+  if (event.action === 'close') return;
+
+  const clickAction = event.notification.data?.click_action || '/dashboard.html';
+  
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then((windowClients) => {
+        // Check if app is already open
+        for (const client of windowClients) {
+          if (client.url.includes(self.location.origin) && 'focus' in client) {
+            client.navigate(clickAction);
+            return client.focus();
+          }
+        }
+        // Open new window
+        if (clients.openWindow) {
+          return clients.openWindow(clickAction);
+        }
+      })
+  );
+});
 
 const CACHE_NAME = 'alshuail-v2.0.0-phase2';
 const RUNTIME_CACHE = 'alshuail-runtime-v2';
