@@ -513,9 +513,35 @@
             color: #721c24;
         }
 
+        .payment-critical {
+            background: #dc3545;
+            color: white;
+            font-weight: bold;
+            animation: pulse-red 1.5s infinite;
+        }
+
+        @keyframes pulse-red {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
         .payment-partial {
             background: #fff3cd;
             color: #856404;
+        }
+
+        /* Row highlighting for delayed members */
+        .row-delayed {
+            background-color: #fff5f5 !important;
+            border-right: 4px solid #dc3545;
+        }
+
+        .row-delayed:hover {
+            background-color: #ffe8e8 !important;
+        }
+
+        .row-delayed td {
+            color: #721c24;
         }
 
         .amount-display {
@@ -1947,6 +1973,7 @@
                 'non-compliant': 'متأخر',
                 'critical': 'حرج',
                 'partial': 'جزئي',
+                'delayed': 'متأخر',          // NEW: for delayed payment status
                 'insufficient': 'غير مكتمل',
                 'paid': 'مدفوع',
                 'overdue': 'متأخر',
@@ -1960,8 +1987,9 @@
                 'compliant': 'payment-paid',
                 'excellent': 'payment-paid',
                 'non-compliant': 'payment-overdue',
-                'critical': 'payment-overdue',
+                'critical': 'payment-critical',       // More severe styling
                 'partial': 'payment-partial',
+                'delayed': 'payment-overdue',         // NEW: red highlighting
                 'insufficient': 'payment-overdue',
                 'paid': 'payment-paid',
                 'overdue': 'payment-overdue',
@@ -2029,12 +2057,19 @@
             const financialStatus = member.financial_status || member.balance_status || 'unknown';
             const balance = parseFloat(member.current_balance) || 0;
             const requiredBalance = parseFloat(member.required_balance) || parseFloat(member.total_balance) || 0;
+            const isDelayed = member.is_delayed || false;
+            const arrears = parseFloat(member.arrears) || 0;
 
             // Translate statuses
             const memberStatusText = translateMemberStatus(membershipStatus);
             const memberStatusClass = getMemberStatusClass(membershipStatus);
             const paymentStatusText = translateFinancialStatus(financialStatus);
             const paymentStatusClass = getPaymentStatusClass(financialStatus);
+
+            // Add delayed class for row highlighting
+            if (isDelayed || financialStatus === 'delayed' || financialStatus === 'critical') {
+                row.classList.add('row-delayed');
+            }
 
             // Get first letter for avatar
             const firstLetter = name.charAt(0);
@@ -2272,7 +2307,13 @@
                 const data = await this.request(
                     `${API_CONFIG.ENDPOINTS.MEMBERS}?page=${page}&limit=${limit}`
                 );
-                return data.members || data.data || [];
+                // Return full response with members and statistics
+                return {
+                    members: data.members || data.data || [],
+                    statistics: data.statistics || null,
+                    total: data.total || 0,
+                    subscription_config: data.subscription_config || null
+                };
             },
 
             async getMemberStats() {
@@ -2368,14 +2409,24 @@
         async function initDashboard() {
             try {
                 showLoadingOverlay();
-                const members = await ApiService.getMembers(1, 500);
+                const response = await ApiService.getMembers(1, 500);
+
+                // Extract members and statistics from API response
+                const members = response.members || [];
+                const apiStatistics = response.statistics || null;
 
                 allMembers = members;
                 filteredMembers = members;
 
-                updateStatistics(members);
+                // Pass API statistics to updateStatistics for accurate arrears calculation
+                updateStatistics(members, apiStatistics);
                 updateChartsWithData(members);
                 renderMembersTable(members);
+
+                // Log subscription config for debugging
+                if (response.subscription_config) {
+                    console.log('📋 Subscription Config:', response.subscription_config);
+                }
 
                 hideLoadingOverlay();
             } catch (error) {
@@ -2385,27 +2436,39 @@
         }
 
         // ===== Statistics Calculation =====
-        function updateStatistics(members) {
+        function updateStatistics(members, apiStatistics = null) {
+            // Use API statistics if provided (more accurate), otherwise calculate locally
             const stats = {
-                total: members.length,
+                total: apiStatistics?.totalMembers || members.length,
                 active: members.filter(m => (m.membership_status || m.status) === 'active').length,
-                overdue: members.filter(m => {
-                    const finStatus = m.financial_status || m.balance_status || '';
-                    return finStatus === 'non-compliant' || finStatus === 'critical' || finStatus === 'insufficient';
-                }).length,
+                // Count delayed/critical members - those who haven't paid expected amount
+                overdue: apiStatistics?.delayedCount + apiStatistics?.criticalCount ||
+                    members.filter(m => {
+                        const finStatus = m.financial_status || m.balance_status || '';
+                        return finStatus === 'delayed' || finStatus === 'critical' || finStatus === 'non-compliant' || finStatus === 'insufficient';
+                    }).length,
                 suspended: members.filter(m => (m.membership_status || m.status) === 'suspended').length,
-                subscriptions: members.reduce((sum, m) => sum + (parseFloat(m.current_balance) || 0), 0),
+                // Total arrears (what all members owe that they should have paid by now)
+                totalArrears: apiStatistics?.totalArrears ||
+                    members.reduce((sum, m) => sum + (parseFloat(m.arrears) || 0), 0),
+                // Total subscriptions collected
+                subscriptions: apiStatistics?.totalPaid ||
+                    members.reduce((sum, m) => sum + (parseFloat(m.current_balance) || 0), 0),
                 expired: members.filter(m => (m.membership_status || m.status) === 'pending').length
             };
 
             // Update stat cards
             document.querySelector('.stat-card:nth-child(1) .stat-number').textContent = stats.total;
             document.querySelector('.stat-card:nth-child(2) .stat-number').textContent = stats.active;
-            document.querySelector('.stat-card:nth-child(3) .stat-number').textContent = stats.overdue;
+            // Card 3: Show total arrears amount (متأخرات مالية)
+            document.querySelector('.stat-card:nth-child(3) .stat-number').textContent =
+                stats.totalArrears.toLocaleString('ar-SA') + ' ر.س';
             document.querySelector('.stat-card:nth-child(4) .stat-number').textContent = stats.suspended;
             document.querySelector('.stat-card:nth-child(5) .stat-number').textContent =
                 stats.subscriptions.toLocaleString('ar-SA') + ' ر.س';
             document.querySelector('.stat-card:nth-child(6) .stat-number').textContent = stats.expired;
+
+            console.log('📊 Statistics updated:', stats);
         }
         // Listen for auth token from parent React app via postMessage
         // Set up listener immediately, before window.onload
