@@ -2013,14 +2013,14 @@
             const row = document.createElement('tr');
 
             // Map member data
-            const memberId = member.member_number || member.id || 'N/A';
-            const name = member.full_name_arabic || member.name || 'غير محدد';
+            const memberId = member.member_number || member.membership_number || member.id || 'N/A';
+            const name = member.full_name_arabic || member.full_name || member.name || 'غير محدد';
             const phone = member.phone_number || member.phone || 'غير محدد';
-            const branch = member.branch_arabic || member.branch || 'غير محدد';
-            const membershipStatus = member.membership_status || 'unknown';
-            const financialStatus = member.financial_status || 'unknown';
-            const balance = member.current_balance || 0;
-            const due = member.amount_due || 0;
+            const branch = member.branch_arabic || member.tribal_section || member.branch || 'غير محدد';
+            const membershipStatus = member.membership_status || member.status || 'unknown';
+            const financialStatus = member.financial_status || member.balance_status || 'unknown';
+            const balance = parseFloat(member.current_balance) || 0;
+            const requiredBalance = parseFloat(member.required_balance) || parseFloat(member.total_balance) || 0;
 
             // Translate statuses
             const memberStatusText = translateMemberStatus(membershipStatus);
@@ -2053,6 +2053,7 @@
                     <span class="badge ${paymentStatusClass}">${paymentStatusText}</span>
                 </td>
                 <td class="balance">${balance.toLocaleString('ar-SA')} ر.س</td>
+                <td class="required-balance">${requiredBalance.toLocaleString('ar-SA')} ر.س</td>
                 <td>
                     <div class="action-buttons">
                         <button class="btn-action btn-view" onclick="viewMember('${memberId}')" title="عرض التفاصيل">
@@ -2092,12 +2093,12 @@
                 filteredMembers = allMembers;
             } else {
                 filteredMembers = allMembers.filter(member => {
-                    // Search in multiple fields with proper null checks
+                    // Search in multiple fields with proper null checks (support both mapped and original field names)
                     const searchableFields = [
-                        member.member_number?.toString().toLowerCase(),
-                        member.full_name_arabic?.toLowerCase(),
-                        member.phone_number?.toLowerCase(),
-                        member.branch_arabic?.toLowerCase(),
+                        (member.member_number || member.membership_number || member.id)?.toString().toLowerCase(),
+                        (member.full_name_arabic || member.full_name)?.toLowerCase(),
+                        (member.phone_number || member.phone)?.toLowerCase(),
+                        (member.branch_arabic || member.tribal_section)?.toLowerCase(),
                         member.email?.toLowerCase()
                     ];
 
@@ -2379,14 +2380,14 @@
         function updateStatistics(members) {
             const stats = {
                 total: members.length,
-                active: members.filter(m => m.membership_status === 'active').length,
-                overdue: members.filter(m =>
-                    m.financial_status === 'non-compliant' ||
-                    m.financial_status === 'critical'
-                ).length,
-                suspended: members.filter(m => m.membership_status === 'suspended').length,
-                subscriptions: members.reduce((sum, m) => sum + (m.current_balance || 0), 0),
-                expired: members.filter(m => m.membership_status === 'pending').length
+                active: members.filter(m => (m.membership_status || m.status) === 'active').length,
+                overdue: members.filter(m => {
+                    const finStatus = m.financial_status || m.balance_status || '';
+                    return finStatus === 'non-compliant' || finStatus === 'critical' || finStatus === 'insufficient';
+                }).length,
+                suspended: members.filter(m => (m.membership_status || m.status) === 'suspended').length,
+                subscriptions: members.reduce((sum, m) => sum + (parseFloat(m.current_balance) || 0), 0),
+                expired: members.filter(m => (m.membership_status || m.status) === 'pending').length
             };
 
             // Update stat cards
@@ -2733,14 +2734,14 @@
         function exportMembersToExcel(members) {
             try {
                 const exportData = members.map(member => ({
-                    'رقم العضو': member.member_number || member.id || '',
-                    'الاسم الكامل': member.full_name_arabic || member.name || '',
+                    'رقم العضو': member.member_number || member.membership_number || member.id || '',
+                    'الاسم الكامل': member.full_name_arabic || member.full_name || member.name || '',
                     'رقم الهاتف': member.phone_number || member.phone || '',
-                    'الفخذ': member.branch_arabic || member.branch || '',
-                    'حالة العضوية': translateMemberStatus(member.membership_status || ''),
-                    'الحالة المالية': translateFinancialStatus(member.financial_status || ''),
-                    'الرصيد الحالي': member.current_balance || 0,
-                    'المبلغ المستحق': member.amount_due || 0,
+                    'الفخذ': member.branch_arabic || member.tribal_section || member.branch || '',
+                    'حالة العضوية': translateMemberStatus(member.membership_status || member.status || ''),
+                    'الحالة المالية': translateFinancialStatus(member.financial_status || member.balance_status || ''),
+                    'الرصيد الحالي': parseFloat(member.current_balance) || 0,
+                    'المبلغ المطلوب': parseFloat(member.required_balance) || parseFloat(member.total_balance) || 0,
                     'البريد الإلكتروني': member.email || '',
                     'تاريخ التسجيل': member.registration_date || member.created_at || ''
                 }));
