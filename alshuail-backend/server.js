@@ -44,6 +44,7 @@ import multiRoleManagementRoutes from './src/routes/multiRoleManagement.js';
 import passwordManagementRoutes from './src/routes/passwordManagement.js';
 import profileRoutes from './src/routes/profile.js';
 import pushNotificationsRoutes from './src/routes/push-notifications.routes.js';
+import auditRoutes from './src/routes/audit.routes.js';
 import { log } from './src/utils/logger.js';
 import { config } from './src/config/env.js';
 import { errorHandler } from './src/utils/errorCodes.js';
@@ -285,6 +286,9 @@ app.use('/api/user/profile', profileRoutes);
 
 // Push Notifications APIs - FCM push notifications
 app.use('/api/notifications/push', pushNotificationsRoutes);
+
+// Audit Log APIs - Track admin actions
+app.use('/api/audit', auditRoutes);
 
 // Enhanced health check endpoint
 app.get('/api/health', async (req, res) => {
