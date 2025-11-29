@@ -412,7 +412,11 @@ const startServer = async () => {
   });
 };
 
-startServer();
+// Only start server if not in test environment
+// Tests import app directly without starting the server
+if (process.env.NODE_ENV !== 'test') {
+  startServer();
+}
 
 
 

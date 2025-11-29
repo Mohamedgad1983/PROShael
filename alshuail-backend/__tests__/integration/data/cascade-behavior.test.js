@@ -386,8 +386,8 @@ describe('Cascade Behavior Tests', () => {
       // Perform cascade delete
       const result = manager.performCascadeDelete('members', 'MEM-002');
 
-      // Verify all cascades
-      expect(result.deleted).toHaveLength(6); // 1 member + 2 subscriptions + 2 notifications
+      // Verify all cascades: 1 member + 2 subscriptions + 2 notifications = 5 total
+      expect(result.deleted).toHaveLength(5);
       expect(result.updated).toHaveLength(2); // 2 documents set to null
 
       // Verify specific deletions

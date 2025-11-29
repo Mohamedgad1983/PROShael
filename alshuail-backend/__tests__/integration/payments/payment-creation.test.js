@@ -15,8 +15,9 @@ describe('Payment Creation Validation Tests', () => {
     validatePaymentData(paymentData) {
       const errors = [];
 
-      // Required fields validation
-      if (!paymentData.amount || paymentData.amount <= 0) {
+      // Required fields validation - handle NaN, null, undefined, 0, and negative values
+      const amount = paymentData.amount;
+      if (amount === null || amount === undefined || typeof amount !== 'number' || isNaN(amount) || amount <= 0) {
         errors.push('Invalid amount: must be greater than 0');
       }
 

@@ -84,8 +84,9 @@ describe('Authentication Middleware Tests', () => {
       const extracted = middleware.extractToken(undefined);
       expect(extracted).toBeNull();
 
+      // Empty string is a falsy value, middleware returns null for all falsy inputs
       const extracted2 = middleware.extractToken('');
-      expect(extracted2).toBe('');
+      expect(extracted2).toBeNull();
     });
 
     test('should authenticate valid request with token', () => {

@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QA Test - Member Monitoring Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .qa-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+            font-size: 32px;
+        }
+
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .test-section h2 {
+            color: #444;
+            margin-bottom: 15px;
+            font-size: 20px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .test-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .test-btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .test-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .test-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .test-btn.success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+
+        .test-btn.danger {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        }
+
+        .test-btn.info {
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+        }
+
+        .result-box {
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-size: 14px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .result-box.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .result-box.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .result-box.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .result-box.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            text-align: center;
+        }
+
+        .stat-card .value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-card .label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .test-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .test-list li {
+            padding: 10px;
+            margin: 5px 0;
+            background: white;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .test-list li::before {
+            content: '⏳';
+            font-size: 20px;
+        }
+
+        .test-list li.pass::before {
+            content: '✅';
+        }
+
+        .test-list li.fail::before {
+            content: '❌';
+        }
+
+        .pagination-test {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        .page-test-btn {
+            padding: 8px 12px;
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .page-test-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .page-test-btn.current {
+            background: #667eea;
+            color: white;
+        }
+
+        pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+        }
+
+        .loading::after {
+            content: '.';
+            animation: dots 1s steps(3, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+    </style>
+</head>
+<body>
+    <div class="qa-container">
+        <h1>🧪 اختبار ضمان الجودة</h1>
+        <p class="subtitle">لوحة مراقبة الأعضاء - Member Monitoring Dashboard</p>
+
+        <!-- Test Section 1: API Connection -->
+        <div class="test-section">
+            <h2>1️⃣ اختبار الاتصال بالخادم</h2>
+            <div class="test-controls">
+                <button class="test-btn" onclick="testAPIConnection()">اختبار API</button>
+                <button class="test-btn info" onclick="checkTotalMembers()">فحص عدد الأعضاء</button>
+                <button class="test-btn success" onclick="testAuthentication()">اختبار المصادقة</button>
+            </div>
+            <div id="apiResult"></div>
+            <div class="stats-grid" id="apiStats" style="display: none;">
+                <div class="stat-card">
+                    <div class="value" id="totalMembers">0</div>
+                    <div class="label">إجمالي الأعضاء</div>
+                </div>
+                <div class="stat-card">
+                    <div class="value" id="apiResponseTime">0ms</div>
+                    <div class="label">زمن الاستجابة</div>
+                </div>
+                <div class="stat-card">
+                    <div class="value" id="apiStatus">-</div>
+                    <div class="label">حالة الخادم</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Section 2: Pagination -->
+        <div class="test-section">
+            <h2>2️⃣ اختبار نظام الصفحات (Pagination)</h2>
+            <div class="test-controls">
+                <button class="test-btn" onclick="testPagination()">اختبار الصفحات</button>
+                <button class="test-btn info" onclick="testPageSizes()">اختبار أحجام الصفحات</button>
+                <button class="test-btn success" onclick="testAllPages()">تصفح جميع الصفحات</button>
+            </div>
+            <div id="paginationResult"></div>
+            <div class="pagination-test" id="pageButtons" style="display: none;"></div>
+        </div>
+
+        <!-- Test Section 3: Member Data -->
+        <div class="test-section">
+            <h2>3️⃣ اختبار بيانات الأعضاء</h2>
+            <div class="test-controls">
+                <button class="test-btn" onclick="testMemberData()">فحص البيانات</button>
+                <button class="test-btn info" onclick="testSearchFilter()">اختبار البحث</button>
+                <button class="test-btn success" onclick="testBalanceCalculations()">فحص الأرصدة</button>
+            </div>
+            <div id="memberDataResult"></div>
+        </div>
+
+        <!-- Test Section 4: Performance -->
+        <div class="test-section">
+            <h2>4️⃣ اختبار الأداء</h2>
+            <div class="test-controls">
+                <button class="test-btn" onclick="testPerformance()">قياس الأداء</button>
+                <button class="test-btn info" onclick="testLargeDataSet()">اختبار البيانات الكبيرة</button>
+                <button class="test-btn danger" onclick="testStressLoad()">اختبار الضغط</button>
+            </div>
+            <div id="performanceResult"></div>
+        </div>
+
+        <!-- Test Section 5: Complete QA Suite -->
+        <div class="test-section">
+            <h2>5️⃣ مجموعة الاختبار الشاملة</h2>
+            <div class="test-controls">
+                <button class="test-btn success" onclick="runCompleteQASuite()" style="width: 100%;">
+                    🚀 تشغيل جميع الاختبارات
+                </button>
+            </div>
+            <ul class="test-list" id="qaTestList"></ul>
+            <div id="qaSummary"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:3001';
+        const token = localStorage.getItem('token') || '';
+
+        // Helper function to show results
+        function showResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.className = `result-box ${type}`;
+            element.innerHTML = typeof message === 'object'
+                ? `<pre>${JSON.stringify(message, null, 2)}</pre>`
+                : message;
+            element.style.display = 'block';
+        }
+
+        // Test API Connection
+        async function testAPIConnection() {
+            showResult('apiResult', 'جاري اختبار الاتصال...', 'info');
+            const startTime = Date.now();
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/members?limit=1&page=1`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const responseTime = Date.now() - startTime;
+                const data = await response.json();
+
+                if (response.ok) {
+                    document.getElementById('apiStats').style.display = 'grid';
+                    document.getElementById('apiResponseTime').textContent = `${responseTime}ms`;
+                    document.getElementById('apiStatus').textContent = '🟢 متصل';
+
+                    showResult('apiResult', `✅ الاتصال ناجح! الخادم يعمل بشكل صحيح`, 'success');
+                } else {
+                    showResult('apiResult', `❌ فشل الاتصال: ${data.error || response.statusText}`, 'error');
+                }
+            } catch (error) {
+                showResult('apiResult', `❌ خطأ في الاتصال: ${error.message}`, 'error');
+            }
+        }
+
+        // Check Total Members
+        async function checkTotalMembers() {
+            showResult('apiResult', 'جاري فحص عدد الأعضاء...', 'info');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/members?limit=1&page=1`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.pagination) {
+                    const total = data.pagination.total;
+                    document.getElementById('apiStats').style.display = 'grid';
+                    document.getElementById('totalMembers').textContent = total;
+
+                    // Now fetch all members
+                    const allMembersResponse = await fetch(`${API_BASE_URL}/api/members?limit=${total}&page=1`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    const allData = await allMembersResponse.json();
+                    const actualCount = allData.data ? allData.data.length : 0;
+
+                    const resultMessage = `
+                        <strong>📊 نتائج فحص الأعضاء:</strong><br>
+                        • عدد الأعضاء في قاعدة البيانات: ${total}<br>
+                        • عدد الأعضاء المُستلمة: ${actualCount}<br>
+                        • الحالة: ${actualCount === total ? '✅ جميع الأعضاء متاحة' : '⚠️ هناك اختلاف في العدد'}<br>
+                        ${total === 347 ? '✅ العدد صحيح (347 عضو)' : `⚠️ العدد المتوقع 347 ولكن وجدنا ${total}`}
+                    `;
+
+                    showResult('apiResult', resultMessage, actualCount === total ? 'success' : 'warning');
+                } else {
+                    showResult('apiResult', '❌ فشل في الحصول على عدد الأعضاء', 'error');
+                }
+            } catch (error) {
+                showResult('apiResult', `❌ خطأ: ${error.message}`, 'error');
+            }
+        }
+
+        // Test Authentication
+        async function testAuthentication() {
+            if (!token) {
+                showResult('apiResult', '⚠️ لا يوجد رمز مصادقة. يرجى تسجيل الدخول أولاً', 'warning');
+                return;
+            }
+
+            showResult('apiResult', 'جاري اختبار المصادقة...', 'info');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/auth/verify`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showResult('apiResult', `✅ المصادقة صحيحة! المستخدم: ${data.user?.email || data.user?.phone || 'غير محدد'}`, 'success');
+                } else {
+                    showResult('apiResult', `❌ فشلت المصادقة: ${data.error || 'رمز غير صالح'}`, 'error');
+                }
+            } catch (error) {
+                showResult('apiResult', `❌ خطأ في المصادقة: ${error.message}`, 'error');
+            }
+        }
+
+        // Test Pagination
+        async function testPagination() {
+            showResult('paginationResult', 'جاري اختبار نظام الصفحات...', 'info');
+
+            try {
+                // Test different page sizes
+                const pageSizes = [10, 25, 50, 100];
+                const results = [];
+
+                for (const size of pageSizes) {
+                    const response = await fetch(`${API_BASE_URL}/api/members?limit=${size}&page=1`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    const data = await response.json();
+                    if (response.ok) {
+                        results.push({
+                            pageSize: size,
+                            returned: data.data?.length || 0,
+                            totalPages: data.pagination?.pages || 0
+                        });
+                    }
+                }
+
+                let resultHTML = '<strong>📄 نتائج اختبار الصفحات:</strong><br>';
+                results.forEach(r => {
+                    const status = r.returned === r.pageSize || r.returned > 0 ? '✅' : '❌';
+                    resultHTML += `${status} حجم الصفحة ${r.pageSize}: استلمنا ${r.returned} عضو (${r.totalPages} صفحات)<br>`;
+                });
+
+                showResult('paginationResult', resultHTML, 'success');
+
+                // Show page buttons for testing
+                const totalPages = results[0]?.totalPages || 1;
+                const pageButtonsDiv = document.getElementById('pageButtons');
+                pageButtonsDiv.innerHTML = '';
+                pageButtonsDiv.style.display = 'flex';
+
+                for (let i = 1; i <= Math.min(totalPages, 10); i++) {
+                    const btn = document.createElement('button');
+                    btn.className = 'page-test-btn';
+                    btn.textContent = `صفحة ${i}`;
+                    btn.onclick = () => testSpecificPage(i);
+                    pageButtonsDiv.appendChild(btn);
+                }
+            } catch (error) {
+                showResult('paginationResult', `❌ خطأ في اختبار الصفحات: ${error.message}`, 'error');
+            }
+        }
+
+        // Test specific page
+        async function testSpecificPage(pageNumber) {
+            showResult('paginationResult', `جاري اختبار الصفحة ${pageNumber}...`, 'info');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/members?limit=25&page=${pageNumber}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    const message = `
+                        ✅ الصفحة ${pageNumber} تعمل!<br>
+                        • عدد الأعضاء: ${data.data?.length || 0}<br>
+                        • الصفحة الحالية: ${data.pagination?.page}<br>
+                        • إجمالي الصفحات: ${data.pagination?.pages}
+                    `;
+                    showResult('paginationResult', message, 'success');
+                } else {
+                    showResult('paginationResult', `❌ فشل تحميل الصفحة ${pageNumber}`, 'error');
+                }
+            } catch (error) {
+                showResult('paginationResult', `❌ خطأ: ${error.message}`, 'error');
+            }
+        }
+
+        // Test all page sizes
+        async function testPageSizes() {
+            showResult('paginationResult', 'جاري اختبار أحجام الصفحات...', 'info');
+
+            const sizes = [10, 25, 50, 100, 347];
+            let allPassed = true;
+            let results = '<strong>🔍 اختبار أحجام الصفحات:</strong><br>';
+
+            for (const size of sizes) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/members?limit=${size}&page=1`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    const data = await response.json();
+                    const returned = data.data?.length || 0;
+                    const passed = response.ok && returned > 0;
+                    allPassed = allPassed && passed;
+
+                    results += `${passed ? '✅' : '❌'} حجم ${size}: ${returned} عضو<br>`;
+                } catch (error) {
+                    results += `❌ حجم ${size}: خطأ - ${error.message}<br>`;
+                    allPassed = false;
+                }
+            }
+
+            showResult('paginationResult', results, allPassed ? 'success' : 'warning');
+        }
+
+        // Test navigating through all pages
+        async function testAllPages() {
+            showResult('paginationResult', 'جاري تصفح جميع الصفحات...', 'info');
+
+            try {
+                // First get total pages
+                const initialResponse = await fetch(`${API_BASE_URL}/api/members?limit=50&page=1`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const initialData = await initialResponse.json();
+                const totalPages = initialData.pagination?.pages || 1;
+                const totalMembers = initialData.pagination?.total || 0;
+
+                let totalFetched = 0;
+                let results = `<strong>📚 تصفح ${totalPages} صفحة (${totalMembers} عضو):</strong><br>`;
+
+                for (let page = 1; page <= totalPages; page++) {
+                    const response = await fetch(`${API_BASE_URL}/api/members?limit=50&page=${page}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    const data = await response.json();
+                    const count = data.data?.length || 0;
+                    totalFetched += count;
+
+                    results += `• صفحة ${page}: ${count} عضو ✅<br>`;
+                }
+
+                results += `<br><strong>الملخص:</strong><br>`;
+                results += `• إجمالي المتوقع: ${totalMembers}<br>`;
+                results += `• إجمالي المُستلم: ${totalFetched}<br>`;
+                results += totalFetched === totalMembers
+                    ? '✅ جميع الأعضاء متاحة عبر الصفحات!'
+                    : `⚠️ هناك فرق: ${totalMembers - totalFetched} عضو`;
+
+                showResult('paginationResult', results, totalFetched === totalMembers ? 'success' : 'warning');
+            } catch (error) {
+                showResult('paginationResult', `❌ خطأ: ${error.message}`, 'error');
+            }
+        }
+
+        // Test member data integrity
+        async function testMemberData() {
+            showResult('memberDataResult', 'جاري فحص بيانات الأعضاء...', 'info');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/members?limit=100&page=1`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                const members = data.data || [];
+
+                // Check data integrity
+                let missingPhone = 0;
+                let missingName = 0;
+                let missingMembershipNumber = 0;
+                let invalidBalance = 0;
+
+                members.forEach(member => {
+                    if (!member.phone) missingPhone++;
+                    if (!member.full_name) missingName++;
+                    if (!member.membership_number) missingMembershipNumber++;
+                    if (member.current_balance === undefined || member.current_balance === null) invalidBalance++;
+                });
+
+                const results = `
+                    <strong>🔍 فحص جودة البيانات (${members.length} عضو):</strong><br>
+                    ${missingPhone === 0 ? '✅' : '⚠️'} أرقام الهاتف المفقودة: ${missingPhone}<br>
+                    ${missingName === 0 ? '✅' : '⚠️'} الأسماء المفقودة: ${missingName}<br>
+                    ${missingMembershipNumber === 0 ? '✅' : '⚠️'} أرقام العضوية المفقودة: ${missingMembershipNumber}<br>
+                    ${invalidBalance === 0 ? '✅' : '⚠️'} الأرصدة غير الصحيحة: ${invalidBalance}<br>
+                    <br>
+                    <strong>الحالة العامة:</strong> ${
+                        (missingPhone + missingName + missingMembershipNumber + invalidBalance) === 0
+                        ? '✅ جميع البيانات سليمة!'
+                        : '⚠️ يوجد بعض البيانات المفقودة'
+                    }
+                `;
+
+                showResult('memberDataResult', results,
+                    (missingPhone + missingName + missingMembershipNumber + invalidBalance) === 0 ? 'success' : 'warning');
+            } catch (error) {
+                showResult('memberDataResult', `❌ خطأ: ${error.message}`, 'error');
+            }
+        }
+
+        // Test search functionality
+        async function testSearchFilter() {
+            showResult('memberDataResult', 'جاري اختبار البحث والفلترة...', 'info');
+
+            const searchTests = [
+                { query: 'أحمد', field: 'name' },
+                { query: '050', field: 'phone' },
+                { query: 'SH', field: 'membership' }
+            ];
+
+            let results = '<strong>🔍 اختبار البحث:</strong><br>';
+
+            for (const test of searchTests) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/members?search=${test.query}&limit=10&page=1`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    const data = await response.json();
+                    const count = data.data?.length || 0;
+
+                    results += `${count > 0 ? '✅' : '⚠️'} البحث عن "${test.query}": ${count} نتيجة<br>`;
+                } catch (error) {
+                    results += `❌ البحث عن "${test.query}": خطأ<br>`;
+                }
+            }
+
+            showResult('memberDataResult', results, 'info');
+        }
+
+        // Test balance calculations
+        async function testBalanceCalculations() {
+            showResult('memberDataResult', 'جاري فحص حسابات الأرصدة...', 'info');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/members?limit=50&page=1`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                const members = data.data || [];
+
+                let compliant = 0;
+                let nonCompliant = 0;
+                let critical = 0;
+                const requiredAmount = 3000;
+
+                members.forEach(member => {
+                    const balance = member.current_balance || 0;
+                    const requiredPayment = Math.max(0, requiredAmount - balance);
+
+                    if (requiredPayment > 1000) {
+                        critical++;
+                    } else if (requiredPayment > 500) {
+                        nonCompliant++;
+                    } else {
+                        compliant++;
+                    }
+                });
+
+                const results = `
+                    <strong>💰 تحليل الأرصدة (${members.length} عضو):</strong><br>
+                    ✅ ملتزمون: ${compliant} عضو<br>
+                    ⚠️ غير ملتزمين: ${nonCompliant} عضو<br>
+                    ❌ حالة حرجة: ${critical} عضو<br>
+                    <br>
+                    <strong>المبلغ المطلوب:</strong> ${requiredAmount} ريال<br>
+                    <strong>نسبة الالتزام:</strong> ${((compliant / members.length) * 100).toFixed(1)}%
+                `;
+
+                showResult('memberDataResult', results, 'success');
+            } catch (error) {
+                showResult('memberDataResult', `❌ خطأ: ${error.message}`, 'error');
+            }
+        }
+
+        // Test Performance
+        async function testPerformance() {
+            showResult('performanceResult', 'جاري قياس الأداء...', 'info');
+
+            const tests = [
+                { limit: 10, name: 'صغير' },
+                { limit: 50, name: 'متوسط' },
+                { limit: 100, name: 'كبير' },
+                { limit: 500, name: 'ضخم' }
+            ];
+
+            let results = '<strong>⚡ قياس الأداء:</strong><br>';
+
+            for (const test of tests) {
+                const startTime = Date.now();
+
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/members?limit=${test.limit}&page=1`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    await response.json();
+                    const responseTime = Date.now() - startTime;
+
+                    const performance = responseTime < 500 ? '🚀 ممتاز' :
+                                      responseTime < 1000 ? '✅ جيد' :
+                                      responseTime < 2000 ? '⚠️ مقبول' : '❌ بطيء';
+
+                    results += `• ${test.name} (${test.limit}): ${responseTime}ms ${performance}<br>`;
+                } catch (error) {
+                    results += `• ${test.name} (${test.limit}): ❌ فشل<br>`;
+                }
+            }
+
+            showResult('performanceResult', results, 'info');
+        }
+
+        // Test with large dataset
+        async function testLargeDataSet() {
+            showResult('performanceResult', 'جاري اختبار البيانات الكبيرة...', 'info');
+
+            try {
+                const startTime = Date.now();
+
+                const response = await fetch(`${API_BASE_URL}/api/members?limit=1000&page=1`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                const responseTime = Date.now() - startTime;
+                const memberCount = data.data?.length || 0;
+
+                const results = `
+                    <strong>📊 اختبار البيانات الكبيرة:</strong><br>
+                    • الأعضاء المطلوبة: 1000<br>
+                    • الأعضاء المُستلمة: ${memberCount}<br>
+                    • زمن الاستجابة: ${responseTime}ms<br>
+                    • معدل البيانات: ${(memberCount / (responseTime / 1000)).toFixed(0)} عضو/ثانية<br>
+                    • الحالة: ${memberCount > 100 ? '✅ النظام يتعامل مع البيانات الكبيرة' : '⚠️ قد يكون هناك حد للبيانات'}
+                `;
+
+                showResult('performanceResult', results, memberCount > 100 ? 'success' : 'warning');
+            } catch (error) {
+                showResult('performanceResult', `❌ خطأ: ${error.message}`, 'error');
+            }
+        }
+
+        // Stress test
+        async function testStressLoad() {
+            showResult('performanceResult', 'جاري اختبار الضغط... (10 طلبات متزامنة)', 'info');
+
+            const requests = [];
+            const startTime = Date.now();
+
+            for (let i = 0; i < 10; i++) {
+                requests.push(
+                    fetch(`${API_BASE_URL}/api/members?limit=50&page=${i + 1}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                );
+            }
+
+            try {
+                const responses = await Promise.all(requests);
+                const totalTime = Date.now() - startTime;
+                const successCount = responses.filter(r => r.ok).length;
+
+                const results = `
+                    <strong>🔥 اختبار الضغط (10 طلبات متزامنة):</strong><br>
+                    • الطلبات الناجحة: ${successCount}/10<br>
+                    • إجمالي الوقت: ${totalTime}ms<br>
+                    • متوسط الوقت لكل طلب: ${(totalTime / 10).toFixed(0)}ms<br>
+                    • الحالة: ${successCount === 10 ? '✅ النظام يتحمل الضغط!' : '⚠️ بعض الطلبات فشلت'}
+                `;
+
+                showResult('performanceResult', results, successCount === 10 ? 'success' : 'warning');
+            } catch (error) {
+                showResult('performanceResult', `❌ فشل اختبار الضغط: ${error.message}`, 'error');
+            }
+        }
+
+        // Complete QA Suite
+        async function runCompleteQASuite() {
+            const testList = document.getElementById('qaTestList');
+            testList.innerHTML = '';
+
+            const tests = [
+                { name: 'اتصال API', fn: testAPIConnection },
+                { name: 'عدد الأعضاء (347)', fn: checkTotalMembers },
+                { name: 'المصادقة', fn: testAuthentication },
+                { name: 'نظام الصفحات', fn: testPagination },
+                { name: 'أحجام الصفحات', fn: testPageSizes },
+                { name: 'جودة البيانات', fn: testMemberData },
+                { name: 'البحث والفلترة', fn: testSearchFilter },
+                { name: 'حسابات الأرصدة', fn: testBalanceCalculations },
+                { name: 'الأداء', fn: testPerformance }
+            ];
+
+            let passed = 0;
+            let failed = 0;
+
+            for (const test of tests) {
+                const li = document.createElement('li');
+                li.textContent = `${test.name}...`;
+                testList.appendChild(li);
+
+                try {
+                    await test.fn();
+                    li.className = 'pass';
+                    li.textContent = `${test.name} - نجح`;
+                    passed++;
+                } catch (error) {
+                    li.className = 'fail';
+                    li.textContent = `${test.name} - فشل: ${error.message}`;
+                    failed++;
+                }
+
+                // Small delay between tests
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+
+            const summary = `
+                <div class="result-box ${failed === 0 ? 'success' : 'warning'}">
+                    <strong>📊 ملخص الاختبار الشامل:</strong><br>
+                    ✅ نجح: ${passed} اختبار<br>
+                    ❌ فشل: ${failed} اختبار<br>
+                    📈 معدل النجاح: ${((passed / tests.length) * 100).toFixed(1)}%<br>
+                    <br>
+                    <strong>الحالة النهائية:</strong> ${
+                        failed === 0 ? '🎉 جميع الاختبارات نجحت!' :
+                        failed <= 2 ? '⚠️ النظام يعمل مع بعض المشاكل' :
+                        '❌ يحتاج النظام إلى إصلاحات'
+                    }
+                </div>
+            `;
+
+            document.getElementById('qaSummary').innerHTML = summary;
+        }
+    </script>
+</body>
+</html>

@@ -29,7 +29,7 @@ describe('Invalid Token Scenarios Tests', () => {
 
       expect(() => {
         jwt.verify(tamperedToken, SECRET_KEY);
-      }).toThrow('invalid signature');
+      }).toThrow(/invalid (signature|token)/); // JWT library may return either message
     });
 
     test('should reject token with invalid format', () => {

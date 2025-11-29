@@ -52,6 +52,13 @@ describe('Refund Processing Tests', () => {
         errors.push('Refund amount cannot exceed original payment amount');
       }
 
+      // Check if refund exceeds remaining refundable amount
+      const alreadyRefunded = payment.refundedAmount || 0;
+      const remainingRefundable = payment.amount - alreadyRefunded;
+      if (refundAmount > remainingRefundable) {
+        errors.push(`Refund amount cannot exceed remaining refundable amount of ${remainingRefundable}`);
+      }
+
       if (refundAmount < policyRules.minRefundAmount) {
         errors.push(`Refund amount below minimum of ${policyRules.minRefundAmount}`);
       }

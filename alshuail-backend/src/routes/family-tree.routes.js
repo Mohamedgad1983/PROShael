@@ -42,6 +42,11 @@ router.get('/relationships',
   familyTreeController.getRelationships
 );
 
+router.get('/visualization/:memberId',
+  protect,
+  familyTreeController.getVisualization
+);
+
 router.get('/:memberId/relationships',
   protect,
   familyTreeController.getMemberRelationships

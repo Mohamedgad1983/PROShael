@@ -173,104 +173,126 @@ router.get('/member/:memberId', authenticateToken, async (req, res) => {
 router.get('/visualization/:memberId', authenticateToken, async (req, res) => {
   try {
     const { memberId } = req.params;
-    const { depth = 2 } = req.query; // How many generations to fetch
+    const { depth = 4 } = req.query; // How many generations to fetch
 
-    // Get member
-    const { data: member, error: _memberError } = await supabase
+    // Get all members for building the tree
+    const { data: allMembers, error: allMembersError } = await supabase
       .from('members')
-      .select('id, full_name, full_name_en, photo_url')
-      .eq('id', memberId)
-      .single();
+      .select(`
+        id,
+        member_id,
+        full_name,
+        full_name_ar,
+        full_name_en,
+        phone,
+        parent_member_id,
+        spouse_id,
+        generation_level,
+        gender,
+        is_active,
+        current_balance,
+        photo_url
+      `)
+      .eq('is_active', true);
 
-    if (_memberError) {
+    if (allMembersError) {
+      log.error('Error fetching members:', { error: allMembersError.message });
+      return res.status(500).json({
+        success: false,
+        message: 'Error fetching members'
+      });
+    }
+
+    // Find the target member
+    const targetMember = allMembers.find(m => m.id === memberId);
+    if (!targetMember) {
       return res.status(404).json({
         success: false,
         message: 'Member not found'
       });
     }
 
-    // Build tree structure recursively
-    const buildTree = async (memberId, currentDepth = 0) => {
-      if (currentDepth >= depth) {return null;}
+    // Build tree structure using parent_member_id from members table
+    const buildMemberTree = (targetMemberId, currentDepth = 0, maxDepth = parseInt(depth)) => {
+      if (currentDepth > maxDepth) return null;
 
-      // Get children
-      const { data: childRelations } = await supabase
-        .from('family_relationships')
-        .select(`
-          member_to (
-            id,
-            full_name,
-            full_name_en,
-            photo_url
-          )
-        `)
-        .eq('member_from', memberId)
-        .in('relationship_type', ['father', 'mother'])
-        .eq('is_active', true);
+      const member = allMembers.find(m => m.id === targetMemberId);
+      if (!member) return null;
 
-      const children = [];
-      if (childRelations) {
-        for (const relation of childRelations) {
-          const childNode = {
-            id: relation.member_to.id,
-            name: relation.member_to.full_name,
-            name_en: relation.member_to.full_name_en,
-            photo: relation.member_to.photo_url,
-            children: await buildTree(relation.member_to.id, currentDepth + 1) || []
+      // Get children of this member (members whose parent_member_id is this member)
+      const children = allMembers
+        .filter(m => m.parent_member_id === targetMemberId)
+        .map(child => buildMemberTree(child.id, currentDepth + 1, maxDepth))
+        .filter(child => child !== null);
+
+      // Get spouse
+      let spouse = null;
+      if (member.spouse_id) {
+        const spouseMember = allMembers.find(m => m.id === member.spouse_id);
+        if (spouseMember) {
+          spouse = {
+            id: spouseMember.id,
+            name: spouseMember.full_name_ar || spouseMember.full_name || spouseMember.full_name_en,
+            memberId: spouseMember.member_id,
+            phoneNumber: spouseMember.phone,
+            balance: spouseMember.current_balance || 0,
+            photo_url: spouseMember.photo_url
           };
-          children.push(childNode);
         }
       }
 
-      return children;
-    };
-
-    // Get parents for upward tree
-    const getAncestors = async (memberId, currentDepth = 0) => {
-      if (currentDepth >= depth) {return [];}
-
-      const { data: parentRelations } = await supabase
-        .from('family_relationships')
-        .select(`
-          member_from (
-            id,
-            full_name,
-            full_name_en,
-            photo_url
-          ),
-          relationship_type
-        `)
-        .eq('member_to', memberId)
-        .in('relationship_type', ['father', 'mother'])
-        .eq('is_active', true);
-
+      // Get parents
       const parents = [];
-      if (parentRelations) {
-        for (const relation of parentRelations) {
-          const parentNode = {
-            id: relation.member_from.id,
-            name: relation.member_from.full_name,
-            name_en: relation.member_from.full_name_en,
-            photo: relation.member_from.photo_url,
-            relationship: relation.relationship_type,
-            parents: await getAncestors(relation.member_from.id, currentDepth + 1)
-          };
-          parents.push(parentNode);
+      if (member.parent_member_id) {
+        const parentMember = allMembers.find(m => m.id === member.parent_member_id);
+        if (parentMember) {
+          parents.push({
+            id: parentMember.id,
+            name: parentMember.full_name_ar || parentMember.full_name || parentMember.full_name_en,
+            memberId: parentMember.member_id,
+            type: 'parent'
+          });
         }
       }
 
-      return parents;
+      // Get siblings (same parent)
+      const siblings = allMembers
+        .filter(m => 
+          m.parent_member_id === member.parent_member_id && 
+          m.id !== targetMemberId &&
+          member.parent_member_id !== null
+        )
+        .map(sibling => ({
+          id: sibling.id,
+          name: sibling.full_name_ar || sibling.full_name || sibling.full_name_en,
+          memberId: sibling.member_id
+        }));
+
+      return {
+        id: member.id,
+        name: member.full_name_ar || member.full_name || member.full_name_en,
+        memberId: member.member_id,
+        phoneNumber: member.phone,
+        balance: member.current_balance || 0,
+        generation: member.generation_level || 0,
+        gender: member.gender,
+        photo_url: member.photo_url,
+        children: children,
+        spouse: spouse,
+        parents: parents,
+        siblings: siblings
+      };
     };
 
-    // Build complete tree
-    const treeData = {
-      id: member.id,
-      name: member.full_name,
-      name_en: member.full_name_en,
-      photo: member.photo_url,
-      children: await buildTree(memberId, 0) || [],
-      parents: await getAncestors(memberId, 0) || []
-    };
+    // Build tree starting from the requested member
+    const treeData = buildMemberTree(memberId);
+
+    if (!treeData) {
+      return res.status(404).json({
+        success: false,
+        message: 'Could not build tree data'
+      });
+    }
 
     res.json({
       success: true,
