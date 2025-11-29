@@ -1946,7 +1946,11 @@
                 'excellent': 'ممتاز',
                 'non-compliant': 'متأخر',
                 'critical': 'حرج',
-                'partial': 'جزئي'
+                'partial': 'جزئي',
+                'insufficient': 'غير مكتمل',
+                'paid': 'مدفوع',
+                'overdue': 'متأخر',
+                'pending': 'معلق'
             };
             return statusMap[status] || 'غير محدد';
         }
@@ -1957,7 +1961,11 @@
                 'excellent': 'payment-paid',
                 'non-compliant': 'payment-overdue',
                 'critical': 'payment-overdue',
-                'partial': 'payment-partial'
+                'partial': 'payment-partial',
+                'insufficient': 'payment-overdue',
+                'paid': 'payment-paid',
+                'overdue': 'payment-overdue',
+                'pending': 'payment-partial'
             };
             return classMap[status] || '';
         }
