@@ -19,7 +19,7 @@ import logger from '../utils/logger.js';
 class APIClient {
   constructor() {
     this.config = {
-      baseURL: import.meta.env.VITE_API_URL || 'https://proshael.onrender.com',
+      baseURL: import.meta.env.VITE_API_URL || 'https://api.alshailfund.com',
       timeout: 30000, // 30 seconds
       maxRetries: 3,
       retryDelay: 1000, // 1 second
