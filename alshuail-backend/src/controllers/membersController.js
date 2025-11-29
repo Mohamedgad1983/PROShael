@@ -6,19 +6,39 @@ import { sanitizeSearchTerm, sanitizeNumber, sanitizeBoolean, sanitizePhone } fr
 import { log } from '../utils/logger.js';
 import { config } from '../config/env.js';
 
+// Transform member data to match frontend expected field names
+const transformMemberForFrontend = (member) => {
+  return {
+    // Original fields (keep for backward compatibility)
+    ...member,
+    // Mapped fields for frontend
+    member_number: member.membership_number || member.id,
+    full_name_arabic: member.full_name || 'غير محدد',
+    phone_number: member.phone || '',
+    branch_arabic: member.tribal_section || 'غير محدد',
+    financial_status: member.balance_status || 'unknown',
+    // Balance fields
+    current_balance: parseFloat(member.current_balance) || 0,
+    required_balance: parseFloat(member.total_balance) || 0,
+    total_paid: parseFloat(member.total_paid) || 0,
+    // Status mapping
+    membership_status: member.membership_status || member.status || 'unknown'
+  };
+};
+
 export const getAllMembers = async (req, res) => {
   try {
     const {
       profile_completed,
       page = 1,
-      limit = 25, // Optimized default limit for better performance
+      limit = 100, // Increased default for monitoring dashboard
       search,
       status
     } = req.query;
 
     // Sanitize and validate inputs
     const pageNum = sanitizeNumber(page, 1, 10000, 1);
-    const pageLimit = sanitizeNumber(limit, 1, 500, 25); // Increased to 500 to support all 347 members
+    const pageLimit = sanitizeNumber(limit, 1, 1000, 100); // Increased max to 1000 to support all members
     const profileCompleted = profile_completed !== undefined ? sanitizeBoolean(profile_completed) : undefined;
     const membershipStatus = status === 'active' || status === 'inactive' ? status : undefined;
 
@@ -61,9 +81,12 @@ export const getAllMembers = async (req, res) => {
       throw error;
     }
 
+    // Transform all members to match frontend expected format
+    const transformedMembers = (members || []).map(transformMemberForFrontend);
+
     res.json({
       success: true,
-      data: members || [],
+      data: transformedMembers,
       pagination: {
         page: pageNum,
         limit: pageLimit,
