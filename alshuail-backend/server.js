@@ -45,6 +45,7 @@ import passwordManagementRoutes from './src/routes/passwordManagement.js';
 import profileRoutes from './src/routes/profile.js';
 import pushNotificationsRoutes from './src/routes/push-notifications.routes.js';
 import auditRoutes from './src/routes/audit.routes.js';
+import otpRoutes from './src/routes/otp.routes.js';
 import { log } from './src/utils/logger.js';
 import { config } from './src/config/env.js';
 import { errorHandler } from './src/utils/errorCodes.js';
@@ -289,6 +290,9 @@ app.use('/api/notifications/push', pushNotificationsRoutes);
 
 // Audit Log APIs - Track admin actions
 app.use('/api/audit', auditRoutes);
+
+// OTP Authentication APIs - WhatsApp OTP for mobile login
+app.use('/api/otp', otpRoutes);
 
 // Enhanced health check endpoint
 app.get('/api/health', async (req, res) => {
