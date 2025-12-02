@@ -185,6 +185,15 @@ export const config = {
     phoneNumber: getString('TWILIO_PHONE_NUMBER'),
     enabled: !!(getString('TWILIO_ACCOUNT_SID') && getString('TWILIO_AUTH_TOKEN') && getString('TWILIO_PHONE_NUMBER')),
   },
+
+  // Ultramsg (Easy WhatsApp API - Recommended)
+  // Sign up: https://ultramsg.com
+  // $39/month - Unlimited messages - No Docker needed
+  ultramsg: {
+    instanceId: getString('ULTRAMSG_INSTANCE_ID'),
+    token: getString('ULTRAMSG_TOKEN'),
+    enabled: !!(getString('ULTRAMSG_INSTANCE_ID') && getString('ULTRAMSG_TOKEN')),
+  },
 };
 
 // Log configuration on startup (non-sensitive info only)
@@ -198,6 +207,7 @@ if (isDevelopment) {
     frontendUrl: config.frontend.url,
     firebaseEnabled: config.firebase.enabled,
     twilioEnabled: config.twilio.enabled,
+    ultramsgEnabled: config.ultramsg.enabled,
   });
 }
 
@@ -212,8 +222,10 @@ if (isProduction) {
   if (!config.firebase.enabled) {
     console.warn('⚠️  Firebase credentials not configured. Push notifications will be disabled.');
   }
-  if (!config.twilio.enabled) {
-    console.warn('⚠️  Twilio credentials not configured. WhatsApp notifications will be disabled.');
+  if (!config.twilio.enabled && !config.ultramsg.enabled) {
+    console.warn('⚠️  No WhatsApp service configured. OTP and notifications will be disabled.');
+    console.warn('    Options: Set ULTRAMSG_INSTANCE_ID + ULTRAMSG_TOKEN (recommended)');
+    console.warn('         or: Set TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN + TWILIO_PHONE_NUMBER');
   }
 }
 
