@@ -12,7 +12,7 @@ import { supabase } from '../config/database.js';
  * @returns {boolean} Whether user has financial access
  */
 export const hasFinancialAccess = (userRole) => {
-  const allowedRoles = ['financial_manager', 'super_admin'];
+  const allowedRoles = ['financial_manager', 'super_admin', 'admin', 'operational_manager'];
   return allowedRoles.includes(userRole);
 };
 
