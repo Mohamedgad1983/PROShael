@@ -46,6 +46,7 @@ import profileRoutes from './src/routes/profile.js';
 import pushNotificationsRoutes from './src/routes/push-notifications.routes.js';
 import auditRoutes from './src/routes/audit.routes.js';
 import otpRoutes from './src/routes/otp.routes.js';
+import expenseCategoriesRoutes from './src/routes/expenseCategories.js';
 import { log } from './src/utils/logger.js';
 import { config } from './src/config/env.js';
 import { errorHandler } from './src/utils/errorCodes.js';
@@ -293,6 +294,9 @@ app.use('/api/audit', auditRoutes);
 
 // OTP Authentication APIs - WhatsApp OTP for mobile login
 app.use('/api/otp', otpRoutes);
+
+// Expense Categories APIs - Dynamic expense category management
+app.use('/api/expense-categories', expenseCategoriesRoutes);
 
 // Enhanced health check endpoint
 app.get('/api/health', async (req, res) => {
