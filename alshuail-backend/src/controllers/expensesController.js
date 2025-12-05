@@ -80,13 +80,13 @@ export const getExpenses = async (req, res) => {
       .select(`
         *,
         paid_by_member:members!paid_by(
-          id, full_name, membership_number, phone, email
+          id, full_name, full_name_ar, membership_number, phone, email
         ),
         approved_by_user:users!approved_by(
-          id, full_name, email, role
+          id, full_name_ar, full_name_en, email, role
         ),
         created_by_user:users!created_by(
-          id, full_name, email, role
+          id, full_name_ar, full_name_en, email, role
         )
       `)
       .range(offset, offset + limit - 1);
@@ -303,9 +303,9 @@ export const createExpense = async (req, res) => {
       .insert([expenseData])
       .select(`
         *,
-        paid_by_member:members!paid_by(full_name, membership_number),
-        approved_by_user:users!approved_by(full_name, role),
-        created_by_user:users!created_by(full_name, role)
+        paid_by_member:members!paid_by(full_name, full_name_ar, membership_number),
+        approved_by_user:users!approved_by(full_name_ar, full_name_en, role),
+        created_by_user:users!created_by(full_name_ar, full_name_en, role)
       `)
       .single();
 
@@ -440,9 +440,9 @@ export const approveExpense = async (req, res) => {
       .eq('id', expenseId)
       .select(`
         *,
-        paid_by_member:members!paid_by(full_name, phone, email),
-        approved_by_user:users!approved_by(full_name, role),
-        created_by_user:users!created_by(full_name, email)
+        paid_by_member:members!paid_by(full_name, full_name_ar, phone, email),
+        approved_by_user:users!approved_by(full_name_ar, full_name_en, role),
+        created_by_user:users!created_by(full_name_ar, full_name_en, email)
       `)
       .single();
 
@@ -564,9 +564,9 @@ export const updateExpense = async (req, res) => {
       .eq('id', expenseId)
       .select(`
         *,
-        paid_by_member:members!paid_by(full_name, membership_number),
-        approved_by_user:users!approved_by(full_name, role),
-        created_by_user:users!created_by(full_name, role)
+        paid_by_member:members!paid_by(full_name, full_name_ar, membership_number),
+        approved_by_user:users!approved_by(full_name_ar, full_name_en, role),
+        created_by_user:users!created_by(full_name_ar, full_name_en, role)
       `)
       .single();
 
@@ -644,13 +644,13 @@ export const getExpenseById = async (req, res) => {
       .select(`
         *,
         paid_by_member:members!paid_by(
-          id, full_name, membership_number, phone, email
+          id, full_name, full_name_ar, membership_number, phone, email
         ),
         approved_by_user:users!approved_by(
-          id, full_name, email, role
+          id, full_name_ar, full_name_en, email, role
         ),
         created_by_user:users!created_by(
-          id, full_name, email, role
+          id, full_name_ar, full_name_en, email, role
         )
       `)
       .eq('id', expenseId)
@@ -669,7 +669,7 @@ export const getExpenseById = async (req, res) => {
       .from('financial_audit_trail')
       .select(`
         *,
-        user:users!user_id(full_name, role)
+        user:users!user_id(full_name_ar, full_name_en, role)
       `)
       .eq('resource_type', 'expense')
       .eq('resource_id', expenseId)
