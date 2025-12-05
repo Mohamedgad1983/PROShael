@@ -56,9 +56,19 @@ const authenticateUser = (req, res, next) => {
  */
 const requireFinancialAccess = (req, res, next) => {
   const userRole = req.user?.role;
+  const userPermissions = req.user?.permissions;
 
-  // Updated to use the correct role names from the system
-  if (!userRole || !['super_admin', 'financial_manager', 'operational_manager'].includes(userRole)) {
+  // Check if user has financial access through role or permissions
+  const allowedRoles = ['super_admin', 'financial_manager', 'operational_manager', 'admin'];
+  const hasRoleAccess = userRole && allowedRoles.includes(userRole);
+  const hasPermissionAccess = userPermissions && (
+    userPermissions.all_access === true ||
+    userPermissions.manage_finances === true ||
+    userPermissions.view_reports === true
+  );
+
+  if (!hasRoleAccess && !hasPermissionAccess) {
+    log.warn(`Financial access denied for user role: ${userRole}, permissions: ${JSON.stringify(userPermissions)}`);
     return res.status(403).json({
       success: false,
       error: 'ليس لديك صلاحية للوصول إلى العمليات المالية',
