@@ -105,6 +105,101 @@ router.post('/upload', authenticateToken, upload.single('document'), async (req,
   }
 });
 
+// Get all documents (admin view with pagination)
+router.get('/', authenticateToken, async (req, res) => {
+  try {
+    // Only admin/super_admin can view all documents
+    if (!['admin', 'super_admin', 'financial_manager'].includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: 'غير مصرح',
+        message_en: 'Unauthorized - Admin access required'
+      });
+    }
+
+    const {
+      category,
+      search,
+      memberId,
+      page = 1,
+      limit = 25
+    } = req.query;
+
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+
+    // Build query
+    let query = supabase
+      .from('documents_metadata')
+      .select(`
+        *,
+        members!inner(full_name_ar, full_name, membership_id)
+      `, { count: 'exact' })
+      .eq('status', 'active')
+      .order('created_at', { ascending: false });
+
+    if (memberId) {
+      query = query.eq('member_id', memberId);
+    }
+
+    if (category) {
+      query = query.eq('category', category);
+    }
+
+    if (search) {
+      query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
+    }
+
+    // Apply pagination
+    query = query.range(offset, offset + parseInt(limit) - 1);
+
+    const { data: documents, error, count } = await query;
+
+    if (error) {throw error;}
+
+    // Add category translations and signed URLs
+    const documentsWithDetails = await Promise.all((documents || []).map(async (doc) => {
+      const signedUrl = await getSignedUrl(doc.file_path);
+      return {
+        id: doc.id,
+        member_id: doc.member_id,
+        title: doc.title,
+        description: doc.description,
+        category: doc.category,
+        category_name: CATEGORY_TRANSLATIONS[doc.category],
+        file_url: signedUrl,
+        file_name: doc.original_name,
+        file_size: doc.file_size,
+        mime_type: doc.file_type,
+        uploaded_at: doc.created_at,
+        member: doc.members ? {
+          full_name_ar: doc.members.full_name_ar,
+          full_name: doc.members.full_name,
+          membership_id: doc.members.membership_id
+        } : null
+      };
+    }));
+
+    res.json({
+      success: true,
+      data: documentsWithDetails,
+      documents: documentsWithDetails,
+      total: count || 0,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      totalPages: Math.ceil((count || 0) / parseInt(limit))
+    });
+
+  } catch (error) {
+    log.error('Fetch all documents error:', { error: error.message });
+    res.status(500).json({
+      success: false,
+      message: 'خطأ في جلب المستندات',
+      message_en: 'Error fetching documents',
+      error: error.message
+    });
+  }
+});
+
 // Get all documents for a member
 router.get('/member/:memberId?', authenticateToken, async (req, res) => {
   try {
@@ -164,6 +259,52 @@ router.get('/member/:memberId?', authenticateToken, async (req, res) => {
   }
 });
 
+// Download document (redirect to signed URL)
+router.get('/:documentId/download', authenticateToken, async (req, res) => {
+  try {
+    const { documentId } = req.params;
+
+    const { data: document, error } = await supabase
+      .from('documents_metadata')
+      .select('*')
+      .eq('id', documentId)
+      .single();
+
+    if (error || !document) {
+      return res.status(404).json({
+        success: false,
+        message: 'المستند غير موجود',
+        message_en: 'Document not found'
+      });
+    }
+
+    // Check permission - admin/super_admin can download any document
+    if (document.member_id !== req.user.id &&
+        !['admin', 'super_admin', 'financial_manager'].includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: 'غير مصرح',
+        message_en: 'Unauthorized'
+      });
+    }
+
+    // Generate signed URL for download (1 hour expiry)
+    const signedUrl = await getSignedUrl(document.file_path, 3600);
+
+    // Redirect to signed URL for direct download
+    res.redirect(signedUrl);
+
+  } catch (error) {
+    log.error('Download error:', { error: error.message });
+    res.status(500).json({
+      success: false,
+      message: 'خطأ في تحميل المستند',
+      message_en: 'Error downloading document',
+      error: error.message
+    });
+  }
+});
+
 // Get single document
 router.get('/:documentId', authenticateToken, async (req, res) => {
   try {
@@ -183,8 +324,9 @@ router.get('/:documentId', authenticateToken, async (req, res) => {
       });
     }
 
-    // Check permission
-    if (document.member_id !== req.user.id && req.user.role !== 'admin') {
+    // Check permission - admin/super_admin can view any document
+    if (document.member_id !== req.user.id &&
+        !['admin', 'super_admin', 'financial_manager'].includes(req.user.role)) {
       return res.status(403).json({
         success: false,
         message: 'غير مصرح',
@@ -228,7 +370,8 @@ router.put('/:documentId', authenticateToken, async (req, res) => {
       .eq('id', documentId)
       .single();
 
-    if (!existing || (existing.member_id !== req.user.id && req.user.role !== 'admin')) {
+    if (!existing || (existing.member_id !== req.user.id &&
+        !['admin', 'super_admin', 'financial_manager'].includes(req.user.role))) {
       return res.status(403).json({
         success: false,
         message: 'غير مصرح',
@@ -293,8 +436,9 @@ router.delete('/:documentId', authenticateToken, async (req, res) => {
       });
     }
 
-    // Check permission
-    if (document.member_id !== req.user.id && req.user.role !== 'admin') {
+    // Check permission - admin/super_admin can delete any document
+    if (document.member_id !== req.user.id &&
+        !['admin', 'super_admin', 'financial_manager'].includes(req.user.role)) {
       return res.status(403).json({
         success: false,
         message: 'غير مصرح',

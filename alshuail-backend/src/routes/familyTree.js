@@ -478,4 +478,238 @@ router.get('/search', authenticateToken, async (req, res) => {
   }
 });
 
+// GET /api/family-tree/my-branch
+// Get current user's branch and branch members
+router.get('/my-branch', authenticateToken, async (req, res) => {
+  try {
+    const memberId = req.user.memberId;
+
+    // Get current member with their branch info
+    const { data: member, error: memberError } = await supabase
+      .from('members')
+      .select('id, family_branch_id, tribal_section')
+      .eq('id', memberId)
+      .single();
+
+    if (memberError || !member) {
+      return res.status(404).json({
+        success: false,
+        message: 'العضو غير موجود'
+      });
+    }
+
+    // Get branch info
+    let branchInfo = null;
+    if (member.family_branch_id) {
+      const { data: branch } = await supabase
+        .from('family_branches')
+        .select('id, branch_name_ar, branch_name_en, member_count')
+        .eq('id', member.family_branch_id)
+        .single();
+
+      if (branch) {
+        branchInfo = branch;
+      }
+    }
+
+    // Get all members in the same branch
+    let branchMembers = [];
+    if (member.family_branch_id) {
+      const { data: members } = await supabase
+        .from('members')
+        .select('id, membership_id, full_name_ar, status')
+        .eq('family_branch_id', member.family_branch_id)
+        .order('full_name_ar');
+
+      branchMembers = members || [];
+    }
+
+    res.json({
+      success: true,
+      branch: {
+        id: branchInfo?.id || member.family_branch_id,
+        name: branchInfo?.branch_name_ar || member.tribal_section || 'غير محدد',
+        member_count: branchInfo?.member_count || branchMembers.length
+      },
+      members: branchMembers
+    });
+
+  } catch (error) {
+    log.error('Error fetching my branch:', { error: error.message });
+    res.status(500).json({
+      success: false,
+      message: 'حدث خطأ في جلب بيانات الفخذ',
+      error: error.message
+    });
+  }
+});
+
+// POST /api/family-tree/add-child
+// Add a new child member to the family tree
+router.post('/add-child', authenticateToken, async (req, res) => {
+  try {
+    const parentMemberId = req.user.memberId;
+    const { full_name, gender, birth_date } = req.body;
+
+    // Validate required fields
+    if (!full_name || !full_name.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'اسم الطفل مطلوب'
+      });
+    }
+
+    // Get parent member details
+    const { data: parentMember, error: parentError } = await supabase
+      .from('members')
+      .select('id, family_branch_id, generation_level, full_name, full_name_ar, gender')
+      .eq('id', parentMemberId)
+      .single();
+
+    if (parentError || !parentMember) {
+      log.error('Parent member not found:', { parentMemberId, error: parentError?.message });
+      return res.status(404).json({
+        success: false,
+        message: 'لم يتم العثور على بيانات العضو الأب'
+      });
+    }
+
+    // Generate new membership_id (SH-XXXX format)
+    const { data: lastMember } = await supabase
+      .from('members')
+      .select('membership_id')
+      .like('membership_id', 'SH-%')
+      .order('membership_id', { ascending: false })
+      .limit(1)
+      .single();
+
+    let newMembershipNumber = 1;
+    if (lastMember && lastMember.membership_id) {
+      const lastNumber = parseInt(lastMember.membership_id.replace('SH-', ''), 10);
+      if (!isNaN(lastNumber)) {
+        newMembershipNumber = lastNumber + 1;
+      }
+    }
+    const newMembershipId = `SH-${String(newMembershipNumber).padStart(4, '0')}`;
+
+    // Calculate generation level (parent's level + 1)
+    const childGenerationLevel = (parentMember.generation_level || 1) + 1;
+
+    // Determine relationship type based on parent's gender
+    const relationshipType = parentMember.gender === 'female' ? 'mother' : 'father';
+    const relationshipNameAr = parentMember.gender === 'female' ? 'أم' : 'أب';
+
+    // Create the child member record
+    const childData = {
+      membership_id: newMembershipId,
+      full_name: full_name.trim(),
+      full_name_ar: full_name.trim(),
+      gender: gender || null,
+      birth_date: birth_date || null,
+      family_branch_id: parentMember.family_branch_id,
+      parent_member_id: parentMemberId,
+      generation_level: childGenerationLevel,
+      status: 'active',
+      is_active: true,
+      membership_status: 'pending',
+      current_balance: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    const { data: newChild, error: childError } = await supabase
+      .from('members')
+      .insert(childData)
+      .select()
+      .single();
+
+    if (childError) {
+      log.error('Error creating child member:', { error: childError.message, childData });
+      throw childError;
+    }
+
+    // Create family relationship record (parent -> child)
+    const relationshipData = {
+      member_from: parentMemberId,
+      member_to: newChild.id,
+      relationship_type: relationshipType,
+      relationship_name_ar: relationshipNameAr,
+      relationship_name_en: relationshipType,
+      is_active: true,
+      created_at: new Date().toISOString()
+    };
+
+    const { error: relationshipError } = await supabase
+      .from('family_relationships')
+      .insert(relationshipData);
+
+    if (relationshipError) {
+      log.warn('Error creating family relationship (non-critical):', { error: relationshipError.message });
+      // Continue even if relationship creation fails - member is already created
+    }
+
+    // Update branch member count
+    if (parentMember.family_branch_id) {
+      await supabase.rpc('increment_branch_member_count', {
+        branch_id: parentMember.family_branch_id
+      }).catch(() => {
+        // Silently fail if RPC doesn't exist
+      });
+    }
+
+    // Create audit log entry
+    try {
+      await supabase
+        .from('audit_logs')
+        .insert({
+          user_id: req.user.id,
+          action: 'ADD_CHILD',
+          entity_type: 'member',
+          entity_id: newChild.id,
+          details: {
+            parent_id: parentMemberId,
+            parent_name: parentMember.full_name || parentMember.full_name_ar,
+            child_name: full_name,
+            membership_id: newMembershipId
+          },
+          ip_address: req.ip || req.connection?.remoteAddress,
+          created_at: new Date().toISOString()
+        });
+    } catch (auditError) {
+      log.warn('Failed to create audit log:', { error: auditError.message });
+    }
+
+    log.info('Child member added successfully', {
+      parentId: parentMemberId,
+      childId: newChild.id,
+      membershipId: newMembershipId
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'تمت إضافة الطفل بنجاح',
+      data: {
+        id: newChild.id,
+        membership_id: newChild.membership_id,
+        full_name: newChild.full_name,
+        full_name_ar: newChild.full_name_ar,
+        gender: newChild.gender,
+        birth_date: newChild.birth_date,
+        parent_member_id: newChild.parent_member_id,
+        family_branch_id: newChild.family_branch_id,
+        generation_level: newChild.generation_level,
+        status: newChild.status
+      }
+    });
+
+  } catch (error) {
+    log.error('Error adding child member:', { error: error.message, stack: error.stack });
+    res.status(500).json({
+      success: false,
+      message: 'حدث خطأ أثناء إضافة الطفل',
+      error: error.message
+    });
+  }
+});
+
 export default router;
