@@ -6,7 +6,7 @@ import { log } from '../utils/logger.js';
 
 const router = express.Router();
 
-// Authentication middleware
+// Authentication middleware - checks both users and members tables
 const authenticateToken = async (req, res, next) => {
   try {
     const authHeader = req.header('Authorization');
@@ -21,18 +21,30 @@ const authenticateToken = async (req, res, next) => {
     const token = authHeader.replace('Bearer ', '');
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    const { data: user, error } = await supabase
-      .from('members')
+    // First try to find user in 'users' table (admin users)
+    let { data: user, error } = await supabase
+      .from('users')
       .select('*')
       .eq('id', decoded.id)
       .eq('is_active', true)
       .single();
 
+    // If not found in users table, try members table
     if (error || !user) {
-      return res.status(401).json({
-        success: false,
-        message: 'المستخدم غير موجود أو غير نشط'
-      });
+      const { data: memberUser, error: memberError } = await supabase
+        .from('members')
+        .select('*')
+        .eq('id', decoded.id)
+        .eq('is_active', true)
+        .single();
+
+      if (memberError || !memberUser) {
+        return res.status(401).json({
+          success: false,
+          message: 'المستخدم غير موجود أو غير نشط'
+        });
+      }
+      user = memberUser;
     }
 
     req.user = user;
@@ -182,34 +194,94 @@ router.put('/system', authenticateToken, requireRole(['super_admin']), async (re
   }
 });
 
-// Get all users - Super Admin only
+// Get all users - Super Admin only (queries both users and members tables)
 router.get('/users', authenticateToken, requireRole(['super_admin']), async (req, res) => {
   try {
     const { role, status, search } = req.query;
 
-    let query = supabase
-      .from('members')
-      .select('id, full_name, email, phone, role, is_active, created_at, last_login')
+    // Admin roles stored in 'users' table
+    const adminRoles = ['super_admin', 'admin', 'financial_manager', 'family_tree_admin', 'occasions_initiatives_diyas_admin', 'operational_manager'];
+
+    // Query users table (admin users)
+    let usersQuery = supabase
+      .from('users')
+      .select('id, full_name_ar, full_name_en, email, phone, role, is_active, created_at, last_login')
       .order('created_at', { ascending: false });
 
+    // Query members table (member users with roles)
+    let membersQuery = supabase
+      .from('members')
+      .select('id, full_name, email, phone, role, is_active, created_at, last_login')
+      .in('role', ['super_admin', 'admin', 'financial_manager', 'family_tree_admin', 'occasions_initiatives_diyas_admin', 'operational_manager', 'member'])
+      .order('created_at', { ascending: false });
+
+    // Apply filters
     if (role) {
-      query = query.eq('role', role);
+      usersQuery = usersQuery.eq('role', role);
+      membersQuery = membersQuery.eq('role', role);
     }
 
     if (status === 'active') {
-      query = query.eq('is_active', true);
+      usersQuery = usersQuery.eq('is_active', true);
+      membersQuery = membersQuery.eq('is_active', true);
     } else if (status === 'inactive') {
-      query = query.eq('is_active', false);
+      usersQuery = usersQuery.eq('is_active', false);
+      membersQuery = membersQuery.eq('is_active', false);
     }
 
     if (search) {
-      query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%`);
+      usersQuery = usersQuery.or(`full_name_ar.ilike.%${search}%,full_name_en.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%`);
+      membersQuery = membersQuery.or(`full_name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%`);
     }
 
-    const { data: users, error } = await query;
+    // Execute both queries
+    const [usersResult, membersResult] = await Promise.all([
+      usersQuery,
+      membersQuery
+    ]);
 
-    if (error) {throw error;}
-    res.json(users || []);
+    // Combine results from both tables
+    const adminUsers = (usersResult.data || []).map(u => ({
+      id: u.id,
+      full_name: u.full_name_ar || u.full_name_en || u.email,
+      email: u.email,
+      phone: u.phone,
+      role: u.role,
+      is_active: u.is_active,
+      created_at: u.created_at,
+      last_login: u.last_login,
+      source: 'users'
+    }));
+
+    const memberUsers = (membersResult.data || [])
+      .filter(m => adminRoles.includes(m.role)) // Only include members with admin roles
+      .map(m => ({
+        id: m.id,
+        full_name: m.full_name,
+        email: m.email,
+        phone: m.phone,
+        role: m.role,
+        is_active: m.is_active,
+        created_at: m.created_at,
+        last_login: m.last_login,
+        source: 'members'
+      }));
+
+    // Combine and deduplicate by email
+    const allUsers = [...adminUsers];
+    const existingEmails = new Set(adminUsers.map(u => u.email?.toLowerCase()));
+
+    memberUsers.forEach(m => {
+      if (m.email && !existingEmails.has(m.email.toLowerCase())) {
+        allUsers.push(m);
+        existingEmails.add(m.email.toLowerCase());
+      }
+    });
+
+    // Sort by created_at descending
+    allUsers.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    res.json(allUsers);
   } catch (error) {
     log.error('Failed to fetch users', { error: error.message });
     res.status(500).json({ error: 'Failed to fetch users' });
