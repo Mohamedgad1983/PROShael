@@ -5,6 +5,10 @@ import { requireRole } from '../middleware/rbacMiddleware.js';
 
 const router = express.Router();
 
+// Optimized endpoints for statement page (server-side pagination)
+router.get('/counts', requireRole(['super_admin', 'financial_manager', 'admin']), statementController.getMemberStatementCounts);
+router.get('/members', requireRole(['super_admin', 'financial_manager', 'admin']), statementController.getPaginatedMembersForStatement);
+
 // Search endpoints - require authentication
 router.get('/search/phone', requireRole(['super_admin', 'financial_manager', 'member']), statementController.searchByPhone);
 router.get('/search/name', requireRole(['super_admin', 'financial_manager', 'member']), statementController.searchByName);
