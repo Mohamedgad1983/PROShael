@@ -367,8 +367,10 @@ export const recordPayment = async (req, res) => {
 
     if (_paymentError) {throw _paymentError;}
 
-    // Calculate new values
-    const new_balance = (subscription.current_balance || 0) + amount;
+    // Calculate new values - cap balance at 3000 SAR (50 SAR × 60 months = 5 years max)
+    const MAX_BALANCE = 3000;
+    const calculated_balance = (subscription.current_balance || 0) + amount;
+    const new_balance = Math.min(calculated_balance, MAX_BALANCE);
     const months_paid_ahead = Math.floor(new_balance / 50);
     const next_payment_due = new Date();
     next_payment_due.setMonth(next_payment_due.getMonth() + months_paid_ahead);
