@@ -69,6 +69,11 @@ log.info('Environment Check on Start:', {
 
 const app = express();
 const PORT = config.port;
+
+// Trust proxy - required for express-rate-limit behind Nginx/reverse proxy
+// This allows correct IP identification from X-Forwarded-For header
+app.set('trust proxy', 1);
+
 // Deploy trigger: Family tree API enhanced with marriage tracking
 
 // Get __dirname equivalent for ES modules
