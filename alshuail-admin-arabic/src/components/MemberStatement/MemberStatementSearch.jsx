@@ -1,11 +1,13 @@
 ﻿import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { MagnifyingGlassIcon, PhoneIcon, UserIcon, PrinterIcon, DocumentArrowDownIcon, HomeIcon, CalendarIcon, CurrencyDollarIcon, CheckCircleIcon, XCircleIcon, ClockIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, PhoneIcon, UserIcon, PrinterIcon, DocumentArrowDownIcon, HomeIcon, CalendarIcon, CurrencyDollarIcon, CheckCircleIcon, XCircleIcon, ClockIcon, AdjustmentsHorizontalIcon } from '@heroicons/react/24/outline';
 // Using API instead of direct Supabase connection
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { motion, AnimatePresence } from 'framer-motion';
 import { logger } from '../../utils/logger';
+import { useAuth } from '../../contexts/AuthContext';
+import BalanceAdjustmentModal from './BalanceAdjustmentModal';
 
 import './MemberStatementSearch.css';
 import './MemberStatementSearchEnhanced.css';
@@ -26,6 +28,11 @@ const MemberStatementSearch = () => {
   });
   const [itemsPerPage, setItemsPerPage] = useState(20); // Default 20 items per page
   const [currentPage, setCurrentPage] = useState(1);
+  const [showAdjustModal, setShowAdjustModal] = useState(false);
+
+  // Get user role for balance adjustment permission
+  const { user } = useAuth();
+  const canAdjustBalance = user?.role === 'super_admin' || user?.role === 'financial_manager' || user?.role === 'admin';
 
   // Yearly payment requirements
   const YEARLY_AMOUNT = 600; // SAR per year
@@ -69,7 +76,7 @@ const MemberStatementSearch = () => {
         full_name: m.full_name,
         phone: m.phone,
         tribal_section: m.tribal_section,
-        balance: m.balance || 0
+        balance: m.current_balance ?? 0
       }));
 
       setSearchResults(results);
@@ -108,7 +115,7 @@ const MemberStatementSearch = () => {
             full_name: m.full_name,
             phone: m.phone,
             tribal_section: m.tribal_section,
-            balance: m.balance || 0
+            balance: m.current_balance ?? 0
           }));
 
           setSearchResults(results);
@@ -356,7 +363,7 @@ const MemberStatementSearch = () => {
           full_name: m.full_name,
           phone: m.phone,
           tribal_section: m.tribal_section,
-          balance: m.balance || 0
+          balance: m.current_balance ?? 0
         }));
 
         setSearchResults(results);
@@ -594,6 +601,55 @@ const MemberStatementSearch = () => {
   const handleNextPage = useCallback(() => {
     setCurrentPage(prev => Math.min(totalPages, prev + 1));
   }, [totalPages]);
+
+  // Handle balance adjustment success - refresh member data
+  const handleAdjustmentSuccess = useCallback(async () => {
+    if (selectedMember) {
+      // Reload the member statement to show updated balance
+      await loadMemberStatement(selectedMember);
+    }
+    // Also refresh the member list to update balance in the list view
+    try {
+      const API_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
+      const token = localStorage.getItem('token');
+      const response = await fetch(
+        `${API_URL}/api/members?limit=500`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      if (response.ok) {
+        const apiData = await response.json();
+        const members = apiData.data || apiData.members || [];
+
+        const results = members.map(m => ({
+          id: m.id,
+          member_no: m.membership_number || m.member_no,
+          full_name: m.full_name,
+          phone: m.phone,
+          tribal_section: m.tribal_section,
+          balance: m.current_balance ?? 0
+        }));
+
+        setSearchResults(results);
+      }
+    } catch (error) {
+      logger.error('Error refreshing members after adjustment:', { error });
+    }
+  }, [selectedMember, loadMemberStatement]);
+
+  // Handle open adjust modal
+  const handleOpenAdjustModal = useCallback(() => {
+    setShowAdjustModal(true);
+  }, []);
+
+  // Handle close adjust modal
+  const handleCloseAdjustModal = useCallback(() => {
+    setShowAdjustModal(false);
+  }, []);
 
   return (
     <div className="enhanced-statement-container">
@@ -953,6 +1009,17 @@ const MemberStatementSearch = () => {
                 </div>
               </div>
               <div className="statement-actions">
+                {/* Balance Adjustment Button - Only for authorized roles */}
+                {canAdjustBalance && (
+                  <button
+                    onClick={handleOpenAdjustModal}
+                    className="action-btn adjust-btn"
+                    title="تعديل رصيد العضو"
+                  >
+                    <AdjustmentsHorizontalIcon className="btn-icon" />
+                    تعديل الرصيد
+                  </button>
+                )}
                 <button onClick={handlePrint} className="action-btn print-btn">
                   <PrinterIcon className="btn-icon" />
                   طباعة
@@ -1148,6 +1215,21 @@ const MemberStatementSearch = () => {
             </div>
           </div>
         </motion.div>
+      )}
+
+      {/* Balance Adjustment Modal */}
+      {selectedMember && (
+        <BalanceAdjustmentModal
+          isOpen={showAdjustModal}
+          onClose={handleCloseAdjustModal}
+          member={{
+            id: selectedMember.id,
+            full_name: selectedMember.full_name,
+            membership_number: selectedMember.member_no,
+            current_balance: selectedMember.balance
+          }}
+          onSuccess={handleAdjustmentSuccess}
+        />
       )}
       </div>
     </div>

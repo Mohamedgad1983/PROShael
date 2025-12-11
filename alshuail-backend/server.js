@@ -47,6 +47,7 @@ import pushNotificationsRoutes from './src/routes/push-notifications.routes.js';
 import auditRoutes from './src/routes/audit.routes.js';
 import otpRoutes from './src/routes/otp.routes.js';
 import expenseCategoriesRoutes from './src/routes/expenseCategories.js';
+import balanceAdjustmentsRoutes from './src/routes/balanceAdjustments.js';
 import { log } from './src/utils/logger.js';
 import { config } from './src/config/env.js';
 import { errorHandler } from './src/utils/errorCodes.js';
@@ -297,6 +298,9 @@ app.use('/api/otp', otpRoutes);
 
 // Expense Categories APIs - Dynamic expense category management
 app.use('/api/expense-categories', expenseCategoriesRoutes);
+
+// Balance Adjustments APIs - Member balance management with audit trail
+app.use('/api/balance-adjustments', balanceAdjustmentsRoutes);
 
 // Enhanced health check endpoint
 app.get('/api/health', async (req, res) => {

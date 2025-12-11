@@ -854,6 +854,41 @@
   background: #e0e0e0;
 }
 
+/* Balance Adjustment Button */
+.adjust-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.adjust-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.adjust-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+}
+
+.adjust-btn:hover::before {
+  opacity: 1;
+}
+
+.adjust-btn .btn-icon,
+.adjust-btn span {
+  position: relative;
+  z-index: 1;
+}
+
 /* Statement Table */
 .statement-table-wrapper {
   overflow-x: auto;
