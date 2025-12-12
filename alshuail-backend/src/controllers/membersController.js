@@ -1013,3 +1013,74 @@ export const updateMemberProfile = async (req, res) => {
     });
   }
 };
+
+/**
+ * Search members for pay-on-behalf feature
+ * GET /api/members/search?q={query}&limit=10
+ * Returns minimal member data for selection in payment flow
+ */
+export const searchMembers = async (req, res) => {
+  try {
+    const { q, limit = 10 } = req.query;
+
+    // Validate search query
+    if (!q || q.trim().length < 2) {
+      return res.status(400).json({
+        success: false,
+        error: 'يجب أن يحتوي البحث على حرفين على الأقل'
+      });
+    }
+
+    const searchTerm = sanitizeSearchTerm(q.trim());
+    const searchLimit = Math.min(sanitizeNumber(limit, 10), 20); // Max 20 results
+
+    // Search by membership_number, full_name, or phone
+    // Using ilike for case-insensitive partial matching
+    const { data: members, error } = await supabase
+      .from('members')
+      .select(`
+        id,
+        membership_number,
+        full_name,
+        phone,
+        current_balance,
+        balance,
+        total_paid,
+        membership_status
+      `)
+      .or(`membership_number.ilike.%${searchTerm}%,full_name.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%`)
+      .eq('membership_status', 'active')
+      .limit(searchLimit);
+
+    if (error) {
+      log.error('Error searching members:', error);
+      throw error;
+    }
+
+    // Transform results to expected format
+    const transformedMembers = (members || []).map(member => {
+      const balance = parseFloat(member.current_balance) || parseFloat(member.balance) || parseFloat(member.total_paid) || 0;
+      const expectedByNow = calculateExpectedPayment();
+
+      return {
+        id: member.id,
+        membership_number: member.membership_number,
+        full_name_ar: member.full_name,
+        phone: member.phone,
+        balance: balance,
+        is_below_minimum: balance < expectedByNow
+      };
+    });
+
+    res.json({
+      success: true,
+      data: transformedMembers
+    });
+  } catch (error) {
+    log.error('Member search error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'فشل في البحث عن الأعضاء'
+    });
+  }
+};
