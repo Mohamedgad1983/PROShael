@@ -140,7 +140,7 @@ export const getBankTransferRequests = async (filters = {}) => {
         *,
         requester:members!bank_transfer_requests_requester_id_fkey(id, full_name, membership_number, phone),
         beneficiary:members!bank_transfer_requests_beneficiary_id_fkey(id, full_name, membership_number, phone),
-        reviewer:users!bank_transfer_requests_reviewed_by_fkey(id, full_name, email)
+        reviewer:users!bank_transfer_requests_reviewed_by_fkey(id, full_name_ar, email)
       `, { count: 'exact' })
       .order('created_at', { ascending: false });
 
@@ -186,7 +186,7 @@ export const getBankTransferById = async (transferId) => {
         *,
         requester:members!bank_transfer_requests_requester_id_fkey(id, full_name, membership_number, phone, email),
         beneficiary:members!bank_transfer_requests_beneficiary_id_fkey(id, full_name, membership_number, phone, email),
-        reviewer:users!bank_transfer_requests_reviewed_by_fkey(id, full_name, email)
+        reviewer:users!bank_transfer_requests_reviewed_by_fkey(id, full_name_ar, email)
       `)
       .eq('id', transferId)
       .single();

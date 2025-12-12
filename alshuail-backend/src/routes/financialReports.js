@@ -43,7 +43,7 @@ const authenticateUser = (req, res, next) => {
 const requireFinancialReportAccess = (req, res, next) => {
   const userRole = req.user?.role;
 
-  if (!userRole || !['admin', 'financial_manager', 'treasurer', 'auditor'].includes(userRole)) {
+  if (!userRole || !['super_admin', 'admin', 'financial_manager', 'treasurer', 'auditor'].includes(userRole)) {
     return res.status(403).json({
       success: false,
       error: 'ليس لديك صلاحية للوصول إلى التقارير المالية'
@@ -60,7 +60,7 @@ const requireFinancialReportAccess = (req, res, next) => {
 const requireForensicAccess = (req, res, next) => {
   const userRole = req.user?.role;
 
-  if (!userRole || !['admin', 'auditor'].includes(userRole)) {
+  if (!userRole || !['super_admin', 'admin', 'auditor'].includes(userRole)) {
     return res.status(403).json({
       success: false,
       error: 'ليس لديك صلاحية للوصول إلى التقارير التدقيقية'
