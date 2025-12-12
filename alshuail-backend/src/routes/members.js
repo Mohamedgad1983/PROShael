@@ -15,7 +15,8 @@ import {
   getMemberBalance,
   getMemberTransactions,
   getMemberNotifications,
-  updateMemberProfile
+  updateMemberProfile,
+  searchMembers
 } from '../controllers/membersController.js';
 import { getAllMembersForMonitoring } from '../controllers/membersMonitoringController.js';
 import { log } from '../utils/logger.js';
@@ -60,6 +61,10 @@ router.get('/', requireRole(['super_admin', 'admin', 'financial_manager']), getA
 router.get('/monitoring/all', requireRole(['super_admin', 'admin', 'financial_manager']), getAllMembersForMonitoring);
 router.get('/statistics', requireRole(['super_admin', 'financial_manager']), getMemberStatistics);
 router.get('/incomplete-profiles', requireRole(['super_admin', 'financial_manager']), getIncompleteProfiles);
+
+// Member search for pay-on-behalf feature - accessible by any authenticated member
+router.get('/search', requireRole(['member', 'super_admin', 'admin', 'financial_manager']), searchMembers);
+
 router.get('/:id', requireRole(['super_admin', 'financial_manager', 'member']), getMemberById);
 router.post('/', requireRole(['super_admin']), createMember);
 router.put('/:id', requireRole(['super_admin']), updateMember);

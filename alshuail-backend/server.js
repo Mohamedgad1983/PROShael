@@ -48,6 +48,7 @@ import auditRoutes from './src/routes/audit.routes.js';
 import otpRoutes from './src/routes/otp.routes.js';
 import expenseCategoriesRoutes from './src/routes/expenseCategories.js';
 import balanceAdjustmentsRoutes from './src/routes/balanceAdjustments.js';
+import bankTransfersRoutes from './src/routes/bankTransfers.js';
 import { log } from './src/utils/logger.js';
 import { config } from './src/config/env.js';
 import { errorHandler } from './src/utils/errorCodes.js';
@@ -306,6 +307,9 @@ app.use('/api/expense-categories', expenseCategoriesRoutes);
 
 // Balance Adjustments APIs - Member balance management with audit trail
 app.use('/api/balance-adjustments', balanceAdjustmentsRoutes);
+
+// Bank transfer requests (pay-on-behalf feature)
+app.use('/api/bank-transfers', bankTransfersRoutes);
 
 // Enhanced health check endpoint
 app.get('/api/health', async (req, res) => {

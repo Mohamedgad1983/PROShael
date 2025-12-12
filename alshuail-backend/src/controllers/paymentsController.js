@@ -16,6 +16,7 @@ export const getAllPayments = async (req, res) => {
       category,
       hijri_month,
       hijri_year,
+      is_on_behalf,
       sort_by = 'hijri',
       limit = 50,
       offset = 0
@@ -38,6 +39,13 @@ export const getAllPayments = async (req, res) => {
     if (status) {query = query.eq('status', status);}
     if (member_id) {query = query.eq('payer_id', member_id);}
     if (category) {query = query.eq('category', category);}
+
+    // Filter by on-behalf payments
+    if (is_on_behalf === 'true') {
+      query = query.eq('is_on_behalf', true);
+    } else if (is_on_behalf === 'false') {
+      query = query.or('is_on_behalf.is.null,is_on_behalf.eq.false');
+    }
 
     // Apply Hijri-primary sorting
     if (sort_by === 'hijri') {

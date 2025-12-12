@@ -4,7 +4,8 @@ import {
   getFinancialSummary,
   generateForensicReport,
   getCashFlowAnalysis,
-  getBudgetVarianceReport
+  getBudgetVarianceReport,
+  getOnBehalfPaymentsReport
 } from '../controllers/financialReportsController.js';
 
 const router = express.Router();
@@ -92,5 +93,10 @@ router.get('/cash-flow', requireFinancialReportAccess, getCashFlowAnalysis);
 // Returns comparison between budgeted vs actual expenses and income
 // Supports query parameters: period, category, variance_threshold, hijri_month, hijri_year
 router.get('/budget-variance', requireFinancialReportAccess, getBudgetVarianceReport);
+
+// GET /api/reports/on-behalf-payments - Get on-behalf payments report
+// Returns all payments made on behalf of other members with payer/beneficiary details
+// Supports query parameters: page, limit, date_from, date_to, payer_id, beneficiary_id, purpose, status
+router.get('/on-behalf-payments', requireFinancialReportAccess, getOnBehalfPaymentsReport);
 
 export default router;

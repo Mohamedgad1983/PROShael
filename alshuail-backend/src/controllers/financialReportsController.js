@@ -886,9 +886,188 @@ const analyzeVendors = async () => {
   return {};
 };
 
+/**
+ * Get on-behalf payments report
+ * @route GET /api/reports/on-behalf-payments
+ */
+export const getOnBehalfPaymentsReport = async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 20,
+      date_from,
+      date_to,
+      payer_id,
+      beneficiary_id,
+      purpose,
+      status
+    } = req.query;
+
+    const userRole = req.user.role;
+    const userId = req.user.id;
+
+    // Require financial access
+    if (!hasFinancialAccess(userRole)) {
+      await logFinancialAccess(
+        userId,
+        'DENIED',
+        'on_behalf_payments_report',
+        userRole,
+        {},
+        req.ip
+      );
+
+      return res.status(ErrorCodes.REPORT_ACCESS_DENIED.httpStatus)
+        .json(createErrorResponse('REPORT_ACCESS_DENIED'));
+    }
+
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+
+    // Build query for on-behalf payments
+    let query = _supabase
+      .from('payments')
+      .select(`
+        id,
+        amount,
+        payment_date,
+        payment_method,
+        category,
+        status,
+        notes,
+        created_at,
+        payer_id,
+        beneficiary_id,
+        is_on_behalf,
+        payer:members!payments_payer_id_fkey(id, full_name, membership_number, phone),
+        beneficiary:members!payments_beneficiary_id_fkey(id, full_name, membership_number, phone)
+      `, { count: 'exact' })
+      .eq('is_on_behalf', true)
+      .order('created_at', { ascending: false });
+
+    // Apply filters
+    if (date_from) {
+      query = query.gte('payment_date', date_from);
+    }
+    if (date_to) {
+      query = query.lte('payment_date', date_to);
+    }
+    if (payer_id) {
+      query = query.eq('payer_id', payer_id);
+    }
+    if (beneficiary_id) {
+      query = query.eq('beneficiary_id', beneficiary_id);
+    }
+    if (purpose) {
+      query = query.eq('category', purpose);
+    }
+    if (status) {
+      query = query.eq('status', status);
+    }
+
+    // Get paginated data
+    const { data: payments, error, count } = await query
+      .range(offset, offset + parseInt(limit) - 1);
+
+    if (error) {
+      log.error('Error fetching on-behalf payments:', error);
+      throw error;
+    }
+
+    // Calculate summary statistics
+    const { data: summaryData, error: summaryError } = await _supabase
+      .from('payments')
+      .select('amount, category')
+      .eq('is_on_behalf', true);
+
+    if (summaryError) {
+      log.error('Error fetching on-behalf summary:', summaryError);
+    }
+
+    const summary = {
+      total_count: count || 0,
+      total_amount: (summaryData || []).reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0),
+      by_purpose: {}
+    };
+
+    // Group by purpose/category
+    (summaryData || []).forEach(payment => {
+      const cat = payment.category || 'general';
+      if (!summary.by_purpose[cat]) {
+        summary.by_purpose[cat] = { count: 0, amount: 0 };
+      }
+      summary.by_purpose[cat].count++;
+      summary.by_purpose[cat].amount += parseFloat(payment.amount) || 0;
+    });
+
+    // Get top payers (members who pay on behalf of others most frequently)
+    const { data: topPayersData } = await _supabase
+      .from('payments')
+      .select(`
+        payer_id,
+        amount,
+        payer:members!payments_payer_id_fkey(id, full_name, membership_number)
+      `)
+      .eq('is_on_behalf', true);
+
+    const payerAggregation = {};
+    (topPayersData || []).forEach(payment => {
+      const payerId = payment.payer_id;
+      if (!payerAggregation[payerId]) {
+        payerAggregation[payerId] = {
+          payer: payment.payer,
+          count: 0,
+          total_amount: 0
+        };
+      }
+      payerAggregation[payerId].count++;
+      payerAggregation[payerId].total_amount += parseFloat(payment.amount) || 0;
+    });
+
+    const topPayers = Object.values(payerAggregation)
+      .sort((a, b) => b.total_amount - a.total_amount)
+      .slice(0, 10);
+
+    await logFinancialAccess(
+      userId,
+      'SUCCESS',
+      'on_behalf_payments_report',
+      userRole,
+      {
+        total_records: count,
+        filters: { date_from, date_to, payer_id, beneficiary_id, purpose }
+      },
+      req.ip
+    );
+
+    res.json({
+      success: true,
+      data: {
+        payments: payments || [],
+        summary,
+        top_payers: topPayers,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total: count || 0,
+          pages: Math.ceil((count || 0) / parseInt(limit))
+        }
+      },
+      message: 'تقرير الدفعات نيابة عن الآخرين'
+    });
+  } catch (error) {
+    log.error('On-behalf payments report error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'فشل في جلب تقرير الدفعات',
+      code: 'ON_BEHALF_REPORT_ERROR'
+    });
+  }
+};
+
 export default {
   getFinancialSummary,
   generateForensicReport,
   getCashFlowAnalysis,
-  getBudgetVarianceReport
+  getBudgetVarianceReport,
+  getOnBehalfPaymentsReport
 };
