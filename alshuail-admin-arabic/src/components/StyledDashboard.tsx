@@ -25,6 +25,8 @@ import {
 
 // @ts-ignore
 import PaymentsTracking from './Payments/PaymentsTracking.jsx';
+// Bank Transfer Requests for on-behalf payments
+import { BankTransferRequests } from './Payments';
 
 // @ts-ignore
 import HijriDiyasManagement from './Diyas/HijriDiyasManagement';
@@ -56,6 +58,10 @@ import NewsManagement from '../pages/admin/NewsManagement';
 import InitiativesManagementNew from '../pages/admin/InitiativesManagement';
 // @ts-ignore
 import SubscriptionDashboard from '../pages/admin/SubscriptionDashboard';
+// @ts-ignore
+import ExpenseManagement from './Reports/ExpenseManagement.jsx';
+// Member Documents - Admin view of member uploaded documents
+import MemberDocuments from './Members/MemberDocuments';
 
 import {
   formatHijriDate,
@@ -1061,6 +1067,8 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
 
     { id: 'documents', label: '📁 المستندات', icon: FolderIcon }, // Document Management
 
+    { id: 'member-documents', label: '📄 مستندات الأعضاء', icon: DocumentTextIcon }, // Member Documents
+
     { id: 'family-tree', label: '🌳 شجرة العائلة', icon: UserPlusIcon }, // Family Tree
 
     { id: 'members', label: 'الأعضاء', icon: UsersIcon },
@@ -1068,6 +1076,10 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
     { id: 'subscriptions', label: 'الاشتراكات', icon: CreditCardIcon },
 
     { id: 'payments', label: 'المدفوعات', icon: BanknotesIcon },
+
+    { id: 'bank-transfers', label: '🏦 طلبات التحويل', icon: BanknotesIcon },
+
+    { id: 'expenses', label: '💰 المصروفات', icon: BanknotesIcon },
 
     { id: 'initiatives', label: 'المبادرات', icon: LightBulbIcon },
 
@@ -4518,6 +4530,11 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
 
                 {activeSection === 'payments' && <PaymentsTracking />}
 
+                {/* Bank Transfer Requests - On-behalf payment management */}
+                {activeSection === 'bank-transfers' && <BankTransferRequests />}
+
+                {activeSection === 'expenses' && <ExpenseManagement dateFilter={{}} onExpenseChange={() => {}} />}
+
                 {activeSection === 'initiatives' && (
                   <InitiativesManagementNew />
                 )}
@@ -4544,6 +4561,9 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
 
                 {/* Document Management */}
                 {activeSection === 'documents' && <DocumentManager />}
+
+                {/* Member Documents - View member uploaded documents */}
+                {activeSection === 'member-documents' && <MemberDocuments />}
 
                 {/* Family Tree - New HTML-based interface */}
                 {activeSection === 'family-tree' && <FamilyTreeViewer />}

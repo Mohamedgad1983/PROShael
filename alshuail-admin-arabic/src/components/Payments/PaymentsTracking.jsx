@@ -1,7 +1,8 @@
-﻿import React, {  useState, useEffect , useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { toHijri } from 'hijri-converter';
 import { logger } from '../../utils/logger';
+import api from '../../services/api';
 
 import {
   BanknotesIcon,
@@ -19,7 +20,9 @@ import {
   ShieldExclamationIcon,
   CurrencyDollarIcon,
   ReceiptPercentIcon,
-  WalletIcon
+  WalletIcon,
+  UserGroupIcon,
+  ArrowsRightLeftIcon
 } from '@heroicons/react/24/outline';
 
 const PaymentsTracking = () => {
@@ -45,7 +48,8 @@ const PaymentsTracking = () => {
     status: '',
     payment_type: '',
     date_range: '',
-    member_id: ''
+    member_id: '',
+    is_on_behalf: ''
   });
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -164,10 +168,50 @@ const PaymentsTracking = () => {
   const loadPaymentsData = async () => {
     setLoading(true);
     try {
-      // Load mock data - replace with actual API calls
-      setPayments(mockPayments);
+      // Build query params
+      const params = new URLSearchParams();
+      if (filters.status) params.append('status', filters.status);
+      if (filters.payment_type) params.append('category', filters.payment_type);
+      if (filters.is_on_behalf) params.append('is_on_behalf', filters.is_on_behalf);
+      params.append('limit', '100');
+
+      const response = await api.get(`/payments?${params.toString()}`);
+      const data = response.data;
+
+      // Transform API data to component format
+      const paymentsData = (data?.data || data || []).map(payment => ({
+        id: payment.id,
+        payment_id: `PAY-${String(payment.id).slice(0, 8)}`,
+        member_id: payment.beneficiary_id || payment.payer_id,
+        member_name: payment.beneficiary?.full_name || payment.payer?.full_name || 'غير محدد',
+        member_phone: payment.beneficiary?.phone || payment.payer?.phone || '',
+        amount: parseFloat(payment.amount) || 0,
+        currency: payment.currency || 'ريال',
+        payment_type: payment.category || 'subscription',
+        payment_method: payment.payment_method || 'bank_transfer',
+        status: payment.status || 'completed',
+        transaction_id: payment.transaction_reference,
+        description: payment.description || payment.notes || '',
+        payment_date: payment.created_at?.split('T')[0],
+        due_date: payment.due_date,
+        hijri_date: payment.hijri_date_string,
+        hijri_formatted: payment.hijri_formatted,
+        created_at: payment.created_at,
+        receipt_url: payment.receipt_url,
+        notes: payment.notes,
+        // On-behalf payment info
+        is_on_behalf: payment.is_on_behalf || false,
+        payer: payment.payer,
+        beneficiary: payment.beneficiary,
+        payer_id: payment.payer_id,
+        beneficiary_id: payment.beneficiary_id
+      }));
+
+      setPayments(paymentsData);
     } catch (error) {
       logger.error('Error loading payments data:', { error });
+      // Fallback to mock data if API fails
+      setPayments(mockPayments);
     } finally {
       setLoading(false);
     }
@@ -207,6 +251,8 @@ const PaymentsTracking = () => {
     failed_payments: payments.filter(p => p.status === 'failed').length,
     total_amount: payments.filter(p => p.status === 'completed').reduce((sum, p) => sum + p.amount, 0),
     pending_amount: payments.filter(p => p.status === 'pending').reduce((sum, p) => sum + p.amount, 0),
+    on_behalf_payments: payments.filter(p => p.is_on_behalf).length,
+    on_behalf_amount: payments.filter(p => p.is_on_behalf && p.status === 'completed').reduce((sum, p) => sum + p.amount, 0),
     this_month_total: payments.filter(p => {
       const paymentDate = new Date(p.payment_date || p.created_at);
       const currentMonth = new Date().getMonth();
@@ -218,15 +264,23 @@ const PaymentsTracking = () => {
 
   // Filter payments
   const filteredPayments = payments.filter(payment => {
+    const searchLower = searchQuery.toLowerCase();
     const matchesSearch = !searchQuery ||
-      payment.member_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      payment.member_phone.includes(searchQuery) ||
-      payment.payment_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      payment.description.toLowerCase().includes(searchQuery.toLowerCase());
+      payment.member_name?.toLowerCase().includes(searchLower) ||
+      payment.member_phone?.includes(searchQuery) ||
+      payment.payment_id?.toLowerCase().includes(searchLower) ||
+      payment.description?.toLowerCase().includes(searchLower) ||
+      payment.payer?.full_name?.toLowerCase().includes(searchLower) ||
+      payment.beneficiary?.full_name?.toLowerCase().includes(searchLower);
 
     const matchesStatus = !filters.status || payment.status === filters.status;
     const matchesType = !filters.payment_type || payment.payment_type === filters.payment_type;
     const matchesMember = !filters.member_id || payment.member_id === filters.member_id;
+
+    // On-behalf filter (handled server-side, but also client-side fallback)
+    const matchesOnBehalf = !filters.is_on_behalf ||
+      (filters.is_on_behalf === 'true' && payment.is_on_behalf) ||
+      (filters.is_on_behalf === 'false' && !payment.is_on_behalf);
 
     const matchesDateRange = !dateRange.start || !dateRange.end || (
       payment.payment_date &&
@@ -234,7 +288,7 @@ const PaymentsTracking = () => {
       payment.payment_date <= dateRange.end
     );
 
-    return matchesSearch && matchesStatus && matchesType && matchesMember && matchesDateRange;
+    return matchesSearch && matchesStatus && matchesType && matchesMember && matchesOnBehalf && matchesDateRange;
   });
 
   const formatHijriDate = (gregorianDate) => {
@@ -395,6 +449,20 @@ const PaymentsTracking = () => {
         </div>
       </div>
 
+      {/* On-Behalf Payments */}
+      <div className="glass-card p-6 hover:scale-105 transition-all duration-300 border-r-4 border-purple-500">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-600 mb-2">دفعات نيابية</p>
+            <p className="text-3xl font-bold text-purple-600">{statistics.on_behalf_payments}</p>
+            <p className="text-xs text-gray-500 mt-1">{statistics.on_behalf_amount.toLocaleString()} ريال</p>
+          </div>
+          <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center">
+            <UserGroupIcon className="w-6 h-6 text-white" />
+          </div>
+        </div>
+      </div>
+
       {/* Success Rate */}
       <div className="glass-card p-6 hover:scale-105 transition-all duration-300">
         <div className="flex items-center justify-between">
@@ -415,7 +483,7 @@ const PaymentsTracking = () => {
     <div className="space-y-6">
       {/* Search and Filters */}
       <div className="glass-card p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-6 gap-4">
           {/* Search */}
           <div className="lg:col-span-2 relative">
             <MagnifyingGlassIcon className="absolute right-3 top-3 w-5 h-5 text-gray-400" />
@@ -455,6 +523,19 @@ const PaymentsTracking = () => {
               <option value="diya">دية</option>
               <option value="occasion">مناسبة</option>
               <option value="initiative">مبادرة</option>
+            </select>
+          </div>
+
+          {/* On-Behalf Filter */}
+          <div>
+            <select
+              value={filters.is_on_behalf}
+              onChange={(e) => setFilters({...filters, is_on_behalf: e.target.value})}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+            >
+              <option value="">الكل</option>
+              <option value="true">دفعات نيابية</option>
+              <option value="false">دفعات شخصية</option>
             </select>
           </div>
 
@@ -503,10 +584,10 @@ const PaymentsTracking = () => {
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-6 py-4 text-right text-sm font-medium text-gray-500">رقم المدفوعة</th>
-                <th className="px-6 py-4 text-right text-sm font-medium text-gray-500">العضو</th>
+                <th className="px-6 py-4 text-right text-sm font-medium text-gray-500">الدافع</th>
+                <th className="px-6 py-4 text-right text-sm font-medium text-gray-500">المستفيد</th>
                 <th className="px-6 py-4 text-right text-sm font-medium text-gray-500">المبلغ</th>
                 <th className="px-6 py-4 text-right text-sm font-medium text-gray-500">النوع</th>
-                <th className="px-6 py-4 text-right text-sm font-medium text-gray-500">طريقة الدفع</th>
                 <th className="px-6 py-4 text-right text-sm font-medium text-gray-500">الحالة</th>
                 <th className="px-6 py-4 text-right text-sm font-medium text-gray-500">تاريخ الدفع</th>
                 <th className="px-6 py-4 text-right text-sm font-medium text-gray-500">الإجراءات</th>
@@ -514,31 +595,53 @@ const PaymentsTracking = () => {
             </thead>
             <tbody className="divide-y divide-gray-200">
               {filteredPayments.map((payment) => (
-                <tr key={payment.id} className="hover:bg-gray-50 transition-colors duration-200">
+                <tr key={payment.id} className={`hover:bg-gray-50 transition-colors duration-200 ${payment.is_on_behalf ? 'bg-purple-50/50' : ''}`}>
                   <td className="px-6 py-4">
                     <div>
                       <div className="font-medium text-gray-900">{payment.payment_id}</div>
+                      {payment.is_on_behalf && (
+                        <div className="flex items-center gap-1 mt-1">
+                          <ArrowsRightLeftIcon className="w-3 h-3 text-purple-600" />
+                          <span className="text-xs text-purple-600 font-medium">دفع نيابي</span>
+                        </div>
+                      )}
                       {payment.transaction_id && (
-                        <div className="text-xs text-gray-500">معرف المعاملة: {payment.transaction_id}</div>
+                        <div className="text-xs text-gray-500 mt-1">معرف: {payment.transaction_id}</div>
                       )}
                     </div>
                   </td>
+                  {/* Payer Column */}
                   <td className="px-6 py-4">
                     <div>
-                      <div className="font-medium text-gray-900">{payment.member_name}</div>
-                      <div className="text-sm text-gray-500">{payment.member_phone}</div>
-                      <div className="text-xs text-gray-400">#{payment.member_id}</div>
+                      <div className="font-medium text-gray-900">
+                        {payment.payer?.full_name || payment.member_name}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {payment.payer?.phone || payment.member_phone}
+                      </div>
                     </div>
                   </td>
+                  {/* Beneficiary Column */}
                   <td className="px-6 py-4">
-                    <div className="font-medium text-gray-900">{payment.amount} {payment.currency}</div>
+                    {payment.is_on_behalf ? (
+                      <div>
+                        <div className="font-medium text-purple-700">
+                          {payment.beneficiary?.full_name || 'غير محدد'}
+                        </div>
+                        <div className="text-sm text-purple-500">
+                          {payment.beneficiary?.phone || ''}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-sm text-gray-400 italic">نفس الدافع</div>
+                    )}
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="font-medium text-gray-900">{payment.amount.toLocaleString()} {payment.currency}</div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm text-gray-900">{getPaymentTypeText(payment.payment_type)}</div>
                     <div className="text-xs text-gray-500">{payment.description}</div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-900">{getPaymentMethodText(payment.payment_method)}</div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
@@ -552,7 +655,9 @@ const PaymentsTracking = () => {
                     {payment.payment_date ? (
                       <div>
                         <div className="text-sm text-gray-900">{payment.payment_date}</div>
-                        <div className="text-xs text-gray-500">{formatHijriDate(payment.payment_date)}</div>
+                        <div className="text-xs text-gray-500">
+                          {payment.hijri_formatted || formatHijriDate(payment.payment_date)}
+                        </div>
                       </div>
                     ) : (
                       <span className="text-sm text-gray-400">لم يتم الدفع</span>
