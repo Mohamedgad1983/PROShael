@@ -938,8 +938,8 @@ export const getOnBehalfPaymentsReport = async (req, res) => {
         payer_id,
         beneficiary_id,
         is_on_behalf,
-        payer:members!payments_payer_id_fkey(id, full_name, membership_number, phone),
-        beneficiary:members!payments_beneficiary_id_fkey(id, full_name, membership_number, phone)
+        payer:members!fk_payments_payer_id(id, full_name, membership_number, phone),
+        beneficiary:members!fk_payments_beneficiary_id(id, full_name, membership_number, phone)
       `, { count: 'exact' })
       .eq('is_on_behalf', true)
       .order('created_at', { ascending: false });
