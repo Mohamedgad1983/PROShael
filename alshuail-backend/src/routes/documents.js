@@ -132,7 +132,7 @@ router.get('/', authenticateToken, async (req, res) => {
       .from('documents_metadata')
       .select(`
         *,
-        members!inner(full_name_ar, full_name, membership_id)
+        members(full_name_ar, full_name, membership_number)
       `, { count: 'exact' })
       .eq('status', 'active')
       .order('created_at', { ascending: false });
@@ -174,7 +174,7 @@ router.get('/', authenticateToken, async (req, res) => {
         member: doc.members ? {
           full_name_ar: doc.members.full_name_ar,
           full_name: doc.members.full_name,
-          membership_id: doc.members.membership_id
+          membership_number: doc.members.membership_number
         } : null
       };
     }));
