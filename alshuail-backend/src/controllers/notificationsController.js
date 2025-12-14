@@ -112,10 +112,7 @@ export const getNotificationById = async (req, res) => {
 
     const { data: notification, error } = await supabase
       .from('notifications')
-      .select(`
-        *,
-        *
-      `)
+      .select('*')
       .eq('id', id)
       .single();
 
@@ -222,10 +219,7 @@ export const createNotification = async (req, res) => {
       const { data: newNotification, error } = await supabase
         .from('notifications')
         .insert([notificationData])
-        .select(`
-          *,
-          *
-        `)
+        .select('*')
         .single();
 
       if (error) {throw error;}
@@ -274,10 +268,7 @@ export const createNotification = async (req, res) => {
       const { data: newNotifications, error } = await supabase
         .from('notifications')
         .insert(notificationsData)
-        .select(`
-          *,
-          *
-        `);
+        .select('*');
 
       if (error) {throw error;}
       notifications = newNotifications || [];
@@ -341,10 +332,7 @@ export const markAsRead = async (req, res) => {
         read_at: new Date().toISOString()
       })
       .eq('id', id)
-      .select(`
-        *,
-        *
-      `)
+      .select('*')
       .single();
 
     if (error) {throw error;}
@@ -393,10 +381,7 @@ export const bulkMarkAsRead = async (req, res) => {
     }
 
     const { data: updatedNotifications, error } = await query
-      .select(`
-        *,
-        *
-      `);
+      .select('*');
 
     if (error) {throw error;}
 

@@ -1,11 +1,7 @@
 // Member Approval Controller
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from "../config/database.js";
 import { logAdminAction, ACTIONS, RESOURCE_TYPES } from '../utils/audit-logger.js';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
-);
 
 /**
  * Get all pending member approvals
@@ -15,13 +11,7 @@ export const getPendingApprovals = async (req, res) => {
   try {
     const { data: members, error } = await supabase
       .from('members')
-      .select(`
-        *,
-        family_branches (
-          id,
-          branch_name
-        )
-      `)
+      .select('*')
       .eq('registration_status', 'pending_approval')
       .order('created_at', { ascending: false });
 
@@ -57,18 +47,7 @@ export const getMemberForApproval = async (req, res) => {
 
     const { data: member, error } = await supabase
       .from('members')
-      .select(`
-        *,
-        family_branches (
-          id,
-          branch_name
-        ),
-        member_photos (
-          id,
-          photo_url,
-          photo_type
-        )
-      `)
+      .select('*')
       .eq('id', memberId)
       .single();
 
@@ -114,7 +93,7 @@ export const approveMember = async (req, res) => {
         updated_at: new Date().toISOString()
       })
       .eq('id', memberId)
-      .select()
+      .select('*')
       .single();
 
     if (updateError) {
@@ -184,7 +163,7 @@ export const rejectMember = async (req, res) => {
         updated_at: new Date().toISOString()
       })
       .eq('id', memberId)
-      .select()
+      .select('*')
       .single();
 
     if (updateError) {
