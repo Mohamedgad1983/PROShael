@@ -1,5 +1,5 @@
 // Family Tree Controller
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from "../config/database.js";
 import {
   buildTreeStructure,
   getDescendants,
@@ -10,10 +10,6 @@ import {
   getGenerationStats
 } from '../utils/tree-generator.js';
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
-);
 
 /**
  * Get complete family tree
@@ -25,18 +21,7 @@ export const getFullTree = async (req, res) => {
 
     let query = supabase
       .from('members')
-      .select(`
-        *,
-        family_branches (
-          id,
-          branch_name
-        ),
-        member_photos!left (
-          id,
-          photo_url,
-          photo_type
-        )
-      `)
+      .select('*')
       .eq('is_active', true)
       .eq('registration_status', 'approved');
 
@@ -55,10 +40,23 @@ export const getFullTree = async (req, res) => {
       });
     }
 
+    // Get member photos separately
+    const memberIds = members.map(m => m.id);
+    let memberPhotos = [];
+    if (memberIds.length > 0) {
+      const { data: photos } = await supabase
+        .from('member_photos')
+        .select('member_id, photo_url')
+        .in('member_id', memberIds);
+      memberPhotos = photos || [];
+    }
+    const photoMap = {};
+    memberPhotos.forEach(p => { if (!photoMap[p.member_id]) photoMap[p.member_id] = p.photo_url; });
+
     // Add photo URL to member object
     const membersWithPhotos = members.map(member => ({
       ...member,
-      photo_url: member.member_photos?.[0]?.photo_url || null
+      photo_url: photoMap[member.id] || null
     }));
 
     // Generate tree structure

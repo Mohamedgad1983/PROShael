@@ -258,10 +258,7 @@ export const createDiya = async (req, res) => {
     const { data: newDiya, error } = await supabase
       .from('payments')
       .insert([diyaData])
-      .select(`
-        *,
-        *
-      `)
+      .select('*')
       .single();
 
     if (error) {throw error;}
@@ -324,10 +321,7 @@ export const updateDiyaStatus = async (req, res) => {
       .from('payments')
       .update(updateData)
       .eq('id', id)
-      .select(`
-        *,
-        *
-      `)
+      .select('*')
       .single();
 
     if (error) {throw error;}
@@ -401,10 +395,7 @@ export const updateDiya = async (req, res) => {
       .from('payments')
       .update(updateData)
       .eq('id', id)
-      .select(`
-        *,
-        *
-      `)
+      .select('*')
       .single();
 
     if (error) {throw error;}
