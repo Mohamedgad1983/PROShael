@@ -32,18 +32,10 @@ export const getAllDiyas = async (req, res) => {
 
     // Query activities table filtered for diya-related activities
     // The activities link to financial_contributions via activity_id FK
+    // Step 1: Query activities without nested selects (pgQueryBuilder limitation)
     let query = supabase
       .from('activities')
-      .select(`
-        *,
-        financial_contributions(
-          id,
-          contributor_id,
-          contribution_amount,
-          status,
-          contribution_date
-        )
-      `)
+      .select('*')
       .or('title_ar.ilike.%دية%,title_en.ilike.%diya%')
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
@@ -75,9 +67,32 @@ export const getAllDiyas = async (req, res) => {
       query = query.lte('target_amount', max_amount);
     }
 
-    const { data: diyas, error, count } = await query;
+    const { data: activities, error: activitiesError, count } = await query;
 
-    if (error) {throw error;}
+    if (activitiesError) {throw activitiesError;}
+
+    // Step 2: Get contributions separately using .in() query
+    const activityIds = (activities || []).map(a => a.id);
+    let contributions = [];
+
+    if (activityIds.length > 0) {
+      const { data: contribData, error: contribError } = await supabase
+        .from('financial_contributions')
+        .select('id, activity_id, contributor_id, contribution_amount, status, contribution_date')
+        .in('activity_id', activityIds);
+
+      if (contribError) {
+        log.error('Error fetching contributions', { error: contribError.message });
+      } else {
+        contributions = contribData || [];
+      }
+    }
+
+    // Step 3: Map contributions to their activities
+    const diyas = (activities || []).map(activity => ({
+      ...activity,
+      financial_contributions: contributions.filter(c => c.activity_id === activity.id)
+    }));
 
     // Calculate summary statistics from financial_contributions
     const totalAmount = diyas?.reduce((sum, diya) => {
@@ -131,24 +146,38 @@ export const getDiyaById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const { data: diya, error } = await supabase
-      .from('diya_cases')
-      .select(`
-        *,
-        financial_contributions(*)
-      `)
+    // Step 1: Get the activity
+    const { data: activity, error: activityError } = await supabase
+      .from('activities')
+      .select('*')
       .eq('id', id)
       .single();
 
-    if (error) {
-      if (error.code === 'PGRST116') {
+    if (activityError) {
+      if (activityError.code === 'PGRST116') {
         return res.status(404).json({
           success: false,
           error: 'قضية الدية غير موجودة'
         });
       }
-      throw error;
+      throw activityError;
     }
+
+    // Step 2: Get contributions separately
+    const { data: contributions, error: contribError } = await supabase
+      .from('financial_contributions')
+      .select('*')
+      .eq('activity_id', id);
+
+    if (contribError) {
+      log.error('Error fetching contributions for diya', { error: contribError.message });
+    }
+
+    // Step 3: Combine data
+    const diya = {
+      ...activity,
+      financial_contributions: contributions || []
+    };
 
     res.json({
       success: true,

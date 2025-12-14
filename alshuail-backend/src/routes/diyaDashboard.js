@@ -4,7 +4,7 @@
  */
 
 import express from 'express';
-import { supabaseAdmin } from '../config/supabase.js';
+import { supabase as supabaseAdmin } from '../config/database.js';
 import { log } from '../utils/logger.js';
 
 const router = express.Router();
@@ -271,7 +271,7 @@ router.get('/:id/stats', async (req, res) => {
 
         // Calculate statistics
         const uniqueContributors = new Set(contributions?.map(c => c.contributor_id) || []);
-        const totalAmount = contributions?.reduce((sum, c) => sum + (c.contribution_amount || 0), 0) || 0;
+        const totalAmount = contributions?.reduce((sum, c) => sum + (parseFloat(c.contribution_amount) || 0), 0) || 0;
 
         // Group by tribal section
         const bySection = {};
@@ -281,7 +281,7 @@ router.get('/:id/stats', async (req, res) => {
                 bySection[section] = { count: 0, amount: 0 };
             }
             bySection[section].count++;
-            bySection[section].amount += contrib.contribution_amount || 0;
+            bySection[section].amount += parseFloat(contrib.contribution_amount) || 0;
         });
 
         // Get contribution dates
@@ -343,7 +343,7 @@ router.get('/summary', async (req, res) => {
 
         // Calculate summary statistics
         const uniqueContributors = new Set(contributions?.map(c => c.contributor_id) || []);
-        const totalAmount = contributions?.reduce((sum, c) => sum + (c.contribution_amount || 0), 0) || 0;
+        const totalAmount = contributions?.reduce((sum, c) => sum + (parseFloat(c.contribution_amount) || 0), 0) || 0;
 
         res.json({
             success: true,
