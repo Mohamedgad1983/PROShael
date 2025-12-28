@@ -49,6 +49,7 @@ import otpRoutes from './src/routes/otp.routes.js';
 import expenseCategoriesRoutes from './src/routes/expenseCategories.js';
 import balanceAdjustmentsRoutes from './src/routes/balanceAdjustments.js';
 import bankTransfersRoutes from './src/routes/bankTransfers.js';
+import passwordAuthRoutes from './src/routes/passwordAuth.routes.js';
 import { log } from './src/utils/logger.js';
 import { config } from './src/config/env.js';
 import { errorHandler } from './src/utils/errorCodes.js';
@@ -174,8 +175,11 @@ app.use((req, res, next) => {
 });
 
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 500, // Increased from 100 to 500 for admin dashboard usage
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many requests, please try again later' }
 });
 app.use('/api', limiter);
 
@@ -230,6 +234,11 @@ app.use('/api', (req, res, next) => {
   const skipCSRF = [
     '/api/auth/login',
     '/api/auth/verify-otp',
+    '/api/auth/password/login',
+    '/api/auth/password/request-otp',
+    '/api/auth/password/verify-otp',
+    '/api/auth/password/reset-password',
+    '/api/auth/password/face-id-login',
     '/api/health',
     '/api/csrf-token',
     '/api/csrf-token/validate'
@@ -310,6 +319,9 @@ app.use('/api/balance-adjustments', balanceAdjustmentsRoutes);
 
 // Bank transfer requests (pay-on-behalf feature)
 app.use('/api/bank-transfers', bankTransfersRoutes);
+
+// Password Authentication APIs - Password login, OTP, Face ID
+app.use('/api/auth/password', passwordAuthRoutes);
 
 // Enhanced health check endpoint
 app.get('/api/health', async (req, res) => {
