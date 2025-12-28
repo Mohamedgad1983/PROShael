@@ -3,42 +3,43 @@
  * RTL-optimized for Arabic UI
  */
 
-/* Modal Overlay */
+/* Full Page Layout - Beautiful Form Design */
 .balance-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   z-index: 1000;
-  padding: 1rem;
+  padding: 0;
+  overflow-y: auto;
 }
 
-/* Modal Container */
+/* Full Page Container */
 .balance-modal-container {
   background: white;
-  border-radius: 1rem;
+  border-radius: 0;
   width: 100%;
-  max-width: 700px;
-  max-height: 90vh;
-  overflow: hidden;
+  max-width: 100%;
+  min-height: 100vh;
+  overflow: visible;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  box-shadow: none;
   direction: rtl;
 }
 
-/* Header */
+/* Header - Full Width Beautiful */
 .balance-modal-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
+  align-items: center;
+  padding: 2rem 3rem;
+  border-bottom: none;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
+  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
 }
 
 .header-info {
@@ -46,23 +47,24 @@
 }
 
 .modal-title {
-  font-size: 1.25rem;
+  font-size: 1.75rem;
   font-weight: 700;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
   margin: 0;
 }
 
 .title-icon {
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 2rem;
+  height: 2rem;
 }
 
 .member-info-text {
-  font-size: 0.875rem;
+  font-size: 1rem;
   opacity: 0.9;
-  margin-top: 0.25rem;
+  margin-top: 0.5rem;
+  font-weight: 500;
 }
 
 .close-btn {
@@ -79,55 +81,63 @@
   background: rgba(255, 255, 255, 0.3);
 }
 
-/* Current Balance Display */
+/* Current Balance Display - Prominent Full Width */
 .current-balance-display {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
-  padding: 1rem 1.5rem;
+  gap: 2rem;
+  padding: 2rem 3rem;
   background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-  border-bottom: 1px solid #bae6fd;
+  border-bottom: none;
 }
 
 .balance-label {
-  font-size: 0.875rem;
+  font-size: 1.25rem;
   color: #0369a1;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .balance-value {
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: 2.5rem;
+  font-weight: 800;
   color: #0284c7;
+  background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-/* Tabs */
+/* Tabs - Centered Full Width */
 .modal-tabs {
   display: flex;
+  justify-content: center;
   border-bottom: 1px solid #e5e7eb;
-  padding: 0 1rem;
+  padding: 0 3rem;
   background: #f9fafb;
+  gap: 1rem;
 }
 
 .tab-btn {
-  flex: 1;
-  padding: 0.875rem 1rem;
+  flex: none;
+  padding: 1rem 2rem;
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 0.875rem;
-  font-weight: 500;
+  font-size: 1rem;
+  font-weight: 600;
   color: #6b7280;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
   position: relative;
-  transition: color 0.2s;
+  transition: all 0.3s;
 }
 
 .tab-btn:hover {
   color: #374151;
+  background: rgba(102, 126, 234, 0.05);
 }
 
 .tab-btn.active {
@@ -140,45 +150,52 @@
   bottom: -1px;
   left: 0;
   right: 0;
-  height: 3px;
+  height: 4px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 3px 3px 0 0;
+  border-radius: 4px 4px 0 0;
 }
 
 .tab-icon {
-  width: 1.25rem;
-  height: 1.25rem;
+  width: 1.5rem;
+  height: 1.5rem;
 }
 
-/* Modal Content */
+/* Modal Content - Centered Form */
 .modal-content {
   flex: 1;
   overflow-y: auto;
-  padding: 1.5rem;
+  padding: 3rem;
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
 }
 
-/* Adjustment Form */
+/* Adjustment Form - Beautiful Full Page Form */
 .adjustment-form {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 2rem;
+  background: #ffffff;
+  padding: 2rem;
+  border-radius: 1rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+  gap: 1.5rem;
 }
 
 .form-label {
-  font-size: 0.875rem;
-  font-weight: 600;
+  font-size: 1rem;
+  font-weight: 700;
   color: #374151;
 }
 
@@ -236,24 +253,24 @@
   height: 1.25rem;
 }
 
-/* Form Inputs */
+/* Form Inputs - Beautiful Full Page Style */
 .amount-input-wrapper {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
 .form-input,
 .form-select,
 .form-textarea {
   width: 100%;
-  padding: 0.75rem 1rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.5rem;
-  font-size: 0.875rem;
+  padding: 1rem 1.25rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 0.75rem;
+  font-size: 1rem;
   color: #374151;
-  background: white;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  background: #fafafa;
+  transition: all 0.3s ease;
   direction: rtl;
 }
 
@@ -262,31 +279,34 @@
 .form-textarea:focus {
   outline: none;
   border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  background: white;
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
 }
 
 .amount-input {
   flex: 1;
+  font-size: 1.25rem;
+  font-weight: 600;
 }
 
 .currency-label {
-  font-size: 0.875rem;
+  font-size: 1rem;
   color: #6b7280;
-  font-weight: 500;
-  padding: 0.75rem;
-  background: #f3f4f6;
-  border-radius: 0.5rem;
+  font-weight: 600;
+  padding: 1rem 1.25rem;
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  border-radius: 0.75rem;
 }
 
 .input-hint {
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   color: #9ca3af;
-  margin-top: 0.25rem;
+  margin-top: 0.5rem;
 }
 
 .form-textarea {
   resize: vertical;
-  min-height: 80px;
+  min-height: 100px;
 }
 
 /* Message Boxes */
@@ -317,58 +337,61 @@
   flex-shrink: 0;
 }
 
-/* Form Actions */
+/* Form Actions - Beautiful Centered Buttons */
 .form-actions {
   display: flex;
-  gap: 1rem;
-  justify-content: flex-start;
-  padding-top: 1rem;
+  gap: 1.5rem;
+  justify-content: center;
+  padding-top: 2rem;
   border-top: 1px solid #e5e7eb;
-  margin-top: 0.5rem;
+  margin-top: 1rem;
 }
 
 .btn {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  border-radius: 0.5rem;
-  font-size: 0.875rem;
-  font-weight: 600;
+  gap: 0.75rem;
+  padding: 1rem 2.5rem;
+  border-radius: 0.75rem;
+  font-size: 1rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
   border: none;
 }
 
 .btn-icon {
-  width: 1.25rem;
-  height: 1.25rem;
+  width: 1.5rem;
+  height: 1.5rem;
 }
 
 .btn-primary {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
 }
 
 .btn-primary:hover {
-  opacity: 0.9;
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
 }
 
 .btn-primary:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
+  box-shadow: none;
 }
 
 .btn-secondary {
-  background: #f3f4f6;
+  background: #ffffff;
   color: #374151;
-  border: 1px solid #d1d5db;
+  border: 2px solid #e5e7eb;
 }
 
 .btn-secondary:hover {
-  background: #e5e7eb;
+  background: #f3f4f6;
+  border-color: #d1d5db;
 }
 
 /* Spinning Animation */
@@ -683,29 +706,57 @@
   color: #991b1b;
 }
 
-/* Responsive Adjustments */
-@media (max-width: 640px) {
+/* Responsive Adjustments - Mobile Friendly Full Page */
+@media (max-width: 768px) {
   .balance-modal-container {
-    max-height: 95vh;
-    border-radius: 1rem 1rem 0 0;
-    margin-top: auto;
+    min-height: 100vh;
+  }
+
+  .balance-modal-header {
+    padding: 1.5rem;
+  }
+
+  .modal-title {
+    font-size: 1.25rem;
+  }
+
+  .current-balance-display {
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1.5rem;
+  }
+
+  .balance-value {
+    font-size: 2rem;
+  }
+
+  .modal-content {
+    padding: 1.5rem;
+  }
+
+  .adjustment-form {
+    padding: 1.5rem;
   }
 
   .form-row {
     grid-template-columns: 1fr;
+    gap: 1rem;
   }
 
   .adjustment-type-grid {
     grid-template-columns: 1fr;
+    gap: 0.75rem;
   }
 
   .form-actions {
     flex-direction: column;
+    gap: 1rem;
   }
 
   .btn {
     width: 100%;
     justify-content: center;
+    padding: 1rem 1.5rem;
   }
 
   .summary-stats-grid {
@@ -713,15 +764,16 @@
   }
 
   .modal-tabs {
-    padding: 0 0.5rem;
+    padding: 0 1rem;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
   }
 
   .tab-btn {
-    padding: 0.75rem 0.5rem;
-    font-size: 0.8rem;
-  }
-
-  .tab-btn .tab-icon {
-    display: none;
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+    flex: 1;
+    min-width: 120px;
   }
 }
