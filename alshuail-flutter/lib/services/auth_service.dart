@@ -1,0 +1,509 @@
+import 'api_service.dart';
+import 'storage_service.dart';
+import 'biometric_service.dart';
+
+/// Authentication result class
+class AuthResult {
+  final bool success;
+  final String message;
+  final Map<String, dynamic>? user;
+  final String? token;
+  final bool requiresPasswordSetup;
+  final int? attemptsRemaining;
+
+  AuthResult({
+    required this.success,
+    required this.message,
+    this.user,
+    this.token,
+    this.requiresPasswordSetup = false,
+    this.attemptsRemaining,
+  });
+
+  factory AuthResult.success({String message = 'تم بنجاح', Map<String, dynamic>? user, String? token, bool requiresPasswordSetup = false}) {
+    return AuthResult(
+      success: true,
+      message: message,
+      user: user,
+      token: token,
+      requiresPasswordSetup: requiresPasswordSetup,
+    );
+  }
+
+  factory AuthResult.failure({required String message, int? attemptsRemaining}) {
+    return AuthResult(
+      success: false,
+      message: message,
+      attemptsRemaining: attemptsRemaining,
+    );
+  }
+}
+
+class AuthService {
+  final ApiService _api = ApiService();
+
+  // =====================================================
+  // OTP AUTHENTICATION
+  // =====================================================
+
+  /// Send OTP via WhatsApp
+  /// @param phone - Phone number (05xxxxxxxx or +966xxxxxxxx)
+  Future<Map<String, dynamic>> sendOTP(String phone) async {
+    try {
+      final response = await _api.post('/otp/send', data: {'phone': phone});
+      return response.data as Map<String, dynamic>;
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'فشل إرسال رمز التحقق',
+        'error': e.toString(),
+      };
+    }
+  }
+
+  /// Verify OTP and login
+  /// @param phone - Phone number
+  /// @param otp - 6-digit OTP code
+  Future<Map<String, dynamic>> verifyOTP(String phone, String otp) async {
+    try {
+      final response = await _api.post('/otp/verify', data: {
+        'phone': phone,
+        'otp': otp,
+      });
+
+      final data = response.data as Map<String, dynamic>;
+
+      if (data['success'] == true && data['token'] != null) {
+        // Save token
+        await _api.setToken(data['token']);
+
+        // Save user data
+        if (data['user'] != null) {
+          await StorageService.saveUser(data['user'] as Map<String, dynamic>);
+        }
+      }
+
+      return data;
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'حدث خطأ في التحقق',
+        'error': e.toString(),
+      };
+    }
+  }
+
+  /// Resend OTP via WhatsApp
+  Future<Map<String, dynamic>> resendOTP(String phone) async {
+    try {
+      final response = await _api.post('/otp/resend', data: {'phone': phone});
+      return response.data as Map<String, dynamic>;
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'فشل إعادة إرسال الرمز',
+        'error': e.toString(),
+      };
+    }
+  }
+
+  /// Request OTP for specific purpose
+  Future<AuthResult> requestOTP({
+    required String phone,
+    String purpose = 'login',
+  }) async {
+    try {
+      final response = await _api.post('/auth/password/request-otp', data: {
+        'phone': phone,
+        'purpose': purpose,
+      });
+
+      final data = response.data as Map<String, dynamic>;
+
+      if (data['success'] == true) {
+        return AuthResult.success(
+          message: data['message'] ?? 'تم إرسال رمز التحقق',
+        );
+      } else {
+        return AuthResult.failure(
+          message: data['message'] ?? 'فشل إرسال رمز التحقق',
+        );
+      }
+    } catch (e) {
+      return AuthResult.failure(message: 'فشل إرسال رمز التحقق');
+    }
+  }
+
+  // =====================================================
+  // PASSWORD AUTHENTICATION
+  // =====================================================
+
+  /// Login with phone and password
+  Future<AuthResult> loginWithPassword({
+    required String phone,
+    required String password,
+  }) async {
+    try {
+      final response = await _api.post('/auth/password/login', data: {
+        'phone': phone,
+        'password': password,
+      });
+
+      final data = response.data as Map<String, dynamic>;
+
+      if (data['success'] == true) {
+        // Save token
+        if (data['token'] != null) {
+          await _api.setToken(data['token']);
+        }
+
+        // Save user data
+        if (data['user'] != null) {
+          await StorageService.saveUser(data['user'] as Map<String, dynamic>);
+          await StorageService.setLastLoginPhone(phone);
+        }
+
+        return AuthResult.success(
+          message: 'تم تسجيل الدخول بنجاح',
+          user: data['user'],
+          token: data['token'],
+        );
+      } else {
+        return AuthResult.failure(
+          message: data['message'] ?? 'فشل تسجيل الدخول',
+          attemptsRemaining: data['attemptsRemaining'],
+        );
+      }
+    } catch (e) {
+      return AuthResult.failure(message: 'فشل تسجيل الدخول');
+    }
+  }
+
+  /// Create password for first-time user
+  Future<AuthResult> createPassword({
+    required String password,
+    required String confirmPassword,
+  }) async {
+    if (password != confirmPassword) {
+      return AuthResult.failure(message: 'كلمة المرور غير متطابقة');
+    }
+
+    if (password.length < 6) {
+      return AuthResult.failure(message: 'كلمة المرور يجب أن تكون 6 أحرف على الأقل');
+    }
+
+    try {
+      final response = await _api.post('/auth/password/create-password', data: {
+        'password': password,
+        'confirmPassword': confirmPassword,
+      });
+
+      final data = response.data as Map<String, dynamic>;
+
+      if (data['success'] == true) {
+        return AuthResult.success(
+          message: data['message'] ?? 'تم إنشاء كلمة المرور بنجاح',
+        );
+      } else {
+        return AuthResult.failure(
+          message: data['message'] ?? 'فشل إنشاء كلمة المرور',
+        );
+      }
+    } catch (e) {
+      return AuthResult.failure(message: 'فشل إنشاء كلمة المرور');
+    }
+  }
+
+  /// Reset password with OTP verification
+  Future<AuthResult> resetPassword({
+    required String phone,
+    required String otp,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    if (newPassword != confirmPassword) {
+      return AuthResult.failure(message: 'كلمة المرور غير متطابقة');
+    }
+
+    if (newPassword.length < 6) {
+      return AuthResult.failure(message: 'كلمة المرور يجب أن تكون 6 أحرف على الأقل');
+    }
+
+    try {
+      final response = await _api.post('/auth/password/reset-password', data: {
+        'phone': phone,
+        'otp': otp,
+        'newPassword': newPassword,
+        'confirmPassword': confirmPassword,
+      });
+
+      final data = response.data as Map<String, dynamic>;
+
+      if (data['success'] == true) {
+        return AuthResult.success(
+          message: data['message'] ?? 'تم تغيير كلمة المرور بنجاح',
+        );
+      } else {
+        return AuthResult.failure(
+          message: data['message'] ?? 'فشل تغيير كلمة المرور',
+        );
+      }
+    } catch (e) {
+      return AuthResult.failure(message: 'فشل تغيير كلمة المرور');
+    }
+  }
+
+  /// Check if user has password set up
+  Future<bool> hasPasswordSetup(String phone) async {
+    try {
+      final response = await _api.post('/auth/password/check-password', data: {'phone': phone});
+      final data = response.data as Map<String, dynamic>;
+      return data['hasPassword'] == true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // =====================================================
+  // BIOMETRIC AUTHENTICATION
+  // =====================================================
+
+  /// Login with user ID (for biometric login)
+  /// @param userId - The stored user ID
+  Future<Map<String, dynamic>> loginWithUserId(String userId) async {
+    try {
+      final response = await _api.post('/auth/biometric-login', data: {
+        'user_id': userId,
+      });
+
+      final data = response.data as Map<String, dynamic>;
+
+      if (data['success'] == true && data['token'] != null) {
+        // Save token
+        await _api.setToken(data['token']);
+
+        // Save user data
+        if (data['user'] != null) {
+          await StorageService.saveUser(data['user'] as Map<String, dynamic>);
+        }
+      }
+
+      return data;
+    } catch (e) {
+      // If API fails, try to use cached user data
+      final savedUser = getSavedUser();
+      if (savedUser != null && savedUser['id'] == userId) {
+        return {
+          'success': true,
+          'user': savedUser,
+          'message': 'تم الدخول باستخدام البيانات المحفوظة',
+        };
+      }
+
+      return {
+        'success': false,
+        'message': 'فشل تسجيل الدخول',
+        'error': e.toString(),
+      };
+    }
+  }
+
+  /// Login with Face ID / Touch ID
+  Future<AuthResult> loginWithFaceId() async {
+    try {
+      // Check if biometric is available and enabled
+      final isAvailable = await BiometricService.isAvailable();
+      if (!isAvailable) {
+        return AuthResult.failure(message: 'المصادقة البيومترية غير متاحة');
+      }
+
+      final isEnabled = await StorageService.isBiometricEnabled();
+      if (!isEnabled) {
+        return AuthResult.failure(message: 'المصادقة البيومترية غير مفعلة');
+      }
+
+      // Authenticate with biometric
+      final biometricResult = await BiometricService.authenticate(
+        reason: 'استخدم البصمة أو Face ID للدخول',
+      );
+
+      if (!biometricResult.success) {
+        return AuthResult.failure(message: biometricResult.message);
+      }
+
+      // Get stored face ID token
+      final faceIdToken = await StorageService.getFaceIdToken();
+      if (faceIdToken == null) {
+        return AuthResult.failure(message: 'يرجى تسجيل الدخول أولاً ثم تفعيل البصمة');
+      }
+
+      // Login with face ID token
+      final response = await _api.post('/auth/password/face-id-login', data: {
+        'faceIdToken': faceIdToken,
+      });
+
+      final data = response.data as Map<String, dynamic>;
+
+      if (data['success'] == true) {
+        if (data['token'] != null) {
+          await _api.setToken(data['token']);
+        }
+
+        if (data['user'] != null) {
+          await StorageService.saveUser(data['user'] as Map<String, dynamic>);
+        }
+
+        return AuthResult.success(
+          message: 'تم تسجيل الدخول بنجاح',
+          user: data['user'],
+          token: data['token'],
+        );
+      } else {
+        return AuthResult.failure(
+          message: data['message'] ?? 'فشل تسجيل الدخول',
+        );
+      }
+    } catch (e) {
+      return AuthResult.failure(message: 'فشل تسجيل الدخول بالبصمة');
+    }
+  }
+
+  /// Enable Face ID / Touch ID
+  Future<AuthResult> enableFaceId() async {
+    try {
+      // Check if biometric is available
+      final isAvailable = await BiometricService.isAvailable();
+      if (!isAvailable) {
+        return AuthResult.failure(message: 'المصادقة البيومترية غير متاحة على هذا الجهاز');
+      }
+
+      // Authenticate first
+      final biometricResult = await BiometricService.authenticate(
+        reason: 'قم بتأكيد هويتك لتفعيل البصمة',
+      );
+
+      if (!biometricResult.success) {
+        return AuthResult.failure(message: biometricResult.message);
+      }
+
+      // Enable on server
+      final response = await _api.post('/auth/password/enable-face-id', data: {});
+
+      final data = response.data as Map<String, dynamic>;
+
+      if (data['success'] == true && data['faceIdToken'] != null) {
+        // Save token locally
+        await StorageService.setFaceIdToken(data['faceIdToken']);
+        await StorageService.setBiometricEnabled(true);
+
+        return AuthResult.success(message: 'تم تفعيل البصمة بنجاح');
+      } else {
+        return AuthResult.failure(
+          message: data['message'] ?? 'فشل تفعيل البصمة',
+        );
+      }
+    } catch (e) {
+      return AuthResult.failure(message: 'فشل تفعيل البصمة');
+    }
+  }
+
+  /// Disable Face ID / Touch ID
+  Future<AuthResult> disableFaceId() async {
+    try {
+      final response = await _api.post('/auth/password/disable-face-id', data: {});
+
+      final data = response.data as Map<String, dynamic>;
+
+      if (data['success'] == true) {
+        // Clear local storage
+        await StorageService.clearFaceIdToken();
+        await StorageService.setBiometricEnabled(false);
+
+        return AuthResult.success(message: 'تم إلغاء تفعيل البصمة');
+      } else {
+        return AuthResult.failure(
+          message: data['message'] ?? 'فشل إلغاء البصمة',
+        );
+      }
+    } catch (e) {
+      return AuthResult.failure(message: 'فشل إلغاء البصمة');
+    }
+  }
+
+  /// Check if Face ID is enabled
+  Future<bool> isFaceIdEnabled() async {
+    return await StorageService.isBiometricEnabled();
+  }
+
+  // =====================================================
+  // PROFILE & SESSION
+  // =====================================================
+
+  /// Update user profile
+  Future<Map<String, dynamic>> updateProfile(Map<String, dynamic> profileData) async {
+    try {
+      final response = await _api.put('/members/mobile/profile', data: profileData);
+
+      final data = response.data as Map<String, dynamic>;
+
+      if (data['success'] == true && data['user'] != null) {
+        await StorageService.saveUser(data['user'] as Map<String, dynamic>);
+      }
+
+      return data;
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'فشل تحديث الملف الشخصي',
+        'error': e.toString(),
+      };
+    }
+  }
+
+  /// Check WhatsApp service status
+  Future<Map<String, dynamic>> checkOTPStatus() async {
+    try {
+      final response = await _api.get('/otp/status');
+      return response.data as Map<String, dynamic>;
+    } catch (e) {
+      return {
+        'success': false,
+        'error': e.toString(),
+      };
+    }
+  }
+
+  /// Verify current token
+  Future<Map<String, dynamic>> verifyToken() async {
+    try {
+      final response = await _api.post('/auth/verify');
+      return response.data as Map<String, dynamic>;
+    } catch (e) {
+      return {
+        'success': false,
+        'error': e.toString(),
+      };
+    }
+  }
+
+  /// Logout
+  Future<void> logout() async {
+    try {
+      await _api.post('/auth/logout');
+    } catch (e) {
+      // Ignore logout errors
+    }
+    await _api.setToken(null);
+    await StorageService.clearAll();
+  }
+
+  /// Check if user is logged in
+  Future<bool> isLoggedIn() async {
+    return await StorageService.hasToken();
+  }
+
+  /// Get saved user data
+  Map<String, dynamic>? getSavedUser() {
+    return StorageService.getUser();
+  }
+}
