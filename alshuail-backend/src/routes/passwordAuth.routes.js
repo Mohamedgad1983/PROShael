@@ -10,6 +10,7 @@
 import express from 'express';
 import {
     loginWithPassword,
+    checkPasswordStatus,
     requestOTP,
     verifyOTP,
     createPassword,
@@ -22,6 +23,7 @@ import {
     getMemberSecurityInfo
 } from '../controllers/passwordAuth.controller.js';
 import { authenticateToken, authorize } from '../middleware/authMiddleware.js';
+import { requirePasswordAuth } from '../middleware/featureFlags.js';
 
 const router = express.Router();
 
@@ -32,10 +34,18 @@ const router = express.Router();
 /**
  * @route   POST /api/auth/password/login
  * @desc    Login with phone + password
- * @access  Public
+ * @access  Public (requires PASSWORD_AUTH_ENABLED feature flag)
  * @body    { phone, password }
  */
-router.post('/login', loginWithPassword);
+router.post('/login', requirePasswordAuth, loginWithPassword);
+
+/**
+ * @route   POST /api/auth/password/check-password
+ * @desc    Check if member has password set up
+ * @access  Public
+ * @body    { phone }
+ */
+router.post('/check-password', checkPasswordStatus);
 
 /**
  * @route   POST /api/auth/password/request-otp
@@ -56,10 +66,10 @@ router.post('/verify-otp', verifyOTP);
 /**
  * @route   POST /api/auth/password/reset-password
  * @desc    Reset password after OTP verification
- * @access  Public
+ * @access  Public (requires PASSWORD_AUTH_ENABLED feature flag)
  * @body    { phone, otp, newPassword, confirmPassword }
  */
-router.post('/reset-password', resetPassword);
+router.post('/reset-password', requirePasswordAuth, resetPassword);
 
 /**
  * @route   POST /api/auth/password/face-id-login
@@ -76,10 +86,10 @@ router.post('/face-id-login', loginWithFaceId);
 /**
  * @route   POST /api/auth/password/create-password
  * @desc    Create password (first time or after admin reset)
- * @access  Private (requires token)
+ * @access  Private (requires token and PASSWORD_AUTH_ENABLED feature flag)
  * @body    { password, confirmPassword }
  */
-router.post('/create-password', authenticateToken, createPassword);
+router.post('/create-password', requirePasswordAuth, authenticateToken, createPassword);
 
 /**
  * @route   POST /api/auth/password/enable-face-id
