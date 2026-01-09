@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>شجرة عائلة شعيل العنزي - كل الأعضاء</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+            min-height: 100vh;
+            direction: rtl;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d4a6f 100%);
+            color: white;
+            padding: 24px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header-title .icon {
+            font-size: 36px;
+        }
+
+        .header-title h1 {
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .header-title p {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .header-stats {
+            display: flex;
+            gap: 20px;
+        }
+
+        .stat-box {
+            background: rgba(255,255,255,0.1);
+            padding: 12px 24px;
+            border-radius: 12px;
+            text-align: center;
+            min-width: 100px;
+        }
+
+        .stat-box.active {
+            background: rgba(74, 222, 128, 0.2);
+        }
+
+        .stat-number {
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        /* Controls */
+        .controls {
+            background: white;
+            padding: 16px 32px;
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+            border-bottom: 1px solid #e2e8f0;
+            position: sticky;
+            top: 96px;
+            z-index: 99;
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #f5f7fa;
+            padding: 10px 16px;
+            border-radius: 10px;
+            flex: 1;
+            max-width: 400px;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .search-box:focus-within {
+            border-color: #667eea;
+            background: white;
+        }
+
+        .search-box input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            font-size: 14px;
+            outline: none;
+            font-family: inherit;
+        }
+
+        .filter-select {
+            padding: 10px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: inherit;
+            background: white;
+            cursor: pointer;
+            min-width: 180px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #f5f7fa;
+            color: #1e3a5f;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 24px 32px;
+        }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+            gap: 16px;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #e2e8f0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Section Block */
+        .section-block {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .section-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .section-header:hover {
+            opacity: 0.95;
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-title h3 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .section-count {
+            background: rgba(255,255,255,0.2);
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+        }
+
+        .section-toggle {
+            font-size: 20px;
+            transition: transform 0.3s;
+        }
+
+        .section-block.expanded .section-toggle {
+            transform: rotate(180deg);
+        }
+
+        .section-members {
+            display: none;
+            padding: 8px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .section-block.expanded .section-members {
+            display: block;
+        }
+
+        /* Member Row */
+        .member-row {
+            display: grid;
+            grid-template-columns: 50px 1fr 140px 120px 90px;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .member-row:hover {
+            background: #f5f7fa;
+        }
+
+        .member-row.selected {
+            background: #dbeafe;
+            border-color: #3b82f6;
+        }
+
+        .member-row.highlighted {
+            background: #fef3c7;
+            border-color: #f59e0b;
+        }
+
+        .member-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 16px;
+            overflow: hidden;
+        }
+
+        .member-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .member-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .member-name {
+            font-weight: 600;
+            color: #1e3a5f;
+            font-size: 15px;
+        }
+
+        .member-id {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .member-phone {
+            font-size: 13px;
+            color: #64748b;
+            direction: ltr;
+            text-align: right;
+        }
+
+        .member-balance {
+            font-weight: 600;
+            color: #059669;
+            font-size: 14px;
+        }
+
+        .member-status {
+            font-size: 12px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            text-align: center;
+        }
+
+        .status-active {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-inactive {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        /* Member Detail Panel */
+        .panel-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+
+        .panel-overlay.active {
+            display: block;
+        }
+
+        .member-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 400px;
+            height: 100vh;
+            background: white;
+            box-shadow: 4px 0 20px rgba(0,0,0,0.2);
+            z-index: 1001;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-overlay.active .member-panel {
+            transform: translateX(0);
+        }
+
+        .panel-header {
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d4a6f 100%);
+            color: white;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-header h3 {
+            font-size: 18px;
+        }
+
+        .panel-close {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 20px;
+        }
+
+        .panel-body {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .panel-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 36px;
+            font-weight: 700;
+            margin: 0 auto 16px;
+        }
+
+        .panel-name {
+            text-align: center;
+            font-size: 22px;
+            font-weight: 700;
+            color: #1e3a5f;
+            margin-bottom: 4px;
+        }
+
+        .panel-id {
+            text-align: center;
+            color: #64748b;
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+
+        .detail-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            background: #f5f7fa;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+
+        .detail-icon {
+            font-size: 18px;
+        }
+
+        .detail-label {
+            flex: 1;
+            color: #64748b;
+            font-size: 13px;
+        }
+
+        .detail-value {
+            font-weight: 600;
+            color: #1e3a5f;
+        }
+
+        .detail-value.balance {
+            color: #059669;
+        }
+
+        /* Summary */
+        .summary-bar {
+            background: #dbeafe;
+            padding: 12px 32px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #1e40af;
+            font-size: 14px;
+        }
+
+        /* No Results */
+        .no-results {
+            text-align: center;
+            padding: 60px;
+            color: #64748b;
+        }
+
+        .no-results .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .member-row {
+                grid-template-columns: 40px 1fr 100px 80px;
+            }
+            .member-phone {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                text-align: center;
+            }
+            .header-stats {
+                width: 100%;
+                justify-content: center;
+            }
+            .controls {
+                flex-direction: column;
+            }
+            .search-box {
+                max-width: 100%;
+                width: 100%;
+            }
+            .member-row {
+                grid-template-columns: 40px 1fr 80px;
+            }
+            .member-balance {
+                display: none;
+            }
+            .member-panel {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-title">
+            <span class="icon">🌳</span>
+            <div>
+                <h1>شجرة عائلة شعيل العنزي</h1>
+                <p>عرض جميع أعضاء العائلة</p>
+            </div>
+        </div>
+        <div class="header-stats">
+            <div class="stat-box">
+                <div class="stat-number" id="totalCount">0</div>
+                <div class="stat-label">إجمالي الأعضاء</div>
+            </div>
+            <div class="stat-box active">
+                <div class="stat-number" id="activeCount">0</div>
+                <div class="stat-label">نشط</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number" id="branchCount">0</div>
+                <div class="stat-label">فخوذ</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+        <div class="search-box">
+            <span>🔍</span>
+            <input type="text" id="searchInput" placeholder="ابحث بالاسم أو رقم العضوية أو الجوال...">
+        </div>
+        <select class="filter-select" id="branchFilter">
+            <option value="all">كل الفخوذ</option>
+        </select>
+        <button class="btn btn-secondary" onclick="toggleAllSections()">
+            <span id="toggleText">توسيع الكل</span>
+        </button>
+        <button class="btn btn-primary" onclick="loadData()">
+            🔄 تحديث
+        </button>
+    </div>
+
+    <!-- Summary Bar -->
+    <div class="summary-bar" id="summaryBar" style="display: none;">
+        <span>ℹ️</span>
+        <span id="summaryText"></span>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+        <div class="loading" id="loadingState">
+            <div class="spinner"></div>
+            <p>جاري تحميل بيانات الأعضاء...</p>
+        </div>
+    </div>
+
+    <!-- Member Detail Panel -->
+    <div class="panel-overlay" id="panelOverlay" onclick="closePanel()">
+        <div class="member-panel" onclick="event.stopPropagation()">
+            <div class="panel-header">
+                <h3>تفاصيل العضو</h3>
+                <button class="panel-close" onclick="closePanel()">×</button>
+            </div>
+            <div class="panel-body" id="panelBody">
+                <!-- Filled by JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE = 'https://api.alshailfund.com/api';
+        
+        // State
+        let allMembers = [];
+        let membersBySection = {};
+        let expandedSections = new Set();
+        let selectedMemberId = null;
+        let allExpanded = false;
+
+        // Get auth token
+        function getAuthToken() {
+            return sessionStorage.getItem('token') || 
+                   localStorage.getItem('token') || 
+                   localStorage.getItem('authToken') || '';
+        }
+
+        // Format currency
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('ar-SA').format(amount || 0) + ' ر.س';
+        }
+
+        // Load data from API
+        async function loadData() {
+            const loadingEl = document.getElementById('loadingState');
+            const mainContent = document.getElementById('mainContent');
+            
+            loadingEl.style.display = 'flex';
+            
+            try {
+                const token = getAuthToken();
+                const response = await fetch(`${API_BASE}/members?limit=1000`, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': token ? `Bearer ${token}` : ''
+                    }
+                });
+                
+                if (!response.ok) throw new Error('Failed to fetch');
+                
+                const result = await response.json();
+                allMembers = result.data || result || [];
+                
+                processMembers();
+                renderAll();
+                
+            } catch (error) {
+                console.error('Error:', error);
+                // Use sample data for demo
+                loadSampleData();
+            } finally {
+                loadingEl.style.display = 'none';
+            }
+        }
+
+        // Sample data for demo
+        function loadSampleData() {
+            const sections = ['رشود', 'الدغيش', 'رشيد', 'العقاب', 'الاحيمر', 'العيد', 'الشامخ', 'الرشيد', 'الشبيعان', 'المسعود'];
+            const firstNames = ['محمد', 'أحمد', 'عبدالله', 'خالد', 'فهد', 'سعود', 'ناصر', 'عبدالرحمن', 'سلطان', 'تركي', 'بندر', 'فيصل', 'مشعل', 'نايف', 'وليد'];
+            const lastNames = ['الشعيل', 'العنزي', 'الشمري', 'الحربي', 'القحطاني'];
+            
+            allMembers = [];
+            let memberNum = 1;
+            
+            // Generate realistic distribution
+            const distribution = {
+                'رشود': 172,
+                'الدغيش': 45,
+                'رشيد': 36,
+                'العقاب': 22,
+                'الاحيمر': 22,
+                'العيد': 14,
+                'الشامخ': 12,
+                'الرشيد': 12,
+                'الشبيعان': 5,
+                'المسعود': 4
+            };
+            
+            for (const [section, count] of Object.entries(distribution)) {
+                for (let i = 0; i < count; i++) {
+                    const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+                    const fatherName = firstNames[Math.floor(Math.random() * firstNames.length)];
+                    const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+                    
+                    allMembers.push({
+                        id: `member-${memberNum}`,
+                        membership_number: `SH-${String(memberNum).padStart(4, '0')}`,
+                        full_name_ar: `${firstName} ${fatherName} ${lastName}`,
+                        phone: `05${Math.floor(Math.random() * 10)}${String(Math.floor(Math.random() * 10000000)).padStart(7, '0')}`,
+                        current_balance: Math.floor(Math.random() * 5000) + 500,
+                        status: Math.random() > 0.08 ? 'active' : 'inactive',
+                        tribal_section: section
+                    });
+                    memberNum++;
+                }
+            }
+            
+            processMembers();
+            renderAll();
+        }
+
+        // Process members into sections
+        function processMembers() {
+            membersBySection = {};
+            
+            allMembers.forEach(member => {
+                const section = member.tribal_section || 'غير محدد';
+                if (!membersBySection[section]) {
+                    membersBySection[section] = [];
+                }
+                membersBySection[section].push(member);
+            });
+            
+            // Sort sections by member count
+            const sortedSections = Object.entries(membersBySection)
+                .sort((a, b) => b[1].length - a[1].length);
+            
+            membersBySection = Object.fromEntries(sortedSections);
+            
+            // Update stats
+            document.getElementById('totalCount').textContent = allMembers.length;
+            document.getElementById('activeCount').textContent = allMembers.filter(m => m.status === 'active').length;
+            document.getElementById('branchCount').textContent = Object.keys(membersBySection).length;
+            
+            // Update filter
+            const filterEl = document.getElementById('branchFilter');
+            filterEl.innerHTML = `<option value="all">كل الفخوذ (${allMembers.length})</option>`;
+            Object.entries(membersBySection).forEach(([section, members]) => {
+                filterEl.innerHTML += `<option value="${section}">${section} (${members.length})</option>`;
+            });
+        }
+
+        // Render all sections
+        function renderAll() {
+            const container = document.getElementById('mainContent');
+            const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+            const branchFilter = document.getElementById('branchFilter').value;
+            
+            let html = '';
+            let totalFiltered = 0;
+            
+            Object.entries(membersBySection).forEach(([section, members]) => {
+                // Filter by branch
+                if (branchFilter !== 'all' && section !== branchFilter) return;
+                
+                // Filter by search
+                let filteredMembers = members;
+                if (searchQuery) {
+                    filteredMembers = members.filter(m => 
+                        m.full_name_ar?.toLowerCase().includes(searchQuery) ||
+                        m.membership_number?.includes(searchQuery) ||
+                        m.phone?.includes(searchQuery)
+                    );
+                }
+                
+                if (filteredMembers.length === 0 && searchQuery) return;
+                
+                totalFiltered += filteredMembers.length;
+                const isExpanded = expandedSections.has(section) || allExpanded;
+                
+                html += `
+                    <div class="section-block ${isExpanded ? 'expanded' : ''}" data-section="${section}">
+                        <div class="section-header" onclick="toggleSection('${section}')">
+                            <div class="section-title">
+                                <span>👑</span>
+                                <h3>${section}</h3>
+                                <span class="section-count">${filteredMembers.length} عضو</span>
+                            </div>
+                            <span class="section-toggle">▼</span>
+                        </div>
+                        <div class="section-members">
+                            ${filteredMembers.map(member => renderMemberRow(member, searchQuery)).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            if (!html) {
+                html = `
+                    <div class="no-results">
+                        <div class="icon">🔍</div>
+                        <h3>لا توجد نتائج</h3>
+                        <p>جرب البحث بكلمات مختلفة</p>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+            
+            // Show summary if searching
+            const summaryBar = document.getElementById('summaryBar');
+            if (searchQuery) {
+                document.getElementById('summaryText').textContent = `نتائج البحث: ${totalFiltered} عضو`;
+                summaryBar.style.display = 'flex';
+            } else {
+                summaryBar.style.display = 'none';
+            }
+        }
+
+        // Render single member row
+        function renderMemberRow(member, searchQuery) {
+            const isHighlighted = searchQuery && (
+                member.full_name_ar?.toLowerCase().includes(searchQuery) ||
+                member.membership_number?.includes(searchQuery)
+            );
+            const isSelected = member.id === selectedMemberId;
+            const initials = member.full_name_ar?.charAt(0) || '?';
+            
+            return `
+                <div class="member-row ${isSelected ? 'selected' : ''} ${isHighlighted ? 'highlighted' : ''}" 
+                     onclick="showMemberDetails('${member.id}')">
+                    <div class="member-avatar">${initials}</div>
+                    <div class="member-info">
+                        <span class="member-name">${member.full_name_ar}</span>
+                        <span class="member-id">${member.membership_number}</span>
+                    </div>
+                    <span class="member-phone">${member.phone || '-'}</span>
+                    <span class="member-balance">${formatCurrency(member.current_balance)}</span>
+                    <span class="member-status status-${member.status}">
+                        ${member.status === 'active' ? 'نشط' : 'غير نشط'}
+                    </span>
+                </div>
+            `;
+        }
+
+        // Toggle section
+        function toggleSection(section) {
+            if (expandedSections.has(section)) {
+                expandedSections.delete(section);
+            } else {
+                expandedSections.add(section);
+            }
+            
+            const block = document.querySelector(`[data-section="${section}"]`);
+            if (block) {
+                block.classList.toggle('expanded');
+            }
+        }
+
+        // Toggle all sections
+        function toggleAllSections() {
+            allExpanded = !allExpanded;
+            document.getElementById('toggleText').textContent = allExpanded ? 'طي الكل' : 'توسيع الكل';
+            
+            if (allExpanded) {
+                Object.keys(membersBySection).forEach(s => expandedSections.add(s));
+            } else {
+                expandedSections.clear();
+            }
+            
+            renderAll();
+        }
+
+        // Show member details
+        function showMemberDetails(memberId) {
+            selectedMemberId = memberId;
+            const member = allMembers.find(m => m.id === memberId);
+            if (!member) return;
+            
+            const panelBody = document.getElementById('panelBody');
+            panelBody.innerHTML = `
+                <div class="panel-avatar">${member.full_name_ar?.charAt(0) || '?'}</div>
+                <div class="panel-name">${member.full_name_ar}</div>
+                <div class="panel-id">${member.membership_number}</div>
+                
+                <div class="detail-row">
+                    <span class="detail-icon">📱</span>
+                    <span class="detail-label">رقم الجوال</span>
+                    <span class="detail-value" dir="ltr">${member.phone || '-'}</span>
+                </div>
+                
+                <div class="detail-row">
+                    <span class="detail-icon">💰</span>
+                    <span class="detail-label">الرصيد</span>
+                    <span class="detail-value balance">${formatCurrency(member.current_balance)}</span>
+                </div>
+                
+                <div class="detail-row">
+                    <span class="detail-icon">👑</span>
+                    <span class="detail-label">الفخذ</span>
+                    <span class="detail-value">${member.tribal_section || 'غير محدد'}</span>
+                </div>
+                
+                <div class="detail-row">
+                    <span class="detail-icon">👤</span>
+                    <span class="detail-label">الحالة</span>
+                    <span class="detail-value">
+                        <span class="member-status status-${member.status}">
+                            ${member.status === 'active' ? 'نشط' : 'غير نشط'}
+                        </span>
+                    </span>
+                </div>
+            `;
+            
+            document.getElementById('panelOverlay').classList.add('active');
+            renderAll(); // Re-render to show selected state
+        }
+
+        // Close panel
+        function closePanel() {
+            selectedMemberId = null;
+            document.getElementById('panelOverlay').classList.remove('active');
+            renderAll();
+        }
+
+        // Event listeners
+        document.getElementById('searchInput').addEventListener('input', renderAll);
+        document.getElementById('branchFilter').addEventListener('change', renderAll);
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', loadData);
+    </script>
+</body>
+</html>

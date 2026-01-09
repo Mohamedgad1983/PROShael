@@ -50,6 +50,10 @@ import EnhancedMonitoringDashboard from './MemberMonitoring/EnhancedMonitoringDa
 import DocumentManager from './Documents/DocumentManager.jsx';
 // import FamilyTree from './FamilyTree/FamilyTree'; // Old tree component
 import FamilyTreeViewer from './FamilyTree/FamilyTreeViewer'; // New HTML-based viewer
+// @ts-ignore - Family Tree Management Component for Admin
+import FamilyTreeManagement from '../pages/admin/FamilyTreeManagement';
+// @ts-ignore - Full Family Tree with all members
+import FullFamilyTree from '../pages/admin/FullFamilyTree';
 
 // News & Initiatives Management - NEW
 // @ts-ignore
@@ -250,570 +254,407 @@ if (!document.querySelector('#dashboard-styles')) {
   document.head.appendChild(styleSheet);
 }
 
+// ===== أنماط لوحة التحكم - Admin Panel Styles =====
+// تم تحديثها لاستخدام ألوان فاتحة وتصميم كلاسيكي بسيط
+// Updated to use light colors and classic simple design
+
 const styles = {
+  // === الحاوية الرئيسية - Main Container ===
+  // خلفية فاتحة متناسقة مع ألوان العناوين
   container: {
     height: '100vh',
-
-    background: 'linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)',
-
+    background: '#f5f7fa', // خلفية رمادية فاتحة - Light gray background
     fontFamily: 'Tajawal, Cairo, sans-serif',
-
     direction: 'rtl' as const,
-
-    color: 'white',
-
+    color: '#1e3a5f', // لون النص الداكن - Dark text color
     position: 'relative' as const,
-
     overflow: 'hidden',
-
     display: 'flex',
-
     flexDirection: 'column' as const,
   },
 
+  // === الرأس - Header ===
+  // شريط علوي بسيط بخلفية بيضاء
   header: {
-    background: 'rgba(255, 255, 255, 0.1)',
-
-    backdropFilter: 'blur(10px)',
-
+    background: '#ffffff', // خلفية بيضاء - White background
     padding: '1rem 2rem',
-
     height: '80px',
-
     flexShrink: 0,
-
     display: 'flex',
-
     justifyContent: 'space-between',
-
     alignItems: 'center',
-
-    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-
+    borderBottom: '1px solid #e2e8f0', // حد رمادي فاتح - Light gray border
     position: 'sticky' as const,
-
     top: 0,
-
     zIndex: 100,
+    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)', // ظل خفيف - Light shadow
   },
 
+  // === زر القائمة للموبايل - Mobile Menu Button ===
   mobileMenuButton: {
     display: 'none',
-
     padding: '8px',
-
-    background: 'rgba(255, 255, 255, 0.1)',
-
-    border: '1px solid rgba(255, 255, 255, 0.2)',
-
+    background: '#ffffff', // خلفية بيضاء - White background
+    border: '1px solid #e2e8f0', // حد رمادي - Gray border
     borderRadius: '8px',
-
-    color: 'white',
-
+    color: '#1e3a5f', // لون أزرق داكن - Dark blue color
     cursor: 'pointer',
-
-    transition: 'all 0.3s',
   },
 
+  // === مسار التنقل - Breadcrumbs ===
   breadcrumbs: {
     display: 'flex',
-
     alignItems: 'center',
-
     gap: '8px',
-
     fontSize: '14px',
-
-    color: 'rgba(255, 255, 255, 0.7)',
-
+    color: '#64748b', // لون رمادي - Gray color
     marginBottom: '1rem',
   },
 
+  // === التخطيط الرئيسي - Main Layout ===
   mainLayout: {
     display: 'flex',
-
     height: 'calc(100vh - 80px)',
-
     flex: 1,
-
     overflow: 'hidden',
   },
 
+  // === الشريط الجانبي - Sidebar ===
+  // تصميم كلاسيكي بسيط مع أسماء الأقسام
+  // Classic simple design with section names
   sidebar: {
-    width: '280px',
-
-    background: 'rgba(255, 255, 255, 0.05)',
-
-    backdropFilter: 'blur(20px)',
-
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-
-    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
-
-    padding: '2rem 1rem',
-
-    transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-
+    width: '220px', // عرض مناسب لعرض الأسماء - Width for displaying names
+    background: '#1e3a5f', // خلفية زرقاء داكنة - Dark blue background
+    padding: '1rem',
     position: 'relative' as const,
-
     height: '100%',
-
     overflowY: 'auto' as const,
+    display: 'flex',
+    flexDirection: 'column' as const,
   },
 
+  // === غطاء الشريط الجانبي للموبايل - Sidebar Overlay for Mobile ===
   sidebarOverlay: {
     display: 'none',
-
     position: 'fixed' as const,
-
     top: 0,
-
     left: 0,
-
     right: 0,
-
     bottom: 0,
-
-    background: 'rgba(0, 0, 0, 0.5)',
-
-    backdropFilter: 'blur(5px)',
-
+    background: 'rgba(0, 0, 0, 0.3)', // خلفية شفافة - Transparent background
     zIndex: 199,
-
     opacity: 0,
-
-    transition: 'opacity 0.3s',
   },
 
+  // === الشريط الجانبي للموبايل - Mobile Sidebar ===
   sidebarMobile: {
     position: 'fixed' as const,
-
     top: 0,
-
     right: '-100%',
-
     bottom: 0,
-
     width: '80%',
+    maxWidth: '280px',
 
-    maxWidth: '320px',
-
-    background: 'rgba(255, 255, 255, 0.08)',
-
-    backdropFilter: 'blur(25px)',
-
-    border: '1px solid rgba(255, 255, 255, 0.15)',
-
-    boxShadow: '-5px 0 25px rgba(0, 0, 0, 0.3)',
-
+    background: '#1e3a5f', // خلفية زرقاء داكنة - Dark blue background
     padding: '2rem 1rem',
-
-    transition: 'right 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-
     zIndex: 200,
-
     overflowY: 'auto' as const,
   },
 
+  // === حالة فتح الشريط الجانبي - Sidebar Open State ===
   sidebarMobileOpen: {
     right: 0,
   },
 
+  // === زر الإغلاق - Close Button ===
   closeButton: {
     position: 'absolute' as const,
-
     top: '1rem',
-
     left: '1rem',
-
     padding: '8px',
-
-    background: 'rgba(255, 255, 255, 0.1)',
-
-    border: '1px solid rgba(255, 255, 255, 0.2)',
-
+    background: 'rgba(255, 255, 255, 0.1)', // خلفية شفافة - Transparent background
+    border: '1px solid rgba(255, 255, 255, 0.2)', // حد شفاف - Transparent border
     borderRadius: '8px',
-
-    color: 'white',
-
+    color: 'white', // لون أبيض - White color
     cursor: 'pointer',
-
-    transition: 'all 0.3s',
   },
 
+  // === عنصر القائمة - Menu Item ===
+  // تصميم كلاسيكي بسيط مع أسماء الأقسام
+  // Classic simple design with section names
   menuItem: {
     display: 'flex',
-
     alignItems: 'center',
-
-    gap: '12px',
-
-    padding: '14px 20px',
-
-    marginBottom: '8px',
-
-    borderRadius: '12px',
-
-    background: 'transparent',
-
-    border: '2px solid transparent',
-
-    color: 'rgba(255, 255, 255, 0.8)',
-
-    fontSize: '16px',
-
+    justifyContent: 'flex-start', // محاذاة لليمين - Align to right
+    gap: '10px', // مسافة بين الأيقونة والنص - Gap between icon and text
+    padding: '12px 14px',
+    marginBottom: '4px',
+    borderRadius: '8px',
+    background: 'transparent', // بدون خلفية - No background
+    border: 'none', // بدون حد - No border
+    color: 'rgba(255, 255, 255, 0.8)', // لون أبيض - White color
     cursor: 'pointer',
-
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-
-    width: '100%',
-
-    textAlign: 'right' as const,
-
+    width: '100%', // عرض كامل - Full width
+    textAlign: 'right' as const, // محاذاة النص لليمين - Right align text
+    fontSize: '14px',
+    fontWeight: 500,
     position: 'relative' as const,
-
-    overflow: 'hidden',
-
-    minHeight: '48px',
   },
 
+  // === محتوى عنصر القائمة - Menu Item Content ===
   menuItemContent: {
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: '12px',
+    gap: '10px',
     width: '100%',
-    minHeight: '48px',
   },
 
+  // === الجزء الرئيسي من عنصر القائمة - Menu Item Main ===
   menuItemMain: {
     display: 'flex',
     alignItems: 'center',
-    gap: '12px',
-    minWidth: 0,
+    gap: '10px',
   },
 
+  // === نص عنصر القائمة - Menu Item Text ===
   menuItemText: {
     display: 'flex',
     flexDirection: 'column' as const,
     alignItems: 'flex-start',
-    gap: '4px',
-    minWidth: 0,
   },
 
+  // === تسمية عنصر القائمة - Menu Item Label ===
   menuItemLabel: {
-    fontSize: '16px',
-    fontWeight: 600,
-    lineHeight: 1.2,
+    fontSize: '14px',
+    fontWeight: 500,
     color: 'inherit',
-  },
-
-  menuItemSubLabel: {
-    fontSize: '12px',
-    color: 'rgba(255, 255, 255, 0.7)',
-    lineHeight: 1.3,
-    whiteSpace: 'normal' as const,
-  },
-
-  menuItemActive: {
-    background:
-      'linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(139, 92, 246, 0.25))',
-
-    color: 'white',
-
-    border: '2px solid rgba(59, 130, 246, 0.4)',
-
-    boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)',
-
-    transform: 'translateX(-4px)',
-  },
-
-  menuItemMembers: {
-    background:
-      'linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(59, 130, 246, 0.08))',
-    border: '1px solid rgba(16, 185, 129, 0.25)',
-    boxShadow: '0 6px 20px rgba(16, 185, 129, 0.18)',
-  },
-
-  menuItemMembersActive: {
-    border: '2px solid rgba(16, 185, 129, 0.45)',
-    boxShadow: '0 10px 24px rgba(16, 185, 129, 0.25)',
-  },
-
-  menuItemHover: {
-    background: 'rgba(255, 255, 255, 0.08)',
-
-    transform: 'translateX(-2px)',
-  },
-
-  activeIndicator: {
-    position: 'absolute' as const,
-
-    right: 0,
-
-    width: '4px',
-
-    height: '70%',
-
-    background: 'linear-gradient(180deg, #3b82f6, #8b5cf6)',
-
-    borderRadius: '4px 0 0 4px',
-
-    opacity: 0,
-
-    transition: 'opacity 0.3s',
-  },
-
-  activeIndicatorVisible: {
-    opacity: 1,
-  },
-
-  menuIcon: {
-    width: '22px',
-
-    height: '22px',
-
-    transition: 'transform 0.3s',
-  },
-
-  menuIconActive: {
-    transform: 'scale(1.15) rotate(5deg)',
-  },
-
-  memberPillGroup: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    marginLeft: 'auto',
-    flexWrap: 'wrap' as const,
-    justifyContent: 'flex-end',
-  },
-
-  memberPill: {
-    padding: '6px 10px',
-    borderRadius: '999px',
-    fontSize: '12px',
-    fontWeight: 700,
-    border: '1px solid transparent',
-    background: 'rgba(255, 255, 255, 0.06)',
-    color: 'rgba(255, 255, 255, 0.85)',
-    boxShadow: '0 4px 14px rgba(0, 0, 0, 0.15)',
     whiteSpace: 'nowrap' as const,
   },
 
+  // === التسمية الفرعية - Sub Label ===
+  menuItemSubLabel: {
+    display: 'none', // مخفي - Hidden
+  },
+
+  // === العنصر النشط - Active Menu Item ===
+  // تصميم بسيط بدون حركات - Simple design without animations
+  menuItemActive: {
+    background: 'rgba(255, 255, 255, 0.15)', // خلفية شفافة خفيفة - Light transparent background
+    color: '#ffffff', // لون أبيض - White color
+    borderRadius: '10px',
+  },
+
+  // === عنصر الأعضاء (نفس التصميم) - Members Item (same design) ===
+  menuItemMembers: {
+    // بدون تصميم خاص - No special styling
+  },
+
+  // === عنصر الأعضاء النشط - Active Members Item ===
+  menuItemMembersActive: {
+    // بدون تصميم خاص - No special styling
+  },
+
+  // === حالة التمرير (معطلة) - Hover State (disabled) ===
+  menuItemHover: {
+    // بدون تأثير تمرير - No hover effect
+  },
+
+  // === مؤشر العنصر النشط (مخفي) - Active Indicator (hidden) ===
+  activeIndicator: {
+    display: 'none', // مخفي - Hidden
+  },
+
+  // === مؤشر مرئي (مخفي) - Visible Indicator (hidden) ===
+  activeIndicatorVisible: {
+    display: 'none', // مخفي - Hidden
+  },
+
+  // === أيقونة القائمة - Menu Icon ===
+  // حجم واضح بدون حركات - Clear size without animations
+  menuIcon: {
+    width: '24px', // حجم الأيقونة - Icon size
+    height: '24px',
+    color: 'inherit', // يرث اللون من العنصر الأب - Inherit color from parent
+  },
+
+  // === أيقونة نشطة - Active Icon ===
+  menuIconActive: {
+    // بدون تحويل - No transform
+  },
+
+  // === مجموعة شارات الأعضاء (مخفية) - Member Pill Group (hidden) ===
+  memberPillGroup: {
+    display: 'none', // مخفي في وضع الأيقونات - Hidden in icon mode
+  },
+
+  // === شارة العضو - Member Pill ===
+  memberPill: {
+    display: 'none', // مخفي - Hidden
+  },
+
+  // === شارة أساسية - Primary Pill ===
   memberPillPrimary: {
-    background:
-      'linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(59, 130, 246, 0.15))',
-    border: '1px solid rgba(16, 185, 129, 0.45)',
-    color: '#bbf7d0',
+    display: 'none', // مخفي - Hidden
   },
 
+  // === شارة شبح - Ghost Pill ===
   memberPillGhost: {
-    background: 'rgba(255, 255, 255, 0.12)',
-    border: '1px solid rgba(255, 255, 255, 0.2)',
-    color: '#e0e7ff',
+    display: 'none', // مخفي - Hidden
   },
 
+  // === منطقة المحتوى - Content Area ===
+  // خلفية فاتحة للصفحات الداخلية - Light background for inner pages
   content: {
     flex: 1,
-
     padding: '2rem',
-
     overflowY: 'auto' as const,
-
     position: 'relative' as const,
-
     height: 'calc(100vh - 80px)',
-
     maxHeight: 'calc(100vh - 80px)',
+    background: '#f5f7fa', // خلفية رمادية فاتحة - Light gray background
   },
 
+  // === انتقال المحتوى (بسيط) - Content Transition (simple) ===
   contentTransition: {
-    opacity: 0,
-
-    transform: 'translateX(20px)',
-
-    animation: 'contentEnter 300ms cubic-bezier(0.4, 0, 0.2, 1) forwards',
+    opacity: 1, // بدون تأثير اختفاء - No fade effect
   },
 
+  // === رأس القسم - Section Header ===
   sectionHeader: {
     marginBottom: '2rem',
-
-    opacity: 0,
-
-    animation: 'fadeInUp 400ms ease-out forwards',
+    color: '#1e3a5f', // لون العنوان - Title color
   },
 
+  // === حاوية التحميل - Loading Container ===
   loadingContainer: {
     display: 'flex',
-
     justifyContent: 'center',
-
     alignItems: 'center',
-
     minHeight: '400px',
   },
 
+  // === مؤشر التحميل - Loading Spinner ===
   loadingSpinner: {
     width: '50px',
-
     height: '50px',
-
-    border: '3px solid rgba(255, 255, 255, 0.1)',
-
-    borderTop: '3px solid rgba(59, 130, 246, 0.8)',
-
+    border: '3px solid #e2e8f0', // حد رمادي - Gray border
+    borderTop: '3px solid #3b82f6', // حد أزرق علوي - Blue top border
     borderRadius: '50%',
-
     animation: 'spin 1s linear infinite',
   },
 
+  // === حالة فارغة - Empty State ===
   emptyState: {
     display: 'flex',
-
     flexDirection: 'column' as const,
-
     alignItems: 'center',
-
     justifyContent: 'center',
-
     minHeight: '400px',
-
     padding: '3rem',
-
     textAlign: 'center' as const,
+    color: '#64748b', // لون رمادي - Gray color
   },
 
+  // === أيقونة الحالة الفارغة - Empty State Icon ===
   emptyStateIcon: {
     width: '80px',
-
     height: '80px',
-
-    opacity: 0.3,
-
+    opacity: 0.5,
     marginBottom: '1.5rem',
+    color: '#94a3b8', // لون رمادي فاتح - Light gray color
   },
 
+  // === بطاقة الهيكل العظمي - Skeleton Card ===
   skeletonCard: {
-    background: 'rgba(255, 255, 255, 0.05)',
-
+    background: '#ffffff', // خلفية بيضاء - White background
     borderRadius: '16px',
-
     padding: '1.5rem',
-
     marginBottom: '1rem',
-
-    animation: 'pulse 2s ease-in-out infinite',
+    border: '1px solid #e2e8f0', // حد رمادي - Gray border
   },
 
+  // === خط الهيكل العظمي - Skeleton Line ===
   skeletonLine: {
     height: '12px',
-
-    background: 'rgba(255, 255, 255, 0.1)',
-
+    background: '#e2e8f0', // خلفية رمادية - Gray background
     borderRadius: '6px',
-
     marginBottom: '8px',
   },
 
+  // === شبكة الإحصائيات - Stats Grid ===
   statsGrid: {
     display: 'grid',
-
     gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-
     gap: '1.5rem',
-
     flexShrink: 0,
   },
 
+  // === بطاقة الإحصائيات - Stat Card ===
+  // تصميم فاتح مع ظل خفيف - Light design with subtle shadow
   statCard: {
-    background: 'rgba(255, 255, 255, 0.1)',
-
-    backdropFilter: 'blur(10px)',
-
-    border: '1px solid rgba(255, 255, 255, 0.2)',
-
+    background: '#ffffff', // خلفية بيضاء - White background
+    border: '1px solid #e2e8f0', // حد رمادي - Gray border
     borderRadius: '16px',
-
     padding: '1.5rem',
-
     textAlign: 'center' as const,
-
-    transition: 'transform 0.3s',
-
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)', // ظل خفيف - Light shadow
     cursor: 'pointer',
   },
 
+  // === صندوق الأيقونة - Icon Box ===
   iconBox: {
     width: '60px',
-
     height: '60px',
-
     margin: '0 auto 1rem',
-
     borderRadius: '12px',
-
     display: 'flex',
-
     alignItems: 'center',
-
     justifyContent: 'center',
   },
 
+  // === شبكة الرسوم البيانية - Charts Grid ===
   chartsGrid: {
     display: 'grid',
-
     gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
-
     gap: '1.5rem',
-
     flexShrink: 0,
   },
 
+  // === بطاقة الرسم البياني - Chart Card ===
   chartCard: {
-    background: 'rgba(255, 255, 255, 0.1)',
-
-    backdropFilter: 'blur(10px)',
-
-    border: '1px solid rgba(255, 255, 255, 0.2)',
-
+    background: '#ffffff', // خلفية بيضاء - White background
+    border: '1px solid #e2e8f0', // حد رمادي - Gray border
     borderRadius: '16px',
-
     padding: '1.5rem',
-
     height: '300px',
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)', // ظل خفيف - Light shadow
   },
 
+  // === بطاقة الأنشطة - Activities Card ===
   activitiesCard: {
-    background: 'rgba(255, 255, 255, 0.1)',
-
-    backdropFilter: 'blur(10px)',
-
-    border: '1px solid rgba(255, 255, 255, 0.2)',
-
+    background: '#ffffff', // خلفية بيضاء - White background
+    border: '1px solid #e2e8f0', // حد رمادي - Gray border
     borderRadius: '16px',
-
     padding: '1.5rem',
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)', // ظل خفيف - Light shadow
   },
 
+  // === عنصر النشاط - Activity Item ===
   activityItem: {
     display: 'flex',
-
     justifyContent: 'space-between',
-
     alignItems: 'center',
-
     padding: '1rem',
-
     marginBottom: '0.5rem',
-
-    background: 'rgba(255, 255, 255, 0.05)',
-
+    background: '#f8fafc', // خلفية رمادية فاتحة جداً - Very light gray background
     borderRadius: '8px',
-
-    border: '1px solid rgba(255, 255, 255, 0.1)',
+    border: '1px solid #e2e8f0', // حد رمادي - Gray border
+    color: '#1e3a5f', // لون النص - Text color
   },
 };
+
+// ===== نهاية أنماط لوحة التحكم =====
+// ===== End of Admin Panel Styles =====
 
 interface StyledDashboardProps {
   onLogout: () => void;
@@ -1069,7 +910,9 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
 
     { id: 'member-documents', label: '📄 مستندات الأعضاء', icon: DocumentTextIcon }, // Member Documents
 
-    { id: 'family-tree', label: '🌳 شجرة العائلة', icon: UserPlusIcon }, // Family Tree
+    { id: 'family-tree', label: '🌳 شجرة العائلة', icon: UserPlusIcon },
+
+    { id: 'full-tree', label: '👨‍👩‍👧‍👦 كل الأعضاء', icon: UsersIcon }, // Family Tree
 
     { id: 'members', label: 'الأعضاء', icon: UsersIcon },
 
@@ -4116,163 +3959,75 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
           </h1>
         </div>
 
+        {/* === زر تسجيل الخروج - Logout Button === */}
+        {/* تصميم بسيط بدون حركات - Simple design without animations */}
         <button
           onClick={onLogout}
           style={{
             padding: '8px 24px',
-
-            background: 'rgba(132, 204, 22, 0.15)',
-
-            border: '1px solid rgba(132, 204, 22, 0.3)',
-
+            background: '#dc2626', // خلفية حمراء - Red background
+            border: 'none',
             borderRadius: '8px',
-
-            color: '#bef264',
-
+            color: '#ffffff', // نص أبيض - White text
             cursor: 'pointer',
-
             fontSize: '14px',
-
-            transition: 'all 0.3s ease',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(132, 204, 22, 0.25)';
-
-            e.currentTarget.style.borderColor = 'rgba(132, 204, 22, 0.5)';
-
-            e.currentTarget.style.color = 'white';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(132, 204, 22, 0.15)';
-
-            e.currentTarget.style.borderColor = 'rgba(132, 204, 22, 0.3)';
-
-            e.currentTarget.style.color = '#bef264';
+            fontWeight: 500,
           }}
         >
           تسجيل الخروج
         </button>
       </div>
 
+      {/* === التخطيط الرئيسي - Main Layout === */}
       <div style={styles.mainLayout}>
-        {/* Desktop Sidebar */}
-
+        {/* === الشريط الجانبي للكمبيوتر - Desktop Sidebar === */}
+        {/* تصميم كلاسيكي بسيط مع أسماء الأقسام - Classic simple design with section names */}
         <div className="desktop-sidebar" style={styles.sidebar}>
-          <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
+          {/* === الشعار والعنوان - Logo and Title === */}
+          <div style={{ marginBottom: '1.5rem', textAlign: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1rem' }}>
             <img
               src={logo}
-              alt="Shuail Al-Anzi Fund Logo"
+              alt="شعار صندوق شعيل العنزي"
               style={{
-                width: '140px',
-
-                height: '140px',
-
+                width: '60px',
+                height: '60px',
                 display: 'block',
-
-                margin: '0 auto 1rem auto',
-
-                filter: 'drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1))',
-
+                margin: '0 auto 8px auto',
                 background: 'rgba(255, 255, 255, 0.95)',
-
                 borderRadius: '50%',
-
-                padding: '10px',
+                padding: '4px',
               }}
             />
+            <div style={{ color: '#ffffff', fontSize: '13px', fontWeight: 500 }}>صندوق شعيل</div>
+          </div>
 
-            <h2
-              style={{
-                fontSize: '20px',
-                marginBottom: '8px',
-                color: '#ffffff',
-                fontWeight: '400',
-              }}
-            >
-              صندوق شعيل العنزي
-            </h2>
+          {/* === قائمة الأقسام - Sections Menu === */}
+          {/* تصميم كلاسيكي ثابت بسيط مع الأسماء - Classic fixed simple design with names */}
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeSection === item.id;
 
-            <p style={{ fontSize: '14px', color: 'rgba(255, 255, 255, 0.6)' }}>
-              Shuail Al-Anzi Fund
-            </p>
-        </div>
-
-        {menuItems.map((item) => {
-          const Icon = item.icon;
-
-          const isActive = activeSection === item.id;
-          const isMembersItem = item.id === 'members';
-
-          return (
-            <button
-              key={item.id}
-              onClick={(e) => {
-                  createRipple(e);
-
-                handleSectionChange(item.id);
-              }}
-              style={{
-                ...styles.menuItem,
-                ...(isMembersItem ? styles.menuItemMembers : {}),
-
-                ...(isActive ? styles.menuItemActive : {}),
-                ...(isActive && isMembersItem ? styles.menuItemMembersActive : {}),
-              }}
-              onMouseEnter={(e) => {
-                if (!isActive) {
-                  Object.assign(e.currentTarget.style, styles.menuItemHover);
-
-                    const icon = e.currentTarget.querySelector('svg');
-
-                    if (icon instanceof HTMLElement) {
-                      icon.style.transform = 'scale(1.1) rotate(-5deg)';
-                    }
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.background = isMembersItem
-                      ? styles.menuItemMembers.background
-                      : 'transparent';
-
-                    e.currentTarget.style.transform = 'translateX(0)';
-
-                    const icon = e.currentTarget.querySelector('svg');
-
-                    if (icon instanceof HTMLElement) {
-                      icon.style.transform = 'scale(1) rotate(0)';
-                    }
-                  }
+            return (
+              <button
+                key={item.id}
+                onClick={() => handleSectionChange(item.id)}
+                style={{
+                  ...styles.menuItem,
+                  ...(isActive ? styles.menuItemActive : {}),
                 }}
                 aria-label={item.label}
                 aria-current={isActive ? 'page' : undefined}
               >
-                <div
-                  style={{
-                    ...styles.activeIndicator,
-
-                    ...(isActive ? styles.activeIndicatorVisible : {}),
-                  }}
-                />
-
-                <div style={styles.menuItemContent}>
-                  <Icon
-                    style={{
-                      ...styles.menuIcon,
-                      ...(isActive ? styles.menuIconActive : {}),
-                    }}
-                  />
-
-                  <div style={styles.menuItemText}>
-                    <span style={styles.menuItemLabel}>{item.label}</span>
-                  </div>
-                </div>
+                {/* === الأيقونة - Icon === */}
+                <Icon style={styles.menuIcon} />
+                {/* === اسم القسم - Section Name === */}
+                <span style={styles.menuItemLabel}>{item.label}</span>
               </button>
             );
           })}
         </div>
 
-        {/* Mobile Sidebar */}
+        {/* === الشريط الجانبي للموبايل - Mobile Sidebar === */}
 
         <div
           className="mobile-sidebar"
@@ -4335,50 +4090,28 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
             </p>
           </div>
 
+          {/* === قائمة الأقسام - Section Menu === */}
+          {/* تصميم كلاسيكي بسيط مع أسماء الأقسام - Classic simple design with section names */}
           {menuItems.map((item) => {
             const Icon = item.icon;
-
             const isActive = activeSection === item.id;
-            const isMembersItem = item.id === 'members';
 
             return (
               <button
                 key={item.id}
-                onClick={(e) => {
-                  createRipple(e);
-
-                  handleSectionChange(item.id);
-                }}
+                onClick={() => handleSectionChange(item.id)}
                 style={{
                   ...styles.menuItem,
-
-                  ...(isMembersItem ? styles.menuItemMembers : {}),
                   ...(isActive ? styles.menuItemActive : {}),
-                  ...(isActive && isMembersItem ? styles.menuItemMembersActive : {}),
                 }}
+                title={item.label} // تلميح أداة - Tooltip
                 aria-label={item.label}
                 aria-current={isActive ? 'page' : undefined}
               >
-                <div
-                  style={{
-                    ...styles.activeIndicator,
-
-                    ...(isActive ? styles.activeIndicatorVisible : {}),
-                  }}
-                />
-
-                <div style={styles.menuItemContent}>
-                  <Icon
-                    style={{
-                      ...styles.menuIcon,
-                      ...(isActive ? styles.menuIconActive : {}),
-                    }}
-                  />
-
-                  <div style={styles.menuItemText}>
-                    <span style={styles.menuItemLabel}>{item.label}</span>
-                  </div>
-                </div>
+                {/* === الأيقونة - Icon === */}
+                <Icon style={styles.menuIcon} />
+                {/* === اسم القسم - Section Name === */}
+                <span style={styles.menuItemLabel}>{item.label}</span>
               </button>
             );
           })}
@@ -4406,19 +4139,15 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
             key={contentKey}
             style={styles.contentTransition}
           >
+            {/* === رسالة الخطأ - Error Message === */}
             {dashboardError && (
               <div
                 style={{
-                  background: 'rgba(239, 68, 68, 0.12)',
-
-                  border: '1px solid rgba(239, 68, 68, 0.35)',
-
-                  color: '#fecaca',
-
+                  background: '#fef2f2', // خلفية حمراء فاتحة - Light red background
+                  border: '1px solid #fecaca', // حد أحمر فاتح - Light red border
+                  color: '#dc2626', // نص أحمر - Red text
                   borderRadius: '12px',
-
                   padding: '12px 16px',
-
                   marginBottom: '1rem',
                 }}
               >
@@ -4432,8 +4161,7 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
               </div>
             ) : (
               <>
-                {/* Section Header */}
-
+                {/* === رأس القسم - Section Header === */}
                 <div style={styles.sectionHeader}>
                   <div
                     style={{
@@ -4443,32 +4171,37 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
                     }}
                   >
                     <div>
-                      <h1 style={{ fontSize: '28px', marginBottom: '8px' }}>
+                      {/* === عنوان الصفحة - Page Title === */}
+                      <h1 style={{ fontSize: '28px', marginBottom: '8px', color: '#1e3a5f' }}>
                         {activeSection === 'dashboard'
                           ? 'مرحباً بك في لوحة التحكم'
                           : getCurrentSectionLabel()}
                       </h1>
 
-                      <p style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                      {/* === وصف الصفحة - Page Description === */}
+                      <p style={{ color: '#64748b' }}>
                         {activeSection === 'dashboard'
                           ? 'نظام إدارة عائلة الشعيل - نظرة شاملة على الأنشطة والمالية'
                           : `إدارة ${getCurrentSectionLabel()} - عائلة الشعيل`}
                       </p>
                     </div>
 
+                    {/* === صندوق التاريخ الهجري - Hijri Date Box === */}
                     <div
                       style={{
                         textAlign: 'right',
                         padding: '8px 16px',
-                        background: 'rgba(255, 255, 255, 0.1)',
+                        background: '#ffffff', // خلفية بيضاء - White background
                         borderRadius: '12px',
+                        border: '1px solid #e2e8f0', // حد رمادي - Gray border
+                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)', // ظل خفيف - Light shadow
                       }}
                     >
                       <div
                         style={{
                           fontSize: '18px',
-                          fontWeight: '400',
-                          color: '#10b981',
+                          fontWeight: '500',
+                          color: '#10b981', // لون أخضر - Green color
                           marginBottom: '4px',
                         }}
                       >
@@ -4478,7 +4211,7 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
                       <div
                         style={{
                           fontSize: '12px',
-                          color: 'rgba(255, 255, 255, 0.6)',
+                          color: '#64748b', // لون رمادي - Gray color
                         }}
                       >
                         {currentHijriDate.gregorian}
@@ -4565,8 +4298,11 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
                 {/* Member Documents - View member uploaded documents */}
                 {activeSection === 'member-documents' && <MemberDocuments />}
 
-                {/* Family Tree - New HTML-based interface */}
-                {activeSection === 'family-tree' && <FamilyTreeViewer />}
+                {/* Family Tree Management - Admin interface */}
+                {activeSection === 'family-tree' && <FamilyTreeManagement />}
+
+                {/* Full Family Tree - All members view */}
+                {activeSection === 'full-tree' && <FullFamilyTree />}
               </>
             )}
           </div>

@@ -51,10 +51,10 @@ const MemberStatementSearch = () => {
 
     try {
       // Use API for search
-      const API_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
+      const API_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com/api';
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `${API_URL}/api/members?search=${encodeURIComponent(query)}&limit=10`,
+        `${API_URL}/members?search=${encodeURIComponent(query)}&limit=10`,
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -94,10 +94,10 @@ const MemberStatementSearch = () => {
     const loadInitialMembers = async () => {
       setLoading(true);
       try {
-        const API_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
+        const API_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com/api';
         const token = localStorage.getItem('token');
         const response = await fetch(
-          `${API_URL}/api/members?limit=500`,  // Request all members (supports up to 500, current: 347)
+          `${API_URL}/members?limit=500`,  // Request all members (supports up to 500, current: 347)
           {
             headers: {
               'Authorization': `Bearer ${token}`
@@ -342,10 +342,10 @@ const MemberStatementSearch = () => {
     // Reload all members to show full list
     setLoading(true);
     try {
-      const API_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
+      const API_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com/api';
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `${API_URL}/api/members?limit=500`,
+        `${API_URL}/members?limit=500`,
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -610,10 +610,10 @@ const MemberStatementSearch = () => {
     }
     // Also refresh the member list to update balance in the list view
     try {
-      const API_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
+      const API_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com/api';
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `${API_URL}/api/members?limit=500`,
+        `${API_URL}/members?limit=500`,
         {
           headers: {
             'Authorization': `Bearer ${token}`

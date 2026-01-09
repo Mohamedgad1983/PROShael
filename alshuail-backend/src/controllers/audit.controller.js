@@ -5,7 +5,7 @@
  * @module audit.controller
  */
 
-import { supabase } from '../config/supabase.js';
+import { supabase } from '../config/database.js';
 import { log } from '../utils/logger.js';
 
 /**

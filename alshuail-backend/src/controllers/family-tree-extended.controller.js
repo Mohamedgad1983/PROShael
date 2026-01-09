@@ -3,12 +3,8 @@
  * For HTML-based family tree interface
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from "../config/database.js";
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
-);
 
 /**
  * Get all family branches (الفخوذ)

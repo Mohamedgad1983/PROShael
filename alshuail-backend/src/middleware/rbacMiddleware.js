@@ -349,8 +349,10 @@ async function logAccess(req) {
       .from('audit_logs')
       .insert({
         user_id: req.user.id,
-        action: `${req.method} ${req.path}`,
-        module: extractModule(req.path),
+        user_email: req.user.email || null,
+        user_role: req.user.role || null,
+        action_type: `${req.method} ${req.path}`,
+        details: `Module: ${extractModule(req.path)}`,
         ip_address: req.ip,
         user_agent: req.headers['user-agent']
       });

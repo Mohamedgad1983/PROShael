@@ -234,7 +234,7 @@ async function syncPendingPayments() {
         // Try to sync each payment
         for (let payment of pendingPayments) {
             try {
-                const response = await fetch('https://proshael.onrender.com/api/payments', {
+                const response = await fetch('https://api.alshailfund.com/api/payments', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -338,7 +338,7 @@ self.addEventListener('periodicsync', (event) => {
 async function updateCachedBalance() {
     try {
         const token = await getStoredToken();
-        const response = await fetch('https://proshael.onrender.com/api/members/balance', {
+        const response = await fetch('https://api.alshailfund.com/api/members/balance', {
             headers: {
                 'Authorization': `Bearer ${token}`
             }

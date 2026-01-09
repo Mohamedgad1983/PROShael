@@ -1,7 +1,7 @@
 // routes/familyTree.js
 import express from 'express';
 import { authenticateToken } from '../middleware/auth.js';
-import { supabase } from '../config/supabase.js';
+import { supabase } from '../config/database.js';
 import { log } from '../utils/logger.js';
 
 const router = express.Router();
@@ -482,7 +482,7 @@ router.get('/search', authenticateToken, async (req, res) => {
 // Get current user's branch and branch members
 router.get('/my-branch', authenticateToken, async (req, res) => {
   try {
-    const memberId = req.user.memberId;
+    const memberId = req.user.id; // Use id, not memberId
 
     // Get current member with their branch info
     const { data: member, error: memberError } = await supabase
@@ -517,7 +517,7 @@ router.get('/my-branch', authenticateToken, async (req, res) => {
     if (member.family_branch_id) {
       const { data: members } = await supabase
         .from('members')
-        .select('id, membership_id, full_name_ar, status')
+        .select('id, membership_number, full_name_ar, status')
         .eq('family_branch_id', member.family_branch_id)
         .order('full_name_ar');
 
@@ -548,7 +548,7 @@ router.get('/my-branch', authenticateToken, async (req, res) => {
 // Add a new child member to the family tree
 router.post('/add-child', authenticateToken, async (req, res) => {
   try {
-    const parentMemberId = req.user.memberId;
+    const parentMemberId = req.user.id; // Use id, not memberId
     const { full_name, gender, birth_date } = req.body;
 
     // Validate required fields
@@ -574,18 +574,18 @@ router.post('/add-child', authenticateToken, async (req, res) => {
       });
     }
 
-    // Generate new membership_id (SH-XXXX format)
+    // Generate new membership_number (SH-XXXX format)
     const { data: lastMember } = await supabase
       .from('members')
-      .select('membership_id')
-      .like('membership_id', 'SH-%')
-      .order('membership_id', { ascending: false })
+      .select('membership_number')
+      .like('membership_number', 'SH-%')
+      .order('membership_number', { ascending: false })
       .limit(1)
       .single();
 
     let newMembershipNumber = 1;
-    if (lastMember && lastMember.membership_id) {
-      const lastNumber = parseInt(lastMember.membership_id.replace('SH-', ''), 10);
+    if (lastMember && lastMember.membership_number) {
+      const lastNumber = parseInt(lastMember.membership_number.replace('SH-', ''), 10);
       if (!isNaN(lastNumber)) {
         newMembershipNumber = lastNumber + 1;
       }
@@ -600,12 +600,16 @@ router.post('/add-child', authenticateToken, async (req, res) => {
     const relationshipNameAr = parentMember.gender === 'female' ? 'أم' : 'أب';
 
     // Create the child member record
+    // Generate a placeholder email based on membership number
+    const placeholderEmail = `${newMembershipId.toLowerCase().replace('-', '')}@child.alshuail.local`;
+
     const childData = {
-      membership_id: newMembershipId,
+      membership_number: newMembershipId,
       full_name: full_name.trim(),
       full_name_ar: full_name.trim(),
+      email: placeholderEmail,
       gender: gender || null,
-      birth_date: birth_date || null,
+      date_of_birth_hijri: birth_date || null, // Using hijri date field
       family_branch_id: parentMember.family_branch_id,
       parent_member_id: parentMemberId,
       generation_level: childGenerationLevel,
@@ -650,11 +654,14 @@ router.post('/add-child', authenticateToken, async (req, res) => {
 
     // Update branch member count
     if (parentMember.family_branch_id) {
-      await supabase.rpc('increment_branch_member_count', {
-        branch_id: parentMember.family_branch_id
-      }).catch(() => {
+      try {
+        await supabase.rpc('increment_branch_member_count', {
+          branch_id: parentMember.family_branch_id
+        });
+      } catch (rpcError) {
         // Silently fail if RPC doesn't exist
-      });
+        log.debug('RPC increment_branch_member_count not available:', rpcError?.message);
+      }
     }
 
     // Create audit log entry
@@ -670,7 +677,7 @@ router.post('/add-child', authenticateToken, async (req, res) => {
             parent_id: parentMemberId,
             parent_name: parentMember.full_name || parentMember.full_name_ar,
             child_name: full_name,
-            membership_id: newMembershipId
+            membership_number: newMembershipId
           },
           ip_address: req.ip || req.connection?.remoteAddress,
           created_at: new Date().toISOString()
@@ -690,7 +697,7 @@ router.post('/add-child', authenticateToken, async (req, res) => {
       message: 'تمت إضافة الطفل بنجاح',
       data: {
         id: newChild.id,
-        membership_id: newChild.membership_id,
+        membership_number: newChild.membership_number,
         full_name: newChild.full_name,
         full_name_ar: newChild.full_name_ar,
         gender: newChild.gender,
@@ -713,3 +720,5 @@ router.post('/add-child', authenticateToken, async (req, res) => {
 });
 
 export default router;
+
+

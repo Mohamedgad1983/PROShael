@@ -1,10 +1,6 @@
 // Role-Based Access Control Middleware
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from "../config/database.js";
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
-);
 
 // Role hierarchy
 export const ROLES = {

@@ -1,28 +1,9 @@
-// Supabase Service Module
-import { createClient } from '@supabase/supabase-js';
-import dotenv from 'dotenv';
+// Supabase Service Module - PostgreSQL Compatibility
+import { supabase } from '../config/database.js';
 import { log } from '../utils/logger.js';
 
-dotenv.config();
-
-if (!process.env.SUPABASE_URL) {
-  throw new Error('SUPABASE_URL is required but not set in environment variables');
-}
-if (!process.env.SUPABASE_ANON_KEY) {
-  throw new Error('SUPABASE_ANON_KEY is required but not set in environment variables');
-}
-if (!process.env.SUPABASE_SERVICE_KEY) {
-  throw new Error('SUPABASE_SERVICE_KEY is required but not set in environment variables');
-}
-
-const supabaseUrl = process.env.SUPABASE_URL;
-const _supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
-
-// Create client with service key for backend operations
-export const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-// Export default client for compatibility
+// Export the supabase-compatible client
+export { supabase };
 export default supabase;
 
 // Helper functions for common database operations
@@ -32,145 +13,88 @@ export const dbHelpers = {
     try {
       const { data: members, error } = await supabase
         .from('members')
-        .select(`
-          *,
-          payments:transactions(
-            amount,
-            transaction_type,
-            created_at
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {throw error;}
+      if (error) throw error;
+
+      // Get payments separately since joins need special handling
+      const { data: payments } = await supabase
+        .from('payments')
+        .select('member_id, amount, transaction_type, created_at');
 
       // Calculate balance for each member
       return members.map(member => {
-        const totalPayments = member.payments?.reduce((sum, payment) => {
+        const memberPayments = (payments || []).filter(p => p.member_id === member.id);
+        const totalPayments = memberPayments.reduce((sum, payment) => {
           return payment.transaction_type === 'credit'
-            ? sum + payment.amount
-            : sum - payment.amount;
-        }, 0) || 0;
+            ? sum + parseFloat(payment.amount || 0)
+            : sum - parseFloat(payment.amount || 0);
+        }, 0);
 
         return {
           ...member,
-          balance: totalPayments,
-          status: totalPayments >= 3000 ? 'sufficient' : 'insufficient'
+          balance: parseFloat(member.total_balance || 0),
+          totalPayments
         };
       });
     } catch (error) {
-      log.error('Error fetching members with balances:', { error: error.message });
+      log.error('Error getting members with balances:', error);
       throw error;
     }
   },
 
-  // Get single member by ID
+  // Get member by ID with all related data
   async getMemberById(memberId) {
     try {
-      const { data: _data, error } = await supabase
+      const { data: member, error } = await supabase
         .from('members')
         .select('*')
         .eq('id', memberId)
         .single();
 
-      if (error) {throw error;}
-      return _data;
+      if (error) throw error;
+      return member;
     } catch (error) {
-      log.error('Error fetching member:', { error: error.message });
+      log.error('Error getting member by ID:', error);
       throw error;
     }
   },
 
-  // Update member status
-  async updateMemberStatus(memberId, status, updatedBy) {
+  // Get members by family branch
+  async getMembersByBranch(branchId) {
     try {
-      const { data: _data, error } = await supabase
+      const { data, error } = await supabase
+        .from('members')
+        .select('*')
+        .eq('family_branch_id', branchId)
+        .order('full_name_ar');
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      log.error('Error getting members by branch:', error);
+      throw error;
+    }
+  },
+
+  // Update member data
+  async updateMember(memberId, updates) {
+    try {
+      const { data, error } = await supabase
         .from('members')
         .update({
-          status,
-          updated_at: new Date().toISOString(),
-          updated_by: updatedBy
+          ...updates,
+          updated_at: new Date().toISOString()
         })
         .eq('id', memberId)
         .select()
         .single();
 
-      if (error) {throw error;}
-      return _data;
+      if (error) throw error;
+      return data;
     } catch (error) {
-      log.error('Error updating member status:', { error: error.message });
-      throw error;
-    }
-  },
-
-  // Log audit action
-  async logAuditAction(action, targetId, targetType, details, performedBy) {
-    try {
-      const { data: _data, error } = await supabase
-        .from('audit_log')
-        .insert({
-          action,
-          target_id: targetId,
-          target_type: targetType,
-          details,
-          performed_by: performedBy,
-          performed_at: new Date().toISOString()
-        })
-        .select()
-        .single();
-
-      if (error) {throw error;}
-      return _data;
-    } catch (error) {
-      log.error('Error logging audit action:', { error: error.message });
-      throw error;
-    }
-  },
-
-  // Create notification
-  async createNotification(memberId, type, title, message, createdBy) {
-    try {
-      const { data: _data, error } = await supabase
-        .from('notifications')
-        .insert({
-          member_id: memberId,
-          type,
-          title,
-          message,
-          status: 'pending',
-          created_at: new Date().toISOString(),
-          created_by: createdBy
-        })
-        .select()
-        .single();
-
-      if (error) {throw error;}
-      return _data;
-    } catch (error) {
-      log.error('Error creating notification:', { error: error.message });
-      throw error;
-    }
-  },
-
-  // Queue SMS message
-  async queueSMS(phoneNumber, message, notificationId = null) {
-    try {
-      const { data: _data, error } = await supabase
-        .from('sms_queue')
-        .insert({
-          phone_number: phoneNumber,
-          message,
-          notification_id: notificationId,
-          status: 'queued',
-          created_at: new Date().toISOString()
-        })
-        .select()
-        .single();
-
-      if (error) {throw error;}
-      return _data;
-    } catch (error) {
-      log.error('Error queuing SMS:', { error: error.message });
+      log.error('Error updating member:', error);
       throw error;
     }
   }

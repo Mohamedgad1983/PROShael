@@ -1,3 +1,20 @@
+/**
+ * @fileoverview Subscription Management Controller
+ * @description Handles all subscription-related operations including
+ *              plans, member subscriptions, payments, and reminders
+ * @version 2.0.0
+ * @module controllers/subscriptionController
+ *
+ * @requires ../config/database.js - Supabase client
+ * @requires ../utils/logger.js - Logging utility
+ *
+ * @business-rules
+ * - Monthly subscription: 50 SAR
+ * - Maximum balance: 3000 SAR (60 months)
+ * - Overdue status: balance < 0
+ * - Active status: balance >= 0
+ */
+
 import { supabase } from '../config/database.js';
 import { log } from '../utils/logger.js';
 
@@ -291,11 +308,14 @@ export const getOverdueMembers = async (req, res) => {
 
 // ========================================
 // 7. Record a payment (ADMIN ONLY)
+// Supports pay-on-behalf: payer_id pays, beneficiary_id receives credit
 // ========================================
 export const recordPayment = async (req, res) => {
   try {
     const {
-      member_id,
+      member_id,      // Legacy field - used as payer if no payer_id specified
+      payer_id,       // Who is paying (optional, defaults to member_id)
+      beneficiary_id, // Who receives credit (optional, defaults to member_id)
       amount,
       months,
       payment_method,
@@ -303,11 +323,16 @@ export const recordPayment = async (req, res) => {
       notes
     } = req.body;
 
+    // Determine actual payer and beneficiary
+    const actualPayerId = payer_id || member_id;
+    const actualBeneficiaryId = beneficiary_id || member_id;
+    const isOnBehalf = actualPayerId !== actualBeneficiaryId;
+
     // Validation
-    if (!member_id || !amount || !months) {
+    if (!actualBeneficiaryId || !amount || !months) {
       return res.status(400).json({
         success: false,
-        message: 'البيانات المطلوبة: member_id, amount, months'
+        message: 'البيانات المطلوبة: member_id أو beneficiary_id, amount, months'
       });
     }
 
@@ -325,33 +350,46 @@ export const recordPayment = async (req, res) => {
       });
     }
 
-    // Get subscription
+    // Get beneficiary's subscription (the person receiving credit)
     const { data: subscription, error: _subError } = await supabase
       .from('subscriptions')
       .select('*')
-      .eq('member_id', member_id)
+      .eq('member_id', actualBeneficiaryId)
       .single();
 
     if (_subError || !subscription) {
       return res.status(404).json({
         success: false,
-        message: 'لم يتم العثور على اشتراك لهذا العضو'
+        message: 'لم يتم العثور على اشتراك للعضو المستفيد'
       });
     }
 
-    // Get member's user_id for notification
-    const { data: member } = await supabase
+    // Get beneficiary's user_id for notification
+    const { data: beneficiaryMember } = await supabase
       .from('members')
       .select('user_id, full_name')
-      .eq('id', member_id)
+      .eq('id', actualBeneficiaryId)
       .single();
+
+    // Get payer's info if on-behalf payment
+    let payerMember = null;
+    if (isOnBehalf && actualPayerId) {
+      const { data: payer } = await supabase
+        .from('members')
+        .select('user_id, full_name')
+        .eq('id', actualPayerId)
+        .single();
+      payerMember = payer;
+    }
 
     // Start transaction: Record payment
     const { data: payment, error: _paymentError } = await supabase
       .from('payments')
       .insert({
         subscription_id: subscription.id,
-        payer_id: member_id,
+        payer_id: actualPayerId,
+        beneficiary_id: actualBeneficiaryId,
+        is_on_behalf: isOnBehalf,
         amount: amount,
         months_purchased: months,
         payment_date: new Date().toISOString(),
@@ -360,7 +398,9 @@ export const recordPayment = async (req, res) => {
         reference_number: `REF-${Date.now()}`,
         status: 'completed',
         processed_by: req.user.id || req.user.user_id,
-        processing_notes: notes || ''
+        processing_notes: isOnBehalf
+          ? `دفع نيابة عن العضو - ${notes || ''}`.trim()
+          : (notes || '')
       })
       .select()
       .single();
@@ -391,24 +431,30 @@ export const recordPayment = async (req, res) => {
 
     if (_updateError) {throw _updateError;}
 
-    // Update member balance
+    // Update beneficiary's member balance (all balance fields)
     const { error: _memberUpdateError } = await supabase
       .from('members')
       .update({
-        balance: new_balance
+        balance: new_balance,
+        current_balance: new_balance,
+        total_paid: new_balance
       })
-      .eq('id', member_id);
+      .eq('id', actualBeneficiaryId);
 
     if (_memberUpdateError) {throw _memberUpdateError;}
 
-    // Create notification
-    if (member?.user_id) {
+    // Create notification for beneficiary
+    if (beneficiaryMember?.user_id) {
+      const notificationMessage = isOnBehalf && payerMember
+        ? `تم تسجيل دفعة بمبلغ ${amount} ريال من ${payerMember.full_name} نيابة عنك. شكراً لك!`
+        : `تم تسجيل دفعة بمبلغ ${amount} ريال. شكراً لك!`;
+
       await supabase
         .from('notifications')
         .insert({
-          user_id: member.user_id,
-          title: 'تم استلام دفعتك',
-          message: `تم تسجيل دفعة بمبلغ ${amount} ريال. شكراً لك!`,
+          user_id: beneficiaryMember.user_id,
+          title: isOnBehalf ? 'تم استلام دفعة نيابة عنك' : 'تم استلام دفعتك',
+          message: notificationMessage,
           type: 'payment_confirmation',
           priority: 'high',
           read: false
@@ -417,11 +463,22 @@ export const recordPayment = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'تم تسجيل الدفعة بنجاح',
+      message: isOnBehalf
+        ? `تم تسجيل الدفعة نيابة عن ${beneficiaryMember?.full_name || 'العضو'} بنجاح`
+        : 'تم تسجيل الدفعة بنجاح',
       new_balance,
       months_ahead: months_paid_ahead,
       next_due: next_payment_due.toISOString().split('T')[0],
-      payment_id: payment.id
+      payment_id: payment.id,
+      is_on_behalf: isOnBehalf,
+      payer: isOnBehalf ? {
+        id: actualPayerId,
+        name: payerMember?.full_name
+      } : null,
+      beneficiary: {
+        id: actualBeneficiaryId,
+        name: beneficiaryMember?.full_name
+      }
     });
   } catch (error) {
     log.error('Subscription: Record payment error', { error: error.message });

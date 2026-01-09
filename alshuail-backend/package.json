@@ -1,6 +1,6 @@
 {
   "name": "alshuail-backend",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Al-Shuail Family Admin Dashboard Backend API",
   "main": "server.js",
   "type": "module",

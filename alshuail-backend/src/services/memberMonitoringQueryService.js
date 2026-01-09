@@ -108,20 +108,14 @@ export async function buildMemberMonitoringQuery(filters = {}) {
       throw new Error(`Members query failed: ${membersError.message}`);
     }
 
-    // Step 2: Calculate balances and apply balance filters
-    const memberMonitoringData = await Promise.all(members.map(async (member) => {
-      // Get total payments for this member
-      const { data: payments, error: _paymentsError } = await supabase
-        .from('payments')
-        .select('amount')
-        .eq('payer_id', member.id)
-        .in('status', ['completed', 'approved']);
-
-      if (_paymentsError) {
-        log.error(`Payment query failed for member ${member.id}:`, _paymentsError);
-      }
-
-      const totalPaid = payments?.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0) || 0;
+    // Step 2: Map member data with balances from database
+    // Use stored balance fields (current_balance, balance, total_balance) instead of recalculating from payments
+    const memberMonitoringData = members.map((member) => {
+      // Get balance from member record - prioritize current_balance, then balance, then total_balance
+      const memberBalance = parseFloat(member.current_balance) ||
+                           parseFloat(member.balance) ||
+                           parseFloat(member.total_balance) ||
+                           0;
 
       // Handle different name field variations
       const memberName = member.full_name || member.name || member.fullName ||
@@ -139,10 +133,10 @@ export async function buildMemberMonitoringQuery(filters = {}) {
         name: memberName.trim(),
         phone: member.phone || member.mobile || '',
         email: member.email,
-        balance: totalPaid,
+        balance: memberBalance,
         tribalSection: memberTribalSection,
-        status: totalPaid >= minimumBalance ? 'sufficient' : 'insufficient',
-        complianceStatus: getComplianceStatus(totalPaid),
+        status: memberBalance >= minimumBalance ? 'sufficient' : 'insufficient',
+        complianceStatus: getComplianceStatus(memberBalance),
         isSuspended: member.is_suspended || false,
         suspensionReason: member.suspension_reason,
         joinedDate: member.joined_date || member.created_at,
@@ -153,7 +147,7 @@ export async function buildMemberMonitoringQuery(filters = {}) {
           hasPhone: !!(member.phone || member.mobile)
         }
       };
-    }));
+    });
 
     // Step 3: Apply balance filters on calculated data
     let filteredData = memberMonitoringData;
@@ -491,9 +485,9 @@ export async function getMemberDetails(memberId) {
       data: {
         member: {
           ...member,
-          balance: totalPaid,
+          balance: memberBalance,
           pendingAmount: pendingAmount,
-          complianceStatus: getComplianceStatus(totalPaid)
+          complianceStatus: getComplianceStatus(memberBalance)
         },
         payments: payments || [],
         subscriptions: subscriptions || [],

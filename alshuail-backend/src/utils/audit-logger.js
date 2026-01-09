@@ -1,10 +1,6 @@
 // Audit Logger for tracking admin actions
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from "../config/database.js";
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
-);
 
 /**
  * Log admin action to audit_logs table

@@ -481,11 +481,11 @@ export const getMemberStatementCounts = async (req, res) => {
       .rpc('get_member_statement_counts');
 
     if (error) {
-      // Fallback to direct query if RPC doesn't exist
+      // Fallback to direct query if RPC doesn't exist - use membership_status for consistency
       const { data: members, error: fallbackError } = await supabase
         .from('members')
         .select('current_balance')
-        .eq('status', 'active');
+        .eq('membership_status', 'active');
 
       if (fallbackError) throw fallbackError;
 
@@ -529,11 +529,11 @@ export const getPaginatedMembersForStatement = async (req, res) => {
 
     const offset = (page - 1) * limit;
 
-    // Build query
+    // Build query - use membership_status for consistency with UI
     let query = supabase
       .from('members')
-      .select('id, membership_number, full_name, phone, tribal_section, current_balance, status', { count: 'exact' })
-      .eq('status', 'active');
+      .select('id, membership_number, full_name, phone, tribal_section, current_balance, membership_status', { count: 'exact' })
+      .eq('membership_status', 'active');
 
     // Apply filter
     if (filter === 'compliant') {

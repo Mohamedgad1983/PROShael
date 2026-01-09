@@ -1,11 +1,6 @@
 // Admin Management Controller
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../config/database.js';
 import { logAdminAction, ACTIONS, RESOURCE_TYPES } from '../utils/audit-logger.js';
-
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
-);
 
 /**
  * Generate unique member ID

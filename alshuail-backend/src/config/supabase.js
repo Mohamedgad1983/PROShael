@@ -1,40 +1,14 @@
 /**
- * Supabase Configuration
- * Direct database connection setup
+ * Supabase Configuration - PostgreSQL Compatibility Layer
+ * Re-exports PostgreSQL query builder with Supabase-compatible API
  */
 
-import { createClient } from '@supabase/supabase-js';
+import pgQueryBuilder, { testConnection as pgTestConnection, getPool } from './pgQueryBuilder.js';
 import { log } from '../utils/logger.js';
-import { config } from './env.js';
 
-// Use centralized configuration
-const SUPABASE_URL = config.supabase.url;
-const SUPABASE_ANON_KEY = config.supabase.anonKey;
-const SUPABASE_SERVICE_KEY = config.supabase.serviceKey;
-
-// Create Supabase client for public operations
-export const supabase = createClient(
-  SUPABASE_URL,
-  SUPABASE_ANON_KEY || '',
-  {
-    auth: {
-      autoRefreshToken: true,
-      persistSession: true
-    }
-  }
-);
-
-// Create Supabase admin client for backend operations
-export const supabaseAdmin = createClient(
-  SUPABASE_URL,
-  SUPABASE_SERVICE_KEY || SUPABASE_ANON_KEY || '',
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-);
+// Re-export the Supabase-compatible interface
+export const supabase = pgQueryBuilder;
+export const supabaseAdmin = pgQueryBuilder; // Same as supabase for PostgreSQL
 
 // Database tables
 export const TABLES = {
@@ -61,25 +35,27 @@ export const TABLES = {
 export const dbHelpers = {
   // Get all records from a table
   async getAll(table, options = {}) {
-    const { data: _data, error: _error } = await supabaseAdmin
-      .from(table)
-      .select(options.select || '*')
-      .order(options.orderBy || 'created_at', { ascending: false });
+    let query = supabaseAdmin.from(table).select(options.select || '*');
+    
+    if (options.orderBy) {
+      query = query.order(options.orderBy, { ascending: options.ascending || false });
+    }
 
-    if (_error) {throw _error;}
-    return _data;
+    const { data, error } = await query;
+    if (error) throw error;
+    return data;
   },
 
   // Get single record by ID
   async getById(table, id) {
-    const { data: _data, error: _error } = await supabaseAdmin
+    const { data, error } = await supabaseAdmin
       .from(table)
       .select('*')
       .eq('id', id)
       .single();
 
-    if (_error) {throw _error;}
-    return _data;
+    if (error) throw error;
+    return data;
   },
 
   // Create new record
@@ -90,21 +66,21 @@ export const dbHelpers = {
       .select()
       .single();
 
-    if (error) {throw error;}
+    if (error) throw error;
     return created;
   },
 
   // Update record
   async update(table, id, updates) {
-    const { data: _data, error: _error } = await supabaseAdmin
+    const { data, error } = await supabaseAdmin
       .from(table)
       .update(updates)
       .eq('id', id)
       .select()
       .single();
 
-    if (_error) {throw _error;}
-    return _data;
+    if (error) throw error;
+    return data;
   },
 
   // Delete record
@@ -114,7 +90,7 @@ export const dbHelpers = {
       .delete()
       .eq('id', id);
 
-    if (error) {throw error;}
+    if (error) throw error;
     return { success: true };
   },
 
@@ -147,8 +123,7 @@ export const dbHelpers = {
     }
 
     const { data, error, count } = await query;
-
-    if (error) {throw error;}
+    if (error) throw error;
     return { data, count };
   }
 };
@@ -156,19 +131,12 @@ export const dbHelpers = {
 // Connection test function
 export async function testConnection() {
   try {
-    const { data: _data, error } = await supabaseAdmin
-      .from('members')
-      .select('count')
-      .limit(1);
-
-    if (error) {
-      log.error('Supabase connection error', { error: error.message });
-      return { connected: false, error: error.message };
+    const result = await pgTestConnection();
+    if (result) {
+      log.info('Successfully connected to PostgreSQL database');
+      return { connected: true, database: process.env.DB_NAME || 'alshuail_db' };
     }
-
-    log.info('Successfully connected to Supabase database');
-    log.info('Project: oneiggrfzagqjbkdinin');
-    return { connected: true, projectRef: 'oneiggrfzagqjbkdinin' };
+    return { connected: false, error: 'Connection test failed' };
   } catch (err) {
     log.error('Connection test failed', { error: err.message });
     return { connected: false, error: err.message };

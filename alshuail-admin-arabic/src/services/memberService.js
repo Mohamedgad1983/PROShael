@@ -282,6 +282,53 @@ class MemberService {
   }
 
   /**
+   * Get all member documents with optional filters
+   * @param {Object} filters - Filter criteria
+   * @param {number} page - Page number
+   * @param {number} limit - Items per page
+   * @returns {Promise} Paginated documents list
+   */
+  async getAllDocuments(filters = {}, page = 1, limit = 25) {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+      ...filters
+    });
+    return this.makeRequest(`/api/documents?${params}`);
+  }
+
+  /**
+   * Download a document by ID
+   * @param {string} documentId - Document ID
+   * @returns {Promise<Blob>} Document file blob
+   */
+  async downloadDocument(documentId) {
+    const response = await fetch(`${this.baseURL}/api/documents/${documentId}/download`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${this.getAuthToken()}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Download failed');
+    }
+
+    return response.blob();
+  }
+
+  /**
+   * Delete a document by ID
+   * @param {string} documentId - Document ID
+   * @returns {Promise} Deletion result
+   */
+  async deleteDocument(documentId) {
+    return this.makeRequest(`/api/documents/${documentId}`, {
+      method: 'DELETE'
+    });
+  }
+
+  /**
    * Get member by phone number
    * @param {string} phoneNumber - Phone number
    * @returns {Promise} Member data

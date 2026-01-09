@@ -1,0 +1,125 @@
+/**
+ * Member Monitoring Query Service
+ * Optimized database queries for advanced filtering and monitoring
+ *
+ * Performance targets:
+ * - All queries < 300ms response time
+ * - Support for 1000+ members
+ * - Arabic text search with proper collation
+ * - Efficient pagination and caching
+ */
+
+import { log } from '../utils/logger.js';
+import { supabase } from '../config/database.js';
+
+// Cache for statistics (5-minute TTL)
+const statsCache = {
+  data: null,
+  timestamp: null,
+  TTL: 5 * 60 * 1000 // 5 minutes in milliseconds
+};
+
+/**
+ * Build dynamic query for member monitoring with advanced filters
+ * @param {Object} filters - Filtering parameters
+ * @param {string} filters.memberId - Member ID search (partial match)
+ * @param {string} filters.fullName - Full name search (Arabic, case-insensitive)
+ * @param {string} filters.phone - Phone number search
+ * @param {string} filters.tribalSection - Tribal section exact match
+ * @param {string} filters.balanceOperator - Operator for balance filter (<, >, =, between, category)
+ * @param {number} filters.balanceAmount - Amount for balance filter
+ * @param {number} filters.balanceMin - Minimum amount for range filter
+ * @param {number} filters.balanceMax - Maximum amount for range filter
+ * @param {string} filters.status - Member status filter
+ * @param {number} filters.page - Page number for pagination
+ * @param {number} filters.limit - Items per page
+ * @param {string} filters.sortBy - Sort field
+ * @param {string} filters.sortOrder - Sort order (asc/desc)
+ * @returns {Object} Query result with data and metadata
+ */
+export async function buildMemberMonitoringQuery(filters = {}) {
+  try {
+    const {
+      memberId,
+      fullName,
+      phone,
+      tribalSection,
+      balanceOperator,
+      balanceAmount,
+      balanceMin,
+      balanceMax,
+      status,
+      page = 1,
+      limit = 50,
+      sortBy = 'full_name',
+      sortOrder = 'asc'
+    } = filters;
+
+    const offset = (page - 1) * limit;
+    const minimumBalance = 3000; // Required minimum balance
+
+    // Step 1: Build base query for members
+    let membersQuery = supabase
+      .from('members')
+      .select('*', { count: 'exact' });
+
+    // Apply text-based filters
+    if (memberId) {
+      // Support both membership_number and ID search
+      membersQuery = membersQuery.or(
+        `membership_number.ilike.%${memberId}%,id.ilike.%${memberId}%`
+      );
+    }
+
+    if (fullName) {
+      // Arabic text search - case insensitive partial match
+      membersQuery = membersQuery.ilike('full_name', `%${fullName}%`);
+    }
+
+    if (phone) {
+      // Phone search - support both phone and mobile fields
+      const cleanPhone = phone.replace(/\D/g, ''); // Remove non-digits
+      membersQuery = membersQuery.or(
+        `phone.ilike.%${cleanPhone}%,mobile.ilike.%${cleanPhone}%`
+      );
+    }
+
+    if (tribalSection) {
+      // Exact match for tribal section
+      membersQuery = membersQuery.eq('tribal_section', tribalSection);
+    }
+
+    if (status === 'suspended') {
+      membersQuery = membersQuery.eq('is_suspended', true);
+    } else if (status === 'active') {
+      membersQuery = membersQuery.or('is_suspended.is.null,is_suspended.eq.false');
+    }
+
+    // Apply sorting
+    membersQuery = membersQuery.order(sortBy, { ascending: sortOrder === 'asc' });
+
+    // Apply pagination
+    membersQuery = membersQuery.range(offset, offset + limit - 1);
+
+    // Execute members query
+    const { data: members, error: membersError, count } = await membersQuery;
+
+    if (membersError) {
+      throw new Error(`Members query failed: ${membersError.message}`);
+    }
+
+    // Step 2: Calculate balances and apply balance filters
+    const memberMonitoringData = members.map((member) => {
+      // Get total payments for this member
+      const { data: payments, error: _paymentsError } = await supabase
+        .from('payments')
+        .select('amount')
+        .eq('payer_id', member.id)
+        .in('status', ['completed', 'approved']);
+
+      if (_paymentsError) {
+        log.error(`Payment query failed for member ${member.id}:`, _paymentsError);
+      }
+
+      const totalPaid = payments?.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0) || 0;
+

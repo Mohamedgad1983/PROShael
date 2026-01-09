@@ -1,3 +1,27 @@
+/**
+ * @fileoverview Authentication and Authorization Middleware
+ * @description Handles JWT token validation and role-based access control
+ * @version 2.0.0
+ * @module middleware/authMiddleware
+ *
+ * @requires jsonwebtoken - JWT token handling
+ * @requires ../config/env.js - Environment configuration
+ * @requires ../utils/logger.js - Logging utility
+ *
+ * @exports authenticateToken - JWT validation middleware
+ * @exports authorize - Role-based authorization middleware
+ * @exports requireAdmin - Admin role requirement
+ * @exports requireSuperAdmin - Super admin requirement
+ * @exports requireFinancialManager - Financial manager requirement
+ *
+ * @example
+ * // Protect route with authentication
+ * router.get('/protected', authenticateToken, handler);
+ *
+ * // Require specific roles
+ * router.post('/admin-only', authenticateToken, requireAdmin, handler);
+ */
+
 import jwt from 'jsonwebtoken';
 import { config } from '../config/env.js';
 import { log } from '../utils/logger.js';

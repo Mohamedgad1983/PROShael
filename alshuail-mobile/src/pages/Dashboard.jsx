@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CreditCard, Users, Heart, BadgeCheck, Bell, RefreshCw } from 'lucide-react'
+import { CreditCard, Users, Heart, BadgeCheck, Bell, RefreshCw, Calendar } from 'lucide-react'
 import { useAuth } from '../App'
 import { useDataCache } from '../contexts/DataCacheContext'
 import BottomNav from '../components/BottomNav'
@@ -139,6 +139,7 @@ const Dashboard = () => {
   const quickActions = [
     { icon: CreditCard, label: 'الاشتراكات', path: '/payments', color: 'from-primary-500 to-purple-500' },
     { icon: Users, label: 'شجرة العائلة', path: '/family-tree', color: 'from-primary-500 to-purple-500' },
+    { icon: Calendar, label: 'المناسبات', path: '/events', color: 'from-primary-500 to-purple-500' },
     { icon: BadgeCheck, label: 'بطاقة العضو', path: '/member-card', color: 'from-primary-500 to-purple-500' },
     { icon: Heart, label: 'المبادرات', path: '/initiatives', color: 'from-primary-500 to-purple-500' },
   ]
@@ -246,15 +247,33 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-3">
-          {quickActions.map((action, index) => {
+        {/* Quick Actions - Now with 5 items, will show 3+2 layout */}
+        <div className="grid grid-cols-3 gap-3 mb-3">
+          {quickActions.slice(0, 3).map((action, index) => {
             const Icon = action.icon
             return (
               <div
                 key={index}
                 className="card-sm text-center touch-feedback cursor-pointer animate-fadeIn"
                 style={{ animationDelay: `${index * 0.1}s` }}
+                onClick={() => navigate(action.path)}
+              >
+                <div className="action-icon mx-auto mb-2">
+                  <Icon size={20} className="text-white" />
+                </div>
+                <div className="text-gray-800 text-xs font-semibold">{action.label}</div>
+              </div>
+            )
+          })}
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          {quickActions.slice(3).map((action, index) => {
+            const Icon = action.icon
+            return (
+              <div
+                key={index + 3}
+                className="card-sm text-center touch-feedback cursor-pointer animate-fadeIn"
+                style={{ animationDelay: `${(index + 3) * 0.1}s` }}
                 onClick={() => navigate(action.path)}
               >
                 <div className="action-icon mx-auto mb-2">

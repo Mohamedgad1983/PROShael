@@ -32,7 +32,11 @@ const calculateExpectedPayment = () => {
 // Transform member data to match frontend expected field names with correct financial calculations
 const transformMemberForFrontend = (member) => {
   const expectedByNow = calculateExpectedPayment();
-  const currentPaid = parseFloat(member.current_balance) || parseFloat(member.total_paid) || 0;
+  // Check all balance fields: current_balance, balance, total_balance, then total_paid
+  const currentPaid = parseFloat(member.current_balance) ||
+                     parseFloat(member.balance) ||
+                     parseFloat(member.total_balance) ||
+                     parseFloat(member.total_paid) || 0;
 
   // Calculate arrears (what they should have paid minus what they actually paid)
   const arrears = Math.max(0, expectedByNow - currentPaid);
@@ -97,7 +101,7 @@ export const getAllMembersForMonitoring = async (req, res) => {
     while (hasMore) {
       const { data, error, count } = await supabase
         .from('members')
-        .select('id, membership_number, full_name, full_name_en, phone, email, tribal_section, membership_status, status, balance_status, current_balance, total_balance, total_paid, is_active, created_at, updated_at', { count: 'exact' })
+        .select('id, membership_number, full_name, full_name_en, phone, email, tribal_section, membership_status, status, balance_status, current_balance, balance, total_balance, total_paid, is_active, created_at, updated_at', { count: 'exact' })
         .order('created_at', { ascending: false })
         .range(page * batchSize, (page + 1) * batchSize - 1);
 
