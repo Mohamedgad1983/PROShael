@@ -165,19 +165,24 @@ class AuthProvider extends ChangeNotifier {
   /// Login with password
   /// Returns: { success: bool, mustChangePassword: bool }
   Future<Map<String, dynamic>> loginWithPassword(String phone, String password) async {
+    print('🔑 [AUTH] loginWithPassword called: $phone');
     _status = AuthStatus.loading;
     _error = null;
     notifyListeners();
 
     try {
+      print('🔑 [AUTH] Calling auth service...');
       final result = await _authService.loginWithPassword(
         phone: phone,
         password: password,
       );
 
+      print('🔑 [AUTH] Auth service result: success=${result.success}, mustChangePassword=${result.mustChangePassword}');
+
       if (result.success) {
         _user = result.user;
         _status = AuthStatus.authenticated;
+        print('🔑 [AUTH] Setting status to authenticated, user: $_user');
 
         // Save last login phone
         await StorageService.saveLastLoginPhone(phone);

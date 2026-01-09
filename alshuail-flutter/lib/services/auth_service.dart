@@ -65,6 +65,29 @@ class AuthResult {
 class AuthService {
   final ApiService _api = ApiService();
 
+  /// Normalize phone number to international format
+  /// Handles Saudi (966) and Kuwait (965) numbers
+  String _normalizePhone(String phone) {
+    // Remove all non-digit characters
+    String clean = phone.replaceAll(RegExp(r'[\s\-\(\)\+]'), '');
+
+    // Saudi Arabia: 05xxxxxxxx -> 966xxxxxxxx
+    if (clean.startsWith('05') && clean.length == 10) {
+      clean = '966${clean.substring(1)}';
+    }
+    // Saudi Arabia: 5xxxxxxxx -> 9665xxxxxxxx
+    else if (clean.startsWith('5') && clean.length == 9) {
+      clean = '966$clean';
+    }
+    // Kuwait: 5xxxxxxx or 6xxxxxxx or 9xxxxxxx (8 digits)
+    else if (RegExp(r'^[569]\d{7}$').hasMatch(clean)) {
+      clean = '965$clean';
+    }
+    // Already has country code - keep as is
+
+    return clean;
+  }
+
   // =====================================================
   // OTP AUTHENTICATION
   // =====================================================
@@ -167,23 +190,32 @@ class AuthService {
     required String password,
   }) async {
     try {
+      // Normalize phone to international format (965/966)
+      final normalizedPhone = _normalizePhone(phone);
+      print('📱 [SERVICE] loginWithPassword: $phone -> $normalizedPhone');
+
       final response = await _api.post('/auth/password/login', data: {
-        'phone': phone,
+        'phone': normalizedPhone,
         'password': password,
       });
 
       final data = response.data as Map<String, dynamic>;
+      print('📱 [SERVICE] API response: success=${data['success']}, mustChangePassword=${data['mustChangePassword']}');
 
       if (data['success'] == true) {
         // Save token
         if (data['token'] != null) {
+          print('📱 [SERVICE] Saving token...');
           await _api.setToken(data['token']);
+          print('📱 [SERVICE] Token saved!');
         }
 
         // Save user data
         if (data['member'] != null) {
+          print('📱 [SERVICE] Saving user data...');
           await StorageService.saveUser(data['member'] as Map<String, dynamic>);
           await StorageService.setLastLoginPhone(phone);
+          print('📱 [SERVICE] User data saved!');
         }
 
         // Check if user must change password (first-time login with default password)

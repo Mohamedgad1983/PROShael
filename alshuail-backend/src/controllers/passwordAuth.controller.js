@@ -20,6 +20,38 @@ const MAX_OTP_ATTEMPTS = 3;
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOCK_DURATION_MINUTES = 30;
 
+/**
+ * Normalize phone number to international format
+ * Handles Saudi (966) and Kuwait (965) numbers
+ * @param {string} phone - Raw phone input
+ * @returns {string} Normalized phone (e.g., 96551234567 or 966501234567)
+ */
+const normalizePhone = (phone) => {
+    if (!phone) return '';
+
+    // Remove all non-digit characters
+    let clean = phone.replace(/[\s\-\(\)\+]/g, '');
+
+    // Saudi Arabia: 05xxxxxxxx -> 966xxxxxxxx
+    if (clean.startsWith('05') && clean.length === 10) {
+        clean = '966' + clean.substring(1);
+    }
+    // Saudi Arabia: 5xxxxxxxx -> 9665xxxxxxxx
+    else if (clean.startsWith('5') && clean.length === 9) {
+        clean = '966' + clean;
+    }
+    // Kuwait: 5xxxxxxx or 6xxxxxxx or 9xxxxxxx (8 digits)
+    else if (/^[569]\d{7}$/.test(clean)) {
+        clean = '965' + clean;
+    }
+    // Already has country code
+    else if (clean.startsWith('966') || clean.startsWith('965')) {
+        // Already normalized
+    }
+
+    return clean;
+};
+
 // OTP generation now uses imported generateSecureOTP from utils/secureOtp.js
 // which uses crypto.randomBytes() for cryptographic security
 
@@ -175,11 +207,14 @@ export const loginWithPassword = async (req, res) => {
             });
         }
 
+        // Normalize phone number to international format
+        const normalizedPhone = normalizePhone(phone);
+
         // Find member by phone
         const { data: member, error } = await supabase
             .from('members')
             .select('id, phone, full_name_ar, full_name_en, role, password_hash, has_password, is_active, failed_login_attempts, locked_until, must_change_password')
-            .eq('phone', phone)
+            .eq('phone', normalizedPhone)
             .single();
 
         // OWASP: Use generic message to prevent phone enumeration

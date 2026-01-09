@@ -146,7 +146,7 @@ class _CreatePasswordScreenState extends State<CreatePasswordScreen> {
             child: ElevatedButton(
               onPressed: () {
                 Navigator.pop(context);
-                context.go('/home');
+                context.go('/dashboard');
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryColor,

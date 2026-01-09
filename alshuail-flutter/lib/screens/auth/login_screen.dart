@@ -283,21 +283,32 @@ class _LoginScreenState extends State<LoginScreen> {
       _passwordError = '';
     });
 
+    print('🔐 [LOGIN] Starting password login...');
+    print('🔐 [LOGIN] Phone: ${_phoneController.text.trim()}');
+
     final authProvider = context.read<AuthProvider>();
     final result = await authProvider.loginWithPassword(
       _phoneController.text.trim(),
       password,
     );
 
+    print('🔐 [LOGIN] Result: $result');
+
     if (!mounted) return;
     setState(() => _loggingIn = false);
 
     if (result['success'] == true) {
+      print('🔐 [LOGIN] Success! mustChangePassword: ${result['mustChangePassword']}');
+      print('🔐 [LOGIN] Auth status: ${authProvider.status}');
+      print('🔐 [LOGIN] User: ${authProvider.user}');
+
       // Check if user must change password (first-time login)
       if (result['mustChangePassword'] == true) {
+        print('🔐 [LOGIN] Navigating to /create-password');
         // Navigate to create password screen
         context.go('/create-password');
       } else {
+        print('🔐 [LOGIN] Navigating to /dashboard');
         // Navigate to dashboard
         context.go('/dashboard');
       }
