@@ -75,11 +75,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   void _updateFromData(Map<String, dynamic> data) {
     setState(() {
-      // Profile data
-      if (data['profile'] != null) {
-        _balance = (data['profile']['current_balance'] ?? 
-                   data['profile']['balance'] ?? 0).toDouble();
-        _status = data['profile']['membership_status'] == 'active' ? 'نشط' : 'غير نشط';
+      // Profile data - check both nested 'profile' and direct data
+      final profile = data['profile'] ?? data;
+      if (profile != null) {
+        // Handle balance as string or number
+        final balanceValue = profile['current_balance'] ?? profile['balance'] ?? 0;
+        _balance = balanceValue is String ? double.tryParse(balanceValue) ?? 0 : (balanceValue as num).toDouble();
+        _status = profile['membership_status'] == 'active' ? 'نشط' : 'غير نشط';
       }
       
       // Subscriptions/last payment
