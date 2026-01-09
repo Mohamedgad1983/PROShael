@@ -9,16 +9,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## GitHub Repository
 
 - **Main Repository**: https://github.com/Mohamedgad1983/PROShael
-- **Flutter App**: Embedded in alshuail-flutter/ (separate git submodule)
+- **Flutter App**: Embedded in alshuail-flutter/ (part of main repo)
 
 ## Architecture
 
-D:/PROShael/
+PROShael/
 - alshuail-backend/       # Express.js API (ES Modules) - Port 5001
 - alshuail-admin-arabic/  # React 18 + TypeScript Admin Dashboard - Port 3002
 - alshuail-mobile/        # React + Vite Mobile PWA
 - alshuail-flutter/       # Flutter Native Mobile App (Android/iOS)
-- claudedocs/             # Generated documentation/reports
+- docs/                   # Documentation
 
 ### Infrastructure
 | Component | Technology | URL | Port |
@@ -27,13 +27,14 @@ D:/PROShael/
 | Admin Dashboard | React 18 + TypeScript | alshailfund.com | 3002 |
 | Mobile PWA | React + Vite + Tailwind | app.alshailfund.com | 5173 |
 | Flutter App | Flutter 3.x + Dart | Google Play / App Store | - |
-| Database | PostgreSQL | Supabase | - |
+| Database | PostgreSQL | VPS (213.199.62.185) | 5432 |
 
 ### Server Details
 - **VPS IP**: 213.199.62.185
 - **Backend Path**: /var/www/PROShael/alshuail-backend
 - **Mobile PWA Path**: /var/www/mobile
 - **PM2 Process**: alshuail-backend
+- **Database**: PostgreSQL on VPS (self-hosted)
 
 ## Common Commands
 
@@ -55,6 +56,7 @@ npm run build - Production build (outputs to dist/)
 flutter pub get - Install dependencies
 flutter run - Run on device/emulator
 flutter build apk - Build Android APK
+flutter build ios - Build iOS app
 
 ### Deployment
 # Admin to Cloudflare Pages
@@ -64,7 +66,7 @@ npx wrangler pages deploy build --project-name=alshuail-admin
 scp -r dist/* root@213.199.62.185:/var/www/mobile/
 
 # Backend to VPS
-ssh root@213.199.62.185 cd /var/www/PROShael/alshuail-backend && git pull && pm2 restart alshuail-backend
+ssh root@213.199.62.185 "cd /var/www/PROShael/alshuail-backend && git pull && pm2 restart alshuail-backend"
 
 ## Backend Architecture
 
@@ -75,7 +77,7 @@ ssh root@213.199.62.185 cd /var/www/PROShael/alshuail-backend && git pull && pm2
 
 ### Key Files
 - server.js - Main entry point
-- src/config/database.js - Supabase client
+- src/config/database.js - PostgreSQL database client
 - src/middleware/authMiddleware.js - JWT authentication
 
 ### API Routes (/api)
@@ -128,6 +130,10 @@ ssh root@213.199.62.185 cd /var/www/PROShael/alshuail-backend && git pull && pm2
 
 ### Flutter App (Dart)
 Native mobile app in alshuail-flutter/
+- 22 screens (Login, Dashboard, Payments, Family Tree, etc.)
+- Biometric authentication (Face ID / Touch ID)
+- Arabic RTL support
+- Offline caching with Hive
 
 ## Testing
 
@@ -160,17 +166,18 @@ super_admin, admin, financial_manager, operational_manager, member
 
 | Service | Purpose |
 |---------|---------|
-| Supabase | PostgreSQL database |
 | Ultramsg | WhatsApp OTP |
-| Firebase | Push notifications |
-| Cloudflare | Admin hosting |
+| Firebase | Push notifications (FCM) |
+| Cloudflare | Admin hosting (Pages) |
 
 ## Environment Variables
 
 ### Backend (.env)
-SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_KEY
-JWT_SECRET, ULTRAMSG_INSTANCE_ID, ULTRAMSG_TOKEN
-FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY
+DATABASE_URL - PostgreSQL connection string
+DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD - Database credentials
+JWT_SECRET - JWT signing secret
+ULTRAMSG_INSTANCE_ID, ULTRAMSG_TOKEN - WhatsApp OTP
+FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY - Push notifications
 
 ### Frontend
 - Admin: REACT_APP_API_URL=https://api.alshailfund.com
@@ -179,11 +186,18 @@ FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY
 ## Debugging
 
 curl https://api.alshailfund.com/api/health
-ssh root@213.199.62.185 pm2 logs alshuail-backend --lines 50
-ssh root@213.199.62.185 systemctl restart nginx
+ssh root@213.199.62.185 "pm2 logs alshuail-backend --lines 50"
+ssh root@213.199.62.185 "systemctl restart nginx"
+ssh root@213.199.62.185 "systemctl status postgresql"
 
-## Database Tables
+## Database
 
+### PostgreSQL on VPS
+- Host: 213.199.62.185
+- Port: 5432
+- Self-hosted on Ubuntu VPS
+
+### Main Tables
 members, family_branches, payments, subscriptions, initiatives, diyas, crisis_cases, notifications, audit_logs, device_tokens, occasions, news, expenses
 
 ## Common Gotchas
@@ -199,7 +213,9 @@ Uses hijri-converter for Islamic calendar.
 
 ## Recent Updates (January 2025)
 
-- Privacy Policy: Added bilingual page at /privacy
-- Flutter App: Added in alshuail-flutter/
-- Project Cleanup: Removed legacy Mobile/ folder
+- Flutter App: Integrated into main repo (alshuail-flutter/)
+- Backend: Added biometric login endpoint
+- Backend: Added profile photo upload endpoint
+- Project Cleanup: Removed 434 unnecessary files
+- Database: Migrated from Supabase to self-hosted PostgreSQL on VPS
 - GitHub: All changes at https://github.com/Mohamedgad1983/PROShael
