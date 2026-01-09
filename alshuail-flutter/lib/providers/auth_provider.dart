@@ -162,6 +162,58 @@ class AuthProvider extends ChangeNotifier {
     }
   }
   
+  /// Login with password
+  /// Returns: { success: bool, mustChangePassword: bool }
+  Future<Map<String, dynamic>> loginWithPassword(String phone, String password) async {
+    _status = AuthStatus.loading;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final result = await _authService.loginWithPassword(
+        phone: phone,
+        password: password,
+      );
+
+      if (result.success) {
+        _user = result.user;
+        _status = AuthStatus.authenticated;
+
+        // Save last login phone
+        await StorageService.saveLastLoginPhone(phone);
+
+        // Save user ID for biometric login if enabled
+        if (_biometricEnabled && userId.isNotEmpty) {
+          await StorageService.saveBiometricUserId(userId);
+        }
+
+        notifyListeners();
+        return {
+          'success': true,
+          'mustChangePassword': result.mustChangePassword,
+        };
+      } else {
+        _error = result.message;
+        _status = AuthStatus.unauthenticated;
+        notifyListeners();
+        return {
+          'success': false,
+          'message': result.message,
+          'attemptsRemaining': result.attemptsRemaining,
+          'featureDisabled': result.featureDisabled,
+        };
+      }
+    } catch (e) {
+      _error = e.toString();
+      _status = AuthStatus.unauthenticated;
+      notifyListeners();
+      return {
+        'success': false,
+        'message': 'فشل تسجيل الدخول',
+      };
+    }
+  }
+
   /// Login with biometric
   Future<bool> loginWithBiometric(String savedUserId) async {
     _status = AuthStatus.loading;

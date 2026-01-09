@@ -18,13 +18,19 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   // Step management
-  String _step = 'phone'; // 'phone' | 'otp'
-  
+  String _step = 'phone'; // 'phone' | 'otp' | 'password'
+
   // Phone step state
   final _phoneController = TextEditingController();
   String _phoneError = '';
   bool _sendingOTP = false;
   String _memberName = '';
+
+  // Password step state
+  final _passwordController = TextEditingController();
+  String _passwordError = '';
+  bool _loggingIn = false;
+  bool _obscurePassword = true;
   
   // OTP step state
   final List<TextEditingController> _otpControllers = List.generate(
@@ -54,6 +60,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void dispose() {
     _phoneController.dispose();
+    _passwordController.dispose();
     for (var controller in _otpControllers) {
       controller.dispose();
     }
@@ -262,6 +269,64 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
   
+  // Handle password login
+  Future<void> _handlePasswordLogin() async {
+    final password = _passwordController.text.trim();
+
+    if (password.isEmpty) {
+      setState(() => _passwordError = 'يرجى إدخال كلمة المرور');
+      return;
+    }
+
+    setState(() {
+      _loggingIn = true;
+      _passwordError = '';
+    });
+
+    final authProvider = context.read<AuthProvider>();
+    final result = await authProvider.loginWithPassword(
+      _phoneController.text.trim(),
+      password,
+    );
+
+    if (!mounted) return;
+    setState(() => _loggingIn = false);
+
+    if (result['success'] == true) {
+      // Check if user must change password (first-time login)
+      if (result['mustChangePassword'] == true) {
+        // Navigate to create password screen
+        context.go('/create-password');
+      } else {
+        // Navigate to dashboard
+        context.go('/dashboard');
+      }
+    } else {
+      setState(() {
+        _passwordError = result['message'] ?? 'فشل تسجيل الدخول';
+        if (result['featureDisabled'] == true) {
+          // Password auth is disabled, fallback to OTP
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('تسجيل الدخول بكلمة المرور غير متاح. استخدم رمز التحقق'),
+              backgroundColor: AppTheme.warningColor,
+            ),
+          );
+          _step = 'phone';
+        }
+      });
+    }
+  }
+
+  // Switch to password login step
+  void _switchToPasswordLogin() {
+    setState(() {
+      _step = 'password';
+      _passwordError = '';
+      _passwordController.clear();
+    });
+  }
+
   // Handle resend OTP
   Future<void> _handleResendOTP() async {
     if (_resendCooldown > 0) return;
@@ -297,6 +362,8 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() {
       _step = 'phone';
       _otpError = '';
+      _passwordError = '';
+      _passwordController.clear();
       for (var controller in _otpControllers) {
         controller.clear();
       }
@@ -378,9 +445,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       boxShadow: AppTheme.elevatedShadow,
                     ),
                     padding: const EdgeInsets.all(24),
-                    child: _step == 'phone' 
-                        ? _buildPhoneStep() 
-                        : _buildOtpStep(),
+                    child: _step == 'phone'
+                        ? _buildPhoneStep()
+                        : _step == 'password'
+                            ? _buildPasswordStep()
+                            : _buildOtpStep(),
                   ),
                   
                   const SizedBox(height: 32),
@@ -600,9 +669,65 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ],
-        
+
+        // Password Login Option
         const SizedBox(height: 16),
-        
+
+        Row(
+          children: [
+            Expanded(child: Divider(color: Colors.grey.shade300)),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                'أو',
+                style: GoogleFonts.cairo(
+                  fontSize: 13,
+                  color: AppTheme.textMuted,
+                ),
+              ),
+            ),
+            Expanded(child: Divider(color: Colors.grey.shade300)),
+          ],
+        ),
+
+        const SizedBox(height: 16),
+
+        // Password Login Button
+        SizedBox(
+          width: double.infinity,
+          height: 54,
+          child: OutlinedButton(
+            onPressed: _sendingOTP ? null : _switchToPasswordLogin,
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(color: AppTheme.primaryColor),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  LucideIcons.lock,
+                  size: 20,
+                  color: AppTheme.primaryColor,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  'الدخول بكلمة المرور',
+                  style: GoogleFonts.cairo(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.primaryColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
         // WhatsApp info
         Container(
           padding: const EdgeInsets.all(12),
@@ -626,9 +751,9 @@ class _LoginScreenState extends State<LoginScreen> {
             ],
           ),
         ),
-        
+
         const SizedBox(height: 24),
-        
+
         // Demo login
         TextButton(
           onPressed: _handleDemoLogin,
@@ -880,6 +1005,209 @@ class _LoginScreenState extends State<LoginScreen> {
           onPressed: _handleBack,
           child: Text(
             'تغيير رقم الهاتف',
+            style: GoogleFonts.cairo(
+              fontSize: 13,
+              color: AppTheme.textMuted,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Password login step
+  Widget _buildPasswordStep() {
+    return Column(
+      children: [
+        // Icon
+        Container(
+          width: 64,
+          height: 64,
+          decoration: BoxDecoration(
+            gradient: AppTheme.primaryGradient,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: const Icon(
+            LucideIcons.lock,
+            size: 32,
+            color: Colors.white,
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        Text(
+          'أدخل كلمة المرور',
+          style: GoogleFonts.cairo(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: AppTheme.textPrimary,
+          ),
+        ),
+
+        const SizedBox(height: 4),
+
+        Text(
+          'أدخل كلمة المرور للدخول إلى حسابك',
+          style: GoogleFonts.cairo(
+            fontSize: 13,
+            color: AppTheme.textSecondary,
+          ),
+        ),
+
+        const SizedBox(height: 4),
+
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: Text(
+            _phoneController.text,
+            style: GoogleFonts.cairo(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.primaryColor,
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 24),
+
+        // Error message
+        if (_passwordError.isNotEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: Colors.red.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.red.shade200),
+            ),
+            child: Row(
+              children: [
+                Icon(LucideIcons.alertCircle, size: 18, color: Colors.red.shade600),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _passwordError,
+                    style: GoogleFonts.cairo(
+                      fontSize: 13,
+                      color: Colors.red.shade600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+        // Password input
+        TextField(
+          controller: _passwordController,
+          obscureText: _obscurePassword,
+          style: GoogleFonts.cairo(fontSize: 16),
+          decoration: InputDecoration(
+            hintText: 'كلمة المرور',
+            prefixIcon: const Icon(LucideIcons.lock),
+            suffixIcon: IconButton(
+              icon: Icon(
+                _obscurePassword ? LucideIcons.eyeOff : LucideIcons.eye,
+              ),
+              onPressed: () {
+                setState(() => _obscurePassword = !_obscurePassword);
+              },
+            ),
+          ),
+          enabled: !_loggingIn,
+          onSubmitted: (_) => _handlePasswordLogin(),
+        ),
+
+        const SizedBox(height: 8),
+
+        // First-time login hint
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.blue.shade50,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.blue.shade100),
+          ),
+          child: Row(
+            children: [
+              Icon(LucideIcons.info, size: 16, color: Colors.blue.shade700),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'لأول مرة؟ كلمة المرور الافتراضية: 123456',
+                  style: GoogleFonts.cairo(
+                    fontSize: 12,
+                    color: Colors.blue.shade700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 24),
+
+        // Login button
+        SizedBox(
+          width: double.infinity,
+          height: 54,
+          child: ElevatedButton(
+            onPressed: _loggingIn ? null : _handlePasswordLogin,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: _loggingIn
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(LucideIcons.logIn, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        'تسجيل الدخول',
+                        style: GoogleFonts.cairo(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // Forgot password link
+        TextButton(
+          onPressed: () {
+            context.push('/forgot-password');
+          },
+          child: Text(
+            'نسيت كلمة المرور؟',
+            style: GoogleFonts.cairo(
+              fontSize: 13,
+              color: AppTheme.primaryColor,
+            ),
+          ),
+        ),
+
+        // Change number / Use OTP button
+        TextButton(
+          onPressed: _handleBack,
+          child: Text(
+            'استخدام رمز التحقق بدلاً من ذلك',
             style: GoogleFonts.cairo(
               fontSize: 13,
               color: AppTheme.textMuted,

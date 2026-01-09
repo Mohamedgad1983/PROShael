@@ -51,14 +51,23 @@ class ApiService {
             print('❌ Error: ${error.response?.statusCode} ${error.requestOptions.path}');
             print('   Message: ${error.message}');
           }
-          
+
           // Handle 401 Unauthorized
           if (error.response?.statusCode == 401) {
             // Clear storage and redirect to login
             await StorageService.clearAll();
             // Navigation to login will be handled by AuthProvider
           }
-          
+
+          // Handle 503 Service Unavailable (feature disabled)
+          if (error.response?.statusCode == 503) {
+            // Feature is disabled - show user-friendly message
+            // The response body contains the fallback information
+            if (kDebugMode) {
+              print('⚠️ Service unavailable: Feature may be disabled');
+            }
+          }
+
           return handler.next(error);
         },
       ),

@@ -9,7 +9,10 @@ class AuthResult {
   final Map<String, dynamic>? user;
   final String? token;
   final bool requiresPasswordSetup;
+  final bool mustChangePassword;
   final int? attemptsRemaining;
+  final bool featureDisabled;
+  final String? fallbackEndpoint;
 
   AuthResult({
     required this.success,
@@ -17,16 +20,26 @@ class AuthResult {
     this.user,
     this.token,
     this.requiresPasswordSetup = false,
+    this.mustChangePassword = false,
     this.attemptsRemaining,
+    this.featureDisabled = false,
+    this.fallbackEndpoint,
   });
 
-  factory AuthResult.success({String message = 'تم بنجاح', Map<String, dynamic>? user, String? token, bool requiresPasswordSetup = false}) {
+  factory AuthResult.success({
+    String message = 'تم بنجاح',
+    Map<String, dynamic>? user,
+    String? token,
+    bool requiresPasswordSetup = false,
+    bool mustChangePassword = false,
+  }) {
     return AuthResult(
       success: true,
       message: message,
       user: user,
       token: token,
       requiresPasswordSetup: requiresPasswordSetup,
+      mustChangePassword: mustChangePassword,
     );
   }
 
@@ -35,6 +48,16 @@ class AuthResult {
       success: false,
       message: message,
       attemptsRemaining: attemptsRemaining,
+    );
+  }
+
+  /// Feature is disabled (503 response) - suggest fallback
+  factory AuthResult.featureDisabled({String? message, String? fallback}) {
+    return AuthResult(
+      success: false,
+      message: message ?? 'هذه الميزة غير متاحة حالياً. استخدم رمز التحقق OTP',
+      featureDisabled: true,
+      fallbackEndpoint: fallback,
     );
   }
 }
@@ -158,15 +181,21 @@ class AuthService {
         }
 
         // Save user data
-        if (data['user'] != null) {
-          await StorageService.saveUser(data['user'] as Map<String, dynamic>);
+        if (data['member'] != null) {
+          await StorageService.saveUser(data['member'] as Map<String, dynamic>);
           await StorageService.setLastLoginPhone(phone);
         }
 
+        // Check if user must change password (first-time login with default password)
+        final mustChangePassword = data['mustChangePassword'] == true;
+
         return AuthResult.success(
-          message: 'تم تسجيل الدخول بنجاح',
-          user: data['user'],
+          message: mustChangePassword
+              ? 'يجب تغيير كلمة المرور'
+              : 'تم تسجيل الدخول بنجاح',
+          user: data['member'],
           token: data['token'],
+          mustChangePassword: mustChangePassword,
         );
       } else {
         return AuthResult.failure(
@@ -175,6 +204,13 @@ class AuthService {
         );
       }
     } catch (e) {
+      // Handle 503 Service Unavailable (feature disabled)
+      if (e.toString().contains('503')) {
+        return AuthResult.featureDisabled(
+          message: 'تسجيل الدخول بكلمة المرور غير متاح حالياً. استخدم رمز التحقق OTP',
+          fallback: '/api/otp/send',
+        );
+      }
       return AuthResult.failure(message: 'فشل تسجيل الدخول');
     }
   }

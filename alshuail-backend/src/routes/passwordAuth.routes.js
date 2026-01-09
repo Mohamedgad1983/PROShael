@@ -20,7 +20,8 @@ import {
     disableFaceId,
     adminDeletePassword,
     adminDeleteFaceId,
-    getMemberSecurityInfo
+    getMemberSecurityInfo,
+    adminSetDefaultPassword
 } from '../controllers/passwordAuth.controller.js';
 import { authenticateToken, authorize } from '../middleware/authMiddleware.js';
 import { requirePasswordAuth } from '../middleware/featureFlags.js';
@@ -144,6 +145,19 @@ router.delete(
     authenticateToken,
     authorize(['super_admin']),
     adminDeleteFaceId
+);
+
+/**
+ * @route   POST /api/auth/password/admin/set-default-password
+ * @desc    Set default password "123456" for all members or specific member
+ * @access  Super Admin only
+ * @body    { allMembers: true } or { memberId: "uuid" }
+ */
+router.post(
+    '/admin/set-default-password',
+    authenticateToken,
+    authorize(['super_admin']),
+    adminSetDefaultPassword
 );
 
 export default router;

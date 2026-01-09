@@ -178,7 +178,7 @@ export const loginWithPassword = async (req, res) => {
         // Find member by phone
         const { data: member, error } = await supabase
             .from('members')
-            .select('id, phone, full_name_ar, full_name_en, role, password_hash, has_password, is_active, failed_login_attempts, locked_until')
+            .select('id, phone, full_name_ar, full_name_en, role, password_hash, has_password, is_active, failed_login_attempts, locked_until, must_change_password')
             .eq('phone', phone)
             .single();
 
@@ -257,7 +257,9 @@ export const loginWithPassword = async (req, res) => {
 
         res.json({
             success: true,
-            message: 'تم تسجيل الدخول بنجاح',
+            message: member.must_change_password
+                ? 'يجب تغيير كلمة المرور'
+                : 'تم تسجيل الدخول بنجاح',
             token,
             member: {
                 id: member.id,
@@ -265,7 +267,8 @@ export const loginWithPassword = async (req, res) => {
                 fullNameAr: member.full_name_ar,
                 fullNameEn: member.full_name_en,
                 role: member.role
-            }
+            },
+            mustChangePassword: !!member.must_change_password
         });
 
     } catch (error) {
@@ -591,10 +594,11 @@ export const createPassword = async (req, res) => {
 
         const isNewPassword = !memberData?.has_password;
 
-        // Update member
+        // Update member - clear must_change_password flag
         await supabase.from('members').update({
             password_hash: passwordHash,
             has_password: true,
+            must_change_password: false,
             password_updated_at: new Date().toISOString(),
             failed_login_attempts: 0,
             locked_until: null
@@ -1064,6 +1068,124 @@ export const getMemberSecurityInfo = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'حدث خطأ في جلب معلومات الأمان'
+        });
+    }
+};
+
+// =====================================================
+// 12. ADMIN: SET DEFAULT PASSWORD FOR MEMBERS
+// =====================================================
+/**
+ * Set default password "123456" for all members or specific member
+ * Members will be required to change password on first login
+ */
+export const adminSetDefaultPassword = async (req, res) => {
+    try {
+        const { memberId, allMembers } = req.body;
+        const adminId = req.user.id;
+        const adminRole = req.user.role;
+        const ip = req.ip;
+
+        if (adminRole !== 'super_admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'غير مصرح لك بهذه العملية'
+            });
+        }
+
+        // Default password
+        const DEFAULT_PASSWORD = '123456';
+        const passwordHash = await bcrypt.hash(DEFAULT_PASSWORD, SALT_ROUNDS);
+
+        let updatedCount = 0;
+
+        if (allMembers === true) {
+            // Set default password for ALL members
+            const { data, error } = await supabase
+                .from('members')
+                .update({
+                    password_hash: passwordHash,
+                    has_password: true,
+                    must_change_password: true,
+                    password_updated_at: new Date().toISOString()
+                })
+                .neq('id', adminId); // Don't reset admin's own password
+
+            if (error) throw error;
+
+            // Count updated members
+            const { count } = await supabase
+                .from('members')
+                .select('id', { count: 'exact', head: true })
+                .eq('has_password', true)
+                .eq('must_change_password', true);
+
+            updatedCount = count || 0;
+
+            await logSecurityAction(
+                null,
+                'default_password_set_all',
+                adminId,
+                { count: updatedCount, default_password: '123456' },
+                ip
+            );
+
+        } else if (memberId) {
+            // Set default password for specific member
+            const { data: member, error: memberError } = await supabase
+                .from('members')
+                .select('id, full_name_ar, phone')
+                .eq('id', memberId)
+                .single();
+
+            if (memberError || !member) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'العضو غير موجود'
+                });
+            }
+
+            const { error } = await supabase
+                .from('members')
+                .update({
+                    password_hash: passwordHash,
+                    has_password: true,
+                    must_change_password: true,
+                    password_updated_at: new Date().toISOString()
+                })
+                .eq('id', memberId);
+
+            if (error) throw error;
+            updatedCount = 1;
+
+            await logSecurityAction(
+                memberId,
+                'default_password_set',
+                adminId,
+                { member_name: member.full_name_ar, default_password: '123456' },
+                ip
+            );
+
+        } else {
+            return res.status(400).json({
+                success: false,
+                message: 'يجب تحديد العضو أو تفعيل allMembers'
+            });
+        }
+
+        res.json({
+            success: true,
+            message: `تم تعيين كلمة المرور الافتراضية لـ ${updatedCount} عضو`,
+            updatedCount,
+            defaultPassword: DEFAULT_PASSWORD,
+            note: 'سيُطلب من الأعضاء تغيير كلمة المرور عند أول تسجيل دخول'
+        });
+
+    } catch (error) {
+        console.error('Set default password error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'حدث خطأ في تعيين كلمة المرور الافتراضية'
         });
     }
 };
