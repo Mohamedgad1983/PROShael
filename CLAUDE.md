@@ -4,291 +4,202 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Al-Shuail Family Management System** - A bilingual (Arabic/English) family fund management platform for managing 347 members across 10 family branches (فخوذ). Full-stack application with three main components.
+**Al-Shuail Family Management System** - A bilingual (Arabic/English) family fund management platform for managing 347 members across 10 family branches. Full-stack application with web admin, mobile PWA, and native Flutter app.
+
+## GitHub Repository
+
+- **Main Repository**: https://github.com/Mohamedgad1983/PROShael
+- **Flutter App**: Embedded in alshuail-flutter/ (separate git submodule)
 
 ## Architecture
 
-```
 D:/PROShael/
-├── alshuail-backend/       # Express.js API (ES Modules)
-├── alshuail-admin-arabic/  # React 18 + TypeScript Admin Dashboard
-├── alshuail-mobile/        # React + Vite Mobile PWA (main mobile app)
-├── Mobile/                 # Legacy mobile folder (deprecated - do not use)
-└── claudedocs/             # Generated documentation/reports
-```
+- alshuail-backend/       # Express.js API (ES Modules) - Port 5001
+- alshuail-admin-arabic/  # React 18 + TypeScript Admin Dashboard - Port 3002
+- alshuail-mobile/        # React + Vite Mobile PWA
+- alshuail-flutter/       # Flutter Native Mobile App (Android/iOS)
+- claudedocs/             # Generated documentation/reports
 
 ### Infrastructure
-| Component | Technology | URL |
-|-----------|------------|-----|
-| Backend API | Node.js + Express.js (ES Modules) | `api.alshailfund.com` |
-| Admin Dashboard | React 18 + TypeScript + CRACO | `alshailfund.com` |
-| Mobile PWA | React + Vite + Tailwind | `app.alshailfund.com` |
-| Database | PostgreSQL | Supabase |
+| Component | Technology | URL | Port |
+|-----------|------------|-----|------|
+| Backend API | Node.js + Express.js | api.alshailfund.com | 5001 |
+| Admin Dashboard | React 18 + TypeScript | alshailfund.com | 3002 |
+| Mobile PWA | React + Vite + Tailwind | app.alshailfund.com | 5173 |
+| Flutter App | Flutter 3.x + Dart | Google Play / App Store | - |
+| Database | PostgreSQL | Supabase | - |
 
 ### Server Details
 - **VPS IP**: 213.199.62.185
-- **Backend Path on Server**: `/var/www/PROShael/alshuail-backend`
-- **Mobile PWA Path on Server**: `/var/www/mobile`
-- **PM2 Process**: `alshuail-backend`
+- **Backend Path**: /var/www/PROShael/alshuail-backend
+- **Mobile PWA Path**: /var/www/mobile
+- **PM2 Process**: alshuail-backend
 
 ## Common Commands
 
-### Backend (`alshuail-backend/`)
-```bash
-npm run dev              # Development with watch mode (port 5001)
-npm start                # Production (uses .env.production)
-npm test                 # Run all tests (ES Modules with --experimental-vm-modules)
-npm run test:unit        # Unit tests only
-npm run test:integration # Integration tests only
-npm run lint             # ESLint check
-npm run lint:fix         # Auto-fix lint issues
+### Backend (alshuail-backend/)
+npm run dev - Development with watch mode (port 5001)
+npm start - Production (uses .env.production)
+npm test - Run all tests
+npm run lint - ESLint check
 
-# Run single test file
-npm test -- --testPathPattern=filename.test.js
+### Admin Frontend (alshuail-admin-arabic/)
+npm start - Development server (CRACO on port 3002)
+npm run build:fast - Production build (no sourcemaps)
 
-# Security commands
-npm run security-audit   # Check for vulnerabilities
-npm run security:check   # Scan for hardcoded secrets
-npm run env:validate     # Validate environment variables
-```
+### Mobile PWA (alshuail-mobile/)
+npm run dev - Vite development server (port 5173)
+npm run build - Production build (outputs to dist/)
 
-### Admin Frontend (`alshuail-admin-arabic/`)
-```bash
-npm start                # Development server (CRACO on port 3002)
-npm run build:fast       # Production build (no sourcemaps - faster, recommended)
-npm run build            # Standard production build
-npm run type-check       # TypeScript validation
-npm run lint             # ESLint check
-
-# PWA commands
-npm run pwa:build        # Build with service worker
-npm run pwa:validate     # Lighthouse PWA audit
-```
-
-### Mobile PWA (`alshuail-mobile/`)
-```bash
-npm run dev              # Vite development server
-npm run build            # Production build (outputs to dist/)
-npm run preview          # Preview production build locally
-```
+### Flutter App (alshuail-flutter/)
+flutter pub get - Install dependencies
+flutter run - Run on device/emulator
+flutter build apk - Build Android APK
 
 ### Deployment
-```bash
 # Admin to Cloudflare Pages
-npx wrangler pages deploy "D:/PROShael/alshuail-admin-arabic/build" --project-name=alshuail-admin
+npx wrangler pages deploy build --project-name=alshuail-admin
 
 # Mobile PWA to VPS
-scp -r D:/PROShael/alshuail-mobile/dist/* root@213.199.62.185:/var/www/mobile/
+scp -r dist/* root@213.199.62.185:/var/www/mobile/
 
 # Backend to VPS
-ssh root@213.199.62.185 "cd /var/www/PROShael/alshuail-backend && git pull && npm install && pm2 restart alshuail-backend"
-
-# View backend logs
-ssh root@213.199.62.185 "pm2 logs alshuail-backend --lines 50"
-```
+ssh root@213.199.62.185 cd /var/www/PROShael/alshuail-backend && git pull && pm2 restart alshuail-backend
 
 ## Backend Architecture
 
-### Route → Controller → Service Pattern
-All backend code follows ES Modules (`"type": "module"` in package.json):
-- **Routes** (`src/routes/`): Define API endpoints, apply middleware
-- **Controllers** (`src/controllers/`): Handle request/response, business logic
-- **Services** (`src/services/`): Reusable business logic, external integrations
+### Route -> Controller -> Service Pattern
+- Routes (src/routes/): Define API endpoints
+- Controllers (src/controllers/): Handle request/response
+- Services (src/services/): Reusable business logic
 
 ### Key Files
-- `server.js` - Main entry point, imports all routes, configures middleware
-- `src/config/database.js` - Supabase client initialization
-- `src/config/env.js` - Centralized environment config (use `config.*` not `process.env.*`)
-- `src/middleware/authMiddleware.js` - JWT authentication (`authenticateToken`)
-- `src/utils/logger.js` - Winston logging (use `log.info()`, `log.error()`)
-- `src/utils/errorCodes.js` - Centralized error handling
+- server.js - Main entry point
+- src/config/database.js - Supabase client
+- src/middleware/authMiddleware.js - JWT authentication
 
-### API Base Path: `/api`
-Major route groups: `/auth`, `/members`, `/payments`, `/subscriptions`, `/family-tree`, `/notifications`, `/audit`, `/reports`, `/initiatives`, `/expenses`, `/settings`, `/profile`, `/diyas`, `/crisis`, `/news`, `/occasions`
+### API Routes (/api)
+/auth, /members, /payments, /subscriptions, /family-tree, /notifications, /audit, /reports, /initiatives, /expenses, /settings, /profile, /diyas, /crisis, /news, /occasions
 
 ### Services Layer
-Key services in `src/services/`:
-- `firebaseService.js` - Push notifications via FCM
-- `ultramsgService.js` / `twilioService.js` - WhatsApp OTP and notifications
-- `receiptService.js` - PDF receipt generation
-- `arabicPdfExporter.js` - Arabic PDF exports with RTL support
-- `notificationService.js` - Notification orchestration
-
-### Database Access
-```javascript
-import { supabase } from './src/config/database.js';
-
-// Standard query pattern
-const { data, error } = await supabase
-  .from('members')
-  .select('*, family_branches(branch_name_ar)')
-  .eq('id', memberId);
-
-if (error) throw error;
-```
-
-### Database Migrations
-SQL migrations are in `alshuail-backend/migrations/`. Run via Supabase dashboard or:
-```bash
-npm run db:migrate
-```
+- firebaseService.js - Push notifications via FCM
+- ultramsgService.js - WhatsApp OTP via Ultramsg
+- receiptService.js - PDF receipt generation
+- notificationService.js - Notification orchestration
 
 ## Frontend Architecture
 
-### Admin Dashboard (React 19 + TypeScript)
-- Uses CRACO for custom webpack config (`craco.config.js`)
-- RTL (right-to-left) support for Arabic via `dir="rtl"`
-- DaisyUI + Tailwind CSS for styling
-- Chart.js/Recharts for data visualization
-- react-router-dom v7 for routing
-- Workbox for PWA service worker
-
-Key directories:
-- `src/components/` - Feature-based (FamilyTree/, Settings/, Members/, Reports/, etc.)
-- `src/contexts/` - React contexts for state management
-- `src/services/` - API service functions
-- `src/hooks/` - Custom React hooks
-
-Major feature modules: Dashboard, Members, Payments, FamilyTree, Settings, Reports, Initiatives, Diyas, Crisis, Subscriptions
+### Admin Dashboard (React 18 + TypeScript)
+- CRACO for custom webpack config
+- RTL support for Arabic
+- DaisyUI + Tailwind CSS
+- react-router-dom v7
 
 ### Mobile PWA (React 18 + Vite)
-- Vite for fast builds with vite-plugin-pwa
-- Token stored in `localStorage` as `alshuail_token`
-- API client in `src/utils/api.js` with axios interceptors
+- Vite with vite-plugin-pwa
+- Token in localStorage as alshuail_token
 - Firebase SDK for push notifications
 - Tailwind CSS + Lucide icons
 
-Key pages: Login, Dashboard, FamilyTree, Payments, Initiatives, MemberCard, News, Notifications, Settings, Profile
+#### Mobile Pages
+| Page | Route |
+|------|-------|
+| Login | /login |
+| Dashboard | /, /dashboard |
+| FamilyTree | /family-tree |
+| BranchDetail | /family-tree/:branchId |
+| Notifications | /notifications |
+| Profile | /profile |
+| Payments | /payments |
+| PaymentCenter | /payment-center |
+| SubscriptionPayment | /payment/subscription |
+| DiyaPayment | /payment/diya |
+| InitiativePayment | /payment/initiative |
+| BankTransferPayment | /payment/bank-transfer |
+| PaymentHistory | /payments/history |
+| MemberCard | /member-card |
+| Initiatives | /initiatives |
+| News | /news |
+| Settings | /settings |
+| ProfileWizard | /profile-wizard |
+| Statement | /statement |
+| Events | /events |
+| PrivacyPolicy | /privacy |
+
+### Flutter App (Dart)
+Native mobile app in alshuail-flutter/
 
 ## Testing
 
-### Backend Test Structure (`__tests__/`)
-```
-__tests__/
-├── unit/           # Unit tests for individual functions
-├── integration/    # API endpoint tests with real DB
-├── e2e/            # End-to-end tests
-├── security/       # Security vulnerability tests
-├── fixtures/       # Test data and mocks
-└── helpers/        # Test utilities
-```
-
-Jest config: `jest.config.js` - runs sequentially (`maxWorkers: 1`) to avoid port conflicts.
+### Backend Tests (__tests__/)
+- unit/ - Unit tests
+- integration/ - API endpoint tests
+- e2e/ - End-to-end tests
+- security/ - Security tests
 
 ### Browser Testing
-- Admin: `https://alshailfund.com/admin/login` (credentials: `admin@alshuail.com` / `Admin@123`)
-- Mobile: `https://app.alshailfund.com/login` (use demo login button)
+- Admin: https://alshailfund.com/admin/login
+- Mobile: https://app.alshailfund.com/login
 
 ## Important Patterns
 
 ### Phone Number Validation
-System handles Kuwait (+965) and Saudi Arabia (+966) formats. Phone normalization in controllers via `normalizePhoneForSearch()`.
+Handles Kuwait (+965) and Saudi Arabia (+966) formats.
 
 ### Authentication Flow
-1. Login via `/api/auth/login` returns JWT token
-2. Frontend stores token in `localStorage` (admin) or `alshuail_token` (mobile)
-3. Token sent as `Authorization: Bearer <token>` header
-4. `authenticateToken` middleware validates and attaches `req.user`
+1. Login with phone number
+2. OTP sent via WhatsApp
+3. Verify OTP
+4. JWT token returned
+5. Token sent as Authorization: Bearer header
 
-### Role-Based Access
-Roles: `super_admin`, `admin`, `financial_manager`, `operational_manager`, `member`
+### Roles
+super_admin, admin, financial_manager, operational_manager, member
 
-Check permissions in routes:
-```javascript
-import { requireRole, requirePermission } from '../middleware/authMiddleware.js';
-router.get('/admin-only', authenticateToken, requireRole(['admin', 'super_admin']), handler);
-```
+## Third-Party Services
 
-### API Response Handling (Mobile)
-Always validate responses are arrays before using array methods:
-```javascript
-const data = response.data;
-const items = Array.isArray(data) ? data : (data?.data || data?.items || []);
-```
-
-### Arabic/RTL Support
-- Document-level `dir="rtl"` for Arabic layout
-- Use `text-right` Tailwind classes for Arabic text alignment
-- All UI text should support Arabic translations
+| Service | Purpose |
+|---------|---------|
+| Supabase | PostgreSQL database |
+| Ultramsg | WhatsApp OTP |
+| Firebase | Push notifications |
+| Cloudflare | Admin hosting |
 
 ## Environment Variables
 
-### Backend Required (`.env`)
-```
-# Required for all environments
-SUPABASE_URL=https://oneiggrfzagqjbkdinin.supabase.co
-SUPABASE_ANON_KEY=your_anon_key
+### Backend (.env)
+SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_KEY
+JWT_SECRET, ULTRAMSG_INSTANCE_ID, ULTRAMSG_TOKEN
+FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY
 
-# Required for production
-SUPABASE_SERVICE_KEY=your_service_key
-JWT_SECRET=your_jwt_secret
-
-# Optional services
-FIREBASE_PROJECT_ID=...       # Push notifications
-FIREBASE_CLIENT_EMAIL=...
-FIREBASE_PRIVATE_KEY=...
-ULTRAMSG_INSTANCE_ID=...      # WhatsApp OTP (recommended)
-ULTRAMSG_TOKEN=...
-```
-
-### Frontend Environment
-- Admin: `REACT_APP_API_URL=https://api.alshailfund.com`
-- Mobile: `VITE_API_URL=https://api.alshailfund.com/api`
+### Frontend
+- Admin: REACT_APP_API_URL=https://api.alshailfund.com
+- Mobile: VITE_API_URL=https://api.alshailfund.com/api
 
 ## Debugging
 
-### Check API Health
-```bash
 curl https://api.alshailfund.com/api/health
-```
+ssh root@213.199.62.185 pm2 logs alshuail-backend --lines 50
+ssh root@213.199.62.185 systemctl restart nginx
 
-### View Server Logs
-```bash
-ssh root@213.199.62.185 "pm2 logs alshuail-backend --err --lines 30"
-```
+## Database Tables
 
-### Test Authenticated Endpoints
-```bash
-TOKEN="<jwt_token>"
-curl -H "Authorization: Bearer $TOKEN" https://api.alshailfund.com/api/members
-```
-
-### Clear PWA Cache
-```bash
-ssh root@213.199.62.185 "systemctl restart nginx"
-```
-
-## Key Database Tables
-
-Core tables in Supabase PostgreSQL:
-- `members` - Family members with branch assignment, phone, status
-- `family_branches` - 10 family branches (فخوذ) with Arabic names
-- `payments` - Subscription payments with receipts
-- `subscriptions` - Member subscription periods
-- `initiatives` - Family initiatives/projects
-- `diyas` - دية (blood money) tracking
-- `crisis_cases` - Emergency crisis management
-- `notifications` - System notifications
-- `audit_logs` - User action logging
-- `device_tokens` - FCM tokens for push notifications
+members, family_branches, payments, subscriptions, initiatives, diyas, crisis_cases, notifications, audit_logs, device_tokens, occasions, news, expenses
 
 ## Common Gotchas
 
 ### ES Modules
-Backend uses ES Modules - always use `import/export`, not `require()`. File extensions required in imports:
-```javascript
-import { supabase } from './config/database.js';  // .js required
-```
-
-### Windows Path Issues
-When running commands on Windows, use forward slashes or escape backslashes in paths.
-
-### CORS
-The backend allows specific origins. When testing locally, ensure frontend runs on `localhost:3002` (admin) or the configured CORS origin.
+Use import/export, not require(). Include .js extensions.
 
 ### Token Expiry
-- Admin tokens: 7 days (`ADMIN_JWT_TTL`)
-- Member tokens: 30 days (`MEMBER_JWT_TTL`)
+Admin: 7 days, Member: 30 days
 
 ### Hijri Calendar
-System uses `hijri-converter` and `moment-hijri` for Islamic calendar support. Subscription years follow Hijri calendar.
+Uses hijri-converter for Islamic calendar.
+
+## Recent Updates (January 2025)
+
+- Privacy Policy: Added bilingual page at /privacy
+- Flutter App: Added in alshuail-flutter/
+- Project Cleanup: Removed legacy Mobile/ folder
+- GitHub: All changes at https://github.com/Mohamedgad1983/PROShael
