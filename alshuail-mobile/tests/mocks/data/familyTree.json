@@ -1,0 +1,32 @@
+{
+  "branches": [
+    {
+      "id": 1,
+      "name_ar": "فرع الشعيل الرئيسي",
+      "name_en": "Main Al-Shuail Branch",
+      "founder_id": 1,
+      "member_count": 45,
+      "members": [
+        {
+          "id": 1,
+          "full_name_ar": "محمد أحمد الشعيل",
+          "relationship": "head"
+        },
+        {
+          "id": 2,
+          "full_name_ar": "فاطمة علي الشعيل",
+          "relationship": "member"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name_ar": "فرع العنزي",
+      "name_en": "Al-Anzi Branch",
+      "founder_id": 10,
+      "member_count": 32,
+      "members": []
+    }
+  ],
+  "total_members": 347
+}

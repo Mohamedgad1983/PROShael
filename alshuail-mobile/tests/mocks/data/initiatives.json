@@ -1,0 +1,28 @@
+[
+  {
+    "id": 1,
+    "title_ar": "مشروع بناء مسجد",
+    "title_en": "Mosque Building Project",
+    "description_ar": "المساهمة في بناء مسجد للعائلة",
+    "description_en": "Contributing to building a family mosque",
+    "target_amount": "50000.00",
+    "collected_amount": "35000.00",
+    "status": "active",
+    "start_date": "2026-01-01",
+    "end_date": "2026-12-31",
+    "contributors": 50
+  },
+  {
+    "id": 2,
+    "title_ar": "صندوق الطوارئ",
+    "title_en": "Emergency Fund",
+    "description_ar": "صندوق لدعم أفراد العائلة في الحالات الطارئة",
+    "description_en": "Fund to support family members in emergencies",
+    "target_amount": "20000.00",
+    "collected_amount": "20000.00",
+    "status": "completed",
+    "start_date": "2025-06-01",
+    "end_date": "2025-12-31",
+    "contributors": 75
+  }
+]

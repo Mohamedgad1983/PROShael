@@ -1,0 +1,24 @@
+[
+  {
+    "id": 1,
+    "member_id": 1,
+    "title_ar": "تذكير بالاشتراك",
+    "title_en": "Subscription Reminder",
+    "body_ar": "موعد سداد اشتراك شهر يناير",
+    "body_en": "January subscription payment due",
+    "type": "subscription_reminder",
+    "read": false,
+    "created_at": "2026-01-09T00:00:00Z"
+  },
+  {
+    "id": 2,
+    "member_id": 1,
+    "title_ar": "إعلان هام",
+    "title_en": "Important Announcement",
+    "body_ar": "اجتماع العائلة القادم في 15 يناير",
+    "body_en": "Next family meeting on January 15",
+    "type": "announcement",
+    "read": true,
+    "created_at": "2026-01-08T00:00:00Z"
+  }
+]

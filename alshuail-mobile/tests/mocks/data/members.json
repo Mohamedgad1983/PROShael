@@ -1,0 +1,36 @@
+[
+  {
+    "id": 1,
+    "membership_number": "M001",
+    "full_name_ar": "محمد أحمد الشعيل",
+    "full_name_en": "Mohammed Ahmed Al-Shuail",
+    "phone": "96512345678",
+    "email": "mohammed@example.com",
+    "branch_id": 1,
+    "branch_name_ar": "فرع الشعيل الرئيسي",
+    "balance": "1500.00",
+    "current_balance": "1500.00",
+    "role": "member",
+    "status": "active",
+    "avatar_url": null,
+    "created_at": "2024-01-01T00:00:00Z",
+    "updated_at": "2026-01-09T00:00:00Z"
+  },
+  {
+    "id": 2,
+    "membership_number": "M002",
+    "full_name_ar": "فاطمة علي الشعيل",
+    "full_name_en": "Fatima Ali Al-Shuail",
+    "phone": "96598765432",
+    "email": "fatima@example.com",
+    "branch_id": 1,
+    "branch_name_ar": "فرع الشعيل الرئيسي",
+    "balance": "2000.00",
+    "current_balance": "2000.00",
+    "role": "member",
+    "status": "active",
+    "avatar_url": null,
+    "created_at": "2024-01-01T00:00:00Z",
+    "updated_at": "2026-01-09T00:00:00Z"
+  }
+]

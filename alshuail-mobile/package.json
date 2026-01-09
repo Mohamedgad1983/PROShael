@@ -7,7 +7,21 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0"
+    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:ui": "vitest --ui",
+    "test:unit": "vitest run tests/unit/",
+    "test:integration": "vitest run tests/integration/",
+    "test:services": "vitest run tests/unit/services/",
+    "test:components": "vitest run tests/unit/components/",
+    "test:watch": "vitest watch",
+    "test:coverage:services": "vitest run --coverage --coverage.include=src/services/",
+    "test:coverage:utils": "vitest run --coverage --coverage.include=src/utils/",
+    "test:coverage:contexts": "vitest run --coverage --coverage.include=src/contexts/",
+    "test:coverage:components": "vitest run --coverage --coverage.include=src/components/",
+    "test:ci": "vitest run --reporter=verbose --coverage"
   },
   "dependencies": {
     "axios": "^1.6.0",
@@ -19,13 +33,20 @@
     "react-router-dom": "^6.20.0"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.1",
+    "@testing-library/user-event": "^14.6.1",
     "@types/react": "^18.2.37",
     "@types/react-dom": "^18.2.15",
     "@vitejs/plugin-react": "^4.2.0",
+    "@vitest/coverage-v8": "^4.0.16",
     "autoprefixer": "^10.4.16",
+    "jsdom": "^27.4.0",
+    "msw": "^2.12.7",
     "postcss": "^8.4.31",
     "tailwindcss": "^3.3.5",
     "vite": "^5.0.0",
-    "vite-plugin-pwa": "^0.17.0"
+    "vite-plugin-pwa": "^0.17.0",
+    "vitest": "^4.0.16"
   }
 }

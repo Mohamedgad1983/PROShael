@@ -1,0 +1,22 @@
+[
+  {
+    "id": 1,
+    "title_ar": "إعلان هام",
+    "title_en": "Important Announcement",
+    "content_ar": "محتوى الخبر باللغة العربية",
+    "content_en": "News content in English",
+    "category": "announcement",
+    "image_url": null,
+    "created_at": "2026-01-09T00:00:00Z"
+  },
+  {
+    "id": 2,
+    "title_ar": "فعالية عائلية",
+    "title_en": "Family Event",
+    "content_ar": "دعوة لحضور الفعالية العائلية السنوية",
+    "content_en": "Invitation to annual family event",
+    "category": "event",
+    "image_url": "https://example.com/event.jpg",
+    "created_at": "2026-01-08T00:00:00Z"
+  }
+]

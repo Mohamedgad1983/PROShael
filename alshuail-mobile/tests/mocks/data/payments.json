@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1,
+    "member_id": 1,
+    "amount": "250.00",
+    "payment_type": "subscription",
+    "status": "completed",
+    "reference_number": "PAY-2026-001",
+    "payment_method": "cash",
+    "for_member_id": null,
+    "notes": null,
+    "created_at": "2026-01-09T00:00:00Z"
+  },
+  {
+    "id": 2,
+    "member_id": 1,
+    "amount": "500.00",
+    "payment_type": "diya",
+    "status": "completed",
+    "reference_number": "PAY-2026-002",
+    "payment_method": "cash",
+    "for_member_id": null,
+    "notes": "مساهمة في دية",
+    "created_at": "2026-01-08T00:00:00Z"
+  }
+]

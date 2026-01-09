@@ -1,0 +1,28 @@
+[
+  {
+    "id": 1,
+    "title_ar": "اجتماع العائلة السنوي",
+    "title_en": "Annual Family Gathering",
+    "description_ar": "اجتماع سنوي لجميع أفراد العائلة",
+    "description_en": "Annual meeting for all family members",
+    "location_ar": "قاعة الشعيل",
+    "location_en": "Al-Shuail Hall",
+    "event_date": "2026-06-15T18:00:00Z",
+    "rsvp_deadline": "2026-06-01T23:59:59Z",
+    "max_attendees": 500,
+    "current_attendees": 250
+  },
+  {
+    "id": 2,
+    "title_ar": "احتفال العيد",
+    "title_en": "Eid Celebration",
+    "description_ar": "احتفال بمناسبة عيد الفطر",
+    "description_en": "Celebration for Eid Al-Fitr",
+    "location_ar": "مقر العائلة",
+    "location_en": "Family Headquarters",
+    "event_date": "2026-04-01T10:00:00Z",
+    "rsvp_deadline": "2026-03-25T23:59:59Z",
+    "max_attendees": 300,
+    "current_attendees": 180
+  }
+]
