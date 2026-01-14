@@ -10,15 +10,20 @@ import './ExpenseManagement.css';
 const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
   const { user, token, hasPermission } = useAuth();
 
-  // Check permissions on component mount
+  // Check permissions on component mount (only after user is loaded)
   useEffect(() => {
-    // Allow access for financial_manager and super_admin roles
+    // Wait for user to be loaded before checking permissions
+    if (!user) return;
+
+    // Allow access for super_admin, admin, financial_manager, and operational_manager roles
     const userRole = user?.role;
     const hasAccess = userRole === 'super_admin' ||
+                      userRole === 'admin' ||
                       userRole === 'financial_manager' ||
                       userRole === 'operational_manager' ||
                       hasPermission('view_finances') ||
-                      hasPermission('manage_finances');
+                      hasPermission('manage_finances') ||
+                      user?.permissions?.all_access === true;
 
     if (!hasAccess) {
       setError({
