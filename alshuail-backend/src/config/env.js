@@ -18,20 +18,22 @@ dotenv.config();
 
 /**
  * Required environment variables for production
+ * NOTE: SUPABASE_* variables are DEPRECATED - system uses VPS PostgreSQL (213.199.62.185)
+ *       Database connection uses DB_* variables via pgQueryBuilder
  */
 const REQUIRED_PRODUCTION_VARS = [
-  'SUPABASE_URL',
-  'SUPABASE_ANON_KEY',
-  'SUPABASE_SERVICE_KEY',
   'JWT_SECRET'
+  // DB_HOST, DB_NAME, DB_USER, DB_PASSWORD are used by pgQueryBuilder.js
+  // but have sensible defaults for development
 ];
 
 /**
  * Required environment variables for all environments
+ * NOTE: No variables strictly required - pgQueryBuilder has defaults for development
  */
 const REQUIRED_VARS = [
-  'SUPABASE_URL',
-  'SUPABASE_ANON_KEY'
+  // Previously required SUPABASE_URL and SUPABASE_ANON_KEY
+  // Now using VPS PostgreSQL via pgQueryBuilder - no Supabase requirements
 ];
 
 /**
@@ -113,14 +115,26 @@ export const config = {
   // Server
   port: getInt('PORT', 5001),
 
-  // Supabase Configuration
+  // Supabase Configuration (DEPRECATED - kept for backward compatibility)
+  // NOTE: System now uses VPS PostgreSQL via pgQueryBuilder
+  // These values are only used by documentStorage.js which will be migrated
   supabase: {
-    url: getString('SUPABASE_URL'),
-    anonKey: getString('SUPABASE_ANON_KEY'),
-    serviceKey: getString('SUPABASE_SERVICE_KEY'),
+    url: getString('SUPABASE_URL', ''),  // DEPRECATED
+    anonKey: getString('SUPABASE_ANON_KEY', ''),  // DEPRECATED
+    serviceKey: getString('SUPABASE_SERVICE_KEY', ''),  // DEPRECATED
     // Legacy support for alternative key names
-    serviceRoleKey: getString('SUPABASE_SERVICE_ROLE_KEY') || getString('SUPABASE_SERVICE_KEY'),
-    key: getString('SUPABASE_KEY') || getString('SUPABASE_ANON_KEY'),
+    serviceRoleKey: getString('SUPABASE_SERVICE_ROLE_KEY') || getString('SUPABASE_SERVICE_KEY', ''),
+    key: getString('SUPABASE_KEY') || getString('SUPABASE_ANON_KEY', ''),
+  },
+
+  // VPS PostgreSQL Configuration (PRIMARY DATABASE)
+  // Connection via pgQueryBuilder.js - 213.199.62.185
+  postgres: {
+    host: getString('DB_HOST', 'localhost'),
+    port: getInt('DB_PORT', 5432),
+    database: getString('DB_NAME', 'alshuail_db'),
+    user: getString('DB_USER', 'alshuail'),
+    // Note: DB_PASSWORD should be set in environment, no default for security
   },
 
   // JWT Configuration
@@ -209,7 +223,9 @@ if (isDevelopment) {
   console.log('📋 Environment Configuration Loaded', {
     env: config.env,
     port: config.port,
-    supabaseConfigured: !!config.supabase.url,
+    database: 'VPS PostgreSQL via pgQueryBuilder',
+    postgresHost: config.postgres.host,
+    supabaseConfigured: !!config.supabase.url + ' (DEPRECATED)',
     jwtConfigured: !!config.jwt.secret,
     redisEnabled: config.redis.enabled,
     frontendUrl: config.frontend.url,

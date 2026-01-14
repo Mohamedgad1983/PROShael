@@ -6,7 +6,7 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
 import { authenticateToken } from '../middleware/auth.js';
-import { upload, supabase, BUCKET_NAME, generateFilePath } from '../config/documentStorage.js';
+import { upload, supabase, BUCKET_NAME, generateFilePath, uploadToSupabase, deleteFromSupabase, getSignedUrl } from '../config/documentStorage.js';
 import { log } from '../utils/logger.js';
 
 const router = express.Router();
@@ -287,28 +287,9 @@ router.post('/avatar', authenticateToken, upload.single('avatar'), async (req, r
 
     const memberId = profileData.member_id;
 
-    // Generate file path for avatar
-    const filePath = generateFilePath(userId, 'avatars', file.originalname);
-
-    // Upload to Supabase Storage
-    const { error: uploadError } = await supabase.storage
-      .from(BUCKET_NAME)
-      .upload(filePath, file.buffer, {
-        contentType: file.mimetype,
-        upsert: false
-      });
-
-    if (uploadError) {
-      log.error('Supabase upload error:', uploadError);
-      throw uploadError;
-    }
-
-    // Get public URL
-    const { data: urlData } = supabase.storage
-      .from(BUCKET_NAME)
-      .getPublicUrl(filePath);
-
-    const publicUrl = urlData.publicUrl;
+    // Upload to local filesystem (migrated from Supabase Storage)
+    const uploadResult = await uploadToSupabase(file, userId, 'avatars');
+    const publicUrl = uploadResult.url;
 
     // Update member's profile_image_url
     const { error: updateError } = await supabase
@@ -322,23 +303,21 @@ router.post('/avatar', authenticateToken, upload.single('avatar'), async (req, r
     if (updateError) {
       log.error('Database update error:', updateError);
       // Try to clean up uploaded file
-      await supabase.storage.from(BUCKET_NAME).remove([filePath]);
+      await deleteFromSupabase(uploadResult.path);
       throw updateError;
     }
 
     // Delete old avatar if exists
     if (currentUser?.avatar_url) {
       try {
-        // Extract path from URL
+        // Extract path from URL - for local storage, path is after /member-documents/
         const oldUrl = currentUser.avatar_url;
-        const bucketUrl = `${supabase.storage.from(BUCKET_NAME).getPublicUrl('').data.publicUrl}/`;
-        const oldPath = oldUrl.replace(bucketUrl, '');
-
-        await supabase.storage
-          .from(BUCKET_NAME)
-          .remove([oldPath]);
-
-        log.info(`Old avatar deleted: ${oldPath}`);
+        const pathMatch = oldUrl.match(/member-documents\/(.+)$/);
+        if (pathMatch) {
+          const oldPath = pathMatch[1];
+          await deleteFromSupabase(oldPath);
+          log.info(`Old avatar deleted: ${oldPath}`);
+        }
       } catch (deleteErr) {
         log.warn('Failed to delete old avatar:', deleteErr);
         // Non-critical error, continue
@@ -416,19 +395,12 @@ router.delete('/avatar', authenticateToken, async (req, res) => {
     // Delete file from storage
     if (currentUser?.avatar_url) {
       try {
-        // Extract path from URL
+        // Extract path from URL - for local storage, path is after /member-documents/
         const avatarUrl = currentUser.avatar_url;
-        const bucketUrl = `${supabase.storage.from(BUCKET_NAME).getPublicUrl('').data.publicUrl}/`;
-        const filePath = avatarUrl.replace(bucketUrl, '');
-
-        const { error: deleteError } = await supabase.storage
-          .from(BUCKET_NAME)
-          .remove([filePath]);
-
-        if (deleteError) {
-          log.warn('Failed to delete avatar file:', deleteError);
-          // Non-critical error, continue
-        } else {
+        const pathMatch = avatarUrl.match(/member-documents\/(.+)$/);
+        if (pathMatch) {
+          const filePath = pathMatch[1];
+          await deleteFromSupabase(filePath);
           log.info(`Avatar file deleted: ${filePath}`);
         }
       } catch (deleteErr) {
