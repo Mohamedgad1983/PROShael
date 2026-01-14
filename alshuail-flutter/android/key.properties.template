@@ -1,0 +1,41 @@
+# 🔐 Al-Shuail Signing Key Properties
+# ⚠️ DO NOT COMMIT THIS FILE TO GIT!
+# ⚠️ Add key.properties to .gitignore
+
+# Store password for the keystore
+storePassword=YOUR_STORE_PASSWORD_HERE
+
+# Key password (usually same as store password)
+keyPassword=YOUR_KEY_PASSWORD_HERE
+
+# Key alias (the name you gave when creating the key)
+keyAlias=alshuail
+
+# Path to the keystore file (relative to android folder)
+storeFile=alshuail-release-key.jks
+
+# ═══════════════════════════════════════════════════════
+# HOW TO CREATE THE SIGNING KEY:
+# ═══════════════════════════════════════════════════════
+#
+# 1. Open Command Prompt in: D:\PROShael\alshuail-flutter\android
+#
+# 2. Run this command:
+#    keytool -genkey -v -keystore alshuail-release-key.jks -keyalg RSA -keysize 2048 -validity 10000 -alias alshuail
+#
+# 3. Enter the information when prompted:
+#    - Password: Choose a strong password (remember it!)
+#    - First & Last Name: Mohamed Al-Shuail
+#    - Organization Unit: Development
+#    - Organization: Al-Shuail Family Fund
+#    - City: Riyadh
+#    - State: Riyadh
+#    - Country: SA
+#
+# 4. Update this file with your actual passwords
+#
+# 5. IMPORTANT: Back up these files safely:
+#    - alshuail-release-key.jks
+#    - key.properties
+#    If you lose them, you can NEVER update your app!
+# ═══════════════════════════════════════════════════════

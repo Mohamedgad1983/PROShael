@@ -11,6 +11,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { supabase } from '../config/database.js';
 import { sendWhatsAppOTP } from '../services/whatsappOtpService.js';
+import { generateSecureOTP } from '../utils/secureOtp.js';
 
 // Constants
 const SALT_ROUNDS = 12;
@@ -20,11 +21,39 @@ const MAX_LOGIN_ATTEMPTS = 5;
 const LOCK_DURATION_MINUTES = 30;
 
 /**
- * Generate 6-digit OTP
+ * Normalize phone number to international format
+ * Handles Saudi (966) and Kuwait (965) numbers
+ * @param {string} phone - Raw phone input
+ * @returns {string} Normalized phone (e.g., 96551234567 or 966501234567)
  */
-const generateOTP = () => {
-    return Math.floor(100000 + Math.random() * 900000).toString();
+const normalizePhone = (phone) => {
+    if (!phone) return '';
+
+    // Remove all non-digit characters
+    let clean = phone.replace(/[\s\-\(\)\+]/g, '');
+
+    // Saudi Arabia: 05xxxxxxxx -> 966xxxxxxxx
+    if (clean.startsWith('05') && clean.length === 10) {
+        clean = '966' + clean.substring(1);
+    }
+    // Saudi Arabia: 5xxxxxxxx -> 9665xxxxxxxx
+    else if (clean.startsWith('5') && clean.length === 9) {
+        clean = '966' + clean;
+    }
+    // Kuwait: 5xxxxxxx or 6xxxxxxx or 9xxxxxxx (8 digits)
+    else if (/^[569]\d{7}$/.test(clean)) {
+        clean = '965' + clean;
+    }
+    // Already has country code
+    else if (clean.startsWith('966') || clean.startsWith('965')) {
+        // Already normalized
+    }
+
+    return clean;
 };
+
+// OTP generation now uses imported generateSecureOTP from utils/secureOtp.js
+// which uses crypto.randomBytes() for cryptographic security
 
 /**
  * Generate JWT Token
@@ -68,11 +97,63 @@ const checkAccountLock = async (memberId) => {
 };
 
 /**
- * Log security action
+ * Security Action Types for monitoring
+ */
+const SECURITY_ACTION_LEVELS = {
+    // Info level - normal operations
+    'login_success': 'info',
+    'otp_requested': 'info',
+    'password_created': 'info',
+    'face_id_enabled': 'info',
+    'face_id_disabled': 'info',
+
+    // Warning level - potential issues
+    'login_failed': 'warn',
+    'otp_verification_failed': 'warn',
+    'password_reset_requested': 'warn',
+
+    // Error level - security events
+    'account_locked': 'error',
+    'password_deleted_by_admin': 'error',
+    'face_id_deleted_by_admin': 'error',
+    'password_changed': 'warn'
+};
+
+/**
+ * Log security action with structured logging for metrics
+ * @param {string} memberId - Member ID
+ * @param {string} actionType - Type of security action
+ * @param {string} performedBy - Who performed the action
+ * @param {object} details - Additional details
+ * @param {string} ip - IP address
  */
 const logSecurityAction = async (memberId, actionType, performedBy = null, details = {}, ip = null) => {
+    const timestamp = new Date().toISOString();
+    const level = SECURITY_ACTION_LEVELS[actionType] || 'info';
+
+    // Emit structured log for monitoring/alerting
+    const logEntry = {
+        timestamp,
+        level,
+        event: 'security_action',
+        action_type: actionType,
+        member_id: memberId,
+        performed_by: performedBy,
+        ip_address: ip,
+        details
+    };
+
+    // Log to console in structured format for log aggregators
+    if (level === 'error') {
+        console.error('[SECURITY]', JSON.stringify(logEntry));
+    } else if (level === 'warn') {
+        console.warn('[SECURITY]', JSON.stringify(logEntry));
+    } else {
+        console.log('[SECURITY]', JSON.stringify(logEntry));
+    }
+
     try {
-        // Get member info
+        // Get member info for database record
         const { data: member } = await supabase
             .from('members')
             .select('full_name_ar, phone')
@@ -102,11 +183,11 @@ const logSecurityAction = async (memberId, actionType, performedBy = null, detai
             performed_by: performedBy,
             performed_by_name: performerName,
             performed_by_role: performerRole,
-            details,
+            details: { ...details, log_level: level },
             ip_address: ip
         });
     } catch (error) {
-        console.error('Error logging security action:', error);
+        console.error('[SECURITY] Error logging to database:', error.message);
     }
 };
 
@@ -126,17 +207,21 @@ export const loginWithPassword = async (req, res) => {
             });
         }
 
+        // Normalize phone number to international format
+        const normalizedPhone = normalizePhone(phone);
+
         // Find member by phone
         const { data: member, error } = await supabase
             .from('members')
-            .select('id, phone, full_name_ar, full_name_en, role, password_hash, has_password, is_active, failed_login_attempts, locked_until')
-            .eq('phone', phone)
+            .select('id, phone, full_name_ar, full_name_en, role, password_hash, has_password, is_active, failed_login_attempts, locked_until, must_change_password')
+            .eq('phone', normalizedPhone)
             .single();
 
+        // OWASP: Use generic message to prevent phone enumeration
         if (error || !member) {
             return res.status(401).json({
                 success: false,
-                message: 'رقم الجوال غير مسجل'
+                message: 'بيانات الدخول غير صحيحة'
             });
         }
 
@@ -207,7 +292,9 @@ export const loginWithPassword = async (req, res) => {
 
         res.json({
             success: true,
-            message: 'تم تسجيل الدخول بنجاح',
+            message: member.must_change_password
+                ? 'يجب تغيير كلمة المرور'
+                : 'تم تسجيل الدخول بنجاح',
             token,
             member: {
                 id: member.id,
@@ -215,7 +302,8 @@ export const loginWithPassword = async (req, res) => {
                 fullNameAr: member.full_name_ar,
                 fullNameEn: member.full_name_en,
                 role: member.role
-            }
+            },
+            mustChangePassword: !!member.must_change_password
         });
 
     } catch (error) {
@@ -228,8 +316,55 @@ export const loginWithPassword = async (req, res) => {
 };
 
 // =====================================================
+// 1b. CHECK PASSWORD STATUS
+// =====================================================
+export const checkPasswordStatus = async (req, res) => {
+    try {
+        const { phone } = req.body;
+
+        if (!phone) {
+            return res.status(400).json({
+                success: false,
+                message: 'رقم الجوال مطلوب'
+            });
+        }
+
+        // Find member by phone
+        const { data: member, error } = await supabase
+            .from('members')
+            .select('id, has_password, is_active')
+            .eq('phone', phone)
+            .single();
+
+        // OWASP: Don't reveal if phone exists - return consistent response
+        if (error || !member) {
+            return res.json({
+                success: true,
+                hasPassword: false,
+                canUsePassword: false
+            });
+        }
+
+        res.json({
+            success: true,
+            hasPassword: !!member.has_password,
+            canUsePassword: member.is_active && member.has_password
+        });
+
+    } catch (error) {
+        console.error('Check password status error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'حدث خطأ في التحقق'
+        });
+    }
+};
+
+// =====================================================
 // 2. REQUEST OTP (for login or password reset)
 // =====================================================
+// OWASP ASVS 2.5.2: Returns identical response regardless of phone existence
+// to prevent phone number enumeration attacks
 export const requestOTP = async (req, res) => {
     try {
         const { phone, purpose = 'login' } = req.body;
@@ -241,27 +376,7 @@ export const requestOTP = async (req, res) => {
             });
         }
 
-        // Find member
-        const { data: member, error } = await supabase
-            .from('members')
-            .select('id, phone, full_name_ar, is_active, has_password')
-            .eq('phone', phone)
-            .single();
-
-        if (error || !member) {
-            return res.status(404).json({
-                success: false,
-                message: 'رقم الجوال غير مسجل في النظام'
-            });
-        }
-
-        if (!member.is_active) {
-            return res.status(403).json({
-                success: false,
-                message: 'الحساب غير مفعل'
-            });
-        }
-
+        // OWASP: Always apply rate limiting regardless of phone existence
         // Check for existing unexpired OTP - rate limiting
         const { data: existingOTP } = await supabase
             .from('password_reset_tokens')
@@ -285,16 +400,43 @@ export const requestOTP = async (req, res) => {
             }
         }
 
-        // Generate OTP
-        const otp = generateOTP();
+        // Find member (but don't reveal if not found)
+        const { data: member, error } = await supabase
+            .from('members')
+            .select('id, phone, full_name_ar, is_active, has_password')
+            .eq('phone', phone)
+            .single();
+
+        // OWASP: Log internally but don't reveal to user
+        if (error || !member) {
+            console.log(`OTP request for unregistered phone: ${phone.substring(0, 4)}****`);
+            // Return success response (but don't actually send OTP)
+            return res.json({
+                success: true,
+                message: 'إذا كان رقم الجوال مسجلاً، سيتم إرسال رمز التحقق إلى WhatsApp',
+                expiresInMinutes: OTP_EXPIRY_MINUTES
+            });
+        }
+
+        if (!member.is_active) {
+            console.log(`OTP request for inactive account: ${member.id}`);
+            // OWASP: Return same message even for inactive accounts
+            return res.json({
+                success: true,
+                message: 'إذا كان رقم الجوال مسجلاً، سيتم إرسال رمز التحقق إلى WhatsApp',
+                expiresInMinutes: OTP_EXPIRY_MINUTES
+            });
+        }
+
+        // Generate OTP using secure method
+        const otp = generateSecureOTP();
         const otpHash = await bcrypt.hash(otp, 10);
         const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60000);
 
-        // Save OTP to database
+        // Save OTP to database (hash only, no plain text)
         await supabase.from('password_reset_tokens').insert({
             member_id: member.id,
             phone: phone,
-            otp_code: otp,
             otp_hash: otpHash,
             expires_at: expiresAt.toISOString()
         });
@@ -303,9 +445,12 @@ export const requestOTP = async (req, res) => {
         const whatsappResult = await sendWhatsAppOTP(phone, otp, member.full_name_ar);
 
         if (!whatsappResult.success) {
-            return res.status(500).json({
-                success: false,
-                message: 'فشل إرسال رمز التحقق. حاول مرة أخرى'
+            console.error('WhatsApp OTP send failed:', whatsappResult.error);
+            // OWASP: Don't reveal WhatsApp failure to user
+            return res.json({
+                success: true,
+                message: 'إذا كان رقم الجوال مسجلاً، سيتم إرسال رمز التحقق إلى WhatsApp',
+                expiresInMinutes: OTP_EXPIRY_MINUTES
             });
         }
 
@@ -317,11 +462,11 @@ export const requestOTP = async (req, res) => {
             { purpose }
         );
 
+        // OWASP: Use consistent message
         res.json({
             success: true,
-            message: 'تم إرسال رمز التحقق إلى WhatsApp',
-            expiresInMinutes: OTP_EXPIRY_MINUTES,
-            requiresPasswordSetup: !member.has_password && purpose === 'login'
+            message: 'إذا كان رقم الجوال مسجلاً، سيتم إرسال رمز التحقق إلى WhatsApp',
+            expiresInMinutes: OTP_EXPIRY_MINUTES
         });
 
     } catch (error) {
@@ -484,10 +629,11 @@ export const createPassword = async (req, res) => {
 
         const isNewPassword = !memberData?.has_password;
 
-        // Update member
+        // Update member - clear must_change_password flag
         await supabase.from('members').update({
             password_hash: passwordHash,
             has_password: true,
+            must_change_password: false,
             password_updated_at: new Date().toISOString(),
             failed_login_attempts: 0,
             locked_until: null
@@ -957,6 +1103,124 @@ export const getMemberSecurityInfo = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'حدث خطأ في جلب معلومات الأمان'
+        });
+    }
+};
+
+// =====================================================
+// 12. ADMIN: SET DEFAULT PASSWORD FOR MEMBERS
+// =====================================================
+/**
+ * Set default password "123456" for all members or specific member
+ * Members will be required to change password on first login
+ */
+export const adminSetDefaultPassword = async (req, res) => {
+    try {
+        const { memberId, allMembers } = req.body;
+        const adminId = req.user.id;
+        const adminRole = req.user.role;
+        const ip = req.ip;
+
+        if (adminRole !== 'super_admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'غير مصرح لك بهذه العملية'
+            });
+        }
+
+        // Default password
+        const DEFAULT_PASSWORD = '123456';
+        const passwordHash = await bcrypt.hash(DEFAULT_PASSWORD, SALT_ROUNDS);
+
+        let updatedCount = 0;
+
+        if (allMembers === true) {
+            // Set default password for ALL members
+            const { data, error } = await supabase
+                .from('members')
+                .update({
+                    password_hash: passwordHash,
+                    has_password: true,
+                    must_change_password: true,
+                    password_updated_at: new Date().toISOString()
+                })
+                .neq('id', adminId); // Don't reset admin's own password
+
+            if (error) throw error;
+
+            // Count updated members
+            const { count } = await supabase
+                .from('members')
+                .select('id', { count: 'exact', head: true })
+                .eq('has_password', true)
+                .eq('must_change_password', true);
+
+            updatedCount = count || 0;
+
+            await logSecurityAction(
+                null,
+                'default_password_set_all',
+                adminId,
+                { count: updatedCount, default_password: '123456' },
+                ip
+            );
+
+        } else if (memberId) {
+            // Set default password for specific member
+            const { data: member, error: memberError } = await supabase
+                .from('members')
+                .select('id, full_name_ar, phone')
+                .eq('id', memberId)
+                .single();
+
+            if (memberError || !member) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'العضو غير موجود'
+                });
+            }
+
+            const { error } = await supabase
+                .from('members')
+                .update({
+                    password_hash: passwordHash,
+                    has_password: true,
+                    must_change_password: true,
+                    password_updated_at: new Date().toISOString()
+                })
+                .eq('id', memberId);
+
+            if (error) throw error;
+            updatedCount = 1;
+
+            await logSecurityAction(
+                memberId,
+                'default_password_set',
+                adminId,
+                { member_name: member.full_name_ar, default_password: '123456' },
+                ip
+            );
+
+        } else {
+            return res.status(400).json({
+                success: false,
+                message: 'يجب تحديد العضو أو تفعيل allMembers'
+            });
+        }
+
+        res.json({
+            success: true,
+            message: `تم تعيين كلمة المرور الافتراضية لـ ${updatedCount} عضو`,
+            updatedCount,
+            defaultPassword: DEFAULT_PASSWORD,
+            note: 'سيُطلب من الأعضاء تغيير كلمة المرور عند أول تسجيل دخول'
+        });
+
+    } catch (error) {
+        console.error('Set default password error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'حدث خطأ في تعيين كلمة المرور الافتراضية'
         });
     }
 };

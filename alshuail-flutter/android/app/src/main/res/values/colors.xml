@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 🎨 App Primary Colors -->
+    <color name="primaryColor">#667eea</color>
+    <color name="primaryColorDark">#5a67d8</color>
+    <color name="accentColor">#764ba2</color>
+    
+    <!-- 🔔 Notification Colors -->
+    <color name="notification_color">#667eea</color>
+    
+    <!-- ✅ Status Colors -->
+    <color name="success">#22c55e</color>
+    <color name="warning">#f59e0b</color>
+    <color name="error">#ef4444</color>
+    
+    <!-- 📱 UI Colors -->
+    <color name="background">#f5f7fa</color>
+    <color name="card_background">#ffffff</color>
+    <color name="text_primary">#1f2937</color>
+    <color name="text_secondary">#6b7280</color>
+</resources>

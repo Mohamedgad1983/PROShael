@@ -739,6 +739,83 @@ router.post('/refresh', async (req, res) => {
 });
 
 
+// Biometric login endpoint - for quick re-authentication after local biometric verification
+router.post('/biometric-login', async (req, res) => {
+  try {
+    const { user_id, member_id } = req.body;
+    const memberId = user_id || member_id;
+
+    if (!memberId) {
+      return res.status(400).json({
+        success: false,
+        error: 'معرف المستخدم مطلوب',
+        message_en: 'User ID is required'
+      });
+    }
+
+    // Look up the member
+    const { data: member, error } = await supabase
+      .from('members')
+      .select('id, membership_number, full_name_ar, full_name_en, phone, branch_name, current_balance, membership_status, profile_image_url')
+      .eq('id', memberId)
+      .single();
+
+    if (error || !member) {
+      return res.status(404).json({
+        success: false,
+        error: 'المستخدم غير موجود',
+        message_en: 'User not found'
+      });
+    }
+
+    // Check if member is active
+    if (member.membership_status !== 'active') {
+      return res.status(403).json({
+        success: false,
+        error: 'عضويتك غير نشطة',
+        message_en: 'Your membership is not active'
+      });
+    }
+
+    // Generate token
+    const tokenPayload = {
+      id: member.id,
+      phone: member.phone,
+      role: 'member',
+      membershipNumber: member.membership_number,
+      fullName: member.full_name_ar || member.full_name_en
+    };
+
+    const token = signToken(tokenPayload, { expiresIn: MEMBER_TOKEN_TTL });
+    setAuthCookie(res, token);
+
+    return res.json({
+      success: true,
+      token,
+      user: {
+        id: member.id,
+        membership_id: member.membership_number,
+        full_name_ar: member.full_name_ar,
+        full_name_en: member.full_name_en,
+        name: member.full_name_ar || member.full_name_en,
+        phone: member.phone,
+        branch_name: member.branch_name,
+        balance: member.current_balance || 0,
+        status: member.membership_status,
+        profile_image: member.profile_image_url
+      },
+      message: 'تم تسجيل الدخول بنجاح'
+    });
+  } catch (error) {
+    log.error('Biometric login error', { error: error.message });
+    return res.status(500).json({
+      success: false,
+      error: 'خطأ في تسجيل الدخول',
+      message_en: 'Login error'
+    });
+  }
+});
+
 // Logout endpoint to clear auth cookie
 router.post('/logout', (req, res) => {
   clearAuthCookie(res);

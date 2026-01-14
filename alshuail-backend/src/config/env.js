@@ -170,6 +170,14 @@ export const config = {
     password: getString('PASSWORD', ''), // Generic test password
   },
 
+  // Feature Flags
+  featureFlags: {
+    // Password authentication feature flag - allows instant rollback without deployment
+    passwordAuthEnabled: getBoolean('PASSWORD_AUTH_ENABLED', true),
+    // OTP-only mode (legacy) - always available as fallback
+    otpAuthEnabled: getBoolean('OTP_AUTH_ENABLED', true),
+  },
+
   // Firebase Cloud Messaging (Push Notifications)
   firebase: {
     projectId: getString('FIREBASE_PROJECT_ID'),
@@ -208,6 +216,7 @@ if (isDevelopment) {
     firebaseEnabled: config.firebase.enabled,
     twilioEnabled: config.twilio.enabled,
     ultramsgEnabled: config.ultramsg.enabled,
+    passwordAuthEnabled: config.featureFlags.passwordAuthEnabled,
   });
 }
 

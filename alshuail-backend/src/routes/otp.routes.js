@@ -192,25 +192,8 @@ router.post('/send', async (req, res) => {
     
     const normalizedPhone = normalizePhone(phone);
     
-    // Check if member exists
-    const member = await findMemberByPhone(normalizedPhone);
-    
-    if (!member) {
-      return res.status(404).json({
-        success: false,
-        message: 'رقم الهاتف غير مسجل في النظام'
-      });
-    }
-    
-    // Check membership status
-    if (member.membership_status === 'suspended') {
-      return res.status(403).json({
-        success: false,
-        message: 'العضوية موقوفة. يرجى التواصل مع الإدارة'
-      });
-    }
-    
-    // Check cooldown (prevent spam)
+    // OWASP: Apply rate limiting BEFORE checking member existence
+    // Check cooldown (prevent spam) - applies to all requests
     const existing = otpStore.get(normalizedPhone);
     if (existing) {
       const timeSinceCreated = (Date.now() - existing.createdAt) / 1000;
@@ -223,45 +206,75 @@ router.post('/send', async (req, res) => {
         });
       }
     }
-    
+
+    // Check if member exists
+    const member = await findMemberByPhone(normalizedPhone);
+
+    // OWASP ASVS 2.5.2: Don't reveal if phone exists
+    if (!member) {
+      log.info('📱 OTP request for unregistered phone', {
+        phone: normalizedPhone.substring(0, 4) + '****'
+      });
+      // Return success response but don't send OTP
+      return res.json({
+        success: true,
+        message: 'إذا كان رقم الجوال مسجلاً، سيتم إرسال رمز التحقق',
+        expiresIn: OTP_EXPIRY_MINUTES * 60
+      });
+    }
+
+    // Check membership status - but don't reveal to user
+    if (member.membership_status === 'suspended') {
+      log.info('📱 OTP request for suspended member', { memberId: member.id });
+      // OWASP: Return same message
+      return res.json({
+        success: true,
+        message: 'إذا كان رقم الجوال مسجلاً، سيتم إرسال رمز التحقق',
+        expiresIn: OTP_EXPIRY_MINUTES * 60
+      });
+    }
+
     // Generate and store OTP
     const otp = generateOTP();
     storeOTP(normalizedPhone, otp);
-    
+
     // Send OTP via WhatsApp
     let sendResult = { success: false };
-    
+
     if (ultramsgService.isConfigured()) {
       sendResult = await ultramsgService.sendOTP(normalizedPhone, otp);
     }
-    
+
     // In development or if WhatsApp fails, still allow login with test OTP
     if (!sendResult.success && USE_TEST_OTP) {
       log.warn('⚠️ WhatsApp not configured - using test OTP mode');
       sendResult = { success: true, testMode: true };
     }
-    
+
     if (!sendResult.success && !USE_TEST_OTP) {
-      return res.status(500).json({
-        success: false,
-        message: 'فشل إرسال رمز التحقق. يرجى المحاولة لاحقاً'
+      log.error('📱 WhatsApp send failed', { phone: normalizedPhone });
+      // OWASP: Don't reveal WhatsApp failure
+      return res.json({
+        success: true,
+        message: 'إذا كان رقم الجوال مسجلاً، سيتم إرسال رمز التحقق',
+        expiresIn: OTP_EXPIRY_MINUTES * 60
       });
     }
-    
-    log.info('📱 OTP sent', { 
+
+    log.info('📱 OTP sent', {
       phone: normalizedPhone,
       memberId: member.id,
       testMode: USE_TEST_OTP
     });
-    
+
+    // OWASP: Use consistent message
     return res.json({
       success: true,
-      message: USE_TEST_OTP 
-        ? 'تم إرسال رمز التحقق (وضع التجربة: 123456)' 
-        : 'تم إرسال رمز التحقق عبر WhatsApp',
+      message: USE_TEST_OTP
+        ? 'تم إرسال رمز التحقق (وضع التجربة: 123456)'
+        : 'إذا كان رقم الجوال مسجلاً، سيتم إرسال رمز التحقق',
       expiresIn: OTP_EXPIRY_MINUTES * 60,
-      memberName: member.full_name,
-      // In test mode, include OTP in response
+      // In test mode only, include OTP in response
       ...(USE_TEST_OTP && { testOtp: TEST_OTP })
     });
     
@@ -403,13 +416,18 @@ router.post('/resend', async (req, res) => {
     
     // Delete old OTP and generate new
     otpStore.delete(normalizedPhone);
-    
-    // Check member exists
+
+    // Check member exists - but don't reveal to user
     const member = await findMemberByPhone(normalizedPhone);
     if (!member) {
-      return res.status(404).json({
-        success: false,
-        message: 'رقم الهاتف غير مسجل'
+      log.info('📱 OTP resend for unregistered phone', {
+        phone: normalizedPhone.substring(0, 4) + '****'
+      });
+      // OWASP: Return success but don't send
+      return res.json({
+        success: true,
+        message: 'إذا كان رقم الجوال مسجلاً، سيتم إرسال رمز التحقق',
+        expiresIn: OTP_EXPIRY_MINUTES * 60
       });
     }
     
