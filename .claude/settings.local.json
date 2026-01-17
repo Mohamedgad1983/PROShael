@@ -100,7 +100,10 @@
       "Bash(sshpass -p 'OjOJ0422alshu' ssh root@213.199.62.185 \"cd /var/www/PROShael/alshuail-backend && sudo -u postgres psql -d alshuail -f migrations/20250109_add_password_auth_system.sql\")",
       "Bash(sshpass -p 'OjOJ0422alshu' ssh root@213.199.62.185 \"sudo -u postgres psql -l\")",
       "Bash(sshpass -p 'OjOJ0422alshu' ssh root@213.199.62.185 \"cd /var/www/PROShael/alshuail-backend && sudo -u postgres psql -d alshuail_db -f migrations/20250109_add_password_auth_system.sql\")",
-      "Bash(sshpass -p 'OjOJ0422alshu' ssh root@213.199.62.185 \"pm2 restart alshuail-backend && pm2 logs alshuail-backend --lines 15 --nostream\")"
+      "Bash(sshpass -p 'OjOJ0422alshu' ssh root@213.199.62.185 \"pm2 restart alshuail-backend && pm2 logs alshuail-backend --lines 15 --nostream\")",
+      "Bash(git merge:*)",
+      "Bash(ping:*)",
+      "Bash(npm run build:fast:*)"
     ],
     "deny": [],
     "ask": []
