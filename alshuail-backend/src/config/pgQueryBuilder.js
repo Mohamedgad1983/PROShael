@@ -119,10 +119,16 @@ class QueryBuilder {
    * - family_branches(branch_name) - implicit join
    */
   _parseSelectColumns(columns) {
-    const parts = this._splitColumns(columns);
+    // Normalize whitespace - replace newlines and multiple spaces with single space
+    const normalizedColumns = columns.replace(/\s+/g, ' ').trim();
+    const parts = this._splitColumns(normalizedColumns);
     const cleanColumns = [];
 
-    for (const part of parts) {
+    for (let part of parts) {
+      // Trim whitespace from each part
+      part = part.trim();
+      if (!part) continue;
+
       // Pattern 1: alias:table!fk(columns)
       let match = part.match(/^(\w+):(\w+)!(\w+)\((.+)\)$/);
       if (match) {

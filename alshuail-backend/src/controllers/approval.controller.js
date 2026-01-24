@@ -12,7 +12,7 @@ export const getPendingApprovals = async (req, res) => {
     const { data: members, error } = await supabase
       .from('members')
       .select('*')
-      .eq('registration_status', 'pending_approval')
+      .eq('membership_status', 'pending_approval')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -85,7 +85,7 @@ export const approveMember = async (req, res) => {
     const { data: member, error: updateError } = await supabase
       .from('members')
       .update({
-        registration_status: 'approved',
+        membership_status: 'active',
         is_active: true,
         approved_by: adminId,
         approved_at: new Date().toISOString(),
@@ -155,7 +155,7 @@ export const rejectMember = async (req, res) => {
     const { data: member, error: updateError } = await supabase
       .from('members')
       .update({
-        registration_status: 'rejected',
+        membership_status: 'rejected',
         is_active: false,
         rejected_by: adminId,
         rejected_at: new Date().toISOString(),
@@ -213,7 +213,7 @@ export const getApprovalStats = async (req, res) => {
     // Count by status
     const { data: stats, error } = await supabase
       .from('members')
-      .select('registration_status', { count: 'exact' });
+      .select('membership_status', { count: 'exact' });
 
     if (error) {
       console.error('Stats Error:', error);
@@ -226,13 +226,13 @@ export const getApprovalStats = async (req, res) => {
     // Group by status
     const statusCounts = {
       pending_approval: 0,
-      approved: 0,
+      active: 0,
       rejected: 0,
       incomplete: 0
     };
 
     stats.forEach(member => {
-      const status = member.registration_status || 'incomplete';
+      const status = member.membership_status || 'incomplete';
       statusCounts[status] = (statusCounts[status] || 0) + 1;
     });
 

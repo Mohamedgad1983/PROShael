@@ -237,7 +237,7 @@ export const getDashboardStats = async (req, res) => {
     const { count: pendingApprovals } = await supabase
       .from('members')
       .select('id', { count: 'exact', head: true })
-      .eq('registration_status', 'pending_approval');
+      .eq('membership_status', 'pending_approval');
 
     // Subdivisions count
     const { count: subdivisions } = await supabase

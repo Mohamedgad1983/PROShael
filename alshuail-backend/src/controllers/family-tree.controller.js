@@ -23,7 +23,7 @@ export const getFullTree = async (req, res) => {
       .from('members')
       .select('*')
       .eq('is_active', true)
-      .eq('registration_status', 'approved');
+      .eq('membership_status', 'active');
 
     // Filter by subdivision if provided
     if (subdivision_id) {
