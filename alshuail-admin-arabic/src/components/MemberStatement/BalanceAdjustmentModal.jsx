@@ -47,7 +47,7 @@ const BalanceAdjustmentModal = ({ isOpen, onClose, member, onSuccess }) => {
     notes: ''
   });
 
-  const API_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
+  const API_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com/api';
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 6 }, (_, i) => currentYear - 5 + i); // Past 5 years + current
   const months = [
@@ -87,7 +87,7 @@ const BalanceAdjustmentModal = ({ isOpen, onClose, member, onSuccess }) => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `${API_URL}/api/balance-adjustments/member/${member.id}?limit=20`,
+        `${API_URL}/balance-adjustments/member/${member.id}?limit=20`,
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -112,7 +112,7 @@ const BalanceAdjustmentModal = ({ isOpen, onClose, member, onSuccess }) => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `${API_URL}/api/balance-adjustments/summary/${member.id}`,
+        `${API_URL}/balance-adjustments/summary/${member.id}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -166,7 +166,7 @@ const BalanceAdjustmentModal = ({ isOpen, onClose, member, onSuccess }) => {
         notes: formData.notes.trim() || null
       };
 
-      const response = await fetch(`${API_URL}/api/balance-adjustments`, {
+      const response = await fetch(`${API_URL}/balance-adjustments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
