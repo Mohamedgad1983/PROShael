@@ -5,7 +5,7 @@ import { config } from '../config/env.js';
 // Get crisis dashboard data - members below minimum balance
 export const getCrisisDashboard = async (req, res) => {
   try {
-    const minimumBalance = 3000; // Required minimum balance
+    const minimumBalance = 3600; // Required minimum balance (6 years × 600 SAR)
 
     // Get all members with their current balance
     const { data: members, error: _membersError } = await supabase
@@ -121,7 +121,7 @@ export const updateMemberBalance = async (req, res) => {
         paymentId: payment.id,
         memberId,
         newBalance,
-        status: newBalance >= 3000 ? 'sufficient' : 'insufficient',
+        status: newBalance >= 3600 ? 'sufficient' : 'insufficient',
         message: 'تم تحديث الرصيد بنجاح'
       }
     });

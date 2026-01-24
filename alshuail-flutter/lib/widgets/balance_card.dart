@@ -26,7 +26,7 @@ class BalanceCard extends StatelessWidget {
   }
 
   Color _getBalanceColor() {
-    if (balance >= 3000) return AppTheme.successColor;
+    if (balance >= 3600) return AppTheme.successColor;
     if (balance >= 500) return AppTheme.warningColor;
     return AppTheme.errorColor;
   }

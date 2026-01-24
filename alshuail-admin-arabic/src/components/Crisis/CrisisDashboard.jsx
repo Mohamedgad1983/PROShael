@@ -182,10 +182,10 @@ const CrisisDashboard = () => {
         fullName: `عضو ${i}`,
         phone: `050${String(1000000 + i).padStart(7, '0')}`,
         balance: Math.round(balance),
-        targetBalance: 3000,
-        shortfall: Math.max(0, 3000 - balance),
-        status: balance >= 3000 ? 'sufficient' : 'insufficient',
-        percentageComplete: Math.min(100, (balance / 3000) * 100)
+        targetBalance: 3600,
+        shortfall: Math.max(0, 3600 - balance),
+        status: balance >= 3600 ? 'sufficient' : 'insufficient',
+        percentageComplete: Math.min(100, (balance / 3600) * 100)
       });
     }
 
@@ -200,7 +200,7 @@ const CrisisDashboard = () => {
         complianceRate: ((compliantCount / 288) * 100).toFixed(1),
         nonComplianceRate: ((nonCompliantCount / 288) * 100).toFixed(1),
         totalShortfall: members.reduce((sum, m) => sum + m.shortfall, 0),
-        minimumBalance: 3000,
+        minimumBalance: 3600,
         lastUpdated: new Date().toISOString()
       },
       members: members,

@@ -3,7 +3,7 @@ import './VisualAlertSystem.css';
 
 // Visual Alert Component for Member Balance Status
 const VisualAlertSystem = ({ balance, memberName, memberId }) => {
-  const minimumBalance = 3000;
+  const minimumBalance = 3600;
 
   // Determine alert level and styling
   const getAlertConfig = () => {
@@ -27,14 +27,14 @@ const VisualAlertSystem = ({ balance, memberName, memberId }) => {
         message: `رصيد حرج - ${balance} ريال فقط`,
         pulseAnimation: true
       };
-    } else if (balance < 3000) {
+    } else if (balance < 3600) {
       return {
         level: 'WARNING',
         color: '#F59E0B',
         bgColor: 'rgba(245, 158, 11, 0.1)',
         borderColor: '#FBBF24',
         icon: '⚡',
-        message: `أقل من الحد الأدنى - نقص ${3000 - balance} ريال`,
+        message: `أقل من الحد الأدنى - نقص ${3600 - balance} ريال`,
         pulseAnimation: false
       };
     } else {
@@ -100,7 +100,7 @@ const VisualAlertSystem = ({ balance, memberName, memberId }) => {
         </div>
         <div className="progress-labels">
           <span>0 ريال</span>
-          <span className="target">3000 ريال</span>
+          <span className="target">3600 ريال</span>
         </div>
       </div>
 
@@ -185,7 +185,7 @@ export const AlertSummaryCard = ({ statistics }) => {
 
 // Mini Alert Badge Component (for use in tables/lists)
 export const AlertBadge = ({ balance }) => {
-  const minimumBalance = 3000;
+  const minimumBalance = 3600;
 
   const getBadgeConfig = () => {
     if (balance === 0) {

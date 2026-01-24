@@ -155,8 +155,8 @@ class _PaymentsScreenState extends State<PaymentsScreen> with SingleTickerProvid
                             'الرصيد الحالي',
                             '${_formatCurrency(authProvider.balance)} ر.س',
                             Icons.account_balance_wallet,
-                            authProvider.balance >= 3000 
-                                ? Colors.green 
+                            authProvider.balance >= 3600
+                                ? Colors.green
                                 : authProvider.balance >= 500 
                                     ? Colors.orange 
                                     : Colors.red,

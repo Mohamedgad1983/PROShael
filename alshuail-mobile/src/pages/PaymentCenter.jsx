@@ -194,8 +194,8 @@ const PaymentCenter = () => {
               <p className="text-white/70 text-sm mb-1">رصيدي الحالي</p>
               <p className="text-3xl font-bold">{myBalance.toLocaleString('ar-SA')} <span className="text-lg">ر.س</span></p>
             </div>
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center ${myBalance >= 3000 ? 'bg-green-400/30' : 'bg-red-400/30'}`}>
-              <span className="text-3xl">{myBalance >= 3000 ? '🟢' : '🔴'}</span>
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center ${myBalance >= 3600 ? 'bg-green-400/30' : 'bg-red-400/30'}`}>
+              <span className="text-3xl">{myBalance >= 3600 ? '🟢' : '🔴'}</span>
             </div>
           </div>
         </div>

@@ -41,7 +41,7 @@ const MemberTable = ({ members, userRole, onSuspend, onNotify }) => {
 
   // Format balance display
   const formatBalance = (balance) => {
-    const isCompliant = balance >= 3000;
+    const isCompliant = balance >= 3600;
     const formattedBalance = balance.toLocaleString('ar-SA');
 
     return (
@@ -51,7 +51,7 @@ const MemberTable = ({ members, userRole, onSuspend, onNotify }) => {
         </span>
         {!isCompliant && (
           <span className="balance-deficit">
-            نقص: {(3000 - balance).toLocaleString('ar-SA')} ر.س
+            نقص: {(3600 - balance).toLocaleString('ar-SA')} ر.س
           </span>
         )}
       </div>
@@ -195,13 +195,13 @@ const MemberTable = ({ members, userRole, onSuspend, onNotify }) => {
         <div className="summary-item">
           <span className="summary-label">ملتزمون:</span>
           <span className="summary-value success">
-            {members.filter(m => m.balance >= 3000).length}
+            {members.filter(m => m.balance >= 3600).length}
           </span>
         </div>
         <div className="summary-item">
           <span className="summary-label">غير ملتزمين:</span>
           <span className="summary-value warning">
-            {members.filter(m => m.balance < 3000).length}
+            {members.filter(m => m.balance < 3600).length}
           </span>
         </div>
         <div className="summary-item">

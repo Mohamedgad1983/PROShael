@@ -14,7 +14,7 @@ const ActionButtons = ({ member, userRole, onSuspend, onNotify }) => {
 
   // Check if user has permission for actions
   const hasPermission = userRole === 'super_admin' || userRole === 'finance_manager';
-  const isCompliant = member.balance >= 3000;
+  const isCompliant = member.balance >= 3600;
 
   // Handle suspend with confirmation
   const handleSuspendClick = () => {
@@ -150,7 +150,7 @@ const ActionButtons = ({ member, userRole, onSuspend, onNotify }) => {
               <div className="member-info">
                 <p><strong>الاسم:</strong> {member.name}</p>
                 <p><strong>الرصيد:</strong> {member.balance.toLocaleString('ar-SA')} ر.س</p>
-                <p><strong>النقص:</strong> {(3000 - member.balance).toLocaleString('ar-SA')} ر.س</p>
+                <p><strong>النقص:</strong> {(3600 - member.balance).toLocaleString('ar-SA')} ر.س</p>
               </div>
               <p className="warning-text">
                 سيتم إيقاف جميع الخدمات حتى يتم تسديد المبلغ المطلوب

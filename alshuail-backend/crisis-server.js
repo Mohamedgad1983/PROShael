@@ -76,7 +76,7 @@ app.get('/api/crisis/dashboard', async (req, res) => {
 
       // Use the stored balance or calculated balance
       const balance = member.total_balance || totalPayments;
-      const status = balance >= 3000 ? 'sufficient' : 'insufficient';
+      const status = balance >= 3600 ? 'sufficient' : 'insufficient';
 
       if (status === 'sufficient') {
         sufficientCount++;
@@ -213,7 +213,7 @@ app.post('/api/members/:id/payment', async (req, res) => {
       .single();
 
     const newBalance = (parseFloat(member?.total_balance || 0) + parseFloat(amount)).toFixed(2);
-    const newStatus = newBalance >= 3000 ? 'sufficient' : 'insufficient';
+    const newStatus = newBalance >= 3600 ? 'sufficient' : 'insufficient';
 
     await supabase
       .from('members')

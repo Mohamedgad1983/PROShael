@@ -346,7 +346,7 @@ const BalanceAdjustmentModal = ({ isOpen, onClose, member, onSuccess }) => {
                   <p className="input-hint">
                     {formData.adjustment_type === 'correction'
                       ? 'سيتم تعيين الرصيد إلى هذا المبلغ مباشرة'
-                      : 'الحد الأقصى للرصيد: 3,000 ريال'}
+                      : 'الحد الأقصى للرصيد: 3,600 ريال'}
                   </p>
                 </div>
 

@@ -56,7 +56,7 @@ export async function buildMemberMonitoringQuery(filters = {}) {
     } = filters;
 
     const offset = (page - 1) * limit;
-    const minimumBalance = 3000; // Required minimum balance
+    const minimumBalance = 3600; // Required minimum balance (6 years × 600 SAR)
 
     // Step 1: Build base query for members
     let membersQuery = supabase
@@ -200,10 +200,10 @@ function filterByBalance(members, operator, amount, min, max) {
       return members.filter(m => m.balance >= min && m.balance <= max);
 
     case 'compliant':
-      return members.filter(m => m.balance >= 3000);
+      return members.filter(m => m.balance >= 3600);
 
     case 'non-compliant':
-      return members.filter(m => m.balance < 3000);
+      return members.filter(m => m.balance < 3600);
 
     case 'critical':
       return members.filter(m => m.balance < 1000);
@@ -221,7 +221,7 @@ function filterByBalance(members, operator, amount, min, max) {
  */
 function getComplianceStatus(balance) {
   if (balance >= 5000) {return 'excellent';}
-  if (balance >= 3000) {return 'compliant';}
+  if (balance >= 3600) {return 'compliant';}
   if (balance >= 1000) {return 'non-compliant';}
   return 'critical';
 }
@@ -242,8 +242,8 @@ function calculateStatistics(members) {
     byTribalSection: {},
     balanceRanges: {
       '0-999': 0,
-      '1000-2999': 0,
-      '3000-4999': 0,
+      '1000-3599': 0,
+      '3600-4999': 0,
       '5000+': 0
     }
   };
@@ -256,12 +256,12 @@ function calculateStatistics(members) {
       stats.excellent++;
       stats.compliant++;
       stats.balanceRanges['5000+']++;
-    } else if (member.balance >= 3000) {
+    } else if (member.balance >= 3600) {
       stats.compliant++;
-      stats.balanceRanges['3000-4999']++;
+      stats.balanceRanges['3600-4999']++;
     } else if (member.balance >= 1000) {
       stats.nonCompliant++;
-      stats.balanceRanges['1000-2999']++;
+      stats.balanceRanges['1000-3599']++;
     } else {
       stats.critical++;
       stats.nonCompliant++;

@@ -89,7 +89,7 @@ export const searchMemberStatement = async (req, res) => {
           phone: member.phone,
           payments: paymentsByYear,
           total,
-          status: total >= 3000 ? 'sufficient' : 'insufficient'
+          status: total >= 3600 ? 'sufficient' : 'insufficient'
         };
       })
     );
@@ -180,7 +180,7 @@ export const getMemberStatement = async (req, res) => {
       statement: {
         yearly: paymentsByYear,
         total,
-        status: total >= 3000 ? 'sufficient' : 'insufficient',
+        status: total >= 3600 ? 'sufficient' : 'insufficient',
         details: paymentDetails
       }
     });
@@ -230,7 +230,7 @@ export const getAllMembersWithBalances = async (req, res) => {
       name: member.full_name,
       phone: member.phone,
       balance: balanceMap[member.id] || 0,
-      status: (balanceMap[member.id] || 0) >= 3000 ? 'sufficient' : 'insufficient'
+      status: (balanceMap[member.id] || 0) >= 3600 ? 'sufficient' : 'insufficient'
     }));
 
     // Calculate statistics
