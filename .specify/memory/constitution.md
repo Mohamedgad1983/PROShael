@@ -2,25 +2,32 @@
 ╔═══════════════════════════════════════════════════════════════════════════════╗
 ║                           SYNC IMPACT REPORT                                   ║
 ╠═══════════════════════════════════════════════════════════════════════════════╣
-║  Version Change: 1.0.0 → 1.0.1 (PATCH - Database clarification)                ║
+║  Version Change: 1.0.1 → 1.1.0 (MINOR - Fund Balance System principles)       ║
 ║                                                                                 ║
-║  Core Principles (unchanged):                                                   ║
-║    - I. Arabic-First, RTL Excellence                                            ║
-║    - II. Member Data Security                                                   ║
-║    - III. API-First Architecture                                                ║
-║    - IV. Mobile-First Design                                                    ║
-║    - V. Financial Accuracy                                                      ║
+║  Core Principles:                                                              ║
+║    - I. Arabic-First, RTL Excellence (unchanged)                               ║
+║    - II. Member Data Security (unchanged)                                      ║
+║    - III. API-First Architecture (unchanged)                                   ║
+║    - IV. Mobile-First Design (unchanged)                                       ║
+║    - V. Financial Accuracy (ENHANCED - Fund Balance requirements)              ║
+║    - VI. Fund Balance Integrity (NEW - KITS specification)                     ║
 ║                                                                                 ║
-║  Changes in v1.0.1:                                                             ║
-║    - Clarified database: PostgreSQL on VPS (NOT Supabase)                       ║
-║    - Added database backup requirement                                          ║
+║  Changes in v1.1.0:                                                            ║
+║    - Added Principle VI: Fund Balance Integrity                                ║
+║    - Enhanced Principle V with balance validation requirements                 ║
+║    - Added Internal vs External Diya classification                            ║
+║    - Added bank reconciliation requirement                                     ║
+║    - Added expense approval workflow governance                                ║
 ║                                                                                 ║
 ║  Templates Status:                                                              ║
 ║    - .specify/templates/plan-template.md ✅ Compatible                          ║
 ║    - .specify/templates/spec-template.md ✅ Compatible                          ║
 ║    - .specify/templates/tasks-template.md ✅ Compatible                         ║
 ║                                                                                 ║
-║  Follow-up TODOs: None                                                          ║
+║  Follow-up TODOs:                                                              ║
+║    - Implement Kit 1-7 from CLAUDE_CODE_KITS_Expenses_System.md                ║
+║    - Update subscriptions table with fund_balance column                       ║
+║    - Add balance validation to expense creation endpoints                      ║
 ╚═══════════════════════════════════════════════════════════════════════════════╝
 -->
 
@@ -88,8 +95,49 @@ Financial calculations MUST be 100% accurate. There is ZERO tolerance for financ
 - Subscription, Diya, and Initiative payment tracking MUST reconcile to the fils
 - Financial reports MUST balance (total in = total out + balance)
 - All financial transactions MUST be logged in audit_logs table
+- **Expense creation MUST validate against available fund balance**
+- **Balance calculations MUST be atomic to prevent race conditions**
 
 **Rationale**: The family fund manages real money from 347+ members. Financial trust is non-negotiable.
+
+### VI. Fund Balance Integrity | سلامة رصيد الصندوق
+
+The fund balance MUST always reflect the true financial state of the family fund.
+
+**Core Formula**:
+```
+Fund Balance = Total Subscriptions - Total Expenses - Internal Diya Payments
+```
+
+**Mandatory Requirements**:
+
+1. **Balance Components**
+   - Subscriptions: All confirmed member subscription payments (Revenue)
+   - Expenses: All approved fund expenditures (Outflow)
+   - Internal Diya: Diya payments to fund members (Outflow)
+   - External Diya: Diya payments to non-members (NOT deducted from balance)
+
+2. **Balance Validation**
+   - Expenses MUST NOT be created if they would cause negative fund balance
+   - Balance validation MUST occur at transaction time, not batch
+   - Concurrent expense creation MUST be handled with proper locking
+
+3. **Diya Classification**
+   - Internal Diya (دية داخلية): Paid to family fund members → DEDUCTED from balance
+   - External Diya (دية خارجية): Paid to non-members → NOT deducted from balance
+   - Diya classification MUST be explicit at creation time
+
+4. **Bank Reconciliation**
+   - Fund balance MUST be reconcilable with bank statements
+   - Balance snapshots SHOULD be maintained for audit purposes
+   - Discrepancies MUST trigger investigation workflow
+
+5. **Expense Approval Workflow**
+   - Expenses MUST follow approval workflow before deduction
+   - Only `approved` expenses count against fund balance
+   - Pending/rejected expenses MUST NOT affect balance calculations
+
+**Rationale**: The fund balance is the single source of truth for available family funds. Integrity ensures trust and enables proper financial planning for diya obligations and initiatives.
 
 ## Technical Standards | المعايير التقنية
 
@@ -118,6 +166,27 @@ Financial calculations MUST be 100% accurate. There is ZERO tolerance for financ
 - Foreign key constraints MUST be defined for relational integrity
 - Indexes MUST exist on frequently queried columns (phone, member_id)
 - Database backups MUST be scheduled regularly
+- **Fund balance calculations MUST use database transactions**
+
+## Fund Balance Implementation Standards | معايير تنفيذ رصيد الصندوق
+
+### Database Requirements
+- `subscriptions` table MUST have `fund_balance` column for real-time tracking
+- `expenses` table MUST have `status` column with values: `pending`, `approved`, `rejected`
+- `diyas` table MUST have `is_internal` boolean column for classification
+- Balance updates MUST use PostgreSQL transactions with proper isolation
+
+### API Endpoints
+- `GET /api/fund-balance` - Returns current calculated fund balance
+- `GET /api/fund-balance/breakdown` - Returns detailed balance components
+- Balance validation MUST be included in `POST /api/expenses` endpoint
+- Expense approval MUST recalculate and validate balance
+
+### UI Requirements
+- Fund balance MUST be displayed prominently on admin dashboard
+- Balance warnings MUST appear when balance is below threshold (3600 SAR minimum)
+- Expense creation form MUST show available balance
+- Balance history/trend visualization SHOULD be provided
 
 ## Development Workflow | سير العمل التطويري
 
@@ -131,6 +200,7 @@ Financial calculations MUST be 100% accurate. There is ZERO tolerance for financ
 - All changes to financial calculation logic MUST be reviewed
 - Security-sensitive changes MUST include security review notes
 - API contract changes MUST be documented
+- **Fund balance logic changes require additional validation testing**
 
 ### Deployment
 - Admin dashboard deploys to Cloudflare Pages
@@ -142,6 +212,8 @@ Financial calculations MUST be 100% accurate. There is ZERO tolerance for financ
 - API endpoints MUST be tested via integration tests
 - Authentication flows MUST have security tests
 - Financial calculations MUST have unit tests with edge cases
+- **Fund balance calculations MUST have reconciliation tests**
+- **Concurrent expense creation MUST be tested for race conditions**
 
 ## Governance | الحوكمة
 
@@ -162,4 +234,4 @@ This constitution supersedes all other development practices for the Al-Shuail F
 - Violations MUST be documented in Complexity Tracking section of plan.md
 - Runtime development guidance available in `CLAUDE.md`
 
-**Version**: 1.0.1 | **Ratified**: 2026-01-14 | **Last Amended**: 2026-01-14
+**Version**: 1.1.0 | **Ratified**: 2026-01-14 | **Last Amended**: 2026-01-24
