@@ -186,8 +186,6 @@ export const adjustBalance = async (req, res) => {
         .from('subscriptions')
         .update({
           current_balance: newBalance,
-      current_balance: newBalance,
-      total_balance: newBalance,
           months_paid_ahead: monthsPaidAhead,
           next_payment_due: nextPaymentDue.toISOString(),
           status: newBalance >= 0 ? 'active' : 'overdue',
@@ -203,8 +201,6 @@ export const adjustBalance = async (req, res) => {
       amount: parseFloat(amount),
       previous_balance: previousBalance,
       new_balance: newBalance,
-      current_balance: newBalance,
-      total_balance: newBalance,
       target_year: target_year || null,
       target_month: target_month || null,
       reason,
@@ -261,8 +257,6 @@ export const adjustBalance = async (req, res) => {
         membership_number: member.membership_number,
         previous_balance: previousBalance,
         new_balance: newBalance,
-      current_balance: newBalance,
-      total_balance: newBalance,
         adjustment_type,
         amount: parseFloat(amount),
         target_year,
