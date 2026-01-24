@@ -24,7 +24,7 @@ import { log } from '../utils/logger.js';
 
 // Business constants
 const MONTHLY_SUBSCRIPTION = 50;
-const MAX_BALANCE = 3000; // 60 months max
+const MAX_BALANCE = 3600; // 72 months max (6 years × 600 SAR)
 const CURRENT_YEAR = new Date().getFullYear();
 const MIN_ADJUSTMENT_YEAR = CURRENT_YEAR - 5; // Allow adjustments for past 5 years
 
