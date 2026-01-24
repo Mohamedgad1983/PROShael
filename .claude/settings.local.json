@@ -105,7 +105,12 @@
       "Bash(ping:*)",
       "Bash(npm run build:fast:*)",
       "mcp__playwright__browser_press_key",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(sshpass -p 'OjOJ0422alshu' ssh root@213.199.62.185 \"cd /var/www/PROShael/alshuail-backend && git pull && pm2 restart alshuail-backend && pm2 logs alshuail-backend --lines 15 --nostream\")",
+      "Bash(scp:*)",
+      "mcp__playwright__browser_select_option",
+      "mcp__playwright__browser_file_upload"
     ],
     "deny": [],
     "ask": []

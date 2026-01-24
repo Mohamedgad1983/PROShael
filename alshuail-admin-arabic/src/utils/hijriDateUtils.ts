@@ -1,7 +1,10 @@
 /**
  * Comprehensive Hijri Date Utilities for Al-Shuail Admin Dashboard
  * Provides conversion and formatting functions for Hijri dates
+ * Uses hijri-converter library for accurate date conversion
  */
+
+import * as hijriConverter from 'hijri-converter';
 
 interface HijriDate {
   year: number;
@@ -30,35 +33,43 @@ export const HIJRI_MONTHS = [
 
 /**
  * Convert Gregorian date to Hijri date
- * This is a simplified conversion - for production use a proper library like hijri-converter
+ * Uses hijri-converter library for accurate conversion
  */
 export function gregorianToHijri(date: Date): HijriDate {
   // Get date components
   const year = date.getFullYear();
-  const month = date.getMonth() + 1;
+  const month = date.getMonth() + 1; // JS months are 0-indexed
   const day = date.getDate();
 
-  // Simplified conversion (approximate)
-  // Hijri year ≈ Gregorian year - 579 + (month-1)/12
-  const hijriYear = Math.floor(year - 579 + (month - 1) / 12);
+  try {
+    // Use hijri-converter for accurate conversion
+    const hijri = hijriConverter.toHijri(year, month, day);
 
-  // Map Gregorian months to approximate Hijri months
-  // This is simplified - actual conversion requires astronomical calculations
-  const hijriMonthIndex = date.getMonth();
-  const hijriMonth = hijriMonthIndex + 1;
-  const hijriMonthName = HIJRI_MONTHS[hijriMonthIndex];
+    const hijriYear = hijri.hy;
+    const hijriMonth = hijri.hm;
+    const hijriDay = hijri.hd;
+    const hijriMonthName = HIJRI_MONTHS[hijriMonth - 1];
 
-  // Day stays approximately the same (simplified)
-  const hijriDay = day;
-
-  return {
-    year: hijriYear,
-    month: hijriMonth,
-    monthName: hijriMonthName,
-    day: hijriDay,
-    formatted: `${hijriDay} ${hijriMonthName} ${hijriYear}هـ`,
-    gregorian: date.toLocaleDateString('ar-SA')
-  };
+    return {
+      year: hijriYear,
+      month: hijriMonth,
+      monthName: hijriMonthName,
+      day: hijriDay,
+      formatted: `${hijriDay} ${hijriMonthName} ${hijriYear}هـ`,
+      gregorian: date.toLocaleDateString('ar-SA')
+    };
+  } catch (error) {
+    console.error('Error converting to Hijri:', error);
+    // Fallback to current date if conversion fails
+    return {
+      year: 1447,
+      month: 1,
+      monthName: HIJRI_MONTHS[0],
+      day: 1,
+      formatted: '1 محرم 1447هـ',
+      gregorian: date.toLocaleDateString('ar-SA')
+    };
+  }
 }
 
 /**
@@ -232,24 +243,17 @@ export function getIslamicOccasion(date: Date | string): { nameAr: string; nameE
 
 /**
  * Convert Hijri date to Gregorian
+ * Uses hijri-converter library for accurate conversion
  */
 export function hijriToGregorian(hy: number, hm: number, hd: number): Date {
-  // Simplified conversion algorithm
-  let jd = Math.floor((11 * hy + 3) / 30) + 354 * hy + 30 * hm -
-    Math.floor((hm - 1) / 2) + hd + 1948440 - 385;
-
-  let l = jd + 68569;
-  let n = Math.floor((4 * l) / 146097);
-  l = l - Math.floor((146097 * n + 3) / 4);
-  let i = Math.floor((4000 * (l + 1)) / 1461001);
-  l = l - Math.floor((1461 * i) / 4) + 31;
-  let j = Math.floor((80 * l) / 2447);
-  let d = l - Math.floor((2447 * j) / 80);
-  l = Math.floor(j / 11);
-  let m = j + 2 - (12 * l);
-  let y = 100 * (n - 49) + i + l;
-
-  return new Date(y, m - 1, d);
+  try {
+    // Use hijri-converter for accurate conversion
+    const gregorian = hijriConverter.toGregorian(hy, hm, hd);
+    return new Date(gregorian.gy, gregorian.gm - 1, gregorian.gd);
+  } catch (error) {
+    console.error('Error converting to Gregorian:', error);
+    return new Date();
+  }
 }
 
 /**

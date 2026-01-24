@@ -1,0 +1,4 @@
+Test Receipt - مصروف تجريبي
+Date: 2026-01-24
+Amount: 150 SAR
+Item: Test Expense

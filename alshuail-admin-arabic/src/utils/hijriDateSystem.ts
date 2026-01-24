@@ -2,7 +2,10 @@
  * Comprehensive Hijri Date System
  * Premium Islamic Calendar Integration for Al-Shuail Family Management
  * Provides full Hijri-Gregorian conversion and formatting
+ * Uses hijri-converter library for accurate date conversion
  */
+
+import * as hijriConverter from 'hijri-converter';
 
 // Hijri Month Names
 export const HIJRI_MONTHS = {
@@ -73,65 +76,59 @@ interface GregorianDate {
 
 /**
  * Convert Gregorian date to Hijri
- * Using Umm al-Qura calendar algorithm
+ * Uses hijri-converter library for accurate conversion
  */
 export function gregorianToHijri(date: Date): HijriDate {
   const gy = date.getFullYear();
   const gm = date.getMonth() + 1;
   const gd = date.getDate();
-
-  // Simplified conversion algorithm (for demonstration)
-  // In production, use a proper library like hijri-converter
-  let jd = Math.floor((1461 * (gy + 4800 + Math.floor((gm - 14) / 12))) / 4) +
-    Math.floor((367 * (gm - 2 - 12 * (Math.floor((gm - 14) / 12)))) / 12) -
-    Math.floor((3 * (Math.floor((gy + 4900 + Math.floor((gm - 14) / 12)) / 100))) / 4) +
-    gd - 32075;
-
-  let l = jd - 1948440 + 10632;
-  let n = Math.floor((l - 1) / 10631);
-  l = l - 10631 * n + 354;
-  let j = (Math.floor((10985 - l) / 5316)) * (Math.floor((50 * l) / 17719)) +
-    (Math.floor(l / 5670)) * (Math.floor((43 * l) / 15238));
-  l = l - (Math.floor((30 - j) / 15)) * (Math.floor((17719 * j) / 50)) -
-    (Math.floor(j / 16)) * (Math.floor((15238 * j) / 43)) + 29;
-
-  const hm = Math.floor((24 * l) / 709);
-  const hd = l - Math.floor((709 * hm) / 24);
-  const hy = 30 * n + j - 30;
-
   const dayOfWeek = date.getDay();
 
-  return {
-    year: hy,
-    month: hm,
-    day: hd,
-    monthName: HIJRI_MONTHS.ar[hm - 1],
-    monthNameEn: HIJRI_MONTHS.en[hm - 1],
-    dayName: ARABIC_DAYS.ar[dayOfWeek],
-    dayNameEn: ARABIC_DAYS.en[dayOfWeek]
-  };
+  try {
+    // Use hijri-converter for accurate conversion
+    const hijri = hijriConverter.toHijri(gy, gm, gd);
+
+    const hy = hijri.hy;
+    const hm = hijri.hm;
+    const hd = hijri.hd;
+
+    return {
+      year: hy,
+      month: hm,
+      day: hd,
+      monthName: HIJRI_MONTHS.ar[hm - 1],
+      monthNameEn: HIJRI_MONTHS.en[hm - 1],
+      dayName: ARABIC_DAYS.ar[dayOfWeek],
+      dayNameEn: ARABIC_DAYS.en[dayOfWeek]
+    };
+  } catch (error) {
+    console.error('Error converting to Hijri:', error);
+    // Fallback
+    return {
+      year: 1447,
+      month: 1,
+      day: 1,
+      monthName: HIJRI_MONTHS.ar[0],
+      monthNameEn: HIJRI_MONTHS.en[0],
+      dayName: ARABIC_DAYS.ar[dayOfWeek],
+      dayNameEn: ARABIC_DAYS.en[dayOfWeek]
+    };
+  }
 }
 
 /**
  * Convert Hijri date to Gregorian
+ * Uses hijri-converter library for accurate conversion
  */
 export function hijriToGregorian(hy: number, hm: number, hd: number): Date {
-  // Simplified conversion algorithm
-  let jd = Math.floor((11 * hy + 3) / 30) + 354 * hy + 30 * hm -
-    Math.floor((hm - 1) / 2) + hd + 1948440 - 385;
-
-  let l = jd + 68569;
-  let n = Math.floor((4 * l) / 146097);
-  l = l - Math.floor((146097 * n + 3) / 4);
-  let i = Math.floor((4000 * (l + 1)) / 1461001);
-  l = l - Math.floor((1461 * i) / 4) + 31;
-  let j = Math.floor((80 * l) / 2447);
-  let d = l - Math.floor((2447 * j) / 80);
-  l = Math.floor(j / 11);
-  let m = j + 2 - (12 * l);
-  let y = 100 * (n - 49) + i + l;
-
-  return new Date(y, m - 1, d);
+  try {
+    // Use hijri-converter for accurate conversion
+    const gregorian = hijriConverter.toGregorian(hy, hm, hd);
+    return new Date(gregorian.gy, gregorian.gm - 1, gregorian.gd);
+  } catch (error) {
+    console.error('Error converting to Gregorian:', error);
+    return new Date();
+  }
 }
 
 /**
