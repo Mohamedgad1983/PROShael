@@ -543,7 +543,7 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
 
       {/* Create Expense Form */}
       {showCreateForm && hasPermission('manage_finances') && (
-        <div className="create-expense-form glass-morphism animate-float">
+        <div className="create-expense-form glass-morphism">
           <form onSubmit={handleCreateExpense}>
             <div className="form-header">
               <h3>إضافة مصروف جديد</h3>
