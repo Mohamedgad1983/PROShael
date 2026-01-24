@@ -1,5 +1,6 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
+import multer from 'multer';
 import {
   getExpenses,
   createExpense,
@@ -11,6 +12,23 @@ import {
 } from '../controllers/expensesController.js';
 import { log } from '../utils/logger.js';
 import { config } from '../config/env.js';
+
+// Configure multer for receipt uploads
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB max file size
+  },
+  fileFilter: (req, file, cb) => {
+    // Allow images and PDFs
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf', 'text/plain'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('نوع الملف غير مدعوم. يرجى رفع صورة أو ملف PDF'), false);
+    }
+  }
+});
 
 const router = express.Router();
 
@@ -88,7 +106,8 @@ router.get('/', requireFinancialAccess, getExpenses);
 
 // POST /api/expenses - Create new expense
 // Requires role: admin, financial_manager, treasurer
-router.post('/', requireFinancialAccess, createExpense);
+// Uses multer middleware to handle multipart/form-data with optional receipt_image
+router.post('/', requireFinancialAccess, upload.single('receipt_image'), createExpense);
 
 // GET /api/expenses/statistics - Get expense statistics
 // Returns aggregated expense data, trends, and category breakdowns

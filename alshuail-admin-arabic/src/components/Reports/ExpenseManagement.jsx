@@ -54,6 +54,8 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
     description_en: '',
     amount: '',
     category: '',
+    expense_date: new Date().toISOString().split('T')[0],
+    paid_to: '',
     receipt_image: null,
     notes: ''
   });
@@ -189,7 +191,9 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
       const formData = new FormData();
       Object.keys(newExpense).forEach(key => {
         if (newExpense[key] !== null && newExpense[key] !== '') {
-          formData.append(key, newExpense[key]);
+          // Map 'category' to 'expense_category' for backend compatibility
+          const fieldName = key === 'category' ? 'expense_category' : key;
+          formData.append(fieldName, newExpense[key]);
         }
       });
 
@@ -232,6 +236,8 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
           description_en: '',
           amount: '',
           category: '',
+          expense_date: new Date().toISOString().split('T')[0],
+          paid_to: '',
           receipt_image: null,
           notes: ''
         });
@@ -672,6 +678,62 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div className="form-group">
+                <label>تاريخ الصرف *</label>
+                <input
+                  type="date"
+                  value={newExpense.expense_date}
+                  onChange={(e) => setNewExpense(prev => ({
+                    ...prev,
+                    expense_date: e.target.value
+                  }))}
+                  required
+                  className="form-input"
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: '1px solid #ccc',
+                    borderRadius: '10px',
+                    fontSize: '16px',
+                    backgroundColor: 'white',
+                    color: 'black',
+                    boxSizing: 'border-box',
+                    WebkitAppearance: 'none',
+                    MozAppearance: 'none',
+                    appearance: 'none'
+                  }}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>المستفيد / صرف إلى *</label>
+                <input
+                  type="text"
+                  value={newExpense.paid_to}
+                  onChange={(e) => setNewExpense(prev => ({
+                    ...prev,
+                    paid_to: e.target.value
+                  }))}
+                  required
+                  className="form-input"
+                  placeholder="اسم الشركة أو الجهة"
+                  autoComplete="off"
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: '1px solid #ccc',
+                    borderRadius: '10px',
+                    fontSize: '16px',
+                    backgroundColor: 'white',
+                    color: 'black',
+                    boxSizing: 'border-box',
+                    WebkitAppearance: 'none',
+                    MozAppearance: 'none',
+                    appearance: 'none'
+                  }}
+                />
               </div>
 
               <div className="form-group full-width">
