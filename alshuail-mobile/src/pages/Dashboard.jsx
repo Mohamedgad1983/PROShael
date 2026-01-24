@@ -5,6 +5,7 @@ import { useAuth } from '../App'
 import { useDataCache } from '../contexts/DataCacheContext'
 import BottomNav from '../components/BottomNav'
 import NotificationPrompt from '../components/NotificationPrompt'
+import FundBalanceWidget from '../components/FundBalanceWidget'
 
 const Dashboard = () => {
   const { user } = useAuth()
@@ -246,6 +247,9 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
+
+        {/* Fund Balance Widget - Shows only for authorized users (admins/financial managers) */}
+        <FundBalanceWidget />
 
         {/* Quick Actions - Now with 5 items, will show 3+2 layout */}
         <div className="grid grid-cols-3 gap-3 mb-3">

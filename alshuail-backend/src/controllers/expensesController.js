@@ -14,6 +14,7 @@ import {
 } from '../utils/accessControl.js';
 import { HijriDateManager } from '../utils/hijriDateUtils.js';
 import { log } from '../utils/logger.js';
+import { getCurrentBalance } from './fundBalanceController.js';
 
 /**
  * OPTIMIZED: Single-pass summary calculation - O(n) instead of O(6n)
@@ -210,6 +211,46 @@ export const createExpense = async (req, res) => {
       });
     }
 
+    // Fund Balance Validation (Constitution VI.2)
+    // Validate that expense amount doesn't exceed available fund balance
+    const expenseAmount = parseFloat(amount);
+    const balance = await getCurrentBalance();
+
+    if (!balance) {
+      log.error('[Expenses] Failed to get fund balance for validation');
+      return res.status(500).json({
+        success: false,
+        error: 'فشل في التحقق من رصيد الصندوق',
+        error_en: 'Failed to validate fund balance',
+        code: 'BALANCE_VALIDATION_ERROR'
+      });
+    }
+
+    const currentBalance = parseFloat(balance.current_balance);
+
+    // Check if expense would cause negative balance
+    if (expenseAmount > currentBalance) {
+      log.warn('[Expenses] Expense rejected: insufficient balance', {
+        userId,
+        expenseAmount,
+        currentBalance,
+        shortfall: expenseAmount - currentBalance
+      });
+
+      return res.status(400).json({
+        success: false,
+        error: 'رصيد الصندوق غير كافي',
+        error_en: 'Insufficient fund balance',
+        code: 'INSUFFICIENT_BALANCE',
+        balance_info: {
+          current_balance: currentBalance,
+          expense_amount: expenseAmount,
+          shortfall: expenseAmount - currentBalance,
+          currency: 'SAR'
+        }
+      });
+    }
+
     const expenseDate = new Date(expense_date);
     const hijriData = HijriDateManager.convertToHijri(expenseDate);
 
@@ -265,10 +306,23 @@ export const createExpense = async (req, res) => {
       sendExpenseApprovalNotification(expense).catch(() => {});
     }
 
+    // Calculate balance after expense
+    const balanceAfter = expense.status === 'approved'
+      ? currentBalance - expenseAmount
+      : currentBalance; // Pending expenses don't affect balance yet
+
     res.status(201).json({
       success: true,
       data: expense,
-      message: expense.status === 'approved' ? 'Expense created and auto-approved successfully' : 'Expense created successfully and pending approval'
+      balance_info: {
+        balance_before: currentBalance,
+        expense_amount: expenseAmount,
+        balance_after: balanceAfter,
+        currency: 'SAR',
+        expense_status: expense.status
+      },
+      message: expense.status === 'approved' ? 'تم إنشاء المصروف والموافقة عليه' : 'تم إنشاء المصروف وهو في انتظار الموافقة',
+      message_en: expense.status === 'approved' ? 'Expense created and auto-approved successfully' : 'Expense created successfully and pending approval'
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message, code: 'EXPENSE_CREATION_ERROR' });

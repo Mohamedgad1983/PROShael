@@ -211,7 +211,7 @@ const ExpenseVoucher = ({ expense, onClose }) => {
               <p style={{ fontSize: '14px', color: '#666', marginTop: '5px' }}>Shuail Al-Anzi Fund</p>
             </div>
             <div className="voucher-title">سند صرف</div>
-            <div className="voucher-number">رقم السند: {expense.id || `EXP-${Date.now()}`}</div>
+            <div className="voucher-number">رقم السند: {expense.expense_number || expense.id || `EXP-${Date.now()}`}</div>
             <div className="voucher-date">
               التاريخ: {formatDate(expense.created_at)}
               {' '}

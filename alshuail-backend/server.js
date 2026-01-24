@@ -50,6 +50,7 @@ import expenseCategoriesRoutes from './src/routes/expenseCategories.js';
 import balanceAdjustmentsRoutes from './src/routes/balanceAdjustments.js';
 import bankTransfersRoutes from './src/routes/bankTransfers.js';
 import passwordAuthRoutes from './src/routes/passwordAuth.routes.js';
+import fundBalanceRoutes from './src/routes/fundBalance.routes.js';
 import { log } from './src/utils/logger.js';
 import { config } from './src/config/env.js';
 import { errorHandler } from './src/utils/errorCodes.js';
@@ -322,6 +323,9 @@ app.use('/api/bank-transfers', bankTransfersRoutes);
 
 // Password Authentication APIs - Password login, OTP, Face ID
 app.use('/api/auth/password', passwordAuthRoutes);
+
+// Fund Balance APIs - Fund balance management and bank reconciliation
+app.use('/api/fund', fundBalanceRoutes);
 
 // Enhanced health check endpoint
 app.get('/api/health', async (req, res) => {

@@ -3,6 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import ErrorDisplay from '../Common/ErrorDisplay';
 import LoadingSpinner from '../Common/LoadingSpinner';
 import ExpenseVoucher from './ExpenseVoucher';
+import FundBalanceCard from '../FundBalanceCard';
 import { logger } from '../../utils/logger';
 
 import './ExpenseManagement.css';
@@ -47,6 +48,10 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [createdExpense, setCreatedExpense] = useState(null);
 
+  // Fund balance state for validation
+  const [fundBalance, setFundBalance] = useState(null);
+  const [balanceExceeded, setBalanceExceeded] = useState(false);
+
   const [newExpense, setNewExpense] = useState({
     title_ar: '',
     title_en: '',
@@ -74,6 +79,44 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
   useEffect(() => {
     fetchExpenses();
   }, [dateFilter, statusFilter, categoryFilter, sortBy, sortOrder]);
+
+  // Fetch fund balance for expense validation
+  const fetchFundBalance = useCallback(async () => {
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://api.alshailfund.com/api'}/fund/balance`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setFundBalance(data.data);
+        }
+      }
+    } catch (err) {
+      logger.error('Error fetching fund balance:', { error: err });
+    }
+  }, [token]);
+
+  // Fetch balance when form is opened
+  useEffect(() => {
+    if (showCreateForm) {
+      fetchFundBalance();
+    }
+  }, [showCreateForm, fetchFundBalance]);
+
+  // Check if expense amount exceeds balance
+  useEffect(() => {
+    if (fundBalance && newExpense.amount) {
+      const amount = parseFloat(newExpense.amount);
+      const balance = parseFloat(fundBalance.current_balance);
+      setBalanceExceeded(amount > balance);
+    } else {
+      setBalanceExceeded(false);
+    }
+  }, [newExpense.amount, fundBalance]);
 
   const fetchExpenses = useCallback(async (isRetry = false) => {
     // Prevent rapid successive calls
@@ -444,6 +487,11 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
 
   return (
     <div className="expense-management" dir="rtl">
+      {/* Fund Balance Card - Shows current fund balance prominently */}
+      <div className="fund-balance-section" style={{ marginBottom: '1.5rem' }}>
+        <FundBalanceCard compact={false} />
+      </div>
+
       {/* Header */}
       <div className="expense-header glass-morphism">
         <div className="header-actions">
@@ -636,10 +684,10 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
                   style={{
                     width: '100%',
                     padding: '12px 16px',
-                    border: '1px solid #ccc',
+                    border: balanceExceeded ? '2px solid #ef4444' : '1px solid #ccc',
                     borderRadius: '10px',
                     fontSize: '16px',
-                    backgroundColor: 'white',
+                    backgroundColor: balanceExceeded ? '#fef2f2' : 'white',
                     color: 'black',
                     boxSizing: 'border-box',
                     WebkitAppearance: 'none',
@@ -647,6 +695,29 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
                     appearance: 'none'
                   }}
                 />
+                {/* Balance Validation Warning */}
+                {fundBalance && (
+                  <div style={{ marginTop: '8px', fontSize: '13px' }}>
+                    <span style={{ color: '#6b7280' }}>
+                      الرصيد المتاح: {parseFloat(fundBalance.current_balance).toLocaleString('ar-SA')} ر.س
+                    </span>
+                    {balanceExceeded && (
+                      <div style={{
+                        color: '#ef4444',
+                        backgroundColor: '#fef2f2',
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        marginTop: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}>
+                        <span>⚠️</span>
+                        <span>رصيد الصندوق غير كافي! المبلغ يتجاوز الرصيد المتاح بـ {(parseFloat(newExpense.amount) - parseFloat(fundBalance.current_balance)).toLocaleString('ar-SA')} ر.س</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="form-group">
@@ -862,6 +933,11 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
               >
                 <div className="expense-header">
                   <div className="expense-title">
+                    {expense.expense_number && (
+                      <div className="expense-number">
+                        <span className="number-badge">{expense.expense_number}</span>
+                      </div>
+                    )}
                     <h4>{expense.title_ar}</h4>
                     {expense.title_en && (
                       <p className="title-en">{expense.title_en}</p>
