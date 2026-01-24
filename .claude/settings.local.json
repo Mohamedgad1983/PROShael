@@ -103,7 +103,9 @@
       "Bash(sshpass -p 'OjOJ0422alshu' ssh root@213.199.62.185 \"pm2 restart alshuail-backend && pm2 logs alshuail-backend --lines 15 --nostream\")",
       "Bash(git merge:*)",
       "Bash(ping:*)",
-      "Bash(npm run build:fast:*)"
+      "Bash(npm run build:fast:*)",
+      "mcp__playwright__browser_press_key",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []
