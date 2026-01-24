@@ -131,8 +131,8 @@ const HijriDiyasManagement: React.FC = () => {
   const fetchDiyas = async () => {
     setLoading(true);
     try {
-      const API_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
-      const response = await fetch(`${API_URL}/api/diyas`, {
+      const API_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com/api';
+      const response = await fetch(`${API_URL}/diyas`, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -197,8 +197,8 @@ const HijriDiyasManagement: React.FC = () => {
   const fetchContributors = useCallback(async (diyaId: number | string, page: number = 1, limit: number = contributorsPerPage) => {
     try {
       setContributorsLoading(true);
-      const API_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
-      const response = await fetch(`${API_URL}/api/diya/${diyaId}/contributors?page=${page}&limit=${limit}`, {
+      const API_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com/api';
+      const response = await fetch(`${API_URL}/diya/${diyaId}/contributors?page=${page}&limit=${limit}`, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -240,8 +240,8 @@ const HijriDiyasManagement: React.FC = () => {
   // Fetch ALL contributors for export
   const fetchAllContributorsForExport = async (diyaId: number | string) => {
     try {
-      const API_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
-      const response = await fetch(`${API_URL}/api/diya/${diyaId}/contributors/all`, {
+      const API_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com/api';
+      const response = await fetch(`${API_URL}/diya/${diyaId}/contributors/all`, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
