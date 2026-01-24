@@ -314,8 +314,15 @@ const App: React.FC = () => {
 
               {/* Admin Dashboard Route */}
               <Route path="/admin/dashboard" element={<AdminRoute><StyledDashboard onLogout={() => {
+                // Clear ALL auth-related localStorage items
                 localStorage.removeItem('token');
+                localStorage.removeItem('auth_token');
                 localStorage.removeItem('user');
+                localStorage.removeItem('user_data');
+                localStorage.removeItem('isLoggedIn');
+                localStorage.removeItem('userEmail');
+                localStorage.removeItem('userRole');
+                localStorage.removeItem('loginTime');
                 window.location.href = '/login';
               }} /></AdminRoute>} />
 
@@ -325,8 +332,15 @@ const App: React.FC = () => {
               {/* Admin routes - StyledDashboard with sidebar handles all /admin/* routes */}
               {/* This includes: /admin/dashboard, /admin/news, /admin/initiatives, /admin/subscriptions, /admin/diyas, etc. */}
               <Route path="/admin/*" element={<AdminRoute><StyledDashboard onLogout={() => {
+                // Clear ALL auth-related localStorage items
                 localStorage.removeItem('token');
+                localStorage.removeItem('auth_token');
                 localStorage.removeItem('user');
+                localStorage.removeItem('user_data');
+                localStorage.removeItem('isLoggedIn');
+                localStorage.removeItem('userEmail');
+                localStorage.removeItem('userRole');
+                localStorage.removeItem('loginTime');
                 window.location.href = '/login';
               }} /></AdminRoute>} />
 
