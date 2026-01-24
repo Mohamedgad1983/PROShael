@@ -298,7 +298,7 @@ const FundBalanceCard: React.FC<FundBalanceCardProps> = ({
       <BankReconciliationModal
         isOpen={showReconciliationModal}
         onClose={() => setShowReconciliationModal(false)}
-        currentBalance={balance.current_balance}
+        currentBalance={balance}
         onReconciliationComplete={handleReconciliationComplete}
       />
     </div>
