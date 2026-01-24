@@ -1,0 +1,486 @@
+openapi: 3.0.3
+info:
+  title: Fund Balance API
+  description: |
+    Al-Shuail Family Fund Balance Management API.
+    Provides fund balance calculation, expense validation, and bank reconciliation endpoints.
+  version: 1.0.0
+  contact:
+    name: Al-Shuail Family Fund
+    url: https://alshailfund.com
+
+servers:
+  - url: https://api.alshailfund.com/api
+    description: Production
+  - url: http://localhost:5001/api
+    description: Development
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Fund Balance
+    description: Fund balance calculation and display
+  - name: Expenses
+    description: Expense management with balance validation
+  - name: Bank Reconciliation
+    description: Bank statement reconciliation and audit
+
+paths:
+  /fund/balance:
+    get:
+      tags:
+        - Fund Balance
+      summary: Get current fund balance
+      description: |
+        Returns the current calculated fund balance with breakdown.
+        Formula: Balance = Subscriptions - Expenses - Internal Diya
+      operationId: getFundBalance
+      responses:
+        '200':
+          description: Fund balance retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FundBalanceResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /fund/breakdown:
+    get:
+      tags:
+        - Fund Balance
+      summary: Get detailed balance breakdown
+      description: |
+        Returns expenses grouped by category and internal diya cases list.
+      operationId: getBalanceBreakdown
+      responses:
+        '200':
+          description: Breakdown retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceBreakdownResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /fund/snapshot:
+    post:
+      tags:
+        - Bank Reconciliation
+      summary: Create reconciliation snapshot
+      description: |
+        Creates a point-in-time snapshot comparing calculated balance with bank statement.
+        Requires financial_manager or super_admin role.
+      operationId: createSnapshot
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSnapshotRequest'
+      responses:
+        '201':
+          description: Snapshot created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /fund/snapshots:
+    get:
+      tags:
+        - Bank Reconciliation
+      summary: Get reconciliation history
+      description: Returns list of past reconciliation snapshots for audit.
+      operationId: getSnapshots
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Snapshots retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SnapshotsListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /expenses:
+    post:
+      tags:
+        - Expenses
+      summary: Create new expense with balance validation
+      description: |
+        Creates a new expense. **BALANCE VALIDATION**: If expense amount exceeds
+        available fund balance, the request is rejected with error 400.
+      operationId: createExpense
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CreateExpenseRequest'
+      responses:
+        '201':
+          description: Expense created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpenseCreatedResponse'
+        '400':
+          description: Insufficient fund balance or validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InsufficientBalanceError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    FundBalanceResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            total_revenue:
+              type: number
+              format: double
+              description: Total completed subscription payments (SAR)
+              example: 150000.00
+            total_expenses:
+              type: number
+              format: double
+              description: Total approved/paid expenses (SAR)
+              example: 45000.00
+            total_internal_diya:
+              type: number
+              format: double
+              description: Total internal diya payments (SAR)
+              example: 30000.00
+            current_balance:
+              type: number
+              format: double
+              description: Available fund balance (SAR)
+              example: 75000.00
+            last_updated:
+              type: string
+              format: date-time
+              example: "2026-01-24T10:30:00Z"
+
+    BalanceBreakdownResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            expenses_by_category:
+              type: object
+              additionalProperties:
+                type: number
+              example:
+                operational: 15000
+                events: 10000
+                administrative: 5000
+            internal_diya_cases:
+              type: array
+              items:
+                $ref: '#/components/schemas/DiyaCaseSummary'
+            recent_subscriptions:
+              type: array
+              items:
+                $ref: '#/components/schemas/PaymentSummary'
+
+    DiyaCaseSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        case_number:
+          type: string
+          example: "DIYA-001"
+        beneficiary_name:
+          type: string
+        amount_paid:
+          type: number
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    PaymentSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        amount:
+          type: number
+        payment_date:
+          type: string
+          format: date
+        payer_id:
+          type: string
+          format: uuid
+
+    CreateSnapshotRequest:
+      type: object
+      required:
+        - bank_statement_balance
+      properties:
+        bank_statement_balance:
+          type: number
+          format: double
+          description: Bank statement balance in SAR
+          example: 75000.00
+        notes:
+          type: string
+          description: Optional notes for audit trail
+          example: "Monthly reconciliation - Jan 2026"
+
+    SnapshotResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/BalanceSnapshot'
+        reconciliation:
+          type: object
+          properties:
+            matched:
+              type: boolean
+              description: True if calculated balance equals bank balance
+            variance:
+              type: number
+              description: Difference (bank - calculated)
+            message:
+              type: string
+              example: "✅ الرصيد مطابق لكشف الحساب البنكي"
+
+    BalanceSnapshot:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        snapshot_date:
+          type: string
+          format: date
+        total_revenue:
+          type: number
+        total_expenses:
+          type: number
+        total_internal_diya:
+          type: number
+        calculated_balance:
+          type: number
+        bank_statement_balance:
+          type: number
+        variance:
+          type: number
+        notes:
+          type: string
+        created_by:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+
+    SnapshotsListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BalanceSnapshot'
+
+    CreateExpenseRequest:
+      type: object
+      required:
+        - title_ar
+        - amount
+        - expense_category
+      properties:
+        title_ar:
+          type: string
+          description: Expense title in Arabic
+          example: "مصروفات صيانة المبنى"
+        title_en:
+          type: string
+          description: Expense title in English
+          example: "Building maintenance"
+        description_ar:
+          type: string
+        amount:
+          type: number
+          format: double
+          minimum: 0.01
+          example: 5000.00
+        expense_category:
+          type: string
+          enum:
+            - operational
+            - events
+            - administrative
+            - maintenance
+            - charity
+            - emergency
+            - other
+        expense_date:
+          type: string
+          format: date
+        paid_to:
+          type: string
+          description: Recipient of payment
+        payment_method:
+          type: string
+          enum:
+            - bank_transfer
+            - cash
+            - check
+          default: bank_transfer
+        receipt_number:
+          type: string
+        notes:
+          type: string
+        receipt_image:
+          type: string
+          format: binary
+          description: Receipt image file (optional)
+
+    ExpenseCreatedResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          description: Created expense record
+        fund_balance:
+          type: object
+          properties:
+            before:
+              type: number
+              description: Balance before expense
+              example: 80000.00
+            deducted:
+              type: number
+              description: Expense amount
+              example: 5000.00
+            after:
+              type: number
+              description: Balance after expense
+              example: 75000.00
+        message_ar:
+          type: string
+          example: "تم إنشاء المصروف بنجاح. الرصيد المتبقي: 75,000 ر.س"
+        message_en:
+          type: string
+          example: "Expense created. Remaining balance: 75,000 SAR"
+
+    InsufficientBalanceError:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error_ar:
+          type: string
+          example: "رصيد الصندوق غير كافي"
+        error_en:
+          type: string
+          example: "Insufficient fund balance"
+        details:
+          type: object
+          properties:
+            current_balance:
+              type: number
+              example: 5000.00
+            requested_amount:
+              type: number
+              example: 10000.00
+            shortage:
+              type: number
+              example: 5000.00
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+        error_ar:
+          type: string
+
+  responses:
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error: "رمز التوثيق مطلوب"
+            error_ar: "رمز التوثيق مطلوب"
+
+    Forbidden:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error: "ليس لديك صلاحية للوصول إلى العمليات المالية"
+            error_ar: "ليس لديك صلاحية للوصول إلى العمليات المالية"
+
+    ServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error: "خطأ في الخادم"
+            error_ar: "خطأ في الخادم"
