@@ -10,11 +10,11 @@
 
 **Question**: How to calculate fund balance efficiently while ensuring accuracy?
 
-**Decision**: PostgreSQL VIEW + RPC function
+**Decision**: PostgreSQL VIEW + direct query via pgQueryBuilder
 
 **Rationale**:
 - VIEW (`vw_fund_balance`) provides real-time calculated values from source tables
-- RPC function (`get_fund_balance()`) wraps the view for better performance via Supabase client
+- Direct query to view via pgQueryBuilder for efficient balance retrieval
 - Avoids storing balance as a field (which could become stale/inconsistent)
 - Database-level calculation ensures all clients see consistent data
 
@@ -59,14 +59,14 @@ FROM ...
 **Implementation Pattern**:
 ```javascript
 // In expensesController.js createExpense
-const { data: balance } = await supabase.rpc('get_fund_balance');
+const { data: balance } = await supabase.from('vw_fund_balance').select('*').single();
 if (amount > balance.current_balance) {
   return res.status(400).json({
     success: false,
     error_ar: 'رصيد الصندوق غير كافي'
   });
 }
-// Proceed with insert (Supabase handles transaction)
+// Proceed with insert (pgQueryBuilder handles query)
 ```
 
 ---
@@ -180,7 +180,7 @@ CREATE TABLE fund_balance_snapshots (
 |-----------|---------------|---------------------|
 | `expensesController.js` | 26KB, full CRUD | Add `getCurrentBalance()` helper; modify `createExpense` |
 | `diyasController.js` | 19KB, manages cases | No changes; schema only adds `diya_type` column |
-| Supabase client | Configured in `config/supabase.js` | Use existing client for RPC calls |
+| pgQueryBuilder | Configured in `config/database.js` | Use existing Supabase-compatible interface for queries |
 | ExpenseManagement.jsx | Exists in admin | Import new FundBalanceCard component |
 | API routes | RESTful pattern | Add `/api/fund/*` routes following pattern |
 

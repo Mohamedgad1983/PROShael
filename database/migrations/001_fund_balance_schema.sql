@@ -107,11 +107,12 @@ COMMENT ON TABLE fund_balance_snapshots IS
 'Point-in-time snapshots for bank reconciliation and audit compliance';
 
 -- T008: Create vw_fund_balance PostgreSQL view for real-time balance calculation
+-- Revenue is calculated from members.current_balance (sum of positive balances = subscriptions collected)
 CREATE OR REPLACE VIEW vw_fund_balance AS
 SELECT
-    -- Total Revenue (completed subscription payments)
+    -- Total Revenue from member subscriptions (sum of positive balances = money collected)
     COALESCE(
-        (SELECT SUM(amount) FROM payments WHERE status = 'completed'),
+        (SELECT SUM(current_balance) FROM members WHERE current_balance > 0),
         0
     )::DECIMAL(12,2) as total_revenue,
 
@@ -121,9 +122,9 @@ SELECT
         0
     )::DECIMAL(12,2) as total_expenses,
 
-    -- Total Internal Diya (only internal type, only paid amounts)
+    -- Total Internal Diya (only internal type, collected amounts)
     COALESCE(
-        (SELECT SUM(amount_paid) FROM diya_cases
+        (SELECT SUM(collected_amount) FROM diya_cases
          WHERE diya_type = 'internal'
          AND status IN ('paid', 'partially_paid', 'completed')),
         0
@@ -132,13 +133,13 @@ SELECT
     -- Calculated Balance: Revenue - Expenses - Internal Diya
     (
         COALESCE(
-            (SELECT SUM(amount) FROM payments WHERE status = 'completed'), 0
+            (SELECT SUM(current_balance) FROM members WHERE current_balance > 0), 0
         )
         - COALESCE(
             (SELECT SUM(amount) FROM expenses WHERE status IN ('approved', 'paid')), 0
         )
         - COALESCE(
-            (SELECT SUM(amount_paid) FROM diya_cases
+            (SELECT SUM(collected_amount) FROM diya_cases
              WHERE diya_type = 'internal'
              AND status IN ('paid', 'partially_paid', 'completed')), 0
         )
@@ -148,7 +149,7 @@ SELECT
     NOW() as last_calculated;
 
 COMMENT ON VIEW vw_fund_balance IS
-'Real-time fund balance calculation: Revenue - Expenses - Internal Diya';
+'Real-time fund balance calculation: Revenue (from member subscriptions) - Expenses - Internal Diya';
 
 -- T009: Create generate_expense_number() PostgreSQL trigger function
 CREATE OR REPLACE FUNCTION generate_expense_number()

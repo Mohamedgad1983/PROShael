@@ -16,8 +16,8 @@ Implement a comprehensive fund balance tracking system that calculates available
 ## Technical Context
 
 **Language/Version**: Node.js 18+ (ES Modules), React 18 (TypeScript), PostgreSQL 15
-**Primary Dependencies**: Express.js 4.x, @supabase/supabase-js, React 18, Tailwind CSS, DaisyUI
-**Storage**: PostgreSQL on VPS (213.199.62.185), accessed via Supabase client
+**Primary Dependencies**: Express.js 4.x, pg (node-postgres), React 18, Tailwind CSS, DaisyUI
+**Storage**: PostgreSQL on VPS (213.199.62.185), accessed via pgQueryBuilder (Supabase-compatible interface)
 **Testing**: Jest with experimental ESM support (`cross-env NODE_OPTIONS=--experimental-vm-modules`)
 **Target Platform**: Web (Admin Dashboard - Cloudflare Pages), Mobile PWA (VPS)
 **Project Type**: Web application (backend + admin frontend + mobile PWA)
@@ -70,7 +70,8 @@ alshuail-backend/
 │   │   ├── expenses.js                # EXISTING: No changes needed
 │   │   └── fundBalance.routes.js      # CREATE: New routes
 │   └── config/
-│       └── supabase.js                # EXISTING: Database client
+│       ├── database.js                # EXISTING: Exports pgQueryBuilder as 'supabase'
+│       └── pgQueryBuilder.js          # EXISTING: PostgreSQL query builder (pg Pool)
 └── __tests__/
     ├── unit/
     │   └── fundBalance.test.js        # CREATE: Unit tests

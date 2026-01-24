@@ -186,25 +186,27 @@ COMMENT ON VIEW vw_fund_balance IS
 
 ---
 
-### 5. get_fund_balance() RPC Function (CREATE)
+### 5. Balance Query Pattern (pgQueryBuilder)
 
-Supabase RPC function for efficient balance retrieval.
+Direct query to the view via pgQueryBuilder (Supabase-compatible interface).
 
-```sql
-CREATE OR REPLACE FUNCTION get_fund_balance()
-RETURNS TABLE (
-    total_revenue DECIMAL,
-    total_expenses DECIMAL,
-    total_internal_diya DECIMAL,
-    current_balance DECIMAL
-) AS $$
-BEGIN
-    RETURN QUERY SELECT * FROM vw_fund_balance;
-END;
-$$ LANGUAGE plpgsql;
+```javascript
+// In fundBalanceController.js
+import { supabase } from '../config/database.js';
 
-COMMENT ON FUNCTION get_fund_balance IS
-'Returns current fund balance breakdown for API consumption';
+export const getFundBalance = async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('vw_fund_balance')
+      .select('*')
+      .single();
+
+    if (error) throw error;
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
 ```
 
 ---

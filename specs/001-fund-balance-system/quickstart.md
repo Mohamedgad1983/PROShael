@@ -6,8 +6,8 @@
 ## Prerequisites
 
 - Node.js 18+
-- PostgreSQL 15 access (via Supabase)
-- Access to VPS (213.199.62.185) for database migrations
+- PostgreSQL 15 on VPS (213.199.62.185)
+- SSH access to VPS for database migrations
 
 ## 1. Database Setup
 
@@ -21,10 +21,10 @@ ssh root@213.199.62.185
 psql -U postgres -d alshuail_db -f /path/to/001_fund_balance_schema.sql
 ```
 
-Or via Supabase SQL Editor:
-1. Go to Supabase Dashboard > SQL Editor
+Or via pgAdmin/DBeaver:
+1. Connect to PostgreSQL on VPS (213.199.62.185)
 2. Copy contents of `database/migrations/001_fund_balance_schema.sql`
-3. Execute
+3. Execute in alshuail_db database
 
 ### Verify Installation
 
@@ -186,10 +186,10 @@ npx wrangler pages deploy build --project-name=alshuail-admin
 **Cause**: Trigger not installed
 **Fix**: Run the `CREATE TRIGGER set_expense_number` SQL statement
 
-### RPC Function Not Found
+### View Not Found
 
-**Cause**: `get_fund_balance()` not created
-**Fix**: Run the `CREATE FUNCTION get_fund_balance()` SQL statement
+**Cause**: `vw_fund_balance` view not created
+**Fix**: Run the `CREATE VIEW vw_fund_balance` SQL statement from the migration
 
 ### Permission Denied on Reconciliation
 
