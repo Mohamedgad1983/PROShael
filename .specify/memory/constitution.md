@@ -2,22 +2,24 @@
 ╔═══════════════════════════════════════════════════════════════════════════════╗
 ║                           SYNC IMPACT REPORT                                   ║
 ╠═══════════════════════════════════════════════════════════════════════════════╣
-║  Version Change: 1.0.1 → 1.1.0 (MINOR - Fund Balance System principles)       ║
+║  Version Change: 1.1.1 → 1.2.0 (MINOR - New accessibility principle)          ║
 ║                                                                                 ║
 ║  Core Principles:                                                              ║
 ║    - I. Arabic-First, RTL Excellence (unchanged)                               ║
 ║    - II. Member Data Security (unchanged)                                      ║
 ║    - III. API-First Architecture (unchanged)                                   ║
 ║    - IV. Mobile-First Design (unchanged)                                       ║
-║    - V. Financial Accuracy (ENHANCED - Fund Balance requirements)              ║
-║    - VI. Fund Balance Integrity (NEW - KITS specification)                     ║
+║    - V. Financial Accuracy (unchanged)                                         ║
+║    - VI. Fund Balance Integrity (unchanged)                                    ║
+║    - VII. Elderly-Friendly Accessibility (NEW - KITS sidebar specification)    ║
 ║                                                                                 ║
-║  Changes in v1.1.0:                                                            ║
-║    - Added Principle VI: Fund Balance Integrity                                ║
-║    - Enhanced Principle V with balance validation requirements                 ║
-║    - Added Internal vs External Diya classification                            ║
-║    - Added bank reconciliation requirement                                     ║
-║    - Added expense approval workflow governance                                ║
+║  Changes in v1.2.0:                                                            ║
+║    - Added Principle VII: Elderly-Friendly Accessibility                       ║
+║    - Added minimum font size requirements (16px minimum)                       ║
+║    - Added touch target requirements (44px minimum)                            ║
+║    - Added contrast ratio requirements (WCAG AA compliance)                    ║
+║    - Added icon-optional navigation guidance                                   ║
+║    - Added harmonious color scheme requirements                                ║
 ║                                                                                 ║
 ║  Templates Status:                                                              ║
 ║    - .specify/templates/plan-template.md ✅ Compatible                          ║
@@ -25,9 +27,9 @@
 ║    - .specify/templates/tasks-template.md ✅ Compatible                         ║
 ║                                                                                 ║
 ║  Follow-up TODOs:                                                              ║
-║    - Implement Kit 1-7 from CLAUDE_CODE_KITS_Expenses_System.md                ║
-║    - Update subscriptions table with fund_balance column                       ║
-║    - Add balance validation to expense creation endpoints                      ║
+║    - Apply sidebar fix per SIDEBAR_FIX_SPEC.md                                 ║
+║    - Audit all admin UI components for accessibility compliance                ║
+║    - Consider accessibility testing automation                                 ║
 ╚═══════════════════════════════════════════════════════════════════════════════╝
 -->
 
@@ -139,6 +141,45 @@ Fund Balance = Total Subscriptions - Total Expenses - Internal Diya Payments
 
 **Rationale**: The fund balance is the single source of truth for available family funds. Integrity ensures trust and enables proper financial planning for diya obligations and initiatives.
 
+### VII. Elderly-Friendly Accessibility | سهولة الوصول لكبار السن
+
+The admin interface MUST be accessible to elderly users, particularly financial managers.
+
+**Typography Requirements**:
+
+- Minimum font size MUST be 16px for body text
+- Section headers MUST use 20px (`text-xl font-bold`) minimum
+- Menu items and interactive text MUST use 18px (`text-lg font-semibold`) minimum
+- Font weight MUST provide adequate contrast (semibold or bold preferred)
+
+**Color and Contrast Requirements**:
+
+- Background colors MUST use light, harmonious tones (light gradients preferred)
+- Text MUST meet WCAG AA contrast ratio (4.5:1 for normal text, 3:1 for large text)
+- Active/selected states MUST be clearly distinguishable
+- Color scheme MUST be coordinated and non-fatiguing for extended use
+- Dark backgrounds that reduce readability MUST be avoided in navigation
+
+**Navigation Design**:
+
+- Icons are OPTIONAL and MAY be removed if they cause visual clutter
+- Text-only navigation MUST be supported as a valid design choice
+- Menu items MUST have adequate padding (minimum `p-3` / 12px)
+- Hover and active states MUST use smooth transitions
+- Navigation structure MUST remain simple and predictable
+
+**Recommended Color Scheme (Admin Sidebar)**:
+
+| Element | Color | Tailwind Class |
+|---------|-------|----------------|
+| Background | Light blue gradient | `from-blue-50 to-blue-100` |
+| Section Headers | Dark blue | `text-blue-900` |
+| Menu Items | Dark gray | `text-slate-700` |
+| Active Item | Blue with white text | `bg-blue-600 text-white` |
+| Hover State | Light blue | `bg-blue-100 text-blue-800` |
+
+**Rationale**: The Al-Shuail family fund's financial manager is elderly. Accessibility is not optional—it is a requirement for the system to be usable by its primary administrators. Large fonts, clear contrast, and uncluttered design enable confident navigation and reduce errors.
+
 ## Technical Standards | المعايير التقنية
 
 ### Backend (Node.js/Express.js)
@@ -154,6 +195,7 @@ Fund Balance = Total Subscriptions - Total Expenses - Internal Diya Payments
 - DaisyUI components MUST be used for admin dashboard
 - State management via React Context is preferred over Redux
 - RTL support via `dir="rtl"` and Tailwind RTL utilities
+- **Accessibility compliance per Principle VII MUST be verified for all admin UI**
 
 ### Flutter (Dart)
 - Provider or Riverpod MUST be used for state management
@@ -171,10 +213,11 @@ Fund Balance = Total Subscriptions - Total Expenses - Internal Diya Payments
 ## Fund Balance Implementation Standards | معايير تنفيذ رصيد الصندوق
 
 ### Database Requirements
-- `subscriptions` table MUST have `fund_balance` column for real-time tracking
-- `expenses` table MUST have `status` column with values: `pending`, `approved`, `rejected`
-- `diyas` table MUST have `is_internal` boolean column for classification
-- Balance updates MUST use PostgreSQL transactions with proper isolation
+- Fund balance MUST be calculated via PostgreSQL view (`vw_fund_balance`) for real-time accuracy
+- `expenses` table MUST have `status` column with values: `pending`, `approved`, `rejected`, `paid`
+- `diya_cases` table MUST have `diya_type` column with values: `internal`, `external`
+- Balance validation MUST use PostgreSQL transactions with proper isolation
+- `fund_balance_snapshots` table MUST store point-in-time reconciliation records
 
 ### API Endpoints
 - `GET /api/fund-balance` - Returns current calculated fund balance
@@ -187,6 +230,7 @@ Fund Balance = Total Subscriptions - Total Expenses - Internal Diya Payments
 - Balance warnings MUST appear when balance is below threshold (3600 SAR minimum)
 - Expense creation form MUST show available balance
 - Balance history/trend visualization SHOULD be provided
+- **All balance displays MUST comply with Principle VII accessibility requirements**
 
 ## Development Workflow | سير العمل التطويري
 
@@ -201,6 +245,7 @@ Fund Balance = Total Subscriptions - Total Expenses - Internal Diya Payments
 - Security-sensitive changes MUST include security review notes
 - API contract changes MUST be documented
 - **Fund balance logic changes require additional validation testing**
+- **Accessibility changes MUST be verified against Principle VII**
 
 ### Deployment
 - Admin dashboard deploys to Cloudflare Pages
@@ -214,6 +259,7 @@ Fund Balance = Total Subscriptions - Total Expenses - Internal Diya Payments
 - Financial calculations MUST have unit tests with edge cases
 - **Fund balance calculations MUST have reconciliation tests**
 - **Concurrent expense creation MUST be tested for race conditions**
+- **Accessibility compliance SHOULD be verified for admin UI changes**
 
 ## Governance | الحوكمة
 
@@ -234,4 +280,4 @@ This constitution supersedes all other development practices for the Al-Shuail F
 - Violations MUST be documented in Complexity Tracking section of plan.md
 - Runtime development guidance available in `CLAUDE.md`
 
-**Version**: 1.1.0 | **Ratified**: 2026-01-14 | **Last Amended**: 2026-01-24
+**Version**: 1.2.0 | **Ratified**: 2026-01-14 | **Last Amended**: 2026-01-25

@@ -320,11 +320,12 @@ const styles = {
   },
 
   // === الشريط الجانبي - Sidebar ===
-  // تصميم كلاسيكي بسيط مع أسماء الأقسام
-  // Classic simple design with section names
+  // تصميم سهل الوصول لكبار السن - Elderly-friendly accessible design
+  // Constitution Principle VII compliant
   sidebar: {
-    width: '220px', // عرض مناسب لعرض الأسماء - Width for displaying names
-    background: '#1e3a5f', // خلفية زرقاء داكنة - Dark blue background
+    width: '240px', // عرض أوسع للنص الكبير - Wider for larger text
+    background: 'linear-gradient(to bottom, #eff6ff, #dbeafe)', // تدرج أزرق فاتح - Light blue gradient (blue-50 to blue-100)
+    borderLeft: '1px solid #bfdbfe', // حد أزرق فاتح - Light blue border (blue-200)
     padding: '1rem',
     position: 'relative' as const,
     height: '100%',
@@ -347,6 +348,7 @@ const styles = {
   },
 
   // === الشريط الجانبي للموبايل - Mobile Sidebar ===
+  // تصميم سهل الوصول لكبار السن - Elderly-friendly accessible design
   sidebarMobile: {
     position: 'fixed' as const,
     top: 0,
@@ -354,8 +356,7 @@ const styles = {
     bottom: 0,
     width: '80%',
     maxWidth: '280px',
-
-    background: '#1e3a5f', // خلفية زرقاء داكنة - Dark blue background
+    background: 'linear-gradient(to bottom, #eff6ff, #dbeafe)', // تدرج أزرق فاتح - Light blue gradient (blue-50 to blue-100)
     padding: '2rem 1rem',
     zIndex: 200,
     overflowY: 'auto' as const,
@@ -380,8 +381,8 @@ const styles = {
   },
 
   // === عنصر القائمة - Menu Item ===
-  // تصميم كلاسيكي بسيط مع أسماء الأقسام
-  // Classic simple design with section names
+  // تصميم سهل الوصول لكبار السن - Elderly-friendly accessible design
+  // Constitution Principle VII: 18px font, semibold, slate-700 color
   menuItem: {
     display: 'flex',
     alignItems: 'center',
@@ -392,13 +393,14 @@ const styles = {
     borderRadius: '8px',
     background: 'transparent', // بدون خلفية - No background
     border: 'none', // بدون حد - No border
-    color: 'rgba(255, 255, 255, 0.8)', // لون أبيض - White color
+    color: '#334155', // لون رمادي داكن - Slate-700 for readability
     cursor: 'pointer',
     width: '100%', // عرض كامل - Full width
-    textAlign: 'right' as const, // محاذاة النص لليمين - Right align text
-    fontSize: '14px',
-    fontWeight: 500,
+    textAlign: 'right' as const, // محاذاة النص لليمين - Right align text (RTL)
+    fontSize: '18px', // حجم كبير للقراءة - Large font for elderly users
+    fontWeight: 600, // خط سميك - Semibold for readability
     position: 'relative' as const,
+    transition: 'all 0.15s ease', // انتقال سلس - Smooth transition for hover
   },
 
   // === محتوى عنصر القائمة - Menu Item Content ===
@@ -424,9 +426,10 @@ const styles = {
   },
 
   // === تسمية عنصر القائمة - Menu Item Label ===
+  // Constitution Principle VII: 18px font for elderly readability
   menuItemLabel: {
-    fontSize: '14px',
-    fontWeight: 500,
+    fontSize: '18px', // حجم كبير للقراءة - Large font for elderly users
+    fontWeight: 600, // خط سميك - Semibold for readability
     color: 'inherit',
     whiteSpace: 'nowrap' as const,
   },
@@ -437,11 +440,11 @@ const styles = {
   },
 
   // === العنصر النشط - Active Menu Item ===
-  // تصميم بسيط بدون حركات - Simple design without animations
+  // Constitution Principle VII: High contrast active state (blue-600)
   menuItemActive: {
-    background: 'rgba(255, 255, 255, 0.15)', // خلفية شفافة خفيفة - Light transparent background
-    color: '#ffffff', // لون أبيض - White color
-    borderRadius: '10px',
+    background: '#2563eb', // خلفية زرقاء واضحة - Clear blue background (blue-600)
+    color: '#ffffff', // لون أبيض للتباين - White text for contrast
+    borderRadius: '8px',
   },
 
   // === عنصر الأعضاء (نفس التصميم) - Members Item (same design) ===
@@ -456,7 +459,8 @@ const styles = {
 
   // === حالة التمرير (معطلة) - Hover State (disabled) ===
   menuItemHover: {
-    // بدون تأثير تمرير - No hover effect
+    background: '#dbeafe', // خلفية زرقاء فاتحة عند التمرير - Light blue background on hover (blue-100)
+    color: '#1e40af', // لون أزرق داكن عند التمرير - Dark blue text on hover (blue-800)
   },
 
   // === مؤشر العنصر النشط (مخفي) - Active Indicator (hidden) ===
@@ -472,6 +476,7 @@ const styles = {
   // === أيقونة القائمة - Menu Icon ===
   // حجم واضح بدون حركات - Clear size without animations
   menuIcon: {
+    display: 'none', // إخفاء الأيقونات للتصميم الصديق لكبار السن - Hide icons for elderly-friendly design
     width: '24px', // حجم الأيقونة - Icon size
     height: '24px',
     color: 'inherit', // يرث اللون من العنصر الأب - Inherit color from parent
@@ -4015,6 +4020,18 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
                   ...styles.menuItem,
                   ...(isActive ? styles.menuItemActive : {}),
                 }}
+                onMouseEnter={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = styles.menuItemHover.background || '#dbeafe';
+                    e.currentTarget.style.color = styles.menuItemHover.color || '#1e40af';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.color = styles.menuItem.color || '#334155';
+                  }
+                }}
                 aria-label={item.label}
                 aria-current={isActive ? 'page' : undefined}
               >
@@ -4103,6 +4120,18 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
                 style={{
                   ...styles.menuItem,
                   ...(isActive ? styles.menuItemActive : {}),
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = styles.menuItemHover.background || '#dbeafe';
+                    e.currentTarget.style.color = styles.menuItemHover.color || '#1e40af';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.color = styles.menuItem.color || '#334155';
+                  }
                 }}
                 title={item.label} // تلميح أداة - Tooltip
                 aria-label={item.label}
