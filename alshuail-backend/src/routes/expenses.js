@@ -1,5 +1,4 @@
 import express from 'express';
-import jwt from 'jsonwebtoken';
 import multer from 'multer';
 import {
   getExpenses,
@@ -10,8 +9,8 @@ import {
   approveExpense,
   deleteExpense
 } from '../controllers/expensesController.js';
+import { authenticateToken } from '../middleware/authMiddleware.js';
 import { log } from '../utils/logger.js';
-import { config } from '../config/env.js';
 
 // Configure multer for receipt uploads
 const upload = multer({
@@ -31,42 +30,6 @@ const upload = multer({
 });
 
 const router = express.Router();
-
-/**
- * Authentication middleware to verify JWT token and attach user to request
- * Checks for Bearer token in Authorization header
- */
-const authenticateUser = (req, res, next) => {
-  try {
-    const token = req.headers.authorization?.replace('Bearer ', '');
-
-    if (!token) {
-      return res.status(401).json({
-        success: false,
-        error: 'رمز التوثيق مطلوب',
-        message_ar: 'رمز التوثيق مطلوب'
-      });
-    }
-
-    try {
-      const decoded = jwt.verify(token, config.jwt.secret);
-      req.user = decoded;
-      next();
-    } catch (error) {
-      return res.status(403).json({
-        success: false,
-        error: 'رمز التوثيق غير صالح أو منتهي الصلاحية',
-        message_ar: 'رمز التوثيق غير صالح أو منتهي الصلاحية'
-      });
-    }
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      error: 'خطأ في المصادقة',
-      message_ar: 'خطأ في المصادقة'
-    });
-  }
-};
 
 /**
  * Role-based authorization middleware
@@ -97,8 +60,10 @@ const requireFinancialAccess = (req, res, next) => {
   next();
 };
 
-// Apply authentication middleware to all expense routes
-router.use(authenticateUser);
+// Apply shared authentication middleware to all expense routes
+// Uses the shared authenticateToken which properly returns 401 for token issues
+// and constructs req.user with role from JWT payload
+router.use(authenticateToken);
 
 // GET /api/expenses - Get all expenses with filtering
 // Supports query parameters: category, status, date_from, date_to, hijri_month, hijri_year, limit, offset, search, sort_by
