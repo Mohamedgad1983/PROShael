@@ -1,7 +1,7 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
 import cookieParser from 'cookie-parser';
 import { setAuthCookie, clearAuthCookie } from '../middleware/cookie-auth.js';
@@ -120,91 +120,93 @@ const _parsePermissions = (rawPermissions) => {
 };
 
 async function fetchPrimaryRole(userId) {
-  // Try users table first (for admin roles)
-  let result = await supabase
-    .from('users')
-    .select('role')
-    .eq('id', userId)
-    .single();
+  try {
+    // Try users table first (for admin roles)
+    let result = await query('SELECT role FROM users WHERE id = $1', [userId]);
 
-  // If not found, try members table (for regular members)
-  if (result.error) {
-    result = await supabase
-      .from('members')
-      .select('role')
-      .eq('id', userId)
-      .single();
-  }
+    let user = result.rows[0];
 
-  const { data: user, error } = result;
+    // If not found, try members table (for regular members)
+    if (!user) {
+      result = await query('SELECT role FROM members WHERE id = $1', [userId]);
+      user = result.rows[0];
+    }
 
-  if (error || !user) {
-    log.error('Failed to fetch user role from Supabase', { error: error?.message });
+    if (!user) {
+      log.error('Failed to fetch user role from database', { userId });
+      return null;
+    }
+
+    // Return role with Arabic name and permissions
+    return {
+      name: user.role || 'admin',
+      displayName: getArabicRoleName(user.role || 'admin'),
+      permissions: getRolePermissions(user.role || 'admin')
+    };
+  } catch (error) {
+    log.error('Error fetching user role', { error: error.message, userId });
     return null;
   }
-
-  // Return role with Arabic name and permissions
-  return {
-    name: user.role || 'admin',
-    displayName: getArabicRoleName(user.role || 'admin'),
-    permissions: getRolePermissions(user.role || 'admin')
-  };
 }
 
 async function authenticateAdmin(identifier, password, requestedRole = null) {
-  // Support both email and phone login for admins
-  const isEmail = identifier && identifier.includes('@');
-  let user;
-  let error;
+  try {
+    // Support both email and phone login for admins
+    const isEmail = identifier && identifier.includes('@');
+    let user;
 
-  if (isEmail) {
-    const normalizedEmail = normalizeEmail(identifier);
-    // First try users table (for admin roles)
-    let result = await supabase
-      .from('users')
-      .select('id, email, password_hash, is_active, role, phone, full_name_ar, full_name_en')
-      .eq('email', normalizedEmail)
-      .single();
+    if (isEmail) {
+      const normalizedEmail = normalizeEmail(identifier);
+      // First try users table (for admin roles)
+      let result = await query(
+        'SELECT id, email, password_hash, is_active, role, phone, full_name_ar, full_name_en FROM users WHERE email = $1',
+        [normalizedEmail]
+      );
 
-    // If not found in users, try members table (for regular members)
-    if (result.error) {
-      result = await supabase
-        .from('members')
-        .select('id, email, password_hash, is_active, role, phone, full_name, suspended_at, reactivated_at, suspension_reason')
-        .eq('email', normalizedEmail)
-        .single();
+      user = result.rows[0];
+
+      // If not found in users, try members table (for regular members)
+      if (!user) {
+        result = await query(
+          'SELECT id, email, password_hash, is_active, role, phone, full_name, suspended_at, reactivated_at, suspension_reason FROM members WHERE email = $1',
+          [normalizedEmail]
+        );
+        user = result.rows[0];
+      }
+    } else {
+      // Phone-based login
+      const cleanPhone = normalizePhone(identifier);
+      // First try users table (for admin roles)
+      let result = await query(
+        'SELECT id, email, password_hash, is_active, role, phone, full_name_ar, full_name_en FROM users WHERE phone = $1',
+        [cleanPhone]
+      );
+
+      user = result.rows[0];
+
+      // If not found in users, try members table (for regular members)
+      if (!user) {
+        result = await query(
+          'SELECT id, email, password_hash, is_active, role, phone, full_name, suspended_at, reactivated_at, suspension_reason FROM members WHERE phone = $1',
+          [cleanPhone]
+        );
+        user = result.rows[0];
+      }
     }
 
-    user = result.data;
-    error = result.error;
-  } else {
-    // Phone-based login
-    const cleanPhone = normalizePhone(identifier);
-    // First try users table (for admin roles)
-    let result = await supabase
-      .from('users')
-      .select('id, email, password_hash, is_active, role, phone, full_name_ar, full_name_en')
-      .eq('phone', cleanPhone)
-      .single();
-
-    // If not found in users, try members table (for regular members)
-    if (result.error) {
-      result = await supabase
-        .from('members')
-        .select('id, email, password_hash, is_active, role, phone, full_name, suspended_at, reactivated_at, suspension_reason')
-        .eq('phone', cleanPhone)
-        .single();
+    if (!user) {
+      return {
+        ok: false,
+        status: 401,
+        message: 'البريد الإلكتروني أو كلمة المرور غير صحيحة'
+      };
     }
-
-    user = result.data;
-    error = result.error;
-  }
-
-  if (error || !user) {
+  } catch (error) {
+    log.error('Authentication error', { error: error.message });
     return {
       ok: false,
-      status: 401,
-      message: 'البريد الإلكتروني أو كلمة المرور غير صحيحة'
+      status: 500,
+      message: 'خطأ في المصادقة'
     };
   }
 
@@ -316,42 +318,47 @@ function resolveTestMember(phone, password) {
 }
 
 async function authenticateMember(phone, password) {
-  const cleanPhone = normalizePhone(phone);
+  try {
+    const cleanPhone = normalizePhone(phone);
 
-  // Handle both formats: local (05xxx) and international (+9665xxx)
-  const phoneVariants = [cleanPhone];
-  if (cleanPhone.startsWith('0')) {
-    // Convert local format to international
-    phoneVariants.push(`+966${  cleanPhone.substring(1)}`);
-  } else if (cleanPhone.startsWith('+966')) {
-    // Also try local format
-    phoneVariants.push(`0${  cleanPhone.substring(4)}`);
-  }
-
-  // Try to find member with any phone format
-  let member = null;
-  let error = null;
-
-  for (const phoneVariant of phoneVariants) {
-    const { data, error: _queryError } = await supabase
-      .from('members')
-      .select('id, full_name, phone, membership_number, membership_status, password_hash, temp_password, balance, requires_password_change, is_first_login')
-      .eq('phone', phoneVariant)
-      .single();
-
-    if (data && !_queryError) {
-      member = data;
-      error = null;
-      break;
+    // Handle both formats: local (05xxx) and international (+9665xxx)
+    const phoneVariants = [cleanPhone];
+    if (cleanPhone.startsWith('0')) {
+      // Convert local format to international
+      phoneVariants.push(`+966${cleanPhone.substring(1)}`);
+    } else if (cleanPhone.startsWith('+966')) {
+      // Also try local format
+      phoneVariants.push(`0${cleanPhone.substring(4)}`);
     }
-    error = _queryError;
-  }
 
-  if (error || !member) {
+    // Try to find member with any phone format
+    let member = null;
+
+    for (const phoneVariant of phoneVariants) {
+      const result = await query(
+        'SELECT id, full_name, phone, membership_number, membership_status, password_hash, temp_password, balance, requires_password_change, is_first_login FROM members WHERE phone = $1',
+        [phoneVariant]
+      );
+
+      if (result.rows.length > 0) {
+        member = result.rows[0];
+        break;
+      }
+    }
+
+    if (!member) {
+      return {
+        ok: false,
+        status: 401,
+        message: 'رقم الهاتف أو كلمة المرور غير صحيح'
+      };
+    }
+  } catch (error) {
+    log.error('Member authentication error', { error: error.message });
     return {
       ok: false,
-      status: 401,
-      message: 'رقم الهاتف أو كلمة المرور غير صحيح'
+      status: 500,
+      message: 'خطأ في المصادقة'
     };
   }
 
@@ -409,14 +416,10 @@ async function authenticateMember(phone, password) {
 
   if (!member.password_hash && passwordHashToPersist) {
     try {
-      await supabase
-        .from('members')
-        .update({
-          password_hash: passwordHashToPersist,
-          temp_password: null,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', member.id);
+      await query(
+        'UPDATE members SET password_hash = $1, temp_password = NULL, updated_at = $2 WHERE id = $3',
+        [passwordHashToPersist, new Date().toISOString(), member.id]
+      );
     } catch (persistError) {
       log.warn('Failed to persist member password hash', { error: persistError.message });
     }
@@ -644,16 +647,12 @@ router.post('/change-password', async (req, res) => {
     const testPhones = ['0555555555', '0501234567', '0512345678'];
     if (decoded.role === 'member' && testPhones.includes(decoded.phone)) {
       // Update the member's password status in database
-      const { error: _updateError } = await supabase
-        .from('members')
-        .update({
-          requires_password_change: false,
-          is_first_login: false,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', decoded.id);
-
-      if (_updateError) {
+      try {
+        await query(
+          'UPDATE members SET requires_password_change = $1, is_first_login = $2, updated_at = $3 WHERE id = $4',
+          [false, false, new Date().toISOString(), decoded.id]
+        );
+      } catch (_updateError) {
         log.error('Error updating member', { error: _updateError.message });
       }
 
@@ -754,13 +753,14 @@ router.post('/biometric-login', async (req, res) => {
     }
 
     // Look up the member
-    const { data: member, error } = await supabase
-      .from('members')
-      .select('id, membership_number, full_name_ar, full_name_en, phone, branch_name, current_balance, membership_status, profile_image_url')
-      .eq('id', memberId)
-      .single();
+    const result = await query(
+      'SELECT id, membership_number, full_name_ar, full_name_en, phone, branch_name, current_balance, membership_status, profile_image_url FROM members WHERE id = $1',
+      [memberId]
+    );
 
-    if (error || !member) {
+    const member = result.rows[0];
+
+    if (!member) {
       return res.status(404).json({
         success: false,
         error: 'المستخدم غير موجود',

@@ -4,7 +4,7 @@
  * OPTIMIZED: Parallel execution, minimal JOINs, single-pass aggregation
  */
 
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 import {
   hasFinancialAccess,
   logFinancialAccess,
@@ -78,34 +78,57 @@ export const getExpenses = async (req, res) => {
       });
     }
 
-    // Build query with conditional JOINs for performance
-    const selectFields = '*'; // Use simple select to avoid pgQueryBuilder issues
+    // Build dynamic SQL query
+    const conditions = [];
+    const params = [];
+    let paramIndex = 1;
 
-    let query = supabase.from('expenses').select(selectFields).range(offset, offset + parseInt(limit) - 1);
-
-    // Apply Hijri-primary sorting
-    if (sort_by === 'hijri') {
-      query = query.order('hijri_year', { ascending: false }).order('hijri_month', { ascending: false }).order('hijri_day', { ascending: false });
-    } else {
-      query = query.order('expense_date', { ascending: false });
+    if (category && category !== 'all') {
+      conditions.push(`expense_category = $${paramIndex++}`);
+      params.push(category);
     }
-
-    // Apply filters
-    if (category && category !== 'all') { query = query.eq('expense_category', category); }
-    if (status && status !== 'all') { query = query.eq('status', status); }
-    if (hijri_month) { query = query.eq('hijri_month', parseInt(hijri_month)); }
-    if (hijri_year) { query = query.eq('hijri_year', parseInt(hijri_year)); }
-    if (date_from) { query = query.gte('expense_date', date_from); }
-    if (date_to) { query = query.lte('expense_date', date_to); }
-
+    if (status && status !== 'all') {
+      conditions.push(`status = $${paramIndex++}`);
+      params.push(status);
+    }
+    if (hijri_month) {
+      conditions.push(`hijri_month = $${paramIndex++}`);
+      params.push(parseInt(hijri_month));
+    }
+    if (hijri_year) {
+      conditions.push(`hijri_year = $${paramIndex++}`);
+      params.push(parseInt(hijri_year));
+    }
+    if (date_from) {
+      conditions.push(`expense_date >= $${paramIndex++}`);
+      params.push(date_from);
+    }
+    if (date_to) {
+      conditions.push(`expense_date <= $${paramIndex++}`);
+      params.push(date_to);
+    }
     if (search) {
-      query = query.or(`title_ar.ilike.%${search}%,title_en.ilike.%${search}%,paid_to.ilike.%${search}%,receipt_number.ilike.%${search}%`);
+      conditions.push(`(title_ar ILIKE $${paramIndex} OR title_en ILIKE $${paramIndex} OR paid_to ILIKE $${paramIndex} OR receipt_number ILIKE $${paramIndex})`);
+      params.push(`%${search}%`);
+      paramIndex++;
     }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const orderClause = sort_by === 'hijri'
+      ? 'ORDER BY hijri_year DESC, hijri_month DESC, hijri_day DESC'
+      : 'ORDER BY expense_date DESC';
+
+    const parsedLimit = parseInt(limit);
+    const parsedOffset = parseInt(offset);
+    params.push(parsedLimit, parsedOffset);
+
+    const sql = `SELECT * FROM expenses ${whereClause} ${orderClause} LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
 
     // PARALLEL: Run security check and main query together
     const [suspiciousResult, queryResult] = await Promise.all([
       checkSuspiciousActivity(userId).catch(() => ({ should_block: false })),
-      query
+      query(sql, params)
     ]);
 
     // Check suspicious activity
@@ -118,8 +141,7 @@ export const getExpenses = async (req, res) => {
       });
     }
 
-    const { data: expenses, error } = queryResult;
-    if (error) { throw error; }
+    const expenses = queryResult.rows;
 
     // Fire-and-forget logging
     logFinancialAccess(userId, 'GRANTED', 'expenses_view', userRole, {}, req.ip).catch(() => {});
@@ -165,7 +187,7 @@ export const getExpenses = async (req, res) => {
     res.json({
       success: true,
       data: { expenses: enhancedExpenses, summary: summary },
-      pagination: { limit: parseInt(limit), offset: parseInt(offset), total: expenses?.length || 0 },
+      pagination: { limit: parsedLimit, offset: parsedOffset, total: expenses?.length || 0 },
       user_role: userRole,
       message: 'Expenses retrieved successfully',
       response_time_ms: Date.now() - startTime,
@@ -254,42 +276,34 @@ export const createExpense = async (req, res) => {
     const expenseDate = new Date(expense_date);
     const hijriData = HijriDateManager.convertToHijri(expenseDate);
 
-    const expenseData = {
-      expense_category,
-      title_ar,
-      title_en: title_en || null,
-      description_ar: description_ar || null,
-      amount: parseFloat(amount),
-      currency: currency || 'SAR',
-      expense_date,
-      paid_to: paid_to || null,
-      paid_by: paid_by || null,
-      payment_method: payment_method || null,
-      receipt_number: receipt_number || null,
-      notes: notes || null,
-      approval_required: approval_required || false,
-      status: userRole === 'financial_manager' && !approval_required ? 'approved' : 'pending',
-      created_by: userId,
-      hijri_date_string: hijriData.hijri_date_string,
-      hijri_year: hijriData.hijri_year,
-      hijri_month: hijriData.hijri_month,
-      hijri_day: hijriData.hijri_day,
-      hijri_month_name: hijriData.hijri_month_name
-    };
+    const expenseStatus = userRole === 'financial_manager' && !approval_required ? 'approved' : 'pending';
+    const approvedBy = (userRole === 'financial_manager' && !approval_required) ? userId : null;
+    const approvedAt = (userRole === 'financial_manager' && !approval_required) ? new Date().toISOString() : null;
+    const approvalNotes = (userRole === 'financial_manager' && !approval_required) ? 'Auto-approved by Financial Manager' : null;
 
-    if (userRole === 'financial_manager' && !approval_required) {
-      expenseData.approved_by = userId;
-      expenseData.approved_at = new Date().toISOString();
-      expenseData.approval_notes = 'Auto-approved by Financial Manager';
-    }
+    const { rows } = await query(
+      `INSERT INTO expenses (
+        expense_category, title_ar, title_en, description_ar, amount, currency,
+        expense_date, paid_to, paid_by, payment_method, receipt_number, notes,
+        approval_required, status, created_by,
+        hijri_date_string, hijri_year, hijri_month, hijri_day, hijri_month_name,
+        approved_by, approved_at, approval_notes
+      ) VALUES (
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
+        $16, $17, $18, $19, $20, $21, $22, $23
+      ) RETURNING *`,
+      [
+        expense_category, title_ar, title_en || null, description_ar || null,
+        parseFloat(amount), currency || 'SAR', expense_date, paid_to || null,
+        paid_by || null, payment_method || null, receipt_number || null, notes || null,
+        approval_required || false, expenseStatus, userId,
+        hijriData.hijri_date_string, hijriData.hijri_year, hijriData.hijri_month,
+        hijriData.hijri_day, hijriData.hijri_month_name,
+        approvedBy, approvedAt, approvalNotes
+      ]
+    );
 
-    const { data: expense, error } = await supabase
-      .from('expenses')
-      .insert([expenseData])
-      .select('*, paid_by_member:members!paid_by(full_name, full_name_ar, membership_number), approved_by_user:users!approved_by(full_name_ar, full_name_en, role), created_by_user:users!created_by(full_name_ar, full_name_en, role)')
-      .single();
-
-    if (error) { throw error; }
+    const expense = rows[0];
 
     // Async audit trail
     createFinancialAuditTrail({
@@ -357,10 +371,12 @@ export const approveExpense = async (req, res) => {
       });
     }
 
-    const { data: currentExpense, error: fetchError } = await supabase
-      .from('expenses').select('*').eq('id', expenseId).single();
+    const { rows: fetchRows } = await query(
+      'SELECT * FROM expenses WHERE id = $1', [expenseId]
+    );
+    const currentExpense = fetchRows[0];
 
-    if (fetchError || !currentExpense) {
+    if (!currentExpense) {
       return res.status(404).json({ success: false, error: 'Expense not found', code: 'EXPENSE_NOT_FOUND' });
     }
 
@@ -370,22 +386,12 @@ export const approveExpense = async (req, res) => {
 
     const newStatus = action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : 'pending_info';
 
-    const updateData = {
-      status: newStatus,
-      approved_by: userId,
-      approved_at: new Date().toISOString(),
-      approval_notes: notes || '',
-      updated_at: new Date().toISOString()
-    };
-
-    const { data: expense, error: updateError } = await supabase
-      .from('expenses')
-      .update(updateData)
-      .eq('id', expenseId)
-      .select('*, paid_by_member:members!paid_by(full_name, full_name_ar, phone, email), approved_by_user:users!approved_by(full_name_ar, full_name_en, role), created_by_user:users!created_by(full_name_ar, full_name_en, email)')
-      .single();
-
-    if (updateError) { throw updateError; }
+    const { rows: updateRows } = await query(
+      `UPDATE expenses SET status = $1, approved_by = $2, approved_at = $3, approval_notes = $4, updated_at = $5
+       WHERE id = $6 RETURNING *`,
+      [newStatus, userId, new Date().toISOString(), notes || '', new Date().toISOString(), expenseId]
+    );
+    const expense = updateRows[0];
 
     // Async audit
     createFinancialAuditTrail({
@@ -427,10 +433,12 @@ export const updateExpense = async (req, res) => {
       return res.status(403).json({ success: false, error: validation.reason, code: validation.code });
     }
 
-    const { data: currentExpense, error: fetchError } = await supabase
-      .from('expenses').select('*').eq('id', expenseId).single();
+    const { rows: fetchRows } = await query(
+      'SELECT * FROM expenses WHERE id = $1', [expenseId]
+    );
+    const currentExpense = fetchRows[0];
 
-    if (fetchError || !currentExpense) {
+    if (!currentExpense) {
       return res.status(404).json({ success: false, error: 'Expense not found', code: 'EXPENSE_NOT_FOUND' });
     }
 
@@ -445,14 +453,21 @@ export const updateExpense = async (req, res) => {
       updateData.hijri_month_name = hijriData.hijri_month_name;
     }
 
-    const { data: expense, error: updateError } = await supabase
-      .from('expenses')
-      .update(updateData)
-      .eq('id', expenseId)
-      .select('*, paid_by_member:members!paid_by(full_name, full_name_ar, membership_number), approved_by_user:users!approved_by(full_name_ar, full_name_en, role), created_by_user:users!created_by(full_name_ar, full_name_en, role)')
-      .single();
+    // Build dynamic UPDATE SET clause
+    const setClauses = [];
+    const params = [];
+    let paramIndex = 1;
+    for (const [key, value] of Object.entries(updateData)) {
+      setClauses.push(`${key} = $${paramIndex++}`);
+      params.push(value);
+    }
+    params.push(expenseId);
 
-    if (updateError) { throw updateError; }
+    const { rows: updateRows } = await query(
+      `UPDATE expenses SET ${setClauses.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+      params
+    );
+    const expense = updateRows[0];
 
     createFinancialAuditTrail({
       userId, operation: 'expense_update', resourceType: 'expense', resourceId: expenseId,
@@ -485,22 +500,19 @@ export const getExpenseById = async (req, res) => {
       return res.status(403).json({ success: false, error: validation.reason, code: validation.code });
     }
 
-    const { data: expense, error } = await supabase
-      .from('expenses')
-      .select('*, paid_by_member:members!paid_by(id, full_name, full_name_ar, membership_number, phone, email), approved_by_user:users!approved_by(id, full_name_ar, full_name_en, email, role), created_by_user:users!created_by(id, full_name_ar, full_name_en, email, role)')
-      .eq('id', expenseId)
-      .single();
+    const { rows: expenseRows } = await query(
+      'SELECT * FROM expenses WHERE id = $1', [expenseId]
+    );
+    const expense = expenseRows[0];
 
-    if (error || !expense) {
+    if (!expense) {
       return res.status(404).json({ success: false, error: 'Expense not found', code: 'EXPENSE_NOT_FOUND' });
     }
 
-    const { data: auditHistory } = await supabase
-      .from('financial_audit_trail')
-      .select('*, user:users!user_id(full_name_ar, full_name_en, role)')
-      .eq('resource_type', 'expense')
-      .eq('resource_id', expenseId)
-      .order('created_at', { ascending: false });
+    const { rows: auditHistory } = await query(
+      `SELECT * FROM financial_audit_trail WHERE resource_type = $1 AND resource_id = $2 ORDER BY created_at DESC`,
+      ['expense', expenseId]
+    );
 
     const enhancedExpense = {
       ...expense,
@@ -538,21 +550,21 @@ export const deleteExpense = async (req, res) => {
       });
     }
 
-    const { data: currentExpense, error: fetchError } = await supabase
-      .from('expenses').select('*').eq('id', expenseId).single();
+    const { rows: fetchRows } = await query(
+      'SELECT * FROM expenses WHERE id = $1', [expenseId]
+    );
+    const currentExpense = fetchRows[0];
 
-    if (fetchError || !currentExpense) {
+    if (!currentExpense) {
       return res.status(404).json({ success: false, error: 'Expense not found', code: 'EXPENSE_NOT_FOUND' });
     }
 
-    const { data: expense, error: deleteError } = await supabase
-      .from('expenses')
-      .update({ status: 'deleted', deleted_by: userId, deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-      .eq('id', expenseId)
-      .select()
-      .single();
-
-    if (deleteError) { throw deleteError; }
+    const { rows: deleteRows } = await query(
+      `UPDATE expenses SET status = 'deleted', deleted_by = $1, deleted_at = $2, updated_at = $3
+       WHERE id = $4 RETURNING *`,
+      [userId, new Date().toISOString(), new Date().toISOString(), expenseId]
+    );
+    const expense = deleteRows[0];
 
     createFinancialAuditTrail({
       userId, operation: 'expense_deletion', resourceType: 'expense', resourceId: expenseId,
@@ -593,16 +605,23 @@ export const getExpenseStatistics = async (req, res) => {
     const filterYear = hijri_year || currentHijri.hijri_year;
     const filterMonth = hijri_month || currentHijri.hijri_month;
 
-    let query = supabase.from('expenses').select('*').neq('status', 'deleted');
+    const conditions = ["status != 'deleted'"];
+    const params = [];
+    let paramIndex = 1;
 
     if (period === 'month') {
-      query = query.eq('hijri_year', filterYear).eq('hijri_month', filterMonth);
+      conditions.push(`hijri_year = $${paramIndex++}`);
+      params.push(filterYear);
+      conditions.push(`hijri_month = $${paramIndex++}`);
+      params.push(filterMonth);
     } else if (period === 'year') {
-      query = query.eq('hijri_year', filterYear);
+      conditions.push(`hijri_year = $${paramIndex++}`);
+      params.push(filterYear);
     }
 
-    const { data: expenses, error } = await query;
-    if (error) { throw error; }
+    const { rows: expenses } = await query(
+      `SELECT * FROM expenses WHERE ${conditions.join(' AND ')}`, params
+    );
 
     // Single-pass statistics calculation
     const stats = calculateSummaryFast(expenses);

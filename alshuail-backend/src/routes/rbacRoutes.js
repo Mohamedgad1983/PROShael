@@ -5,7 +5,7 @@
  */
 
 import express from 'express';
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
 import {
   requireRole as _requireRole,
@@ -32,16 +32,13 @@ router.get('/roles',
   requireSuperAdmin,
   async (req, res) => {
     try {
-      const { data: _data, error: _error } = await supabase
-        .from('user_roles')
-        .select('*')
-        .order('priority', { ascending: false });
-
-      if (_error) {throw _error;}
+      const result = await query(
+        `SELECT * FROM user_roles ORDER BY priority DESC`
+      );
 
       res.json({
         success: true,
-        roles: _data
+        roles: result.rows
       });
     } catch (error) {
       log.error('Error fetching roles:', { error: error.message });
@@ -64,46 +61,39 @@ router.post('/users/:userId/assign-role',
       const { roleName } = req.body;
 
       // Get role ID
-      const { data: role, error: _roleError } = await supabase
-        .from('user_roles')
-        .select('id')
-        .eq('role_name', roleName)
-        .single();
+      const roleResult = await query(
+        `SELECT id FROM user_roles WHERE role_name = $1`,
+        [roleName]
+      );
 
-      if (_roleError || !role) {
+      if (roleResult.rows.length === 0) {
         return res.status(400).json({
           success: false,
           message: 'الدور المطلوب غير موجود'
         });
       }
+      const role = roleResult.rows[0];
 
       // Deactivate existing roles
-      await supabase
-        .from('user_role_assignments')
-        .update({ is_active: false })
-        .eq('user_id', userId);
+      await query(
+        `UPDATE user_role_assignments SET is_active = false WHERE user_id = $1`,
+        [userId]
+      );
 
       // Assign new role
-      const { error: _assignError } = await supabase
-        .from('user_role_assignments')
-        .insert({
-          user_id: userId,
-          role_id: role.id,
-          assigned_by: req.user.id,
-          is_active: true
-        });
-
-      if (_assignError) {throw _assignError;}
+      await query(
+        `INSERT INTO user_role_assignments (user_id, role_id, assigned_by, is_active)
+         VALUES ($1, $2, $3, true)`,
+        [userId, role.id, req.user.id]
+      );
 
       // Update user's primary role
-      await supabase
-        .from('users')
-        .update({
-          primary_role_id: role.id,
-          role_assigned_at: new Date(),
-          role_assigned_by: req.user.id
-        })
-        .eq('id', userId);
+      await query(
+        `UPDATE users
+         SET primary_role_id = $1, role_assigned_at = $2, role_assigned_by = $3
+         WHERE id = $4`,
+        [role.id, new Date(), req.user.id, userId]
+      );
 
       res.json({
         success: true,
@@ -135,15 +125,14 @@ router.get('/users/:userId/role',
         });
       }
 
-      const { data: _data, error: _error } = await supabase.rpc('get_user_role', {
-        p_user_id: userId
-      });
-
-      if (_error) {throw _error;}
+      const result = await query(
+        `SELECT * FROM get_user_role($1)`,
+        [userId]
+      );
 
       res.json({
         success: true,
-        role: _data?.[0] || null
+        role: result.rows[0] || null
       });
     } catch (error) {
       log.error('Error fetching user role:', { error: error.message });
@@ -325,17 +314,13 @@ router.get('/audit-logs',
   requireSuperAdmin,
   async (req, res) => {
     try {
-      const { data: _data, error: _error } = await supabase
-        .from('audit_logs')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(100);
-
-      if (_error) {throw _error;}
+      const result = await query(
+        `SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 100`
+      );
 
       res.json({
         success: true,
-        logs: _data
+        logs: result.rows
       });
     } catch (error) {
       log.error('Error fetching audit logs:', { error: error.message });

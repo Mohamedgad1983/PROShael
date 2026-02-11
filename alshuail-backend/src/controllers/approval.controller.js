@@ -1,5 +1,5 @@
 // Member Approval Controller
-import { supabase } from "../config/database.js";
+import { query } from '../services/database.js';
 import { logAdminAction, ACTIONS, RESOURCE_TYPES } from '../utils/audit-logger.js';
 
 
@@ -9,19 +9,12 @@ import { logAdminAction, ACTIONS, RESOURCE_TYPES } from '../utils/audit-logger.j
  */
 export const getPendingApprovals = async (req, res) => {
   try {
-    const { data: members, error } = await supabase
-      .from('members')
-      .select('*')
-      .eq('membership_status', 'pending_approval')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Get Pending Error:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'خطأ في جلب الطلبات المعلقة'
-      });
-    }
+    const { rows: members } = await query(
+      `SELECT * FROM members
+       WHERE membership_status = $1
+       ORDER BY created_at DESC`,
+      ['pending_approval']
+    );
 
     res.json({
       success: true,
@@ -45,13 +38,12 @@ export const getMemberForApproval = async (req, res) => {
   try {
     const { memberId } = req.params;
 
-    const { data: member, error } = await supabase
-      .from('members')
-      .select('*')
-      .eq('id', memberId)
-      .single();
+    const { rows: memberRows } = await query(
+      'SELECT * FROM members WHERE id = $1',
+      [memberId]
+    );
 
-    if (error || !member) {
+    if (!memberRows || memberRows.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'العضو غير موجود'
@@ -60,7 +52,7 @@ export const getMemberForApproval = async (req, res) => {
 
     res.json({
       success: true,
-      data: member
+      data: memberRows[0]
     });
   } catch (error) {
     console.error('Exception:', error);
@@ -82,27 +74,36 @@ export const approveMember = async (req, res) => {
     const { notes } = req.body;
 
     // Update member status
-    const { data: member, error: updateError } = await supabase
-      .from('members')
-      .update({
-        membership_status: 'active',
-        is_active: true,
-        approved_by: adminId,
-        approved_at: new Date().toISOString(),
-        approval_notes: notes || null,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', memberId)
-      .select('*')
-      .single();
+    const { rows: memberRows } = await query(
+      `UPDATE members
+       SET membership_status = $1,
+           is_active = $2,
+           approved_by = $3,
+           approved_at = $4,
+           approval_notes = $5,
+           updated_at = $6
+       WHERE id = $7
+       RETURNING *`,
+      [
+        'active',
+        true,
+        adminId,
+        new Date().toISOString(),
+        notes || null,
+        new Date().toISOString(),
+        memberId
+      ]
+    );
 
-    if (updateError) {
-      console.error('Approval Error:', updateError);
+    if (!memberRows || memberRows.length === 0) {
+      console.error('Approval Error: No rows returned');
       return res.status(500).json({
         success: false,
         message: 'خطأ في الموافقة على العضو'
       });
     }
+
+    const member = memberRows[0];
 
     // Log audit event
     await logAdminAction({
@@ -152,27 +153,36 @@ export const rejectMember = async (req, res) => {
     }
 
     // Update member status
-    const { data: member, error: updateError } = await supabase
-      .from('members')
-      .update({
-        membership_status: 'rejected',
-        is_active: false,
-        rejected_by: adminId,
-        rejected_at: new Date().toISOString(),
-        rejection_reason: reason,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', memberId)
-      .select('*')
-      .single();
+    const { rows: memberRows } = await query(
+      `UPDATE members
+       SET membership_status = $1,
+           is_active = $2,
+           rejected_by = $3,
+           rejected_at = $4,
+           rejection_reason = $5,
+           updated_at = $6
+       WHERE id = $7
+       RETURNING *`,
+      [
+        'rejected',
+        false,
+        adminId,
+        new Date().toISOString(),
+        reason,
+        new Date().toISOString(),
+        memberId
+      ]
+    );
 
-    if (updateError) {
-      console.error('Rejection Error:', updateError);
+    if (!memberRows || memberRows.length === 0) {
+      console.error('Rejection Error: No rows returned');
       return res.status(500).json({
         success: false,
         message: 'خطأ في رفض العضو'
       });
     }
+
+    const member = memberRows[0];
 
     // Log audit event
     await logAdminAction({
@@ -211,17 +221,9 @@ export const rejectMember = async (req, res) => {
 export const getApprovalStats = async (req, res) => {
   try {
     // Count by status
-    const { data: stats, error } = await supabase
-      .from('members')
-      .select('membership_status', { count: 'exact' });
-
-    if (error) {
-      console.error('Stats Error:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'خطأ في جلب الإحصائيات'
-      });
-    }
+    const { rows: stats } = await query(
+      'SELECT membership_status FROM members WHERE membership_status IS NOT NULL'
+    );
 
     // Group by status
     const statusCounts = {

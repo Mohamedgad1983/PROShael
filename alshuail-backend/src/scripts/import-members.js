@@ -1,18 +1,18 @@
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 import XLSX from 'xlsx';
 import fs from 'fs';
 import path from 'path';
 import { log } from '../utils/logger.js';
 
 const importMembers = async () => {
-  log.info('🚀 Starting Member Import Process...\n');
+  log.info('Starting Member Import Process...\n');
 
   try {
     // Read Excel file
     const filePath = path.join(process.cwd(), 'AlShuail_Members_Prefilled_Import.xlsx');
 
     if (!fs.existsSync(filePath)) {
-      log.error('❌ Excel file not found at:', filePath);
+      log.error('Excel file not found at:', filePath);
       return;
     }
 
@@ -21,7 +21,7 @@ const importMembers = async () => {
     const worksheet = workbook.Sheets[sheetName];
     const data = XLSX.utils.sheet_to_json(worksheet);
 
-    log.info(`📊 Found ${data.length} members in Excel file\n`);
+    log.info(`Found ${data.length} members in Excel file\n`);
 
     let successCount = 0;
     let errorCount = 0;
@@ -65,24 +65,32 @@ const importMembers = async () => {
       const totalBalance = payment2021 + payment2022 + payment2023 + payment2024 + payment2025;
 
       try {
-        // 1. Insert member
-        const { data: member, error: _memberError } = await supabase
-          .from('members')
-          .upsert({
-            ...memberData,
-            updated_at: new Date().toISOString()
-          }, {
-            onConflict: 'membership_number'
-          })
-          .select()
-          .single();
+        // 1. Upsert member
+        const { rows: memberRows } = await query(
+          `INSERT INTO members (membership_number, full_name, phone, email, is_active, joined_date, family_id, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+           ON CONFLICT (membership_number) DO UPDATE SET
+             full_name = EXCLUDED.full_name,
+             phone = EXCLUDED.phone,
+             email = EXCLUDED.email,
+             is_active = EXCLUDED.is_active,
+             updated_at = EXCLUDED.updated_at
+           RETURNING *`,
+          [
+            memberData.membership_number,
+            memberData.full_name,
+            memberData.phone,
+            memberData.email,
+            memberData.is_active,
+            memberData.joined_date,
+            memberData.family_id,
+            new Date().toISOString()
+          ]
+        );
 
-        if (_memberError) {
-          throw _memberError;
-        }
+        const member = memberRows[0];
 
         // 2. Create payment records for each year
-        const payments = [];
         const years = [
           { year: 2021, amount: payment2021 },
           { year: 2022, amount: payment2022 },
@@ -93,57 +101,57 @@ const importMembers = async () => {
 
         for (const yearData of years) {
           if (yearData.amount > 0) {
-            payments.push({
-              payer_id: member.id,
-              amount: yearData.amount,
-              category: 'subscription',
-              payment_method: 'bank_transfer',
-              status: 'completed',
-              title: `اشتراك سنة ${yearData.year}`,
-              description: `دفعة اشتراك للعام ${yearData.year}`,
-              reference_number: `${memberData.membership_number}-${yearData.year}`,
-              created_at: new Date(`${yearData.year}-01-01`).toISOString()
-            });
-          }
-        }
-
-        // Insert all payments
-        if (payments.length > 0) {
-          const { error: _paymentError } = await supabase
-            .from('payments')
-            .upsert(payments, {
-              onConflict: 'reference_number'
-            });
-
-          if (_paymentError) {
-            log.warn(`⚠️ Payment error for ${memberData.full_name}:`, _paymentError.message);
+            try {
+              await query(
+                `INSERT INTO payments (payer_id, amount, category, payment_method, status, title, description, reference_number, created_at)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                 ON CONFLICT (reference_number) DO NOTHING`,
+                [
+                  member.id,
+                  yearData.amount,
+                  'subscription',
+                  'bank_transfer',
+                  'completed',
+                  `اشتراك سنة ${yearData.year}`,
+                  `دفعة اشتراك للعام ${yearData.year}`,
+                  `${memberData.membership_number}-${yearData.year}`,
+                  new Date(`${yearData.year}-01-01`).toISOString()
+                ]
+              );
+            } catch (payErr) {
+              log.warn(`Payment error for ${memberData.full_name}:`, payErr.message);
+            }
           }
         }
 
         // 3. Create subscription record
         if (additionalData.subscription_quantity > 0) {
-          const { error: _subError } = await supabase
-            .from('subscriptions')
-            .upsert({
-              member_id: member.id,
-              plan_name: additionalData.subscription_type === 'monthly' ? 'اشتراك شهري' : 'اشتراك سنوي',
-              amount: additionalData.subscription_quantity * 50, // 50 SAR per unit
-              duration_months: additionalData.subscription_type === 'monthly' ? 1 : 12,
-              status: 'active',
-              start_date: new Date().toISOString(),
-              end_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
-            }, {
-              onConflict: 'member_id'
-            });
-
-          if (_subError) {
-            log.warn(`⚠️ Subscription error for ${memberData.full_name}:`, _subError.message);
+          try {
+            await query(
+              `INSERT INTO subscriptions (member_id, plan_name, amount, duration_months, status, start_date, end_date)
+               VALUES ($1, $2, $3, $4, $5, $6, $7)
+               ON CONFLICT (member_id) DO UPDATE SET
+                 plan_name = EXCLUDED.plan_name,
+                 amount = EXCLUDED.amount,
+                 status = EXCLUDED.status`,
+              [
+                member.id,
+                additionalData.subscription_type === 'monthly' ? 'اشتراك شهري' : 'اشتراك سنوي',
+                additionalData.subscription_quantity * 50,
+                additionalData.subscription_type === 'monthly' ? 1 : 12,
+                'active',
+                new Date().toISOString(),
+                new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
+              ]
+            );
+          } catch (subErr) {
+            log.warn(`Subscription error for ${memberData.full_name}:`, subErr.message);
           }
         }
 
         successCount++;
-        const status = totalBalance >= 3000 ? '✅' : '❌';
-        log.info(`${status} [${i + 1}/${data.length}] ${memberData.full_name} - Balance: ${totalBalance} SAR`);
+        const status = totalBalance >= 3000 ? 'OK' : 'LOW';
+        log.info(`[${status}] [${i + 1}/${data.length}] ${memberData.full_name} - Balance: ${totalBalance} SAR`);
 
       } catch (error) {
         errorCount++;
@@ -151,26 +159,23 @@ const importMembers = async () => {
           member: memberData.full_name,
           error: error.message
         });
-        log.error(`❌ Error importing ${memberData.full_name}:`, error.message);
+        log.error(`Error importing ${memberData.full_name}:`, error.message);
       }
     }
 
     // Print summary
-    log.info(`\n${  '='.repeat(50)}`);
-    log.info('📊 IMPORT SUMMARY');
+    log.info(`\n${'='.repeat(50)}`);
+    log.info('IMPORT SUMMARY');
     log.info('='.repeat(50));
-    log.info(`✅ Successfully imported: ${successCount} members`);
-    log.info(`❌ Failed imports: ${errorCount} members`);
+    log.info(`Successfully imported: ${successCount} members`);
+    log.info(`Failed imports: ${errorCount} members`);
 
     // Calculate compliance statistics
-    const { data: allMembers } = await supabase
-      .from('members')
-      .select('id');
+    const { rows: allMembers } = await query('SELECT id FROM members');
 
-    const { data: payments } = await supabase
-      .from('payments')
-      .select('payer_id, amount')
-      .eq('status', 'completed');
+    const { rows: payments } = await query(
+      "SELECT payer_id, amount FROM payments WHERE status = 'completed'"
+    );
 
     const memberBalances = {};
     payments?.forEach(payment => {
@@ -180,28 +185,27 @@ const importMembers = async () => {
     const compliantCount = Object.values(memberBalances).filter(balance => balance >= 3000).length;
     const nonCompliantCount = allMembers?.length - compliantCount;
 
-    log.info(`\n💰 Financial Status:`);
+    log.info(`\nFinancial Status:`);
     log.info(`   - Members above 3000 SAR: ${compliantCount} (${((compliantCount / allMembers?.length) * 100).toFixed(1)}%)`);
     log.info(`   - Members below 3000 SAR: ${nonCompliantCount} (${((nonCompliantCount / allMembers?.length) * 100).toFixed(1)}%)`);
 
     if (errors.length > 0) {
-      log.info('\n⚠️ Import Errors:');
+      log.info('\nImport Errors:');
       errors.forEach(err => {
         log.info(`   - ${err.member}: ${err.error}`);
       });
     }
 
-    log.info('\n✨ Import process completed!');
-    log.info('🚀 Crisis Dashboard will now show all member balances');
+    log.info('\nImport process completed!');
 
   } catch (error) {
-    log.error('❌ Fatal error during import:', error);
+    log.error('Fatal error during import:', error);
   }
 };
 
 // Run the import
 importMembers().then(() => {
-  log.info('\n👋 Exiting...');
+  log.info('\nExiting...');
   process.exit(0);
 }).catch(error => {
   log.error('Fatal error:', error);

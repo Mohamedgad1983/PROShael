@@ -110,23 +110,15 @@ router.post('/mobile/photo', requireRole(['member']), upload.single('photo'), as
       });
     }
 
-    // Import supabase for storage
-    const { supabase } = await import('../config/database.js');
+    // Local file storage for member photos
+    const { uploadToSupabase: uploadFile } = await import('../config/documentStorage.js');
+    const { query: dbQuery } = await import('../services/database.js');
 
-    // Generate unique filename
-    const fileExt = req.file.originalname.split('.').pop() || 'jpg';
-    const fileName = `member-photos/${memberId}-${Date.now()}.${fileExt}`;
+    // Upload file to local storage
+    const uploadResult = await uploadFile(req.file, memberId, 'member-photos');
 
-    // Upload to Supabase storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('member-photos')
-      .upload(fileName, req.file.buffer, {
-        contentType: req.file.mimetype,
-        upsert: true
-      });
-
-    if (uploadError) {
-      log.error('Photo upload error', { error: uploadError.message, memberId });
+    if (!uploadResult || !uploadResult.url) {
+      log.error('Photo upload error', { memberId });
       return res.status(500).json({
         success: false,
         error: 'فشل رفع الصورة',
@@ -134,27 +126,13 @@ router.post('/mobile/photo', requireRole(['member']), upload.single('photo'), as
       });
     }
 
-    // Get public URL
-    const { data: urlData } = supabase.storage
-      .from('member-photos')
-      .getPublicUrl(fileName);
-
-    const photoUrl = urlData?.publicUrl;
+    const photoUrl = uploadResult.url;
 
     // Update member profile with new photo URL
-    const { error: updateError } = await supabase
-      .from('members')
-      .update({ profile_image_url: photoUrl })
-      .eq('id', memberId);
-
-    if (updateError) {
-      log.error('Profile update error', { error: updateError.message, memberId });
-      return res.status(500).json({
-        success: false,
-        error: 'فشل تحديث الصورة',
-        message_en: 'Failed to update photo'
-      });
-    }
+    await dbQuery(
+      'UPDATE members SET profile_image_url = $1 WHERE id = $2',
+      [photoUrl, memberId]
+    );
 
     return res.json({
       success: true,

@@ -1,5 +1,5 @@
 // Audit Logger for tracking admin actions
-import { supabase } from "../config/database.js";
+import { query } from "../services/database.js";
 
 
 /**
@@ -17,11 +17,11 @@ export async function logAdminAction({
 }) {
   try {
     // Get user details for the audit log
-    const { data: user } = await supabase
-      .from('users')
-      .select('phone, role')
-      .eq('id', adminId)
-      .single();
+    const { rows: userRows } = await query(
+      'SELECT phone, role FROM users WHERE id = $1',
+      [adminId]
+    );
+    const user = userRows[0];
 
     // Format details as JSON string combining all metadata
     const details = JSON.stringify({
@@ -31,25 +31,12 @@ export async function logAdminAction({
       changes: changes
     });
 
-    const { data, error } = await supabase
-      .from('audit_logs')
-      .insert({
-        user_id: adminId,
-        user_email: user?.phone || null,
-        user_role: user?.role || null,
-        action_type: action,
-        details: details,
-        ip_address: ipAddress,
-        user_agent: userAgent,
-        created_at: new Date().toISOString()
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Audit log error:', error);
-      return { success: false, error };
-    }
+    const { rows } = await query(
+      `INSERT INTO audit_logs (user_id, user_email, user_role, action_type, details, ip_address, user_agent, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      [adminId, user?.phone || null, user?.role || null, action, details, ipAddress, userAgent, new Date().toISOString()]
+    );
+    const data = rows[0];
 
     return { success: true, data };
   } catch (error) {
@@ -72,32 +59,39 @@ export async function getAuditLogs({
   offset = 0
 }) {
   try {
-    let query = supabase
-      .from('audit_logs')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+    // Build dynamic WHERE clauses
+    const conditions = [];
+    const params = [];
+    let paramIndex = 1;
 
-    // Apply filters
     if (adminId) {
-      query = query.eq('user_id', adminId);
+      conditions.push(`user_id = $${paramIndex++}`);
+      params.push(adminId);
     }
     if (action) {
-      query = query.eq('action_type', action);
+      conditions.push(`action_type = $${paramIndex++}`);
+      params.push(action);
     }
     if (startDate) {
-      query = query.gte('created_at', startDate);
+      conditions.push(`created_at >= $${paramIndex++}`);
+      params.push(startDate);
     }
     if (endDate) {
-      query = query.lte('created_at', endDate);
+      conditions.push(`created_at <= $${paramIndex++}`);
+      params.push(endDate);
     }
 
-    const { data, error, count } = await query;
+    const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
 
-    if (error) {
-      console.error('Get audit logs error:', error);
-      return { success: false, error };
-    }
+    params.push(limit);
+    const limitParam = paramIndex++;
+    params.push(offset);
+    const offsetParam = paramIndex++;
+
+    const { rows: data } = await query(
+      `SELECT * FROM audit_logs ${whereClause} ORDER BY created_at DESC LIMIT $${limitParam} OFFSET $${offsetParam}`,
+      params
+    );
 
     // Parse details JSON for resource_type filtering if needed
     let filteredData = data;

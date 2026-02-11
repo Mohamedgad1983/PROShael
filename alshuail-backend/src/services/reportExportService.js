@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import ExcelJS from 'exceljs';
-import { supabase } from '../config/database.js';
+import { query } from './database.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -38,24 +38,18 @@ export class ReportExportService {
         throw new Error('Unsupported format. Use "pdf" or "excel"');
       }
 
-      // Upload to Supabase storage
-      const { data: _data, error } = await supabase.storage
-        .from('reports')
-        .upload(`reports/${fileName}`, fileBuffer, {
-          contentType: format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-          upsert: true
-        });
+      // Store report metadata in database
+      const contentType = format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
-      if (error) {
-        throw error;
-      }
+      // Insert report record into database
+      const { rows } = await query(
+        'INSERT INTO report_files (file_name, file_type, report_type, file_data, created_at) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+        [fileName, contentType, reportType, fileBuffer, new Date().toISOString()]
+      );
 
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('reports')
-        .getPublicUrl(`reports/${fileName}`);
-
-      return urlData.publicUrl;
+      // Return download URL based on report ID
+      const reportId = rows[0].id;
+      return `/api/reports/download/${reportId}`;
     } catch (error) {
       log.error('Error generating report:', { error: error.message });
       throw error;

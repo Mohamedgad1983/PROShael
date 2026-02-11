@@ -1,4 +1,4 @@
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
 import { config } from '../config/env.js';
 
@@ -20,71 +20,82 @@ export const getAllNotifications = async (req, res) => {
       end_date
     } = req.query;
 
-    let query = supabase
-      .from('notifications')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+    const conditions = [];
+    const params = [];
+    let paramIndex = 1;
 
-    // Apply filters
     if (member_id) {
-      query = query.eq('member_id', member_id);
+      conditions.push(`member_id = $${paramIndex++}`);
+      params.push(member_id);
     }
 
     if (type) {
-      query = query.eq('type', type);
+      conditions.push(`type = $${paramIndex++}`);
+      params.push(type);
     }
 
     if (priority) {
-      query = query.eq('priority', priority);
+      conditions.push(`priority = $${paramIndex++}`);
+      params.push(priority);
     }
 
     if (is_read !== undefined) {
-      query = query.eq('is_read', is_read === 'true');
+      conditions.push(`is_read = $${paramIndex++}`);
+      params.push(is_read === 'true');
     }
 
     if (target_audience) {
-      query = query.eq('target_audience', target_audience);
+      conditions.push(`target_audience = $${paramIndex++}`);
+      params.push(target_audience);
     }
 
-    // Date range filter
     if (start_date) {
-      query = query.gte('created_at', start_date);
+      conditions.push(`created_at >= $${paramIndex++}`);
+      params.push(start_date);
     }
 
     if (end_date) {
-      query = query.lte('created_at', end_date);
+      conditions.push(`created_at <= $${paramIndex++}`);
+      params.push(end_date);
     }
 
-    const { data: notifications, error, count } = await query;
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    if (error) {throw error;}
+    params.push(parseInt(limit));
+    const limitParam = paramIndex++;
+    params.push(parseInt(offset));
+    const offsetParam = paramIndex++;
+
+    const { rows: notifications } = await query(
+      `SELECT * FROM notifications ${whereClause} ORDER BY created_at DESC LIMIT $${limitParam} OFFSET $${offsetParam}`,
+      params
+    );
 
     // Calculate summary statistics
-    const unreadCount = notifications?.filter(n => !n.is_read).length || 0;
-    const readCount = notifications?.filter(n => n.is_read).length || 0;
+    const unreadCount = notifications.filter(n => !n.is_read).length;
+    const readCount = notifications.filter(n => n.is_read).length;
 
     // Group by type and priority
-    const typeStats = notifications?.reduce((acc, notif) => {
+    const typeStats = notifications.reduce((acc, notif) => {
       acc[notif.type] = (acc[notif.type] || 0) + 1;
       return acc;
-    }, {}) || {};
+    }, {});
 
-    const priorityStats = notifications?.reduce((acc, notif) => {
+    const priorityStats = notifications.reduce((acc, notif) => {
       acc[notif.priority] = (acc[notif.priority] || 0) + 1;
       return acc;
-    }, {}) || {};
+    }, {});
 
     res.json({
       success: true,
-      data: notifications || [],
+      data: notifications,
       pagination: {
         limit: parseInt(limit),
         offset: parseInt(offset),
-        total: count || notifications?.length || 0
+        total: notifications.length
       },
       summary: {
-        total: notifications?.length || 0,
+        total: notifications.length,
         unread: unreadCount,
         read: readCount,
         by_type: typeStats,
@@ -110,25 +121,21 @@ export const getNotificationById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const { data: notification, error } = await supabase
-      .from('notifications')
-      .select('*')
-      .eq('id', id)
-      .single();
+    const { rows } = await query(
+      'SELECT * FROM notifications WHERE id = $1',
+      [id]
+    );
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return res.status(404).json({
-          success: false,
-          error: 'الإشعار غير موجود'
-        });
-      }
-      throw error;
+    if (rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'الإشعار غير موجود'
+      });
     }
 
     res.json({
       success: true,
-      data: notification,
+      data: rows[0],
       message: 'تم جلب بيانات الإشعار بنجاح'
     });
   } catch (error) {
@@ -188,13 +195,12 @@ export const createNotification = async (req, res) => {
 
     // Validate member if targeting specific member
     if (target_audience === 'specific' && member_id) {
-      const { data: member, error: _memberError } = await supabase
-        .from('members')
-        .select('id')
-        .eq('id', member_id)
-        .single();
+      const { rows: memberRows } = await query(
+        'SELECT id FROM members WHERE id = $1',
+        [member_id]
+      );
 
-      if (_memberError || !member) {
+      if (memberRows.length === 0) {
         return res.status(400).json({
           success: false,
           error: 'العضو المحدد غير موجود'
@@ -206,46 +212,34 @@ export const createNotification = async (req, res) => {
 
     if (target_audience === 'specific' && member_id) {
       // Create notification for specific member
-      const notificationData = {
-        title,
-        message,
-        type,
-        priority,
-        target_audience,
-        member_id,
-        sent_at: send_immediately ? new Date().toISOString() : null
-      };
+      const sentAt = send_immediately ? new Date().toISOString() : null;
 
-      const { data: newNotification, error } = await supabase
-        .from('notifications')
-        .insert([notificationData])
-        .select('*')
-        .single();
-
-      if (error) {throw error;}
-      notifications.push(newNotification);
+      const { rows } = await query(
+        `INSERT INTO notifications (title, message, type, priority, target_audience, member_id, sent_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         RETURNING *`,
+        [title, message, type, priority, target_audience, member_id, sentAt]
+      );
+      notifications.push(rows[0]);
 
     } else {
       // Get target members based on audience
-      let memberQuery = supabase.from('members').select('id, full_name');
+      let memberSql = 'SELECT id, full_name FROM members';
+      const memberParams = [];
 
       switch (target_audience) {
-        case 'all':
-          // No additional filter needed
-          break;
         case 'active_members':
-          memberQuery = memberQuery.eq('is_active', true);
+          memberSql += ' WHERE is_active = $1';
+          memberParams.push(true);
           break;
         case 'admins':
-          // Assuming admins have a specific role or flag
-          // This would need to be adjusted based on your member schema
-          memberQuery = memberQuery.eq('is_active', true); // Placeholder
+          memberSql += ' WHERE is_active = $1';
+          memberParams.push(true);
           break;
+        // case 'all': no filter
       }
 
-      const { data: targetMembers, error: _membersError } = await memberQuery;
-
-      if (_membersError) {throw _membersError;}
+      const { rows: targetMembers } = await query(memberSql, memberParams);
 
       if (!targetMembers || targetMembers.length === 0) {
         return res.status(400).json({
@@ -254,24 +248,25 @@ export const createNotification = async (req, res) => {
         });
       }
 
-      // Create notifications for all target members
-      const notificationsData = targetMembers.map(member => ({
-        title,
-        message,
-        type,
-        priority,
-        target_audience,
-        member_id: member.id,
-        sent_at: send_immediately ? new Date().toISOString() : null
-      }));
+      // Create notifications for all target members using bulk insert
+      const sentAt = send_immediately ? new Date().toISOString() : null;
+      const valuePlaceholders = [];
+      const insertParams = [];
+      let idx = 1;
 
-      const { data: newNotifications, error } = await supabase
-        .from('notifications')
-        .insert(notificationsData)
-        .select('*');
+      for (const member of targetMembers) {
+        valuePlaceholders.push(`($${idx}, $${idx + 1}, $${idx + 2}, $${idx + 3}, $${idx + 4}, $${idx + 5}, $${idx + 6})`);
+        insertParams.push(title, message, type, priority, target_audience, member.id, sentAt);
+        idx += 7;
+      }
 
-      if (error) {throw error;}
-      notifications = newNotifications || [];
+      const { rows: newNotifications } = await query(
+        `INSERT INTO notifications (title, message, type, priority, target_audience, member_id, sent_at)
+         VALUES ${valuePlaceholders.join(', ')}
+         RETURNING *`,
+        insertParams
+      );
+      notifications = newNotifications;
     }
 
     res.status(201).json({
@@ -304,18 +299,19 @@ export const markAsRead = async (req, res) => {
     const { member_id } = req.body;
 
     // Check if notification exists
-    const { data: existingNotification, error: _checkError } = await supabase
-      .from('notifications')
-      .select('*')
-      .eq('id', id)
-      .single();
+    const { rows: existingRows } = await query(
+      'SELECT * FROM notifications WHERE id = $1',
+      [id]
+    );
 
-    if (_checkError || !existingNotification) {
+    if (existingRows.length === 0) {
       return res.status(404).json({
         success: false,
         error: 'الإشعار غير موجود'
       });
     }
+
+    const existingNotification = existingRows[0];
 
     // Verify member has access to this notification
     if (member_id && existingNotification.member_id !== member_id) {
@@ -325,21 +321,14 @@ export const markAsRead = async (req, res) => {
       });
     }
 
-    const { data: updatedNotification, error } = await supabase
-      .from('notifications')
-      .update({
-        is_read: true,
-        read_at: new Date().toISOString()
-      })
-      .eq('id', id)
-      .select('*')
-      .single();
-
-    if (error) {throw error;}
+    const { rows } = await query(
+      `UPDATE notifications SET is_read = true, read_at = $1 WHERE id = $2 RETURNING *`,
+      [new Date().toISOString(), id]
+    );
 
     res.json({
       success: true,
-      data: updatedNotification,
+      data: rows[0],
       message: 'تم وضع علامة قراءة على الإشعار'
     });
   } catch (error) {
@@ -367,29 +356,23 @@ export const bulkMarkAsRead = async (req, res) => {
       });
     }
 
-    let query = supabase
-      .from('notifications')
-      .update({
-        is_read: true,
-        read_at: new Date().toISOString()
-      })
-      .in('id', notification_ids);
+    const params = [new Date().toISOString(), notification_ids];
+    let sql = `UPDATE notifications SET is_read = true, read_at = $1 WHERE id = ANY($2)`;
 
-    // If member_id is provided, only update notifications for that member
     if (member_id) {
-      query = query.eq('member_id', member_id);
+      sql += ` AND member_id = $3`;
+      params.push(member_id);
     }
 
-    const { data: updatedNotifications, error } = await query
-      .select('*');
+    sql += ' RETURNING *';
 
-    if (error) {throw error;}
+    const { rows: updatedNotifications } = await query(sql, params);
 
     res.json({
       success: true,
-      data: updatedNotifications || [],
-      updated_count: updatedNotifications?.length || 0,
-      message: `تم وضع علامة قراءة على ${updatedNotifications?.length || 0} إشعار`
+      data: updatedNotifications,
+      updated_count: updatedNotifications.length,
+      message: `تم وضع علامة قراءة على ${updatedNotifications.length} إشعار`
     });
   } catch (error) {
     log.error('Error bulk marking notifications as read', { error: error.message });
@@ -410,25 +393,19 @@ export const deleteNotification = async (req, res) => {
     const { id } = req.params;
 
     // Check if notification exists
-    const { data: existingNotification, error: _checkError } = await supabase
-      .from('notifications')
-      .select('*')
-      .eq('id', id)
-      .single();
+    const { rows: existingRows } = await query(
+      'SELECT * FROM notifications WHERE id = $1',
+      [id]
+    );
 
-    if (_checkError || !existingNotification) {
+    if (existingRows.length === 0) {
       return res.status(404).json({
         success: false,
         error: 'الإشعار غير موجود'
       });
     }
 
-    const { error } = await supabase
-      .from('notifications')
-      .delete()
-      .eq('id', id);
-
-    if (error) {throw error;}
+    await query('DELETE FROM notifications WHERE id = $1', [id]);
 
     res.json({
       success: true,
@@ -460,58 +437,64 @@ export const getMemberNotifications = async (req, res) => {
     } = req.query;
 
     // Check if member exists
-    const { data: member, error: _memberError } = await supabase
-      .from('members')
-      .select('id, full_name')
-      .eq('id', memberId)
-      .single();
+    const { rows: memberRows } = await query(
+      'SELECT id, full_name FROM members WHERE id = $1',
+      [memberId]
+    );
 
-    if (_memberError || !member) {
+    if (memberRows.length === 0) {
       return res.status(404).json({
         success: false,
         error: 'العضو غير موجود'
       });
     }
 
-    let query = supabase
-      .from('notifications')
-      .select('*')
-      .eq('member_id', memberId)
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+    const member = memberRows[0];
 
-    // Apply filters
+    const conditions = ['member_id = $1'];
+    const params = [memberId];
+    let paramIndex = 2;
+
     if (type) {
-      query = query.eq('type', type);
+      conditions.push(`type = $${paramIndex++}`);
+      params.push(type);
     }
 
     if (priority) {
-      query = query.eq('priority', priority);
+      conditions.push(`priority = $${paramIndex++}`);
+      params.push(priority);
     }
 
     if (is_read !== undefined) {
-      query = query.eq('is_read', is_read === 'true');
+      conditions.push(`is_read = $${paramIndex++}`);
+      params.push(is_read === 'true');
     }
 
-    const { data: notifications, error, count } = await query;
+    params.push(parseInt(limit));
+    const limitParam = paramIndex++;
+    params.push(parseInt(offset));
+    const offsetParam = paramIndex++;
 
-    if (error) {throw error;}
+    const { rows: notifications } = await query(
+      `SELECT * FROM notifications WHERE ${conditions.join(' AND ')} ORDER BY created_at DESC LIMIT $${limitParam} OFFSET $${offsetParam}`,
+      params
+    );
 
     // Calculate member-specific summary
-    const unreadCount = notifications?.filter(n => !n.is_read).length || 0;
-    const readCount = notifications?.filter(n => n.is_read).length || 0;
+    const unreadCount = notifications.filter(n => !n.is_read).length;
+    const readCount = notifications.filter(n => n.is_read).length;
 
     res.json({
       success: true,
-      data: notifications || [],
+      data: notifications,
       member: member,
       pagination: {
         limit: parseInt(limit),
         offset: parseInt(offset),
-        total: count || notifications?.length || 0
+        total: notifications.length
       },
       summary: {
-        total: notifications?.length || 0,
+        total: notifications.length,
         unread: unreadCount,
         read: readCount
       },
@@ -535,11 +518,9 @@ export const getNotificationStats = async (req, res) => {
   try {
     const { period = 'all' } = req.query;
 
-    let query = supabase
-      .from('notifications')
-      .select('*');
+    let sql = 'SELECT * FROM notifications';
+    const params = [];
 
-    // Apply period filter
     if (period !== 'all') {
       const now = new Date();
       let startDate;
@@ -564,34 +545,33 @@ export const getNotificationStats = async (req, res) => {
       }
 
       if (startDate) {
-        query = query.gte('created_at', startDate.toISOString());
+        sql += ' WHERE created_at >= $1';
+        params.push(startDate.toISOString());
       }
     }
 
-    const { data: notifications, error } = await query;
-
-    if (error) {throw error;}
+    const { rows: notifications } = await query(sql, params);
 
     // Calculate statistics
-    const totalNotifications = notifications?.length || 0;
-    const readNotifications = notifications?.filter(n => n.is_read).length || 0;
-    const unreadNotifications = notifications?.filter(n => !n.is_read).length || 0;
+    const totalNotifications = notifications.length;
+    const readNotifications = notifications.filter(n => n.is_read).length;
+    const unreadNotifications = notifications.filter(n => !n.is_read).length;
 
     // Group by type, priority, and target audience
-    const typeStats = notifications?.reduce((acc, notif) => {
+    const typeStats = notifications.reduce((acc, notif) => {
       acc[notif.type] = (acc[notif.type] || 0) + 1;
       return acc;
-    }, {}) || {};
+    }, {});
 
-    const priorityStats = notifications?.reduce((acc, notif) => {
+    const priorityStats = notifications.reduce((acc, notif) => {
       acc[notif.priority] = (acc[notif.priority] || 0) + 1;
       return acc;
-    }, {}) || {};
+    }, {});
 
-    const audienceStats = notifications?.reduce((acc, notif) => {
+    const audienceStats = notifications.reduce((acc, notif) => {
       acc[notif.target_audience] = (acc[notif.target_audience] || 0) + 1;
       return acc;
-    }, {}) || {};
+    }, {});
 
     // Calculate read rate
     const readRate = totalNotifications > 0 ? Math.round((readNotifications / totalNotifications) * 100) : 0;
@@ -605,10 +585,10 @@ export const getNotificationStats = async (req, res) => {
       const nextDay = new Date(date);
       nextDay.setDate(date.getDate() + 1);
 
-      const dayNotifications = notifications?.filter(n => {
+      const dayNotifications = notifications.filter(n => {
         const notifDate = new Date(n.created_at);
         return notifDate >= date && notifDate < nextDay;
-      }) || [];
+      });
 
       dailyData.push({
         date: date.toLocaleDateString('ar-SA'),

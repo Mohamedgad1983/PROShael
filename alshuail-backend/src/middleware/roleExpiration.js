@@ -8,7 +8,7 @@
  * @reference Context7 - Express middleware patterns
  */
 
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
 
 /**
@@ -36,13 +36,11 @@ export const checkRoleExpiration = async (req, res, next) => {
     const checkDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
     // Get active roles using security definer function (optimized)
-    const { data: activeRoles, error: rolesError } = await supabase
-      .rpc('get_active_roles', {
-        p_user_id: userId,
-        p_check_date: checkDate
-      });
-
-    if (rolesError) {
+    let activeRoles;
+    try {
+      const rolesResult = await query('SELECT * FROM get_active_roles($1, $2)', [userId, checkDate]);
+      activeRoles = rolesResult.rows;
+    } catch (rolesError) {
       log.error('[Role Expiration] Failed to fetch active roles', {
         error: rolesError.message,
         userId,
@@ -53,13 +51,11 @@ export const checkRoleExpiration = async (req, res, next) => {
     }
 
     // Get merged permissions (combines all active roles)
-    const { data: mergedPermissions, error: permError } = await supabase
-      .rpc('get_merged_permissions', {
-        p_user_id: userId,
-        p_check_date: checkDate
-      });
-
-    if (permError) {
+    let mergedPermissions;
+    try {
+      const permResult = await query('SELECT * FROM get_merged_permissions($1, $2)', [userId, checkDate]);
+      mergedPermissions = permResult.rows[0]?.get_merged_permissions ?? permResult.rows[0] ?? {};
+    } catch (permError) {
       log.error('[Role Expiration] Failed to fetch merged permissions', {
         error: permError.message,
         userId,
@@ -131,16 +127,16 @@ export const requirePermission = (permission) => {
       const checkDate = new Date().toISOString().split('T')[0];
 
       // Use security definer function to check permission
-      const { data: hasPermission, error } = await supabase
-        .rpc('user_has_permission', {
-          p_user_id: userId,
-          p_permission_path: permission,
-          p_check_date: checkDate
-        });
-
-      if (error) {
+      let hasPermission;
+      try {
+        const permResult = await query(
+          'SELECT * FROM user_has_permission($1, $2, $3)',
+          [userId, permission, checkDate]
+        );
+        hasPermission = permResult.rows[0]?.user_has_permission === true;
+      } catch (permCheckError) {
         log.error('[Permission Check] Failed to verify permission', {
-          error: error.message,
+          error: permCheckError.message,
           userId,
           permission,
           checkDate
@@ -216,26 +212,24 @@ export const requireAnyPermission = (permissions) => {
       let grantedPermission = null;
 
       for (const permission of permissions) {
-        const { data, error } = await supabase
-          .rpc('user_has_permission', {
-            p_user_id: userId,
-            p_permission_path: permission,
-            p_check_date: checkDate
-          });
+        try {
+          const { rows } = await query(
+            'SELECT * FROM user_has_permission($1, $2, $3)',
+            [userId, permission, checkDate]
+          );
 
-        if (error) {
+          if (rows[0]?.user_has_permission === true) {
+            hasAnyPermission = true;
+            grantedPermission = permission;
+            break;
+          }
+        } catch (permError) {
           log.error('[Any Permission Check] Failed to verify permission', {
-            error: error.message,
+            error: permError.message,
             userId,
             permission
           });
           continue;
-        }
-
-        if (data === true) {
-          hasAnyPermission = true;
-          grantedPermission = permission;
-          break;
         }
       }
 
@@ -293,15 +287,13 @@ export const requireActiveRole = async (req, res, next) => {
     const userId = req.user.id;
     const checkDate = new Date().toISOString().split('T')[0];
 
-    const { data: activeRoles, error } = await supabase
-      .rpc('get_active_roles', {
-        p_user_id: userId,
-        p_check_date: checkDate
-      });
-
-    if (error) {
+    let activeRoles;
+    try {
+      const rolesResult = await query('SELECT * FROM get_active_roles($1, $2)', [userId, checkDate]);
+      activeRoles = rolesResult.rows;
+    } catch (rolesError) {
       log.error('[Active Role Check] Failed to fetch active roles', {
-        error: error.message,
+        error: rolesError.message,
         userId
       });
       return res.status(500).json({

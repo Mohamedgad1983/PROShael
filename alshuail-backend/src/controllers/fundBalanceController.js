@@ -8,7 +8,7 @@
  * - Principle VI: Fund Balance Integrity (real-time calculations)
  */
 
-import { supabase, pool } from '../config/database.js';
+import { query, getClient } from '../services/database.js';
 import { log } from '../utils/logger.js';
 import {
   hasFinancialAccess,
@@ -26,17 +26,14 @@ const MIN_BALANCE_THRESHOLD = 3600;
  */
 export const getCurrentBalance = async () => {
   try {
-    const { data, error } = await supabase
-      .from('vw_fund_balance')
-      .select('*')
-      .single();
+    const { rows } = await query('SELECT * FROM vw_fund_balance LIMIT 1');
 
-    if (error) {
-      log.error('[FundBalance] Error getting current balance:', { error: error.message });
+    if (!rows || rows.length === 0) {
+      log.error('[FundBalance] Error getting current balance: no rows returned');
       return null;
     }
 
-    return data;
+    return rows[0];
   } catch (error) {
     log.error('[FundBalance] Exception getting balance:', { error: error.message });
     return null;
@@ -122,36 +119,41 @@ export const getBalanceBreakdown = async (req, res) => {
     // Parallel queries for efficiency
     const [balanceResult, recentExpensesResult, recentPaymentsResult, internalDiyaResult] = await Promise.all([
       // 1. Current balance from view
-      supabase.from('vw_fund_balance').select('*').single(),
+      query('SELECT * FROM vw_fund_balance LIMIT 1'),
 
       // 2. Recent approved/paid expenses
-      supabase.from('expenses')
-        .select('id, title_ar, amount, status, expense_date, expense_number')
-        .in('status', ['approved', 'paid'])
-        .order('expense_date', { ascending: false })
-        .limit(10),
+      query(
+        `SELECT id, title_ar, amount, status, expense_date, expense_number
+         FROM expenses
+         WHERE status IN ('approved', 'paid')
+         ORDER BY expense_date DESC
+         LIMIT 10`
+      ),
 
       // 3. Recent completed payments
-      supabase.from('payments')
-        .select('id, amount, status, created_at')
-        .eq('status', 'completed')
-        .order('created_at', { ascending: false })
-        .limit(10),
+      query(
+        `SELECT id, amount, status, created_at
+         FROM payments
+         WHERE status = 'completed'
+         ORDER BY created_at DESC
+         LIMIT 10`
+      ),
 
       // 4. Internal diya cases
-      supabase.from('diya_cases')
-        .select('id, case_number, beneficiary_name, amount_paid, status, diya_type')
-        .eq('diya_type', 'internal')
-        .in('status', ['paid', 'partially_paid', 'completed'])
-        .order('created_at', { ascending: false })
-        .limit(10)
+      query(
+        `SELECT id, case_number, beneficiary_name, amount_paid, status, diya_type
+         FROM diya_cases
+         WHERE diya_type = 'internal' AND status IN ('paid', 'partially_paid', 'completed')
+         ORDER BY created_at DESC
+         LIMIT 10`
+      )
     ]);
 
-    if (balanceResult.error) {
-      throw balanceResult.error;
+    if (!balanceResult.rows || balanceResult.rows.length === 0) {
+      throw new Error('Failed to retrieve fund balance');
     }
 
-    const balance = balanceResult.data;
+    const balance = balanceResult.rows[0];
     const isLowBalance = parseFloat(balance.current_balance) < MIN_BALANCE_THRESHOLD;
 
     // Log access
@@ -166,9 +168,9 @@ export const getBalanceBreakdown = async (req, res) => {
           min_threshold: MIN_BALANCE_THRESHOLD,
           currency: 'SAR'
         },
-        recent_expenses: recentExpensesResult.data || [],
-        recent_payments: recentPaymentsResult.data || [],
-        internal_diya_cases: internalDiyaResult.data || [],
+        recent_expenses: recentExpensesResult.rows || [],
+        recent_payments: recentPaymentsResult.rows || [],
+        internal_diya_cases: internalDiyaResult.rows || [],
         breakdown: {
           total_revenue: {
             amount: parseFloat(balance.total_revenue),
@@ -249,27 +251,25 @@ export const createSnapshot = async (req, res) => {
     const variance = bankBalance - calculatedBalance;
 
     // Create snapshot record
-    const snapshotData = {
-      snapshot_date,
-      total_revenue: parseFloat(balance.total_revenue),
-      total_expenses: parseFloat(balance.total_expenses),
-      total_internal_diya: parseFloat(balance.total_internal_diya),
-      calculated_balance: calculatedBalance,
-      bank_statement_balance: bankBalance,
-      variance,
-      notes: notes || null,
-      created_by: userId
-    };
+    const { rows } = await query(
+      `INSERT INTO fund_balance_snapshots (
+        snapshot_date, total_revenue, total_expenses, total_internal_diya,
+        calculated_balance, bank_statement_balance, variance, notes, created_by
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
+      [
+        snapshot_date,
+        parseFloat(balance.total_revenue),
+        parseFloat(balance.total_expenses),
+        parseFloat(balance.total_internal_diya),
+        calculatedBalance,
+        bankBalance,
+        variance,
+        notes || null,
+        userId
+      ]
+    );
 
-    const { data: snapshot, error } = await supabase
-      .from('fund_balance_snapshots')
-      .insert([snapshotData])
-      .select('*')
-      .single();
-
-    if (error) {
-      throw error;
-    }
+    const snapshot = rows[0];
 
     // Audit trail
     createFinancialAuditTrail({
@@ -330,16 +330,13 @@ export const getSnapshots = async (req, res) => {
     }
 
     const { limit = 20, offset = 0 } = req.query;
+    const parsedLimit = parseInt(limit);
+    const parsedOffset = parseInt(offset);
 
-    const { data: snapshots, error } = await supabase
-      .from('fund_balance_snapshots')
-      .select('*')
-      .order('snapshot_date', { ascending: false })
-      .range(offset, offset + parseInt(limit) - 1);
-
-    if (error) {
-      throw error;
-    }
+    const { rows: snapshots } = await query(
+      'SELECT * FROM fund_balance_snapshots ORDER BY snapshot_date DESC LIMIT $1 OFFSET $2',
+      [parsedLimit, parsedOffset]
+    );
 
     // Enhance snapshots with status
     const enhancedSnapshots = (snapshots || []).map(snapshot => {
@@ -383,7 +380,7 @@ export const getSnapshots = async (req, res) => {
  * @returns {Object} { valid: boolean, balance: number, error?: string }
  */
 export const validateExpenseBalance = async (amount) => {
-  const client = await pool.connect();
+  const client = await getClient();
 
   try {
     // Start transaction with SERIALIZABLE isolation for concurrent safety
@@ -391,17 +388,9 @@ export const validateExpenseBalance = async (amount) => {
 
     // Lock the balance view by querying with FOR UPDATE on underlying tables
     // This prevents race conditions when multiple expenses are created simultaneously
-    const balanceQuery = `
-      SELECT
-        COALESCE((SELECT SUM(amount) FROM payments WHERE status = 'completed'), 0) as total_revenue,
-        COALESCE((SELECT SUM(amount) FROM expenses WHERE status IN ('approved', 'paid')), 0) as total_expenses,
-        COALESCE((SELECT SUM(amount_paid) FROM diya_cases WHERE diya_type = 'internal' AND status IN ('paid', 'partially_paid', 'completed')), 0) as total_internal_diya
-      FOR UPDATE
-    `;
-
     // Note: FOR UPDATE doesn't work on aggregated queries directly
     // Instead, we rely on SERIALIZABLE isolation level
-    const { rows } = await client.query(`SELECT * FROM vw_fund_balance`);
+    const { rows } = await client.query('SELECT * FROM vw_fund_balance');
 
     if (!rows || rows.length === 0) {
       await client.query('ROLLBACK');

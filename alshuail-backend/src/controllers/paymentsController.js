@@ -1,4 +1,4 @@
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 import { PaymentProcessingService } from '../services/paymentProcessingService.js';
 import { FinancialAnalyticsService } from '../services/financialAnalyticsService.js';
 import { ReceiptService } from '../services/receiptService.js';
@@ -22,44 +22,59 @@ export const getAllPayments = async (req, res) => {
       offset = 0
     } = req.query;
 
-    let query = supabase
-      .from('payments')
-      .select(`
-        *,
-        payer:members!payer_id(full_name, phone),
-        beneficiary:members!beneficiary_id(full_name, phone)
-      `)
-      .range(offset, offset + limit - 1);
+    // Build dynamic query with JOINs replacing Supabase relation syntax
+    const conditions = [];
+    const params = [];
+    let paramIndex = 1;
 
-    // Apply Hijri filtering
-    if (hijri_month) {query = query.eq('hijri_month', parseInt(hijri_month));}
-    if (hijri_year) {query = query.eq('hijri_year', parseInt(hijri_year));}
-
-    // Apply other filters
-    if (status) {query = query.eq('status', status);}
-    if (member_id) {query = query.eq('payer_id', member_id);}
-    if (category) {query = query.eq('category', category);}
-
-    // Filter by on-behalf payments
+    if (hijri_month) {
+      conditions.push(`p.hijri_month = $${paramIndex++}`);
+      params.push(parseInt(hijri_month));
+    }
+    if (hijri_year) {
+      conditions.push(`p.hijri_year = $${paramIndex++}`);
+      params.push(parseInt(hijri_year));
+    }
+    if (status) {
+      conditions.push(`p.status = $${paramIndex++}`);
+      params.push(status);
+    }
+    if (member_id) {
+      conditions.push(`p.payer_id = $${paramIndex++}`);
+      params.push(member_id);
+    }
+    if (category) {
+      conditions.push(`p.category = $${paramIndex++}`);
+      params.push(category);
+    }
     if (is_on_behalf === 'true') {
-      query = query.eq('is_on_behalf', true);
+      conditions.push(`p.is_on_behalf = true`);
     } else if (is_on_behalf === 'false') {
-      query = query.or('is_on_behalf.is.null,is_on_behalf.eq.false');
+      conditions.push(`(p.is_on_behalf IS NULL OR p.is_on_behalf = false)`);
     }
 
-    // Apply Hijri-primary sorting
+    const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
+
+    // Determine sort order
+    let orderClause;
     if (sort_by === 'hijri') {
-      query = query
-        .order('hijri_year', { ascending: false })
-        .order('hijri_month', { ascending: false })
-        .order('hijri_day', { ascending: false });
+      orderClause = 'ORDER BY p.hijri_year DESC, p.hijri_month DESC, p.hijri_day DESC';
     } else {
-      query = query.order('created_at', { ascending: false });
+      orderClause = 'ORDER BY p.created_at DESC';
     }
 
-    const { data: payments, error } = await query;
-
-    if (error) {throw error;}
+    const { rows: payments } = await query(
+      `SELECT p.*,
+        json_build_object('full_name', pm.full_name, 'phone', pm.phone) AS payer,
+        json_build_object('full_name', bm.full_name, 'phone', bm.phone) AS beneficiary
+      FROM payments p
+      LEFT JOIN members pm ON p.payer_id = pm.id
+      LEFT JOIN members bm ON p.beneficiary_id = bm.id
+      ${whereClause}
+      ${orderClause}
+      LIMIT $${paramIndex++} OFFSET $${paramIndex}`,
+      [...params, parseInt(limit), parseInt(offset)]
+    );
 
     // Add formatted dates for frontend
     const paymentsWithFormattedDates = (payments || []).map(payment => ({
@@ -217,28 +232,38 @@ export const getMemberPayments = async (req, res) => {
     const { memberId } = req.params;
     const { status, category, limit = 50, offset = 0 } = req.query;
 
-    let query = supabase
-      .from('payments')
-      .select(`
-        *,
-        payer:members(id, full_name, phone, email, membership_number)
-      `)
-      .eq('payer_id', memberId)
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+    // Build dynamic query
+    const conditions = ['p.payer_id = $1'];
+    const params = [memberId];
+    let paramIndex = 2;
 
-    if (status) {query = query.eq('status', status);}
-    if (category) {query = query.eq('category', category);}
+    if (status) {
+      conditions.push(`p.status = $${paramIndex++}`);
+      params.push(status);
+    }
+    if (category) {
+      conditions.push(`p.category = $${paramIndex++}`);
+      params.push(category);
+    }
 
-    const { data: payments, error } = await query;
+    const whereClause = 'WHERE ' + conditions.join(' AND ');
 
-    if (error) {throw error;}
+    const { rows: payments } = await query(
+      `SELECT p.*,
+        json_build_object('id', m.id, 'full_name', m.full_name, 'phone', m.phone, 'email', m.email, 'membership_number', m.membership_number) AS payer
+      FROM payments p
+      LEFT JOIN members m ON p.payer_id = m.id
+      ${whereClause}
+      ORDER BY p.created_at DESC
+      LIMIT $${paramIndex++} OFFSET $${paramIndex}`,
+      [...params, parseInt(limit), parseInt(offset)]
+    );
 
     // Get member's payment summary
-    const { data: summaryData } = await supabase
-      .from('payments')
-      .select('amount, status, category')
-      .eq('payer_id', memberId);
+    const { rows: summaryData } = await query(
+      'SELECT amount, status, category FROM payments WHERE payer_id = $1',
+      [memberId]
+    );
 
     const summary = {
       totalPayments: summaryData?.length || 0,
@@ -545,23 +570,32 @@ export const getPaymentsGroupedByHijri = async (req, res) => {
   try {
     const { hijri_year, status } = req.query;
 
-    let query = supabase
-      .from('payments')
-      .select(`
-        *,
-        payer:members!payer_id(full_name, phone),
-        beneficiary:members!beneficiary_id(full_name, phone)
-      `)
-      .order('hijri_year', { ascending: false })
-      .order('hijri_month', { ascending: false })
-      .order('hijri_day', { ascending: false });
+    const conditions = [];
+    const params = [];
+    let paramIndex = 1;
 
-    if (hijri_year) {query = query.eq('hijri_year', parseInt(hijri_year));}
-    if (status) {query = query.eq('status', status);}
+    if (hijri_year) {
+      conditions.push(`p.hijri_year = $${paramIndex++}`);
+      params.push(parseInt(hijri_year));
+    }
+    if (status) {
+      conditions.push(`p.status = $${paramIndex++}`);
+      params.push(status);
+    }
 
-    const { data: payments, error } = await query;
+    const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
 
-    if (error) {throw error;}
+    const { rows: payments } = await query(
+      `SELECT p.*,
+        json_build_object('full_name', pm.full_name, 'phone', pm.phone) AS payer,
+        json_build_object('full_name', bm.full_name, 'phone', bm.phone) AS beneficiary
+      FROM payments p
+      LEFT JOIN members pm ON p.payer_id = pm.id
+      LEFT JOIN members bm ON p.beneficiary_id = bm.id
+      ${whereClause}
+      ORDER BY p.hijri_year DESC, p.hijri_month DESC, p.hijri_day DESC`,
+      params
+    );
 
     // Group payments by Hijri month
     const grouped = HijriDateManager.groupByHijriMonth(payments || []);
@@ -588,21 +622,14 @@ export const getHijriFinancialStats = async (req, res) => {
     const { hijri_month, hijri_year } = req.query;
     const currentHijri = HijriDateManager.getCurrentHijriDate();
 
-    let query = supabase
-      .from('payments')
-      .select('amount, status, hijri_month, hijri_year, hijri_month_name');
-
     // Filter by Hijri date if provided, otherwise use current
     const filterMonth = hijri_month || currentHijri.hijri_month;
     const filterYear = hijri_year || currentHijri.hijri_year;
 
-    query = query
-      .eq('hijri_month', parseInt(filterMonth))
-      .eq('hijri_year', parseInt(filterYear));
-
-    const { data: payments, error } = await query;
-
-    if (error) {throw error;}
+    const { rows: payments } = await query(
+      'SELECT amount, status, hijri_month, hijri_year, hijri_month_name FROM payments WHERE hijri_month = $1 AND hijri_year = $2',
+      [parseInt(filterMonth), parseInt(filterYear)]
+    );
 
     // Calculate statistics
     const stats = {
@@ -656,46 +683,44 @@ export const payForInitiative = async (req, res) => {
     const currentDate = new Date();
     const hijriData = HijriDateManager.convertToHijri(currentDate);
 
-    // First, let's check if there's an existing subscription we can reference
-    const { data: existingSubscriptions } = await supabase
-      .from('subscriptions')
-      .select('id')
-      .eq('member_id', memberId)
-      .eq('status', 'active')
-      .limit(1);
+    // Check if there is an existing active subscription we can reference
+    const { rows: existingSubscriptions } = await query(
+      'SELECT id FROM subscriptions WHERE member_id = $1 AND status = $2 LIMIT 1',
+      [memberId, 'active']
+    );
 
     const subscriptionId = existingSubscriptions?.[0]?.id || null;
 
-    const paymentData = {
-      payer_id: memberId,
-      beneficiary_id: memberId, // Required field - paying for self
-      amount: parseFloat(amount),
-      payment_date: currentDate.toISOString().split('T')[0], // Required field - date format
-      payment_method: 'app_payment', // Required field - must match check constraint
-      category: 'initiative',
-      status: 'pending',
-      reference_number: generateReferenceNumber(),
-      notes: `Initiative Payment: ${initiative_id}. ${notes || ''}`.trim(),
-      hijri_date_string: hijriData.hijri_date_string,
-      hijri_year: hijriData.hijri_year,
-      hijri_month: hijriData.hijri_month,
-      hijri_day: hijriData.hijri_day,
-      hijri_month_name: hijriData.hijri_month_name,
-      created_at: currentDate.toISOString()
-    };
+    // Build column list and values dynamically based on subscriptionId
+    const columns = [
+      'payer_id', 'beneficiary_id', 'amount', 'payment_date', 'payment_method',
+      'category', 'status', 'reference_number', 'notes',
+      'hijri_date_string', 'hijri_year', 'hijri_month', 'hijri_day', 'hijri_month_name',
+      'created_at'
+    ];
+    const values = [
+      memberId, memberId, parseFloat(amount),
+      currentDate.toISOString().split('T')[0], 'app_payment',
+      'initiative', 'pending', generateReferenceNumber(),
+      `Initiative Payment: ${initiative_id}. ${notes || ''}`.trim(),
+      hijriData.hijri_date_string, hijriData.hijri_year, hijriData.hijri_month,
+      hijriData.hijri_day, hijriData.hijri_month_name,
+      currentDate.toISOString()
+    ];
 
-    // Only add subscription_id if we have one (to avoid NOT NULL constraint)
     if (subscriptionId) {
-      paymentData.subscription_id = subscriptionId;
+      columns.push('subscription_id');
+      values.push(subscriptionId);
     }
 
-    const { data: payment, error } = await supabase
-      .from('payments')
-      .insert([paymentData])
-      .select()
-      .single();
+    const placeholders = values.map((_, i) => `$${i + 1}`).join(', ');
 
-    if (error) {throw error;}
+    const { rows: paymentRows } = await query(
+      `INSERT INTO payments (${columns.join(', ')}) VALUES (${placeholders}) RETURNING *`,
+      values
+    );
+
+    const payment = paymentRows[0];
 
     res.status(201).json({
       success: true,
@@ -728,32 +753,35 @@ export const payForDiya = async (req, res) => {
     const currentDate = new Date();
     const hijriData = HijriDateManager.convertToHijri(currentDate);
 
-    const paymentData = {
-      payer_id: memberId,
-      beneficiary_id: memberId, // Required field - paying for self
-      subscription_id: '00000000-0000-0000-0000-000000000000', // Required field - use null UUID for non-subscription payments
-      amount: parseFloat(amount),
-      payment_date: currentDate.toISOString().split('T')[0], // Required field - date format
-      payment_method: 'app_payment', // Required field - must match check constraint
-      category: 'diya',
-      status: 'pending',
-      reference_number: generateReferenceNumber(),
-      notes: `Diya Payment: ${diya_id}. ${notes || ''}`.trim(),
-      hijri_date_string: hijriData.hijri_date_string,
-      hijri_year: hijriData.hijri_year,
-      hijri_month: hijriData.hijri_month,
-      hijri_day: hijriData.hijri_day,
-      hijri_month_name: hijriData.hijri_month_name,
-      created_at: currentDate.toISOString()
-    };
+    const { rows: paymentRows } = await query(
+      `INSERT INTO payments (
+        payer_id, beneficiary_id, subscription_id, amount, payment_date,
+        payment_method, category, status, reference_number, notes,
+        hijri_date_string, hijri_year, hijri_month, hijri_day, hijri_month_name,
+        created_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+      RETURNING *`,
+      [
+        memberId,
+        memberId,
+        '00000000-0000-0000-0000-000000000000',
+        parseFloat(amount),
+        currentDate.toISOString().split('T')[0],
+        'app_payment',
+        'diya',
+        'pending',
+        generateReferenceNumber(),
+        `Diya Payment: ${diya_id}. ${notes || ''}`.trim(),
+        hijriData.hijri_date_string,
+        hijriData.hijri_year,
+        hijriData.hijri_month,
+        hijriData.hijri_day,
+        hijriData.hijri_month_name,
+        currentDate.toISOString()
+      ]
+    );
 
-    const { data: payment, error } = await supabase
-      .from('payments')
-      .insert([paymentData])
-      .select()
-      .single();
-
-    if (error) {throw error;}
+    const payment = paymentRows[0];
 
     res.status(201).json({
       success: true,
@@ -786,32 +814,35 @@ export const paySubscription = async (req, res) => {
     const currentDate = new Date();
     const hijriData = HijriDateManager.convertToHijri(currentDate);
 
-    const paymentData = {
-      payer_id: memberId,
-      beneficiary_id: memberId, // Required field - paying for self
-      subscription_id: '00000000-0000-0000-0000-000000000001', // Required field - use different UUID for subscription payments
-      amount: parseFloat(amount),
-      payment_date: currentDate.toISOString().split('T')[0], // Required field - date format
-      payment_method: 'app_payment', // Required field - must match check constraint
-      category: 'subscription',
-      status: 'pending',
-      reference_number: generateReferenceNumber(),
-      notes: `Subscription Payment (${subscription_period || 'monthly'}). ${notes || ''}`.trim(),
-      hijri_date_string: hijriData.hijri_date_string,
-      hijri_year: hijriData.hijri_year,
-      hijri_month: hijriData.hijri_month,
-      hijri_day: hijriData.hijri_day,
-      hijri_month_name: hijriData.hijri_month_name,
-      created_at: currentDate.toISOString()
-    };
+    const { rows: paymentRows } = await query(
+      `INSERT INTO payments (
+        payer_id, beneficiary_id, subscription_id, amount, payment_date,
+        payment_method, category, status, reference_number, notes,
+        hijri_date_string, hijri_year, hijri_month, hijri_day, hijri_month_name,
+        created_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+      RETURNING *`,
+      [
+        memberId,
+        memberId,
+        '00000000-0000-0000-0000-000000000001',
+        parseFloat(amount),
+        currentDate.toISOString().split('T')[0],
+        'app_payment',
+        'subscription',
+        'pending',
+        generateReferenceNumber(),
+        `Subscription Payment (${subscription_period || 'monthly'}). ${notes || ''}`.trim(),
+        hijriData.hijri_date_string,
+        hijriData.hijri_year,
+        hijriData.hijri_month,
+        hijriData.hijri_day,
+        hijriData.hijri_month_name,
+        currentDate.toISOString()
+      ]
+    );
 
-    const { data: payment, error } = await supabase
-      .from('payments')
-      .insert([paymentData])
-      .select()
-      .single();
-
-    if (error) {throw error;}
+    const payment = paymentRows[0];
 
     res.status(201).json({
       success: true,
@@ -842,13 +873,13 @@ export const payForMember = async (req, res) => {
     }
 
     // Verify beneficiary exists
-    const { data: beneficiary, error: _beneficiaryError } = await supabase
-      .from('members')
-      .select('id, full_name, membership_status')
-      .eq('id', beneficiary_id)
-      .single();
+    const { rows: beneficiaryRows } = await query(
+      'SELECT id, full_name, membership_status FROM members WHERE id = $1 LIMIT 1',
+      [beneficiary_id]
+    );
+    const beneficiary = beneficiaryRows[0];
 
-    if (_beneficiaryError || !beneficiary) {
+    if (!beneficiary) {
       return res.status(404).json({
         success: false,
         error: 'المستفيد غير موجود'
@@ -865,32 +896,35 @@ export const payForMember = async (req, res) => {
     const currentDate = new Date();
     const hijriData = HijriDateManager.convertToHijri(currentDate);
 
-    const paymentData = {
-      payer_id: payerId,
-      beneficiary_id,
-      subscription_id: '00000000-0000-0000-0000-000000000000', // Required field - use null UUID for non-subscription payments
-      amount: parseFloat(amount),
-      payment_date: currentDate.toISOString().split('T')[0], // Required field - date format
-      payment_method: 'app_payment', // Required field - must match check constraint
-      category: payment_category,
-      status: 'pending',
-      reference_number: generateReferenceNumber(),
-      notes: `Payment on behalf of ${beneficiary.full_name}. ${notes || ''}`.trim(),
-      hijri_date_string: hijriData.hijri_date_string,
-      hijri_year: hijriData.hijri_year,
-      hijri_month: hijriData.hijri_month,
-      hijri_day: hijriData.hijri_day,
-      hijri_month_name: hijriData.hijri_month_name,
-      created_at: currentDate.toISOString()
-    };
+    const { rows: paymentRows } = await query(
+      `INSERT INTO payments (
+        payer_id, beneficiary_id, subscription_id, amount, payment_date,
+        payment_method, category, status, reference_number, notes,
+        hijri_date_string, hijri_year, hijri_month, hijri_day, hijri_month_name,
+        created_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+      RETURNING *`,
+      [
+        payerId,
+        beneficiary_id,
+        '00000000-0000-0000-0000-000000000000',
+        parseFloat(amount),
+        currentDate.toISOString().split('T')[0],
+        'app_payment',
+        payment_category,
+        'pending',
+        generateReferenceNumber(),
+        `Payment on behalf of ${beneficiary.full_name}. ${notes || ''}`.trim(),
+        hijriData.hijri_date_string,
+        hijriData.hijri_year,
+        hijriData.hijri_month,
+        hijriData.hijri_day,
+        hijriData.hijri_month_name,
+        currentDate.toISOString()
+      ]
+    );
 
-    const { data: payment, error } = await supabase
-      .from('payments')
-      .insert([paymentData])
-      .select()
-      .single();
-
-    if (error) {throw error;}
+    const payment = paymentRows[0];
 
     res.status(201).json({
       success: true,
@@ -923,39 +957,38 @@ export const uploadPaymentReceipt = async (req, res) => {
     }
 
     // Verify payment belongs to this member
-    const { data: payment, error: _paymentError } = await supabase
-      .from('payments')
-      .select('*')
-      .eq('id', paymentId)
-      .eq('payer_id', memberId)
-      .single();
+    const { rows: paymentRows } = await query(
+      'SELECT * FROM payments WHERE id = $1 AND payer_id = $2 LIMIT 1',
+      [paymentId, memberId]
+    );
+    const payment = paymentRows[0];
 
-    if (_paymentError || !payment) {
+    if (!payment) {
       return res.status(404).json({
         success: false,
         error: 'الدفعة غير موجودة أو غير مخولة'
       });
     }
 
-    // In a real implementation, you would upload to cloud storage
-    // For now, we'll just update the payment with receipt info
-    const receiptData = {
-      receipt_uploaded: true,
-      receipt_filename: req.file.originalname,
-      receipt_size: req.file.size,
-      receipt_mimetype: req.file.mimetype,
-      status: 'pending_verification',
-      updated_at: new Date().toISOString()
-    };
+    // Update the payment with receipt info
+    const { rows: updatedRows } = await query(
+      `UPDATE payments SET
+        receipt_uploaded = $1, receipt_filename = $2, receipt_size = $3,
+        receipt_mimetype = $4, status = $5, updated_at = $6
+      WHERE id = $7
+      RETURNING *`,
+      [
+        true,
+        req.file.originalname,
+        req.file.size,
+        req.file.mimetype,
+        'pending_verification',
+        new Date().toISOString(),
+        paymentId
+      ]
+    );
 
-    const { data: updatedPayment, error: _updateError } = await supabase
-      .from('payments')
-      .update(receiptData)
-      .eq('id', paymentId)
-      .select()
-      .single();
-
-    if (_updateError) {throw _updateError;}
+    const updatedPayment = updatedRows[0];
 
     res.json({
       success: true,

@@ -3,7 +3,7 @@
 // File: backend/controllers/notificationController.js
 // ===============================================
 
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
 import { getCategoryFromType, getDefaultIcon, formatTimeAgo, organizeNotificationsByCategory } from '../utils/notificationHelpers.js';
 
@@ -21,35 +21,15 @@ export const getMemberNotifications = async (req, res) => {
     log.debug('Fetching notifications for member', { memberId });
 
     // Fetch notifications from database
-    const { data: notifications, error } = await supabase
-      .from('notifications')
-      .select(`
-        id,
-        title,
-        title_ar,
-        message,
-        message_ar,
-        type,
-        priority,
-        is_read,
-        created_at,
-        related_id,
-        related_type,
-        icon,
-        action_url
-      `)
-      .eq('user_id', memberId)
-      .order('created_at', { ascending: false })
-      .limit(50); // Last 50 notifications
-
-    if (error) {
-      log.error('Notifications database error', { error: error.message });
-      return res.status(500).json({
-        success: false,
-        error: 'Failed to fetch notifications',
-        errorAr: 'فشل في جلب الإشعارات'
-      });
-    }
+    const { rows: notifications } = await query(
+      `SELECT id, title, title_ar, message, message_ar, type, priority,
+              is_read, created_at, related_id, related_type, icon, action_url
+       FROM notifications
+       WHERE user_id = $1
+       ORDER BY created_at DESC
+       LIMIT 50`,
+      [memberId]
+    );
 
     // Organize notifications by category
     const organized = {
@@ -119,12 +99,10 @@ export const getNotificationSummary = async (req, res) => {
   try {
     const memberId = req.user.id;
 
-    const { data: notifications, error } = await supabase
-      .from('notifications')
-      .select('type, is_read')
-      .eq('user_id', memberId);
-
-    if (error) {throw error;}
+    const { rows: notifications } = await query(
+      'SELECT type, is_read FROM notifications WHERE user_id = $1',
+      [memberId]
+    );
 
     // Count by category
     const summary = {
@@ -167,28 +145,16 @@ export const markNotificationAsRead = async (req, res) => {
 
     log.debug('Marking notification as read', { notificationId: id, memberId });
 
-    // Update notification
-    const { data: _data, error } = await supabase
-      .from('notifications')
-      .update({
-        is_read: true,
-        read_at: new Date().toISOString()
-      })
-      .eq('id', id)
-      .eq('user_id', memberId) // Security: only update own notifications
-      .select()
-      .single();
+    // Update notification - only update own notifications (security)
+    const { rows } = await query(
+      `UPDATE notifications
+       SET is_read = true, read_at = $1
+       WHERE id = $2 AND user_id = $3
+       RETURNING *`,
+      [new Date().toISOString(), id, memberId]
+    );
 
-    if (error) {
-      log.error('Notification mark read error', { error: error.message });
-      return res.status(500).json({
-        success: false,
-        error: 'Failed to mark as read',
-        errorAr: 'فشل في تحديث الإشعار'
-      });
-    }
-
-    if (!_data) {
+    if (rows.length === 0) {
       return res.status(404).json({
         success: false,
         error: 'Notification not found',
@@ -220,22 +186,18 @@ export const markAllNotificationsAsRead = async (req, res) => {
 
     log.debug('Marking all notifications as read', { memberId });
 
-    const { data: _data, error } = await supabase
-      .from('notifications')
-      .update({
-        is_read: true,
-        read_at: new Date().toISOString()
-      })
-      .eq('user_id', memberId)
-      .eq('is_read', false); // Only update unread ones
-
-    if (error) {throw error;}
+    const { rowCount } = await query(
+      `UPDATE notifications
+       SET is_read = true, read_at = $1
+       WHERE user_id = $2 AND is_read = false`,
+      [new Date().toISOString(), memberId]
+    );
 
     res.json({
       success: true,
       message: 'All notifications marked as read',
       messageAr: 'تم تحديث جميع الإشعارات',
-      count: _data?.length || 0
+      count: rowCount || 0
     });
 
   } catch (error) {
@@ -255,13 +217,10 @@ export const deleteNotification = async (req, res) => {
     const { id } = req.params;
     const memberId = req.user.id;
 
-    const { error } = await supabase
-      .from('notifications')
-      .delete()
-      .eq('id', id)
-      .eq('user_id', memberId);
-
-    if (error) {throw error;}
+    await query(
+      'DELETE FROM notifications WHERE id = $1 AND user_id = $2',
+      [id, memberId]
+    );
 
     res.json({
       success: true,

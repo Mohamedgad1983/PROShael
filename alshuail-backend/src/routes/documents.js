@@ -1,12 +1,12 @@
 import express from 'express';
 import { authenticateToken } from '../middleware/auth.js';
 import { log } from '../utils/logger.js';
+import { query } from '../services/database.js';
 import {
   upload,
   uploadToSupabase,
   deleteFromSupabase,
   getSignedUrl,
-  supabase,
   DOCUMENT_CATEGORIES,
   CATEGORY_TRANSLATIONS
 } from '../config/documentStorage.js';
@@ -61,28 +61,29 @@ router.post('/upload', authenticateToken, upload.single('document'), async (req,
       });
     }
 
-    // Upload to Supabase Storage
+    // Upload to storage
     const uploadResult = await uploadToSupabase(req.file, targetMemberId, category);
 
     // Save metadata to database
-    const { data: document, error } = await supabase
-      .from('documents_metadata')
-      .insert({
-        member_id: targetMemberId,
-        title: title || req.file.originalname,
-        description: description || '',
+    const { rows } = await query(
+      `INSERT INTO documents_metadata
+        (member_id, title, description, category, file_path, file_size, file_type, original_name, uploaded_by, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       RETURNING *`,
+      [
+        targetMemberId,
+        title || req.file.originalname,
+        description || '',
         category,
-        file_path: uploadResult.path,
-        file_size: uploadResult.size,
-        file_type: uploadResult.type,
-        original_name: req.file.originalname,
-        uploaded_by: req.user.id,
-        status: 'active'
-      })
-      .select()
-      .single();
-
-    if (error) {throw error;}
+        uploadResult.path,
+        uploadResult.size,
+        uploadResult.type,
+        req.file.originalname,
+        req.user.id,
+        'active'
+      ]
+    );
+    const document = rows[0];
 
     res.json({
       success: true,
@@ -125,36 +126,54 @@ router.get('/', authenticateToken, async (req, res) => {
       limit = 25
     } = req.query;
 
-    const offset = (parseInt(page) - 1) * parseInt(limit);
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const offset = (pageNum - 1) * limitNum;
 
-    // Build query
-    let query = supabase
-      .from('documents_metadata')
-      .select(`
-        *,
-        members(full_name_ar, full_name, membership_number)
-      `, { count: 'exact' })
-      .eq('status', 'active')
-      .order('created_at', { ascending: false });
+    // Build dynamic WHERE conditions
+    const conditions = [`dm.status = 'active'`];
+    const params = [];
+    let paramIdx = 1;
 
     if (memberId) {
-      query = query.eq('member_id', memberId);
+      conditions.push(`dm.member_id = $${paramIdx++}`);
+      params.push(memberId);
     }
 
     if (category) {
-      query = query.eq('category', category);
+      conditions.push(`dm.category = $${paramIdx++}`);
+      params.push(category);
     }
 
     if (search) {
-      query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
+      conditions.push(`(dm.title ILIKE $${paramIdx} OR dm.description ILIKE $${paramIdx})`);
+      params.push(`%${search}%`);
+      paramIdx++;
     }
 
-    // Apply pagination
-    query = query.range(offset, offset + parseInt(limit) - 1);
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    const { data: documents, error, count } = await query;
+    // Count query
+    const countResult = await query(
+      `SELECT count(*) FROM documents_metadata dm ${whereClause}`,
+      params
+    );
+    const count = parseInt(countResult.rows[0].count);
 
-    if (error) {throw error;}
+    // Data query with JOIN on members
+    const dataParams = [...params, limitNum, offset];
+    const { rows: documents } = await query(
+      `SELECT dm.*,
+              m.full_name_ar AS member_full_name_ar,
+              m.full_name AS member_full_name,
+              m.membership_number AS member_membership_number
+       FROM documents_metadata dm
+       LEFT JOIN members m ON m.id = dm.member_id
+       ${whereClause}
+       ORDER BY dm.created_at DESC
+       LIMIT $${paramIdx++} OFFSET $${paramIdx++}`,
+      dataParams
+    );
 
     // Add category translations and signed URLs
     const documentsWithDetails = await Promise.all((documents || []).map(async (doc) => {
@@ -171,10 +190,10 @@ router.get('/', authenticateToken, async (req, res) => {
         file_size: doc.file_size,
         mime_type: doc.file_type,
         uploaded_at: doc.created_at,
-        member: doc.members ? {
-          full_name_ar: doc.members.full_name_ar,
-          full_name: doc.members.full_name,
-          membership_number: doc.members.membership_number
+        member: doc.member_full_name_ar ? {
+          full_name_ar: doc.member_full_name_ar,
+          full_name: doc.member_full_name,
+          membership_number: doc.member_membership_number
         } : null
       };
     }));
@@ -184,9 +203,9 @@ router.get('/', authenticateToken, async (req, res) => {
       data: documentsWithDetails,
       documents: documentsWithDetails,
       total: count || 0,
-      page: parseInt(page),
-      limit: parseInt(limit),
-      totalPages: Math.ceil((count || 0) / parseInt(limit))
+      page: pageNum,
+      limit: limitNum,
+      totalPages: Math.ceil((count || 0) / limitNum)
     });
 
   } catch (error) {
@@ -206,26 +225,43 @@ router.get('/member/:memberId?', authenticateToken, async (req, res) => {
     const memberId = req.params.memberId || req.user.id;
     const { category, search, limit = 50, offset = 0 } = req.query;
 
-    let query = supabase
-      .from('documents_metadata')
-      .select('*')
-      .eq('member_id', memberId)
-      .eq('status', 'active')
-      .order('created_at', { ascending: false })
-      .limit(limit)
-      .range(offset, offset + limit - 1);
+    const limitNum = parseInt(limit);
+    const offsetNum = parseInt(offset);
+
+    // Build dynamic WHERE conditions
+    const conditions = [`member_id = $1`, `status = 'active'`];
+    const params = [memberId];
+    let paramIdx = 2;
 
     if (category) {
-      query = query.eq('category', category);
+      conditions.push(`category = $${paramIdx++}`);
+      params.push(category);
     }
 
     if (search) {
-      query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
+      conditions.push(`(title ILIKE $${paramIdx} OR description ILIKE $${paramIdx})`);
+      params.push(`%${search}%`);
+      paramIdx++;
     }
 
-    const { data: documents, error, count } = await query;
+    const whereClause = `WHERE ${conditions.join(' AND ')}`;
 
-    if (error) {throw error;}
+    // Count query
+    const countResult = await query(
+      `SELECT count(*) FROM documents_metadata ${whereClause}`,
+      params
+    );
+    const count = parseInt(countResult.rows[0].count);
+
+    // Data query
+    const dataParams = [...params, limitNum, offsetNum];
+    const { rows: documents } = await query(
+      `SELECT * FROM documents_metadata
+       ${whereClause}
+       ORDER BY created_at DESC
+       LIMIT $${paramIdx++} OFFSET $${paramIdx++}`,
+      dataParams
+    );
 
     // Add category translations and signed URLs
     const documentsWithDetails = await Promise.all((documents || []).map(async (doc) => {
@@ -242,8 +278,8 @@ router.get('/member/:memberId?', authenticateToken, async (req, res) => {
       data: documentsWithDetails,
       total: count,
       metadata: {
-        limit,
-        offset,
+        limit: limitNum,
+        offset: offsetNum,
         categories: CATEGORY_TRANSLATIONS
       }
     });
@@ -264,13 +300,13 @@ router.get('/:documentId/download', authenticateToken, async (req, res) => {
   try {
     const { documentId } = req.params;
 
-    const { data: document, error } = await supabase
-      .from('documents_metadata')
-      .select('*')
-      .eq('id', documentId)
-      .single();
+    const { rows } = await query(
+      'SELECT * FROM documents_metadata WHERE id = $1',
+      [documentId]
+    );
+    const document = rows[0];
 
-    if (error || !document) {
+    if (!document) {
       return res.status(404).json({
         success: false,
         message: 'المستند غير موجود',
@@ -310,13 +346,13 @@ router.get('/:documentId', authenticateToken, async (req, res) => {
   try {
     const { documentId } = req.params;
 
-    const { data: document, error } = await supabase
-      .from('documents_metadata')
-      .select('*')
-      .eq('id', documentId)
-      .single();
+    const { rows } = await query(
+      'SELECT * FROM documents_metadata WHERE id = $1',
+      [documentId]
+    );
+    const document = rows[0];
 
-    if (error || !document) {
+    if (!document) {
       return res.status(404).json({
         success: false,
         message: 'المستند غير موجود',
@@ -364,11 +400,11 @@ router.put('/:documentId', authenticateToken, async (req, res) => {
     const { title, description, category } = req.body;
 
     // Verify ownership
-    const { data: existing } = await supabase
-      .from('documents_metadata')
-      .select('member_id')
-      .eq('id', documentId)
-      .single();
+    const { rows: existingRows } = await query(
+      'SELECT member_id FROM documents_metadata WHERE id = $1',
+      [documentId]
+    );
+    const existing = existingRows[0];
 
     if (!existing || (existing.member_id !== req.user.id &&
         !['admin', 'super_admin', 'financial_manager'].includes(req.user.role))) {
@@ -379,21 +415,38 @@ router.put('/:documentId', authenticateToken, async (req, res) => {
       });
     }
 
-    const updateData = {};
-    if (title) {updateData.title = title;}
-    if (description !== undefined) {updateData.description = description;}
+    // Build dynamic SET clause
+    const setClauses = [];
+    const params = [];
+    let paramIdx = 1;
+
+    if (title) {
+      setClauses.push(`title = $${paramIdx++}`);
+      params.push(title);
+    }
+    if (description !== undefined) {
+      setClauses.push(`description = $${paramIdx++}`);
+      params.push(description);
+    }
     if (category && Object.values(DOCUMENT_CATEGORIES).includes(category)) {
-      updateData.category = category;
+      setClauses.push(`category = $${paramIdx++}`);
+      params.push(category);
     }
 
-    const { data: document, error } = await supabase
-      .from('documents_metadata')
-      .update(updateData)
-      .eq('id', documentId)
-      .select()
-      .single();
+    if (setClauses.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'لا توجد بيانات للتحديث',
+        message_en: 'No data to update'
+      });
+    }
 
-    if (error) {throw error;}
+    params.push(documentId);
+    const { rows } = await query(
+      `UPDATE documents_metadata SET ${setClauses.join(', ')} WHERE id = $${paramIdx} RETURNING *`,
+      params
+    );
+    const document = rows[0];
 
     res.json({
       success: true,
@@ -422,13 +475,13 @@ router.delete('/:documentId', authenticateToken, async (req, res) => {
     const { documentId } = req.params;
 
     // Get document details
-    const { data: document, error: _fetchError } = await supabase
-      .from('documents_metadata')
-      .select('*')
-      .eq('id', documentId)
-      .single();
+    const { rows: docRows } = await query(
+      'SELECT * FROM documents_metadata WHERE id = $1',
+      [documentId]
+    );
+    const document = docRows[0];
 
-    if (_fetchError || !document) {
+    if (!document) {
       return res.status(404).json({
         success: false,
         message: 'المستند غير موجود',
@@ -447,12 +500,10 @@ router.delete('/:documentId', authenticateToken, async (req, res) => {
     }
 
     // Soft delete in database
-    const { error: _updateError } = await supabase
-      .from('documents_metadata')
-      .update({ status: 'deleted', deleted_at: new Date().toISOString() })
-      .eq('id', documentId);
-
-    if (_updateError) {throw _updateError;}
+    await query(
+      'UPDATE documents_metadata SET status = $1, deleted_at = $2 WHERE id = $3',
+      ['deleted', new Date().toISOString(), documentId]
+    );
 
     // Delete from storage
     await deleteFromSupabase(document.file_path);
@@ -491,13 +542,10 @@ router.get('/stats/overview', authenticateToken, async (req, res) => {
   try {
     const memberId = req.query.member_id || req.user.id;
 
-    const { data: stats, error } = await supabase
-      .from('documents_metadata')
-      .select('category, file_size')
-      .eq('member_id', memberId)
-      .eq('status', 'active');
-
-    if (error) {throw error;}
+    const { rows: stats } = await query(
+      `SELECT category, file_size FROM documents_metadata WHERE member_id = $1 AND status = $2`,
+      [memberId, 'active']
+    );
 
     // Calculate statistics
     const categoryCount = {};

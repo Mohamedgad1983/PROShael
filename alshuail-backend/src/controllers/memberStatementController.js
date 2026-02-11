@@ -1,4 +1,4 @@
-import supabaseService from '../services/supabaseService.js';
+import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
 
 /**
@@ -9,9 +9,9 @@ import { log } from '../utils/logger.js';
 // Search for member and get their statement
 export const searchMemberStatement = async (req, res) => {
   try {
-    const { query } = req.query;
+    const { query: searchQuery } = req.query;
 
-    if (!query || query.length < 3) {
+    if (!searchQuery || searchQuery.length < 3) {
       return res.status(400).json({
         success: false,
         message: 'يرجى إدخال 3 أحرف على الأقل للبحث'
@@ -19,47 +19,36 @@ export const searchMemberStatement = async (req, res) => {
     }
 
     // Detect if query is phone number or name
-    const isPhone = /^[0-9]+$/.test(query);
+    const isPhone = /^[0-9]+$/.test(searchQuery);
 
     let members;
 
     if (isPhone) {
       // Search by phone number
-      const { data: _data, error } = await supabaseService.client
-        .from('members')
-        .select('*')
-        .ilike('phone', `%${query}%`)
-        .limit(10);
-
-      if (error) {throw error;}
-      members = _data;
-
+      const { rows } = await query(
+        'SELECT * FROM members WHERE phone ILIKE $1 LIMIT 10',
+        [`%${searchQuery}%`]
+      );
+      members = rows;
     } else {
       // Search by name (Arabic)
-      const { data: _data, error } = await supabaseService.client
-        .from('members')
-        .select('*')
-        .ilike('full_name', `%${query}%`)
-        .limit(10);
-
-      if (error) {throw error;}
-      members = _data;
+      const { rows } = await query(
+        'SELECT * FROM members WHERE full_name ILIKE $1 LIMIT 10',
+        [`%${searchQuery}%`]
+      );
+      members = rows;
     }
 
     // For each member, get their payment history
     const membersWithPayments = await Promise.all(
       members.map(async (member) => {
         // Get all payments for this member
-        const { data: payments, error: _paymentError } = await supabaseService.client
-          .from('payments')
-          .select('amount, payment_date')
-          .eq('payer_id', member.id)
-          .eq('status', 'completed')
-          .order('payment_date', { ascending: true });
-
-        if (_paymentError) {
-          log.error('Error fetching payments', { error: _paymentError.message });
-        }
+        const { rows: payments } = await query(
+          `SELECT amount, payment_date FROM payments
+           WHERE payer_id = $1 AND status = 'completed'
+           ORDER BY payment_date ASC`,
+          [member.id]
+        );
 
         // Organize payments by year
         const paymentsByYear = {
@@ -116,13 +105,13 @@ export const getMemberStatement = async (req, res) => {
     const { memberId } = req.params;
 
     // Get member details
-    const { data: member, error: _memberError } = await supabaseService.client
-      .from('members')
-      .select('*')
-      .eq('id', memberId)
-      .single();
+    const { rows: memberRows } = await query(
+      'SELECT * FROM members WHERE id = $1',
+      [memberId]
+    );
+    const member = memberRows[0];
 
-    if (_memberError || !member) {
+    if (!member) {
       return res.status(404).json({
         success: false,
         message: 'العضو غير موجود'
@@ -130,14 +119,12 @@ export const getMemberStatement = async (req, res) => {
     }
 
     // Get payment history
-    const { data: payments, error: _paymentError } = await supabaseService.client
-      .from('payments')
-      .select('*')
-      .eq('payer_id', memberId)
-      .eq('status', 'completed')
-      .order('payment_date', { ascending: false });
-
-    if (_paymentError) {throw _paymentError;}
+    const { rows: payments } = await query(
+      `SELECT * FROM payments
+       WHERE payer_id = $1 AND status = 'completed'
+       ORDER BY payment_date DESC`,
+      [memberId]
+    );
 
     // Organize by year
     const paymentsByYear = {
@@ -199,20 +186,14 @@ export const getMemberStatement = async (req, res) => {
 export const getAllMembersWithBalances = async (req, res) => {
   try {
     // Get all members
-    const { data: members, error: _memberError } = await supabaseService.client
-      .from('members')
-      .select('*')
-      .order('full_name');
-
-    if (_memberError) {throw _memberError;}
+    const { rows: members } = await query(
+      'SELECT * FROM members ORDER BY full_name'
+    );
 
     // Get all payments
-    const { data: payments, error: _paymentError } = await supabaseService.client
-      .from('payments')
-      .select('payer_id, amount')
-      .eq('status', 'completed');
-
-    if (_paymentError) {throw _paymentError;}
+    const { rows: payments } = await query(
+      "SELECT payer_id, amount FROM payments WHERE status = 'completed'"
+    );
 
     // Calculate balances
     const balanceMap = {};

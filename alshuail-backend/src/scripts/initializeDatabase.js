@@ -1,5 +1,5 @@
 import { DatabaseOptimizationService } from '../services/databaseOptimizationService.js';
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
 
 /**
@@ -7,36 +7,33 @@ import { log } from '../utils/logger.js';
  * Run this script to set up all database optimizations
  */
 async function initializeDatabase() {
-  log.info('🚀 Starting database initialization...');
+  log.info('Starting database initialization...');
 
   try {
     // Test connection first
-    const { data: _testData, error: _testError } = await supabase
-      .from('payments')
-      .select('id')
-      .limit(1);
-
-    if (_testError) {
-      log.error('❌ Database connection failed:', _testError.message);
+    try {
+      await query('SELECT id FROM payments LIMIT 1');
+    } catch (testError) {
+      log.error('Database connection failed:', testError.message);
       return false;
     }
 
-    log.info('✅ Database connection successful');
+    log.info('Database connection successful');
 
     // Run full optimization
     const result = await DatabaseOptimizationService.runFullOptimization();
 
     if (result.success) {
-      log.info('✅ Database initialization completed successfully!');
-      log.info('📊 Results:', JSON.stringify(result.data, null, 2));
+      log.info('Database initialization completed successfully!');
+      log.info('Results:', JSON.stringify(result.data, null, 2));
     } else {
-      log.error('❌ Database initialization failed:', result.error);
+      log.error('Database initialization failed:', result.error);
     }
 
     return result.success;
 
   } catch (error) {
-    log.error('❌ Database initialization error:', error.message);
+    log.error('Database initialization error:', error.message);
     return false;
   }
 }

@@ -1,8 +1,8 @@
-// Database Service Module - PostgreSQL Direct Access
+// Member Service Module - Direct PostgreSQL queries
 import { query } from './database.js';
 import { log } from '../utils/logger.js';
 
-// Helper functions for common database operations
+// Helper functions for common member database operations
 export const dbHelpers = {
   // Get all members with their latest payment info
   async getMembersWithBalances() {
@@ -44,10 +44,6 @@ export const dbHelpers = {
         'SELECT * FROM members WHERE id = $1',
         [memberId]
       );
-
-      if (!rows || rows.length === 0) {
-        throw new Error('Member not found');
-      }
       return rows[0];
     } catch (error) {
       log.error('Error getting member by ID:', error);
@@ -62,7 +58,6 @@ export const dbHelpers = {
         'SELECT * FROM members WHERE family_branch_id = $1 ORDER BY full_name_ar',
         [branchId]
       );
-
       return rows;
     } catch (error) {
       log.error('Error getting members by branch:', error);
@@ -73,18 +68,17 @@ export const dbHelpers = {
   // Update member data
   async updateMember(memberId, updates) {
     try {
-      const updateFields = Object.keys(updates);
-      const updateValues = Object.values(updates);
-      const setClause = updateFields.map((field, idx) => `${field} = $${idx + 1}`).join(', ');
+      const fields = { ...updates, updated_at: new Date().toISOString() };
+      const keys = Object.keys(fields);
+      const values = Object.values(fields);
+
+      const setClauses = keys.map((key, i) => `${key} = $${i + 1}`).join(', ');
+      values.push(memberId);
 
       const { rows } = await query(
-        `UPDATE members SET ${setClause}, updated_at = $${updateFields.length + 1} WHERE id = $${updateFields.length + 2} RETURNING *`,
-        [...updateValues, new Date().toISOString(), memberId]
+        `UPDATE members SET ${setClauses} WHERE id = $${values.length} RETURNING *`,
+        values
       );
-
-      if (!rows || rows.length === 0) {
-        throw new Error('Member not found');
-      }
       return rows[0];
     } catch (error) {
       log.error('Error updating member:', error);
@@ -92,5 +86,3 @@ export const dbHelpers = {
     }
   }
 };
-
-export default dbHelpers;

@@ -1,5 +1,5 @@
 // Family Tree Controller
-import { supabase } from "../config/database.js";
+import { query } from "../services/database.js";
 import {
   buildTreeStructure,
   getDescendants,
@@ -19,35 +19,27 @@ export const getFullTree = async (req, res) => {
   try {
     const { subdivision_id } = req.query;
 
-    let query = supabase
-      .from('members')
-      .select('*')
-      .eq('is_active', true)
-      .eq('membership_status', 'active');
+    const conditions = ["is_active = true", "membership_status = 'active'"];
+    const params = [];
+    let paramIndex = 1;
 
     // Filter by subdivision if provided
     if (subdivision_id) {
-      query = query.eq('family_branch_id', subdivision_id);
+      conditions.push(`family_branch_id = $${paramIndex++}`);
+      params.push(subdivision_id);
     }
 
-    const { data: members, error } = await query;
-
-    if (error) {
-      console.error('Get Tree Error:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'خطأ في جلب شجرة العائلة'
-      });
-    }
+    const whereClause = `WHERE ${conditions.join(' AND ')}`;
+    const { rows: members } = await query(`SELECT * FROM members ${whereClause}`, params);
 
     // Get member photos separately
     const memberIds = members.map(m => m.id);
     let memberPhotos = [];
     if (memberIds.length > 0) {
-      const { data: photos } = await supabase
-        .from('member_photos')
-        .select('member_id, photo_url')
-        .in('member_id', memberIds);
+      const { rows: photos } = await query(
+        'SELECT member_id, photo_url FROM member_photos WHERE member_id = ANY($1)',
+        [memberIds]
+      );
       memberPhotos = photos || [];
     }
     const photoMap = {};
@@ -91,18 +83,9 @@ export const getMemberRelationships = async (req, res) => {
     const { memberId } = req.params;
 
     // Get all members for relationship calculation
-    const { data: allMembers, error: membersError } = await supabase
-      .from('members')
-      .select('*')
-      .eq('is_active', true);
-
-    if (membersError) {
-      console.error('Get Members Error:', membersError);
-      return res.status(500).json({
-        success: false,
-        message: 'خطأ في جلب الأعضاء'
-      });
-    }
+    const { rows: allMembers } = await query(
+      'SELECT * FROM members WHERE is_active = true'
+    );
 
     const { memberMap } = buildTreeStructure(allMembers);
 
@@ -211,35 +194,36 @@ export const searchMembers = async (req, res) => {
       });
     }
 
-    const { data: members, error } = await supabase
-      .from('members')
-      .select(`
-        id,
-        member_id,
-        full_name_ar,
-        full_name_en,
-        phone,
-        family_branches (
-          id,
-          branch_name
-        )
-      `)
-      .eq('is_active', true)
-      .or(`full_name_ar.ilike.%${searchQuery}%,full_name_en.ilike.%${searchQuery}%,member_id.ilike.%${searchQuery}%`)
-      .limit(20);
+    const searchPattern = `%${searchQuery}%`;
 
-    if (error) {
-      console.error('Search Error:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'خطأ في البحث'
-      });
-    }
+    const { rows: members } = await query(
+      `SELECT m.id, m.member_id, m.full_name_ar, m.full_name_en, m.phone,
+              fb.id AS branch_id, fb.branch_name
+       FROM members m
+       LEFT JOIN family_branches fb ON m.family_branch_id = fb.id
+       WHERE m.is_active = true
+         AND (m.full_name_ar ILIKE $1 OR m.full_name_en ILIKE $1 OR m.member_id ILIKE $1)
+       LIMIT 20`,
+      [searchPattern]
+    );
+
+    // Format to match previous nested structure
+    const formattedMembers = members.map(m => ({
+      id: m.id,
+      member_id: m.member_id,
+      full_name_ar: m.full_name_ar,
+      full_name_en: m.full_name_en,
+      phone: m.phone,
+      family_branches: m.branch_id ? {
+        id: m.branch_id,
+        branch_name: m.branch_name
+      } : null
+    }));
 
     res.json({
       success: true,
-      count: members.length,
-      data: members
+      count: formattedMembers.length,
+      data: formattedMembers
     });
   } catch (error) {
     console.error('Exception:', error);
@@ -257,16 +241,15 @@ export const searchMembers = async (req, res) => {
 export const getTreeStats = async (req, res) => {
   try {
     // Total members
-    const { count: totalMembers } = await supabase
-      .from('members')
-      .select('id', { count: 'exact', head: true })
-      .eq('is_active', true);
+    const { rows: countRows } = await query(
+      "SELECT COUNT(*)::int AS count FROM members WHERE is_active = true"
+    );
+    const totalMembers = countRows[0].count;
 
     // Get all members for generation stats
-    const { data: members } = await supabase
-      .from('members')
-      .select('id, generation_level')
-      .eq('is_active', true);
+    const { rows: members } = await query(
+      "SELECT id, generation_level FROM members WHERE is_active = true"
+    );
 
     const generationStats = getGenerationStats(members);
 
@@ -302,34 +285,15 @@ export const getVisualization = async (req, res) => {
     }
 
     // Get all members for building relationships
-    const { data: allMembers, error: allMembersError } = await supabase
-      .from('members')
-      .select(`
-        id,
-        member_id,
-        full_name,
-        full_name_ar,
-        full_name_en,
-        phone,
-        parent_member_id,
-        spouse_id,
-        generation_level,
-        gender,
-        is_active,
-        current_balance,
-        member_photos!left (
-          photo_url
-        )
-      `)
-      .eq('is_active', true);
-
-    if (allMembersError) {
-      console.error('Error fetching all members:', allMembersError);
-      return res.status(500).json({
-        success: false,
-        message: 'خطأ في جلب بيانات الأعضاء'
-      });
-    }
+    const { rows: allMembers } = await query(
+      `SELECT m.id, m.member_id, m.full_name, m.full_name_ar, m.full_name_en,
+              m.phone, m.parent_member_id, m.spouse_id, m.generation_level,
+              m.gender, m.is_active, m.current_balance,
+              mp.photo_url
+       FROM members m
+       LEFT JOIN member_photos mp ON m.id = mp.member_id
+       WHERE m.is_active = true`
+    );
 
     // Find the target member
     const targetMember = allMembers.find(m => m.id === memberId);
@@ -364,7 +328,7 @@ export const getVisualization = async (req, res) => {
             memberId: spouseMember.member_id,
             phoneNumber: spouseMember.phone,
             balance: spouseMember.current_balance || 0,
-            photo_url: spouseMember.member_photos?.[0]?.photo_url || null
+            photo_url: spouseMember.photo_url || null
           };
         }
       }
@@ -385,8 +349,8 @@ export const getVisualization = async (req, res) => {
 
       // Get siblings (same parent)
       const siblings = allMembers
-        .filter(m => 
-          m.parent_member_id === member.parent_member_id && 
+        .filter(m =>
+          m.parent_member_id === member.parent_member_id &&
           m.id !== targetMemberId &&
           member.parent_member_id !== null
         )
@@ -404,7 +368,7 @@ export const getVisualization = async (req, res) => {
         balance: member.current_balance || 0,
         generation: member.generation_level || 0,
         gender: member.gender,
-        photo_url: member.member_photos?.[0]?.photo_url || null,
+        photo_url: member.photo_url || null,
         children: children,
         spouse: spouse,
         parents: parents,

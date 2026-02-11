@@ -115,26 +115,19 @@ export const config = {
   // Server
   port: getInt('PORT', 5001),
 
-  // Supabase Configuration (DEPRECATED - kept for backward compatibility)
-  // NOTE: System now uses VPS PostgreSQL via pgQueryBuilder
-  // These values are only used by documentStorage.js which will be migrated
-  supabase: {
-    url: getString('SUPABASE_URL', ''),  // DEPRECATED
-    anonKey: getString('SUPABASE_ANON_KEY', ''),  // DEPRECATED
-    serviceKey: getString('SUPABASE_SERVICE_KEY', ''),  // DEPRECATED
-    // Legacy support for alternative key names
-    serviceRoleKey: getString('SUPABASE_SERVICE_ROLE_KEY') || getString('SUPABASE_SERVICE_KEY', ''),
-    key: getString('SUPABASE_KEY') || getString('SUPABASE_ANON_KEY', ''),
+  // Database Configuration (VPS PostgreSQL via services/database.js)
+  // Prefer DATABASE_URL; DB_* vars are deprecated fallbacks
+  database: {
+    url: getString('DATABASE_URL', ''),
   },
 
-  // VPS PostgreSQL Configuration (PRIMARY DATABASE)
-  // Connection via pgQueryBuilder.js - 213.199.62.185
+  // DEPRECATED: Individual DB_* vars (use DATABASE_URL instead)
+  // Kept temporarily for backward compatibility during migration
   postgres: {
     host: getString('DB_HOST', 'localhost'),
     port: getInt('DB_PORT', 5432),
     database: getString('DB_NAME', 'alshuail_db'),
     user: getString('DB_USER', 'alshuail'),
-    // Note: DB_PASSWORD should be set in environment, no default for security
   },
 
   // JWT Configuration
@@ -149,11 +142,6 @@ export const config = {
   frontend: {
     url: getString('FRONTEND_URL', 'http://localhost:3002'),
     corsOrigin: getString('CORS_ORIGIN', isDevelopment ? '*' : ''),
-  },
-
-  // Database
-  database: {
-    url: getString('DATABASE_URL', ''), // For PostgreSQL direct connection if needed
   },
 
   // Redis (optional)
@@ -220,12 +208,11 @@ export const config = {
 
 // Log configuration on startup (non-sensitive info only)
 if (isDevelopment) {
-  console.log('📋 Environment Configuration Loaded', {
+  console.log('Environment Configuration Loaded', {
     env: config.env,
     port: config.port,
-    database: 'VPS PostgreSQL via pgQueryBuilder',
+    database: config.database.url ? 'DATABASE_URL' : 'DB_* variables',
     postgresHost: config.postgres.host,
-    supabaseConfigured: !!config.supabase.url + ' (DEPRECATED)',
     jwtConfigured: !!config.jwt.secret,
     redisEnabled: config.redis.enabled,
     frontendUrl: config.frontend.url,

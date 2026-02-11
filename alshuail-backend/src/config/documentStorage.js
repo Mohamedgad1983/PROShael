@@ -15,7 +15,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
 import { log } from '../utils/logger.js';
-import { supabase } from './database.js';  // This is pgQueryBuilder, not Supabase
+import { query } from '../services/database.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -33,8 +33,8 @@ const UPLOAD_BASE_DIR = process.env.UPLOAD_DIR || path.join(__dirname, '../../up
   }
 })();
 
-// Re-export the database client (pgQueryBuilder) for backward compatibility
-export { supabase };
+// Re-export the database query function for backward compatibility
+export { query };
 
 // Multer configuration for temporary file storage (memory buffer)
 const storage = multer.memoryStorage();

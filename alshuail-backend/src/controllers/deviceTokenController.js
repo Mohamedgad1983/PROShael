@@ -12,7 +12,7 @@
  * - Refresh token (when FCM token rotates)
  */
 
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
 
 /**
@@ -57,16 +57,14 @@ export async function registerDeviceToken(req, res) {
     }
 
     // Validate member exists
-    const { data: member, error: memberError } = await supabase
-      .from('members')
-      .select('id')
-      .eq('id', member_id)
-      .single();
+    const { rows: memberRows } = await query(
+      'SELECT id FROM members WHERE id = $1',
+      [member_id]
+    );
 
-    if (memberError || !member) {
+    if (memberRows.length === 0) {
       log.warn('Device token registration failed - member not found', {
-        member_id,
-        error: memberError?.message
+        member_id
       });
       return res.status(404).json({
         success: false,
@@ -75,31 +73,25 @@ export async function registerDeviceToken(req, res) {
     }
 
     // Check if token already exists
-    const { data: existingToken } = await supabase
-      .from('device_tokens')
-      .select('*')
-      .eq('member_id', member_id)
-      .eq('token', token)
-      .single();
+    const { rows: existingRows } = await query(
+      'SELECT * FROM device_tokens WHERE member_id = $1 AND token = $2',
+      [member_id, token]
+    );
 
-    if (existingToken) {
+    if (existingRows.length > 0) {
+      const existingToken = existingRows[0];
+
       // Token already registered - update it (reactivate if inactive)
-      const { data: updatedToken, error: updateError } = await supabase
-        .from('device_tokens')
-        .update({
-          is_active: true,
-          device_name,
-          app_version,
-          os_version,
-          last_used_at: new Date().toISOString()
-        })
-        .eq('id', existingToken.id)
-        .select()
-        .single();
+      const { rows: updatedRows } = await query(
+        `UPDATE device_tokens
+         SET is_active = true, device_name = $1, app_version = $2, os_version = $3, last_used_at = $4
+         WHERE id = $5
+         RETURNING *`,
+        [device_name, app_version, os_version, new Date().toISOString(), existingToken.id]
+      );
 
-      if (updateError) {
+      if (updatedRows.length === 0) {
         log.error('Failed to update existing device token', {
-          error: updateError.message,
           token_id: existingToken.id
         });
         return res.status(500).json({
@@ -107,6 +99,8 @@ export async function registerDeviceToken(req, res) {
           error: 'Failed to update device token'
         });
       }
+
+      const updatedToken = updatedRows[0];
 
       log.info('Device token reactivated', {
         member_id,
@@ -122,24 +116,15 @@ export async function registerDeviceToken(req, res) {
     }
 
     // Register new device token
-    const { data: newToken, error: insertError } = await supabase
-      .from('device_tokens')
-      .insert({
-        member_id,
-        token,
-        platform,
-        device_name,
-        app_version,
-        os_version,
-        is_active: true,
-        last_used_at: new Date().toISOString()
-      })
-      .select()
-      .single();
+    const { rows: insertedRows } = await query(
+      `INSERT INTO device_tokens (member_id, token, platform, device_name, app_version, os_version, is_active, last_used_at)
+       VALUES ($1, $2, $3, $4, $5, $6, true, $7)
+       RETURNING *`,
+      [member_id, token, platform, device_name, app_version, os_version, new Date().toISOString()]
+    );
 
-    if (insertError) {
+    if (insertedRows.length === 0) {
       log.error('Failed to register device token', {
-        error: insertError.message,
         member_id,
         platform
       });
@@ -148,6 +133,8 @@ export async function registerDeviceToken(req, res) {
         error: 'Failed to register device token'
       });
     }
+
+    const newToken = insertedRows[0];
 
     log.info('Device token registered successfully', {
       member_id,
@@ -186,13 +173,12 @@ export async function getMemberDevices(req, res) {
     const { active_only } = req.query;
 
     // Validate member exists
-    const { data: member, error: memberError } = await supabase
-      .from('members')
-      .select('id')
-      .eq('id', memberId)
-      .single();
+    const { rows: memberRows } = await query(
+      'SELECT id FROM members WHERE id = $1',
+      [memberId]
+    );
 
-    if (memberError || !member) {
+    if (memberRows.length === 0) {
       return res.status(404).json({
         success: false,
         error: 'Member not found'
@@ -200,29 +186,17 @@ export async function getMemberDevices(req, res) {
     }
 
     // Build query
-    let query = supabase
-      .from('device_tokens')
-      .select('*')
-      .eq('member_id', memberId)
-      .order('created_at', { ascending: false });
+    let sql = 'SELECT * FROM device_tokens WHERE member_id = $1';
+    const params = [memberId];
 
-    // Filter by active status if requested
     if (active_only === 'true') {
-      query = query.eq('is_active', true);
+      sql += ' AND is_active = $2';
+      params.push(true);
     }
 
-    const { data: devices, error } = await query;
+    sql += ' ORDER BY created_at DESC';
 
-    if (error) {
-      log.error('Failed to fetch member devices', {
-        error: error.message,
-        memberId
-      });
-      return res.status(500).json({
-        success: false,
-        error: 'Failed to fetch devices'
-      });
-    }
+    const { rows: devices } = await query(sql, params);
 
     log.info('Member devices fetched', {
       memberId,
@@ -265,51 +239,64 @@ export async function updateDeviceToken(req, res) {
     const { device_name, app_version, os_version, is_active } = req.body;
 
     // Check if device token exists
-    const { data: existingToken, error: fetchError } = await supabase
-      .from('device_tokens')
-      .select('*')
-      .eq('id', tokenId)
-      .single();
+    const { rows: existingRows } = await query(
+      'SELECT * FROM device_tokens WHERE id = $1',
+      [tokenId]
+    );
 
-    if (fetchError || !existingToken) {
+    if (existingRows.length === 0) {
       return res.status(404).json({
         success: false,
         error: 'Device token not found'
       });
     }
 
-    // Prepare update data
-    const updateData = {
-      ...(device_name !== undefined && { device_name }),
-      ...(app_version !== undefined && { app_version }),
-      ...(os_version !== undefined && { os_version }),
-      ...(is_active !== undefined && { is_active }),
-      last_used_at: new Date().toISOString()
-    };
+    // Build dynamic SET clause
+    const setClauses = [];
+    const params = [];
+    let paramIndex = 1;
 
-    // Update device token
-    const { data: updatedToken, error: updateError } = await supabase
-      .from('device_tokens')
-      .update(updateData)
-      .eq('id', tokenId)
-      .select()
-      .single();
+    if (device_name !== undefined) {
+      setClauses.push(`device_name = $${paramIndex++}`);
+      params.push(device_name);
+    }
+    if (app_version !== undefined) {
+      setClauses.push(`app_version = $${paramIndex++}`);
+      params.push(app_version);
+    }
+    if (os_version !== undefined) {
+      setClauses.push(`os_version = $${paramIndex++}`);
+      params.push(os_version);
+    }
+    if (is_active !== undefined) {
+      setClauses.push(`is_active = $${paramIndex++}`);
+      params.push(is_active);
+    }
 
-    if (updateError) {
-      log.error('Failed to update device token', {
-        error: updateError.message,
-        tokenId
-      });
+    setClauses.push(`last_used_at = $${paramIndex++}`);
+    params.push(new Date().toISOString());
+
+    params.push(tokenId);
+
+    const { rows: updatedRows } = await query(
+      `UPDATE device_tokens SET ${setClauses.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+      params
+    );
+
+    if (updatedRows.length === 0) {
+      log.error('Failed to update device token', { tokenId });
       return res.status(500).json({
         success: false,
         error: 'Failed to update device token'
       });
     }
 
+    const updatedToken = updatedRows[0];
+
     log.info('Device token updated', {
       tokenId,
       member_id: updatedToken.member_id,
-      updates: Object.keys(updateData)
+      updates: Object.keys(req.body)
     });
 
     return res.status(200).json({
@@ -340,30 +327,28 @@ export async function deleteDeviceToken(req, res) {
     const { tokenId } = req.params;
 
     // Check if device token exists
-    const { data: existingToken, error: fetchError } = await supabase
-      .from('device_tokens')
-      .select('*')
-      .eq('id', tokenId)
-      .single();
+    const { rows: existingRows } = await query(
+      'SELECT * FROM device_tokens WHERE id = $1',
+      [tokenId]
+    );
 
-    if (fetchError || !existingToken) {
+    if (existingRows.length === 0) {
       return res.status(404).json({
         success: false,
         error: 'Device token not found'
       });
     }
 
-    // Soft delete - mark as inactive instead of hard delete
-    const { error: updateError } = await supabase
-      .from('device_tokens')
-      .update({ is_active: false })
-      .eq('id', tokenId);
+    const existingToken = existingRows[0];
 
-    if (updateError) {
-      log.error('Failed to delete device token', {
-        error: updateError.message,
-        tokenId
-      });
+    // Soft delete - mark as inactive instead of hard delete
+    const { rowCount } = await query(
+      'UPDATE device_tokens SET is_active = false WHERE id = $1',
+      [tokenId]
+    );
+
+    if (rowCount === 0) {
+      log.error('Failed to delete device token', { tokenId });
       return res.status(500).json({
         success: false,
         error: 'Failed to delete device token'
@@ -414,70 +399,64 @@ export async function refreshDeviceToken(req, res) {
     }
 
     // Check if device token exists
-    const { data: existingToken, error: fetchError } = await supabase
-      .from('device_tokens')
-      .select('*')
-      .eq('id', tokenId)
-      .single();
+    const { rows: existingRows } = await query(
+      'SELECT * FROM device_tokens WHERE id = $1',
+      [tokenId]
+    );
 
-    if (fetchError || !existingToken) {
+    if (existingRows.length === 0) {
       return res.status(404).json({
         success: false,
         error: 'Device token not found'
       });
     }
 
-    // Check if new token already exists for this member
-    const { data: duplicateToken } = await supabase
-      .from('device_tokens')
-      .select('id')
-      .eq('member_id', existingToken.member_id)
-      .eq('token', new_token)
-      .neq('id', tokenId)
-      .single();
+    const existingToken = existingRows[0];
 
-    if (duplicateToken) {
+    // Check if new token already exists for this member
+    const { rows: duplicateRows } = await query(
+      'SELECT id FROM device_tokens WHERE member_id = $1 AND token = $2 AND id != $3',
+      [existingToken.member_id, new_token, tokenId]
+    );
+
+    if (duplicateRows.length > 0) {
       // New token already exists - delete old one
-      await supabase
-        .from('device_tokens')
-        .update({ is_active: false })
-        .eq('id', tokenId);
+      await query(
+        'UPDATE device_tokens SET is_active = false WHERE id = $1',
+        [tokenId]
+      );
 
       log.info('Old device token deactivated (duplicate new token exists)', {
         old_token_id: tokenId,
-        new_token_id: duplicateToken.id,
+        new_token_id: duplicateRows[0].id,
         member_id: existingToken.member_id
       });
 
       return res.status(200).json({
         success: true,
         message: 'Token already updated (duplicate removed)',
-        data: { token_id: duplicateToken.id }
+        data: { token_id: duplicateRows[0].id }
       });
     }
 
     // Update token
-    const { data: updatedToken, error: updateError } = await supabase
-      .from('device_tokens')
-      .update({
-        token: new_token,
-        is_active: true,
-        last_used_at: new Date().toISOString()
-      })
-      .eq('id', tokenId)
-      .select()
-      .single();
+    const { rows: updatedRows } = await query(
+      `UPDATE device_tokens
+       SET token = $1, is_active = true, last_used_at = $2
+       WHERE id = $3
+       RETURNING *`,
+      [new_token, new Date().toISOString(), tokenId]
+    );
 
-    if (updateError) {
-      log.error('Failed to refresh device token', {
-        error: updateError.message,
-        tokenId
-      });
+    if (updatedRows.length === 0) {
+      log.error('Failed to refresh device token', { tokenId });
       return res.status(500).json({
         success: false,
         error: 'Failed to refresh device token'
       });
     }
+
+    const updatedToken = updatedRows[0];
 
     log.info('Device token refreshed', {
       tokenId,

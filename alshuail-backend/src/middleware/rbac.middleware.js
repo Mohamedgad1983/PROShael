@@ -1,5 +1,5 @@
 // Role-Based Access Control Middleware
-import { supabase } from "../config/database.js";
+import { query } from '../services/database.js';
 
 
 // Role hierarchy
@@ -30,13 +30,13 @@ export const requireRole = (...allowedRoles) => {
       const userId = req.user.id;
 
       // Get user role
-      const { data: user, error } = await supabase
-        .from('users')
-        .select('role, permissions, is_active')
-        .eq('id', userId)
-        .single();
+      const { rows } = await query(
+        'SELECT role, permissions, is_active FROM users WHERE id = $1',
+        [userId]
+      );
+      const user = rows[0];
 
-      if (error || !user) {
+      if (!user) {
         return res.status(403).json({
           success: false,
           message: 'غير مصرح لك بالوصول'

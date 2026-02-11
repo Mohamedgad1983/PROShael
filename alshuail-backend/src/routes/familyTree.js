@@ -1,7 +1,7 @@
 // routes/familyTree.js
 import express from 'express';
 import { authenticateToken } from '../middleware/auth.js';
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
 
 const router = express.Router();
@@ -13,109 +13,144 @@ router.get('/member/:memberId', authenticateToken, async (req, res) => {
     const { memberId } = req.params;
 
     // 1. Get the member details
-    const { data: member, error: _memberError } = await supabase
-      .from('members')
-      .select('*')
-      .eq('id', memberId)
-      .single();
+    const memberResult = await query(
+      'SELECT * FROM members WHERE id = $1',
+      [memberId]
+    );
 
-    if (_memberError) {
+    if (memberResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'Member not found'
       });
     }
+    const member = memberResult.rows[0];
 
     // 2. Get parents (those who are fathers/mothers of this member)
-    const { data: parents } = await supabase
-      .from('family_relationships')
-      .select(`
-        id,
-        relationship_type,
-        relationship_name_ar,
-        member_from (
-          id,
-          full_name,
-          full_name_en,
-          phone,
-          email,
-          photo_url
-        )
-      `)
-      .eq('member_to', memberId)
-      .in('relationship_type', ['father', 'mother'])
-      .eq('is_active', true);
+    const parentsResult = await query(`
+      SELECT
+        fr.id,
+        fr.relationship_type,
+        fr.relationship_name_ar,
+        m.id as member_id,
+        m.full_name,
+        m.full_name_en,
+        m.phone,
+        m.email,
+        m.photo_url
+      FROM family_relationships fr
+      JOIN members m ON fr.member_from = m.id
+      WHERE fr.member_to = $1
+        AND fr.relationship_type = ANY($2)
+        AND fr.is_active = true
+    `, [memberId, ['father', 'mother']]);
+
+    const parents = parentsResult.rows.map(row => ({
+      id: row.id,
+      relationship_type: row.relationship_type,
+      relationship_name_ar: row.relationship_name_ar,
+      member_from: {
+        id: row.member_id,
+        full_name: row.full_name,
+        full_name_en: row.full_name_en,
+        phone: row.phone,
+        email: row.email,
+        photo_url: row.photo_url
+      }
+    }));
 
     // 3. Get children (those who this member is father/mother to)
-    const { data: children } = await supabase
-      .from('family_relationships')
-      .select(`
-        id,
-        relationship_type,
-        relationship_name_ar,
-        member_to (
-          id,
-          full_name,
-          full_name_en,
-          phone,
-          email,
-          photo_url
-        )
-      `)
-      .eq('member_from', memberId)
-      .in('relationship_type', ['father', 'mother'])
-      .eq('is_active', true);
+    const childrenResult = await query(`
+      SELECT
+        fr.id,
+        fr.relationship_type,
+        fr.relationship_name_ar,
+        m.id as member_id,
+        m.full_name,
+        m.full_name_en,
+        m.phone,
+        m.email,
+        m.photo_url
+      FROM family_relationships fr
+      JOIN members m ON fr.member_to = m.id
+      WHERE fr.member_from = $1
+        AND fr.relationship_type = ANY($2)
+        AND fr.is_active = true
+    `, [memberId, ['father', 'mother']]);
+
+    const children = childrenResult.rows.map(row => ({
+      id: row.id,
+      relationship_type: row.relationship_type,
+      relationship_name_ar: row.relationship_name_ar,
+      member_to: {
+        id: row.member_id,
+        full_name: row.full_name,
+        full_name_en: row.full_name_en,
+        phone: row.phone,
+        email: row.email,
+        photo_url: row.photo_url
+      }
+    }));
 
     // 4. Get spouse relationships
-    const { data: spouses } = await supabase
-      .from('family_relationships')
-      .select(`
-        id,
-        relationship_type,
-        relationship_name_ar,
-        marriage_date,
-        marriage_date_hijri,
-        member_to (
-          id,
-          full_name,
-          full_name_en,
-          phone,
-          email,
-          photo_url
-        )
-      `)
-      .eq('member_from', memberId)
-      .eq('relationship_type', 'spouse')
-      .eq('is_active', true);
+    const spousesResult = await query(`
+      SELECT
+        fr.id,
+        fr.relationship_type,
+        fr.relationship_name_ar,
+        fr.marriage_date,
+        fr.marriage_date_hijri,
+        m.id as member_id,
+        m.full_name,
+        m.full_name_en,
+        m.phone,
+        m.email,
+        m.photo_url
+      FROM family_relationships fr
+      JOIN members m ON fr.member_to = m.id
+      WHERE fr.member_from = $1
+        AND fr.relationship_type = 'spouse'
+        AND fr.is_active = true
+    `, [memberId]);
+
+    const spouses = spousesResult.rows.map(row => ({
+      id: row.id,
+      relationship_type: row.relationship_type,
+      relationship_name_ar: row.relationship_name_ar,
+      marriage_date: row.marriage_date,
+      marriage_date_hijri: row.marriage_date_hijri,
+      member_to: {
+        id: row.member_id,
+        full_name: row.full_name,
+        full_name_en: row.full_name_en,
+        phone: row.phone,
+        email: row.email,
+        photo_url: row.photo_url
+      }
+    }));
 
     // 5. Get siblings (share same parents)
     let siblings = [];
     if (parents && parents.length > 0) {
       const parentIds = parents.map(p => p.member_from.id);
 
-      const { data: siblingsData } = await supabase
-        .from('family_relationships')
-        .select(`
-          member_to (
-            id,
-            full_name,
-            full_name_en,
-            phone,
-            email,
-            photo_url
-          )
-        `)
-        .in('member_from', parentIds)
-        .in('relationship_type', ['father', 'mother'])
-        .neq('member_to', memberId)
-        .eq('is_active', true);
+      const siblingsResult = await query(`
+        SELECT DISTINCT
+          m.id,
+          m.full_name,
+          m.full_name_en,
+          m.phone,
+          m.email,
+          m.photo_url
+        FROM family_relationships fr
+        JOIN members m ON fr.member_to = m.id
+        WHERE fr.member_from = ANY($1)
+          AND fr.relationship_type = ANY($2)
+          AND fr.member_to != $3
+          AND fr.is_active = true
+      `, [parentIds, ['father', 'mother'], memberId]);
 
-      // Remove duplicates
-      const uniqueSiblings = new Map();
-      siblingsData?.forEach(s => {
-        uniqueSiblings.set(s.member_to.id, s.member_to);
-      });
-      siblings = Array.from(uniqueSiblings.values());
+      siblings = siblingsResult.rows;
     }
 
     // 6. Build response
@@ -176,9 +211,8 @@ router.get('/visualization/:memberId', authenticateToken, async (req, res) => {
     const { depth = 4 } = req.query; // How many generations to fetch
 
     // Get all members for building the tree
-    const { data: allMembers, error: allMembersError } = await supabase
-      .from('members')
-      .select(`
+    const allMembersResult = await query(`
+      SELECT
         id,
         member_id,
         full_name,
@@ -192,16 +226,11 @@ router.get('/visualization/:memberId', authenticateToken, async (req, res) => {
         is_active,
         current_balance,
         photo_url
-      `)
-      .eq('is_active', true);
+      FROM members
+      WHERE is_active = true
+    `);
 
-    if (allMembersError) {
-      log.error('Error fetching members:', { error: allMembersError.message });
-      return res.status(500).json({
-        success: false,
-        message: 'Error fetching members'
-      });
-    }
+    const allMembers = allMembersResult.rows;
 
     // Find the target member
     const targetMember = allMembers.find(m => m.id === memberId);
@@ -257,8 +286,8 @@ router.get('/visualization/:memberId', authenticateToken, async (req, res) => {
 
       // Get siblings (same parent)
       const siblings = allMembers
-        .filter(m => 
-          m.parent_member_id === member.parent_member_id && 
+        .filter(m =>
+          m.parent_member_id === member.parent_member_id &&
           m.id !== targetMemberId &&
           member.parent_member_id !== null
         )
@@ -332,16 +361,16 @@ router.post('/relationship', authenticateToken, async (req, res) => {
     }
 
     // Check if relationship already exists
-    const { data: existing } = await supabase
-      .from('family_relationships')
-      .select('id')
-      .eq('member_from', member_from)
-      .eq('member_to', member_to)
-      .eq('relationship_type', relationship_type)
-      .eq('is_active', true)
-      .single();
+    const existingResult = await query(`
+      SELECT id FROM family_relationships
+      WHERE member_from = $1
+        AND member_to = $2
+        AND relationship_type = $3
+        AND is_active = true
+      LIMIT 1
+    `, [member_from, member_to, relationship_type]);
 
-    if (existing) {
+    if (existingResult.rows.length > 0) {
       return res.status(409).json({
         success: false,
         message: 'This relationship already exists'
@@ -349,9 +378,8 @@ router.post('/relationship', authenticateToken, async (req, res) => {
     }
 
     // Create the relationship
-    const { data: _data, error: _error } = await supabase
-      .from('family_relationships')
-      .insert({
+    const insertResult = await query(`
+      INSERT INTO family_relationships (
         member_from,
         member_to,
         relationship_type,
@@ -359,17 +387,23 @@ router.post('/relationship', authenticateToken, async (req, res) => {
         relationship_name_en,
         marriage_date,
         marriage_date_hijri,
-        is_active: true
-      })
-      .select()
-      .single();
-
-    if (_error) {throw _error;}
+        is_active
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, true)
+      RETURNING *
+    `, [
+      member_from,
+      member_to,
+      relationship_type,
+      relationship_name_ar,
+      relationship_name_en,
+      marriage_date,
+      marriage_date_hijri
+    ]);
 
     res.status(201).json({
       success: true,
       message: 'Relationship created successfully',
-      data: _data
+      data: insertResult.rows[0]
     });
 
   } catch (error) {
@@ -389,19 +423,34 @@ router.put('/relationship/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
     const updates = req.body;
 
-    const { data: _data, error: _error } = await supabase
-      .from('family_relationships')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
+    // Build dynamic UPDATE query
+    const fields = Object.keys(updates);
+    const values = Object.values(updates);
 
-    if (_error) {throw _error;}
+    if (fields.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No fields to update'
+      });
+    }
+
+    const setClause = fields.map((field, index) => `${field} = $${index + 1}`).join(', ');
+    const updateResult = await query(
+      `UPDATE family_relationships SET ${setClause} WHERE id = $${fields.length + 1} RETURNING *`,
+      [...values, id]
+    );
+
+    if (updateResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Relationship not found'
+      });
+    }
 
     res.json({
       success: true,
       message: 'Relationship updated successfully',
-      data: _data
+      data: updateResult.rows[0]
     });
 
   } catch (error) {
@@ -420,12 +469,10 @@ router.delete('/relationship/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
 
-    const { error } = await supabase
-      .from('family_relationships')
-      .update({ is_active: false })
-      .eq('id', id);
-
-    if (error) {throw error;}
+    await query(
+      'UPDATE family_relationships SET is_active = false WHERE id = $1',
+      [id]
+    );
 
     res.json({
       success: true,
@@ -446,26 +493,28 @@ router.delete('/relationship/:id', authenticateToken, async (req, res) => {
 // Search for family members to add relationships
 router.get('/search', authenticateToken, async (req, res) => {
   try {
-    const { query } = req.query;
+    const { query: searchQuery } = req.query;
 
-    if (!query || query.length < 2) {
+    if (!searchQuery || searchQuery.length < 2) {
       return res.status(400).json({
         success: false,
         message: 'Search query must be at least 2 characters'
       });
     }
 
-    const { data: _data, error: _error } = await supabase
-      .from('members')
-      .select('id, full_name, full_name_en, phone, email')
-      .or(`full_name.ilike.%${query}%,full_name_en.ilike.%${query}%,phone.ilike.%${query}%`)
-      .limit(20);
-
-    if (_error) {throw _error;}
+    const searchPattern = `%${searchQuery}%`;
+    const searchResult = await query(`
+      SELECT id, full_name, full_name_en, phone, email
+      FROM members
+      WHERE full_name ILIKE $1
+        OR full_name_en ILIKE $1
+        OR phone ILIKE $1
+      LIMIT 20
+    `, [searchPattern]);
 
     res.json({
       success: true,
-      data: _data
+      data: searchResult.rows
     });
 
   } catch (error) {
@@ -485,43 +534,43 @@ router.get('/my-branch', authenticateToken, async (req, res) => {
     const memberId = req.user.id; // Use id, not memberId
 
     // Get current member with their branch info
-    const { data: member, error: memberError } = await supabase
-      .from('members')
-      .select('id, family_branch_id, tribal_section')
-      .eq('id', memberId)
-      .single();
+    const memberResult = await query(
+      'SELECT id, family_branch_id, tribal_section FROM members WHERE id = $1',
+      [memberId]
+    );
 
-    if (memberError || !member) {
+    if (memberResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'العضو غير موجود'
       });
     }
+    const member = memberResult.rows[0];
 
     // Get branch info
     let branchInfo = null;
     if (member.family_branch_id) {
-      const { data: branch } = await supabase
-        .from('family_branches')
-        .select('id, branch_name_ar, branch_name_en, member_count')
-        .eq('id', member.family_branch_id)
-        .single();
+      const branchResult = await query(
+        'SELECT id, branch_name_ar, branch_name_en, member_count FROM family_branches WHERE id = $1',
+        [member.family_branch_id]
+      );
 
-      if (branch) {
-        branchInfo = branch;
+      if (branchResult.rows.length > 0) {
+        branchInfo = branchResult.rows[0];
       }
     }
 
     // Get all members in the same branch
     let branchMembers = [];
     if (member.family_branch_id) {
-      const { data: members } = await supabase
-        .from('members')
-        .select('id, membership_number, full_name_ar, status')
-        .eq('family_branch_id', member.family_branch_id)
-        .order('full_name_ar');
+      const membersResult = await query(`
+        SELECT id, membership_number, full_name_ar, status
+        FROM members
+        WHERE family_branch_id = $1
+        ORDER BY full_name_ar
+      `, [member.family_branch_id]);
 
-      branchMembers = members || [];
+      branchMembers = membersResult.rows;
     }
 
     res.json({
@@ -560,32 +609,32 @@ router.post('/add-child', authenticateToken, async (req, res) => {
     }
 
     // Get parent member details
-    const { data: parentMember, error: parentError } = await supabase
-      .from('members')
-      .select('id, family_branch_id, generation_level, full_name, full_name_ar, gender')
-      .eq('id', parentMemberId)
-      .single();
+    const parentResult = await query(
+      'SELECT id, family_branch_id, generation_level, full_name, full_name_ar, gender FROM members WHERE id = $1',
+      [parentMemberId]
+    );
 
-    if (parentError || !parentMember) {
-      log.error('Parent member not found:', { parentMemberId, error: parentError?.message });
+    if (parentResult.rows.length === 0) {
+      log.error('Parent member not found:', { parentMemberId });
       return res.status(404).json({
         success: false,
         message: 'لم يتم العثور على بيانات العضو الأب'
       });
     }
+    const parentMember = parentResult.rows[0];
 
     // Generate new membership_number (SH-XXXX format)
-    const { data: lastMember } = await supabase
-      .from('members')
-      .select('membership_number')
-      .like('membership_number', 'SH-%')
-      .order('membership_number', { ascending: false })
-      .limit(1)
-      .single();
+    const lastMemberResult = await query(`
+      SELECT membership_number
+      FROM members
+      WHERE membership_number LIKE 'SH-%'
+      ORDER BY membership_number DESC
+      LIMIT 1
+    `);
 
     let newMembershipNumber = 1;
-    if (lastMember && lastMember.membership_number) {
-      const lastNumber = parseInt(lastMember.membership_number.replace('SH-', ''), 10);
+    if (lastMemberResult.rows.length > 0 && lastMemberResult.rows[0].membership_number) {
+      const lastNumber = parseInt(lastMemberResult.rows[0].membership_number.replace('SH-', ''), 10);
       if (!isNaN(lastNumber)) {
         newMembershipNumber = lastNumber + 1;
       }
@@ -603,51 +652,67 @@ router.post('/add-child', authenticateToken, async (req, res) => {
     // Generate a placeholder email based on membership number
     const placeholderEmail = `${newMembershipId.toLowerCase().replace('-', '')}@child.alshuail.local`;
 
-    const childData = {
-      membership_number: newMembershipId,
-      full_name: full_name.trim(),
-      full_name_ar: full_name.trim(),
-      email: placeholderEmail,
-      gender: gender || null,
-      date_of_birth_hijri: birth_date || null, // Using hijri date field
-      family_branch_id: parentMember.family_branch_id,
-      parent_member_id: parentMemberId,
-      generation_level: childGenerationLevel,
-      status: 'active',
-      is_active: true,
-      membership_status: 'pending',
-      current_balance: 0,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
+    const childResult = await query(`
+      INSERT INTO members (
+        membership_number,
+        full_name,
+        full_name_ar,
+        email,
+        gender,
+        date_of_birth_hijri,
+        family_branch_id,
+        parent_member_id,
+        generation_level,
+        status,
+        is_active,
+        membership_status,
+        current_balance,
+        created_at,
+        updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      RETURNING *
+    `, [
+      newMembershipId,
+      full_name.trim(),
+      full_name.trim(),
+      placeholderEmail,
+      gender || null,
+      birth_date || null,
+      parentMember.family_branch_id,
+      parentMemberId,
+      childGenerationLevel,
+      'active',
+      true,
+      'pending',
+      0,
+      new Date().toISOString(),
+      new Date().toISOString()
+    ]);
 
-    const { data: newChild, error: childError } = await supabase
-      .from('members')
-      .insert(childData)
-      .select()
-      .single();
-
-    if (childError) {
-      log.error('Error creating child member:', { error: childError.message, childData });
-      throw childError;
-    }
+    const newChild = childResult.rows[0];
 
     // Create family relationship record (parent -> child)
-    const relationshipData = {
-      member_from: parentMemberId,
-      member_to: newChild.id,
-      relationship_type: relationshipType,
-      relationship_name_ar: relationshipNameAr,
-      relationship_name_en: relationshipType,
-      is_active: true,
-      created_at: new Date().toISOString()
-    };
-
-    const { error: relationshipError } = await supabase
-      .from('family_relationships')
-      .insert(relationshipData);
-
-    if (relationshipError) {
+    try {
+      await query(`
+        INSERT INTO family_relationships (
+          member_from,
+          member_to,
+          relationship_type,
+          relationship_name_ar,
+          relationship_name_en,
+          is_active,
+          created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `, [
+        parentMemberId,
+        newChild.id,
+        relationshipType,
+        relationshipNameAr,
+        relationshipType,
+        true,
+        new Date().toISOString()
+      ]);
+    } catch (relationshipError) {
       log.warn('Error creating family relationship (non-critical):', { error: relationshipError.message });
       // Continue even if relationship creation fails - member is already created
     }
@@ -655,33 +720,42 @@ router.post('/add-child', authenticateToken, async (req, res) => {
     // Update branch member count
     if (parentMember.family_branch_id) {
       try {
-        await supabase.rpc('increment_branch_member_count', {
-          branch_id: parentMember.family_branch_id
-        });
+        await query(
+          'SELECT increment_branch_member_count($1)',
+          [parentMember.family_branch_id]
+        );
       } catch (rpcError) {
-        // Silently fail if RPC doesn't exist
-        log.debug('RPC increment_branch_member_count not available:', rpcError?.message);
+        // Silently fail if function doesn't exist
+        log.debug('Function increment_branch_member_count not available:', rpcError?.message);
       }
     }
 
     // Create audit log entry
     try {
-      await supabase
-        .from('audit_logs')
-        .insert({
-          user_id: req.user.id,
-          action: 'ADD_CHILD',
-          entity_type: 'member',
-          entity_id: newChild.id,
-          details: {
-            parent_id: parentMemberId,
-            parent_name: parentMember.full_name || parentMember.full_name_ar,
-            child_name: full_name,
-            membership_number: newMembershipId
-          },
-          ip_address: req.ip || req.connection?.remoteAddress,
-          created_at: new Date().toISOString()
-        });
+      await query(`
+        INSERT INTO audit_logs (
+          user_id,
+          action,
+          entity_type,
+          entity_id,
+          details,
+          ip_address,
+          created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `, [
+        req.user.id,
+        'ADD_CHILD',
+        'member',
+        newChild.id,
+        JSON.stringify({
+          parent_id: parentMemberId,
+          parent_name: parentMember.full_name || parentMember.full_name_ar,
+          child_name: full_name,
+          membership_number: newMembershipId
+        }),
+        req.ip || req.connection?.remoteAddress,
+        new Date().toISOString()
+      ]);
     } catch (auditError) {
       log.warn('Failed to create audit log:', { error: auditError.message });
     }
@@ -720,5 +794,3 @@ router.post('/add-child', authenticateToken, async (req, res) => {
 });
 
 export default router;
-
-

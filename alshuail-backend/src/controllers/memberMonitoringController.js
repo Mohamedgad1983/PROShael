@@ -11,7 +11,7 @@ import {
   searchMembersAutocomplete,
   getTribalSectionStats
 } from '../services/memberMonitoringQueryService.js';
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
 
 /**
@@ -225,7 +225,7 @@ export const getTribalSections = async (req, res) => {
 };
 
 /**
- * Suspend a member (إيقاف)
+ * Suspend a member
  */
 export const suspendMember = async (req, res) => {
   try {
@@ -239,20 +239,22 @@ export const suspendMember = async (req, res) => {
     }
 
     // Update member status
-    const { data: updatedMember, error: _updateError } = await supabase
-      .from('members')
-      .update({
-        is_suspended: true,
-        suspension_reason: reason,
-        suspended_at: new Date().toISOString(),
-        suspended_by: adminId || req.user?.id || 'admin'
-      })
-      .eq('id', id)
-      .select()
-      .single();
+    const performedBy = adminId || req.user?.id || 'admin';
+    const { rows } = await query(
+      `UPDATE members
+       SET is_suspended = $1,
+           suspension_reason = $2,
+           suspended_at = $3,
+           suspended_by = $4
+       WHERE id = $5
+       RETURNING *`,
+      [true, reason, new Date().toISOString(), performedBy, id]
+    );
 
-    if (_updateError) {
-      log.error('Error suspending member', { error: _updateError.message });
+    const updatedMember = rows[0];
+
+    if (!updatedMember) {
+      log.error('Error suspending member', { memberId: id });
       return res.status(500).json({ error: 'Failed to suspend member' });
     }
 
@@ -261,7 +263,7 @@ export const suspendMember = async (req, res) => {
       action_type: 'member_suspended',
       target_id: id,
       target_type: 'member',
-      performed_by: adminId || req.user?.id || 'admin',
+      performed_by: performedBy,
       details: {
         reason: reason,
         member_name: updatedMember.full_name,
@@ -271,7 +273,7 @@ export const suspendMember = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'تم إيقاف العضو بنجاح',
+      message: '\u062a\u0645 \u0625\u064a\u0642\u0627\u0641 \u0627\u0644\u0639\u0636\u0648 \u0628\u0646\u062c\u0627\u062d',
       member: updatedMember
     });
 
@@ -293,22 +295,24 @@ export const reactivateMember = async (req, res) => {
     const { adminId, notes } = req.body;
 
     // Update member status
-    const { data: updatedMember, error: _updateError } = await supabase
-      .from('members')
-      .update({
-        is_suspended: false,
-        suspension_reason: null,
-        suspended_at: null,
-        suspended_by: null,
-        reactivated_at: new Date().toISOString(),
-        reactivated_by: adminId || req.user?.id || 'admin'
-      })
-      .eq('id', id)
-      .select()
-      .single();
+    const performedBy = adminId || req.user?.id || 'admin';
+    const { rows } = await query(
+      `UPDATE members
+       SET is_suspended = $1,
+           suspension_reason = $2,
+           suspended_at = $3,
+           suspended_by = $4,
+           reactivated_at = $5,
+           reactivated_by = $6
+       WHERE id = $7
+       RETURNING *`,
+      [false, null, null, null, new Date().toISOString(), performedBy, id]
+    );
 
-    if (_updateError) {
-      log.error('Error reactivating member', { error: _updateError.message });
+    const updatedMember = rows[0];
+
+    if (!updatedMember) {
+      log.error('Error reactivating member', { memberId: id });
       return res.status(500).json({ error: 'Failed to reactivate member' });
     }
 
@@ -317,7 +321,7 @@ export const reactivateMember = async (req, res) => {
       action_type: 'member_reactivated',
       target_id: id,
       target_type: 'member',
-      performed_by: adminId || req.user?.id || 'admin',
+      performed_by: performedBy,
       details: {
         notes: notes,
         member_name: updatedMember.full_name,
@@ -327,7 +331,7 @@ export const reactivateMember = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'تم إعادة تفعيل العضو بنجاح',
+      message: '\u062a\u0645 \u0625\u0639\u0627\u062f\u0629 \u062a\u0641\u0639\u064a\u0644 \u0627\u0644\u0639\u0636\u0648 \u0628\u0646\u062c\u0627\u062d',
       member: updatedMember
     });
 
@@ -368,13 +372,14 @@ export const notifyMembers = async (req, res) => {
     for (const memberId of memberIds) {
       try {
         // Get member details
-        const { data: member, error: _memberError } = await supabase
-          .from('members')
-          .select('*')
-          .eq('id', memberId)
-          .single();
+        const { rows: memberRows } = await query(
+          'SELECT * FROM members WHERE id = $1',
+          [memberId]
+        );
 
-        if (_memberError || !member) {
+        const member = memberRows[0];
+
+        if (!member) {
           results.failed.push({
             memberId,
             reason: 'Member not found'
@@ -384,19 +389,14 @@ export const notifyMembers = async (req, res) => {
 
         // Create notification record
         if (channel === 'app' || channel === 'both') {
-          const { error: _notifError } = await supabase
-            .from('notifications')
-            .insert({
-              member_id: memberId,
-              type: type || 'general',
-              title: title || 'إشعار',
-              message: message,
-              status: 'pending',
-              created_at: new Date().toISOString()
-            });
-
-          if (_notifError) {
-            log.error('Notification creation failed', { memberId, error: _notifError.message });
+          try {
+            await query(
+              `INSERT INTO notifications (member_id, type, title, message, status, created_at)
+               VALUES ($1, $2, $3, $4, $5, $6)`,
+              [memberId, type || 'general', title || '\u0625\u0634\u0639\u0627\u0631', message, 'pending', new Date().toISOString()]
+            );
+          } catch (notifErr) {
+            log.error('Notification creation failed', { memberId, error: notifErr.message });
           }
         }
 
@@ -404,18 +404,14 @@ export const notifyMembers = async (req, res) => {
         if ((channel === 'sms' || channel === 'both') && (member.phone || member.mobile)) {
           const phoneNumber = member.phone || member.mobile;
 
-          const { error: _smsError } = await supabase
-            .from('sms_queue')
-            .insert({
-              phone_number: phoneNumber,
-              message: message,
-              status: 'pending',
-              member_id: memberId,
-              created_at: new Date().toISOString()
-            });
-
-          if (_smsError) {
-            log.error('SMS queue failed', { memberId, error: _smsError.message });
+          try {
+            await query(
+              `INSERT INTO sms_queue (phone_number, message, status, member_id, created_at)
+               VALUES ($1, $2, $3, $4, $5)`,
+              [phoneNumber, message, 'pending', memberId, new Date().toISOString()]
+            );
+          } catch (smsErr) {
+            log.error('SMS queue failed', { memberId, error: smsErr.message });
           }
         }
 
@@ -450,7 +446,7 @@ export const notifyMembers = async (req, res) => {
 
     res.json({
       success: true,
-      message: `تم إرسال ${results.sent.length} إشعار بنجاح`,
+      message: `\u062a\u0645 \u0625\u0631\u0633\u0627\u0644 ${results.sent.length} \u0625\u0634\u0639\u0627\u0631 \u0628\u0646\u062c\u0627\u062d`,
       results: results
     });
 
@@ -478,50 +474,68 @@ export const getAuditLog = async (req, res) => {
       end_date
     } = req.query;
 
-    const offset = (page - 1) * limit;
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const offset = (pageNum - 1) * limitNum;
 
-    let query = supabase
-      .from('audit_log')
-      .select('*', { count: 'exact' })
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+    // Build dynamic WHERE clause
+    const conditions = [];
+    const params = [];
+    let paramIndex = 1;
 
-    // Apply filters
     if (action_type) {
-      query = query.eq('action_type', action_type);
+      conditions.push(`action_type = $${paramIndex++}`);
+      params.push(action_type);
     }
 
     if (target_type) {
-      query = query.eq('target_type', target_type);
+      conditions.push(`target_type = $${paramIndex++}`);
+      params.push(target_type);
     }
 
     if (performed_by) {
-      query = query.eq('performed_by', performed_by);
+      conditions.push(`performed_by = $${paramIndex++}`);
+      params.push(performed_by);
     }
 
     if (start_date) {
-      query = query.gte('created_at', start_date);
+      conditions.push(`created_at >= $${paramIndex++}`);
+      params.push(start_date);
     }
 
     if (end_date) {
-      query = query.lte('created_at', end_date);
+      conditions.push(`created_at <= $${paramIndex++}`);
+      params.push(end_date);
     }
 
-    const { data: logs, error, count } = await query;
+    const whereClause = conditions.length > 0
+      ? 'WHERE ' + conditions.join(' AND ')
+      : '';
 
-    if (error) {
-      log.error('Error fetching audit logs', { error: error.message });
-      return res.status(500).json({ error: 'Failed to fetch audit logs' });
-    }
+    // Get total count
+    const countResult = await query(
+      `SELECT COUNT(*) AS total FROM audit_log ${whereClause}`,
+      params
+    );
+    const total = parseInt(countResult.rows[0].total);
+
+    // Get paginated data
+    const dataParams = [...params, limitNum, offset];
+    const { rows: logs } = await query(
+      `SELECT * FROM audit_log ${whereClause}
+       ORDER BY created_at DESC
+       LIMIT $${paramIndex++} OFFSET $${paramIndex++}`,
+      dataParams
+    );
 
     res.json({
       success: true,
       logs: logs,
       pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total: count,
-        totalPages: Math.ceil(count / limit)
+        page: pageNum,
+        limit: limitNum,
+        total: total,
+        totalPages: Math.ceil(total / limitNum)
       }
     });
 
@@ -539,16 +553,18 @@ export const getAuditLog = async (req, res) => {
  */
 async function logAuditAction(auditData) {
   try {
-    const { error } = await supabase
-      .from('audit_log')
-      .insert({
-        ...auditData,
-        created_at: new Date().toISOString()
-      });
-
-    if (error) {
-      log.error('Error logging audit action', { error: error.message });
-    }
+    await query(
+      `INSERT INTO audit_log (action_type, target_id, target_type, performed_by, details, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [
+        auditData.action_type,
+        auditData.target_id,
+        auditData.target_type,
+        auditData.performed_by,
+        JSON.stringify(auditData.details),
+        new Date().toISOString()
+      ]
+    );
   } catch (error) {
     log.error('Failed to log audit action', { error: error.message });
   }

@@ -3,7 +3,7 @@
  * Shared business logic for member management operations
  */
 
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 import { log } from './logger.js';
 import {
   MEMBER_STATUS,
@@ -27,29 +27,11 @@ export const findMemberById = async (memberId, columns = null) => {
       MEMBER_COLUMNS.MEMBERSHIP_STATUS
     ];
 
-    const { data: member, error: memberError } = await supabase
-      .from('members')
-      .select(selectColumns.join(', '))
-      .eq(MEMBER_COLUMNS.ID, memberId)
-      .single();
-
-    if (memberError) {
-      log.error('[MemberHelpers] Database error fetching member:', {
-        error: memberError,
-        memberId,
-        code: memberError.code,
-        details: memberError.details
-      });
-
-      return {
-        success: false,
-        error: buildErrorResponse(
-          404,
-          ERROR_CODES.MEMBER_NOT_FOUND,
-          ERROR_MESSAGES.MEMBER_NOT_FOUND
-        )
-      };
-    }
+    const { rows } = await query(
+      `SELECT ${selectColumns.join(', ')} FROM members WHERE ${MEMBER_COLUMNS.ID} = $1`,
+      [memberId]
+    );
+    const member = rows[0];
 
     if (!member) {
       log.warn('[MemberHelpers] Member not found:', { memberId });
@@ -109,24 +91,21 @@ export const isMemberActive = (member) => {
  */
 export const updateMemberStatus = async (memberId, updates) => {
   try {
-    const { data: updatedMember, error: updateError } = await supabase
-      .from('members')
-      .update({
-        ...updates,
-        [MEMBER_COLUMNS.UPDATED_AT]: new Date().toISOString()
-      })
-      .eq(MEMBER_COLUMNS.ID, memberId)
-      .select()
-      .single();
+    const allUpdates = {
+      ...updates,
+      [MEMBER_COLUMNS.UPDATED_AT]: new Date().toISOString()
+    };
+    const keys = Object.keys(allUpdates);
+    const values = Object.values(allUpdates);
+    const setClauses = keys.map((key, i) => `${key} = $${i + 1}`).join(', ');
 
-    if (updateError) {
-      log.error('[MemberHelpers] Database error updating member:', {
-        error: updateError,
-        memberId,
-        code: updateError.code,
-        details: updateError.details
-      });
+    const { rows } = await query(
+      `UPDATE members SET ${setClauses} WHERE ${MEMBER_COLUMNS.ID} = $${keys.length + 1} RETURNING *`,
+      [...values, memberId]
+    );
+    const updatedMember = rows[0];
 
+    if (!updatedMember) {
       return {
         success: false,
         error: buildErrorResponse(
@@ -199,23 +178,25 @@ export const buildMemberResponse = (member, admin, type = 'suspend') => {
  */
 export const getMemberSuspensionHistory = async (memberId) => {
   try {
-    const { data: member, error } = await supabase
-      .from('members')
-      .select(`
-        ${MEMBER_COLUMNS.ID},
-        ${MEMBER_COLUMNS.FULL_NAME},
-        ${MEMBER_COLUMNS.MEMBERSHIP_STATUS},
-        ${MEMBER_COLUMNS.SUSPENDED_AT},
-        ${MEMBER_COLUMNS.SUSPENDED_BY},
-        ${MEMBER_COLUMNS.SUSPENSION_REASON},
-        ${MEMBER_COLUMNS.REACTIVATED_AT},
-        ${MEMBER_COLUMNS.REACTIVATED_BY},
-        ${MEMBER_COLUMNS.REACTIVATION_NOTES}
-      `)
-      .eq(MEMBER_COLUMNS.ID, memberId)
-      .single();
+    const suspensionColumns = [
+      MEMBER_COLUMNS.ID,
+      MEMBER_COLUMNS.FULL_NAME,
+      MEMBER_COLUMNS.MEMBERSHIP_STATUS,
+      MEMBER_COLUMNS.SUSPENDED_AT,
+      MEMBER_COLUMNS.SUSPENDED_BY,
+      MEMBER_COLUMNS.SUSPENSION_REASON,
+      MEMBER_COLUMNS.REACTIVATED_AT,
+      MEMBER_COLUMNS.REACTIVATED_BY,
+      MEMBER_COLUMNS.REACTIVATION_NOTES
+    ];
 
-    if (error || !member) {
+    const { rows } = await query(
+      `SELECT ${suspensionColumns.join(', ')} FROM members WHERE ${MEMBER_COLUMNS.ID} = $1`,
+      [memberId]
+    );
+    const member = rows[0];
+
+    if (!member) {
       return {
         success: false,
         error: buildErrorResponse(

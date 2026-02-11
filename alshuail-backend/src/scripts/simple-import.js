@@ -1,11 +1,11 @@
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 import XLSX from 'xlsx';
 import _fs from 'fs';
 import path from 'path';
 import { log } from '../utils/logger.js';
 
 const simpleImport = async () => {
-  log.info('🚀 Starting Simple Member Import...\n');
+  log.info('Starting Simple Member Import...\n');
 
   try {
     // Read Excel file
@@ -15,7 +15,7 @@ const simpleImport = async () => {
     const worksheet = workbook.Sheets[sheetName];
     const data = XLSX.utils.sheet_to_json(worksheet);
 
-    log.info(`📊 Found ${data.length} members to import\n`);
+    log.info(`Found ${data.length} members to import\n`);
 
     let successCount = 0;
     let errorCount = 0;
@@ -47,35 +47,34 @@ const simpleImport = async () => {
       }
 
       try {
-        // Insert or update member
+        // Insert or update member via upsert
         let member;
-        const { data: memberData1, error: _memberError } = await supabase
-          .from('members')
-          .upsert(memberData, {
-            onConflict: 'membership_number'
-          })
-          .select()
-          .single();
-
-        if (_memberError) {
-          // Try insert without conflict resolution
-          const { data: newMember, error: _insertError } = await supabase
-            .from('members')
-            .insert(memberData)
-            .select()
-            .single();
-
-          if (_insertError) {
-            throw _insertError;
-          }
-          member = newMember;
-        } else {
-          member = memberData1;
+        try {
+          const { rows: upsertRows } = await query(
+            `INSERT INTO members (membership_number, full_name, phone, is_active${memberData.email ? ', email' : ''})
+             VALUES ($1, $2, $3, $4${memberData.email ? ', $5' : ''})
+             ON CONFLICT (membership_number) DO UPDATE SET
+               full_name = EXCLUDED.full_name,
+               phone = EXCLUDED.phone,
+               is_active = EXCLUDED.is_active
+             RETURNING *`,
+            memberData.email
+              ? [memberData.membership_number, memberData.full_name, memberData.phone, memberData.is_active, memberData.email]
+              : [memberData.membership_number, memberData.full_name, memberData.phone, memberData.is_active]
+          );
+          member = upsertRows[0];
+        } catch (upsertErr) {
+          // Try plain insert without conflict resolution
+          const { rows: insertRows } = await query(
+            `INSERT INTO members (membership_number, full_name, phone, is_active)
+             VALUES ($1, $2, $3, $4) RETURNING *`,
+            [memberData.membership_number, memberData.full_name, memberData.phone, memberData.is_active]
+          );
+          member = insertRows[0];
         }
 
         // Create payment records if member was successfully created
         if (member) {
-          const payments = [];
           const years = [
             { year: 2021, amount: payment2021 },
             { year: 2022, amount: payment2022 },
@@ -86,47 +85,50 @@ const simpleImport = async () => {
 
           for (const yearData of years) {
             if (yearData.amount > 0) {
-              payments.push({
-                payer_id: member.id,
-                amount: yearData.amount,
-                category: 'subscription',
-                payment_method: 'bank_transfer',
-                status: 'completed',
-                title: `اشتراك ${yearData.year}`,
-                reference_number: `${memberData.membership_number}-${yearData.year}`
-              });
+              try {
+                await query(
+                  `INSERT INTO payments (payer_id, amount, category, payment_method, status, title, reference_number)
+                   VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+                  [
+                    member.id,
+                    yearData.amount,
+                    'subscription',
+                    'bank_transfer',
+                    'completed',
+                    `اشتراك ${yearData.year}`,
+                    `${memberData.membership_number}-${yearData.year}`
+                  ]
+                );
+              } catch (_payErr) {
+                // Payment might already exist, skip
+              }
             }
-          }
-
-          if (payments.length > 0) {
-            await supabase.from('payments').insert(payments);
           }
         }
 
         successCount++;
-        const status = totalBalance >= 3000 ? '✅' : '❌';
+        const status = totalBalance >= 3000 ? 'OK' : 'LOW';
         const shortfall = Math.max(0, 3000 - totalBalance);
-        log.info(`${status} [${i + 1}/${data.length}] ${memberData.full_name}`);
+        log.info(`[${status}] [${i + 1}/${data.length}] ${memberData.full_name}`);
         log.info(`   الرصيد: ${totalBalance} ريال ${shortfall > 0 ? `(النقص: ${shortfall} ريال)` : '(مكتمل)'}`);
 
       } catch (error) {
         errorCount++;
-        log.error(`❌ خطأ في ${memberData.full_name}: ${error.message}`);
+        log.error(`خطأ في ${memberData.full_name}: ${error.message}`);
       }
     }
 
     // Summary
-    log.info(`\n${  '='.repeat(50)}`);
-    log.info('📊 ملخص الاستيراد');
+    log.info(`\n${'='.repeat(50)}`);
+    log.info('ملخص الاستيراد');
     log.info('='.repeat(50));
-    log.info(`✅ تم استيراد: ${successCount} عضو`);
-    log.info(`❌ فشل: ${errorCount} عضو`);
+    log.info(`تم استيراد: ${successCount} عضو`);
+    log.info(`فشل: ${errorCount} عضو`);
 
     // Check compliance
-    const { data: allPayments } = await supabase
-      .from('payments')
-      .select('payer_id, amount')
-      .eq('status', 'completed');
+    const { rows: allPayments } = await query(
+      "SELECT payer_id, amount FROM payments WHERE status = 'completed'"
+    );
 
     const memberBalances = {};
     allPayments?.forEach(payment => {
@@ -136,21 +138,20 @@ const simpleImport = async () => {
     const compliantCount = Object.values(memberBalances).filter(balance => balance >= 3000).length;
     const totalMembers = Object.keys(memberBalances).length;
 
-    log.info(`\n💰 حالة الصندوق:`);
+    log.info(`\nحالة الصندوق:`);
     log.info(`   - أعضاء فوق 3000 ريال: ${compliantCount} (${((compliantCount / totalMembers) * 100).toFixed(1)}%)`);
     log.info(`   - أعضاء دون 3000 ريال: ${totalMembers - compliantCount} (${(((totalMembers - compliantCount) / totalMembers) * 100).toFixed(1)}%)`);
 
-    log.info('\n✨ اكتملت عملية الاستيراد!');
-    log.info('🚀 لوحة الأزمة ستعرض الآن جميع أرصدة الأعضاء');
+    log.info('\nاكتملت عملية الاستيراد!');
 
   } catch (error) {
-    log.error('❌ خطأ كبير:', error);
+    log.error('خطأ كبير:', error);
   }
 };
 
 // Run import
 simpleImport().then(() => {
-  log.info('\n👋 انتهى...');
+  log.info('\nانتهى...');
   process.exit(0);
 }).catch(error => {
   log.error('خطأ:', error);

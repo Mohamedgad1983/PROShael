@@ -1,7 +1,7 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
 import Joi from 'joi';
 
@@ -75,14 +75,13 @@ const authenticateToken = async (req, res, next) => {
     const token = authHeader.replace('Bearer ', '');
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    const { data: user, error } = await supabase
-      .from('members')
-      .select('*')
-      .eq('id', decoded.id)
-      .eq('is_active', true)
-      .single();
+    const { rows } = await query(
+      'SELECT * FROM members WHERE id = $1 AND is_active = true',
+      [decoded.id]
+    );
+    const user = rows[0];
 
-    if (error || !user) {
+    if (!user) {
       return res.status(401).json({
         success: false,
         message: 'المستخدم غير موجود أو غير نشط'
@@ -142,17 +141,11 @@ const requireRole = (allowedRoles) => {
 
 const logActivity = async (userId, userEmail, userRole, actionType, details, ipAddress) => {
   try {
-    await supabase
-      .from('audit_logs')
-      .insert({
-        user_id: userId,
-        user_email: userEmail,
-        user_role: userRole,
-        action_type: actionType,
-        details: details,
-        ip_address: ipAddress,
-        created_at: new Date().toISOString()
-      });
+    await query(
+      `INSERT INTO audit_logs (user_id, user_email, user_role, action_type, details, ip_address, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [userId, userEmail, userRole, actionType, details, ipAddress, new Date().toISOString()]
+    );
   } catch (error) {
     log.error('Failed to log activity', { error: error.message });
   }
@@ -165,13 +158,10 @@ const logActivity = async (userId, userEmail, userRole, actionType, details, ipA
 // Get system settings - Super Admin only
 router.get('/system', authenticateToken, requireRole(['super_admin']), async (req, res) => {
   try {
-    const { data: settings, error } = await supabase
-      .from('system_settings')
-      .select('*')
-      .limit(1)
-      .single();
+    const { rows } = await query('SELECT * FROM system_settings LIMIT 1');
+    const settings = rows[0];
 
-    if (error && error.code === 'PGRST116') {
+    if (!settings) {
       // No settings found, return defaults
       log.warn('No system settings found in database, returning defaults');
       return res.json({
@@ -202,10 +192,6 @@ router.get('/system', authenticateToken, requireRole(['super_admin']), async (re
           audit_logging: true
         }
       });
-    }
-
-    if (error) {
-      throw error;
     }
 
     res.json({
@@ -243,41 +229,41 @@ router.put('/system', authenticateToken, requireRole(['super_admin']), async (re
     }
 
     // Check if settings exist
-    const { data: existing, error: fetchError } = await supabase
-      .from('system_settings')
-      .select('id')
-      .limit(1)
-      .single();
+    const { rows: existingRows } = await query('SELECT id FROM system_settings LIMIT 1');
+    const existing = existingRows[0];
 
     let result;
     if (existing) {
-      // Update existing settings
-      const { data, error } = await supabase
-        .from('system_settings')
-        .update({
-          ...value,
-          updated_at: new Date().toISOString(),
-          updated_by: req.user.id
-        })
-        .eq('id', existing.id)
-        .select()
-        .single();
+      // Update existing settings - build dynamic SET clause
+      const fieldsToUpdate = { ...value, updated_at: new Date().toISOString(), updated_by: req.user.id };
+      const keys = Object.keys(fieldsToUpdate);
+      const setClauses = keys.map((key, i) => `${key} = $${i + 1}`);
+      const values = keys.map(key => {
+        const val = fieldsToUpdate[key];
+        // Serialize objects/arrays to JSON for jsonb columns
+        return (val !== null && typeof val === 'object' && !(val instanceof Date)) ? JSON.stringify(val) : val;
+      });
 
-      if (error) throw error;
-      result = data;
+      const { rows } = await query(
+        `UPDATE system_settings SET ${setClauses.join(', ')} WHERE id = $${keys.length + 1} RETURNING *`,
+        [...values, existing.id]
+      );
+      result = rows[0];
     } else {
       // Create new settings
-      const { data, error } = await supabase
-        .from('system_settings')
-        .insert({
-          ...value,
-          updated_by: req.user.id
-        })
-        .select()
-        .single();
+      const fieldsToInsert = { ...value, updated_by: req.user.id };
+      const keys = Object.keys(fieldsToInsert);
+      const placeholders = keys.map((_, i) => `$${i + 1}`);
+      const values = keys.map(key => {
+        const val = fieldsToInsert[key];
+        return (val !== null && typeof val === 'object' && !(val instanceof Date)) ? JSON.stringify(val) : val;
+      });
 
-      if (error) throw error;
-      result = data;
+      const { rows } = await query(
+        `INSERT INTO system_settings (${keys.join(', ')}) VALUES (${placeholders.join(', ')}) RETURNING *`,
+        values
+      );
+      result = rows[0];
     }
 
     // Log the settings change
@@ -314,43 +300,59 @@ router.get('/users', authenticateToken, requireRole(['super_admin']), async (req
   try {
     const { role, status, search, page = 1, limit = 50 } = req.query;
 
-    let query = supabase
-      .from('members')
-      .select('id, full_name, email, phone, role, is_active, created_at, last_login, suspended_at, suspension_reason', { count: 'exact' })
-      .order('created_at', { ascending: false });
+    const conditions = [];
+    const params = [];
+    let paramIndex = 1;
 
     if (role) {
-      query = query.eq('role', role);
+      conditions.push(`role = $${paramIndex++}`);
+      params.push(role);
     }
 
     if (status === 'active') {
-      query = query.eq('is_active', true).is('suspended_at', null);
+      conditions.push(`is_active = true`);
+      conditions.push(`suspended_at IS NULL`);
     } else if (status === 'inactive') {
-      query = query.eq('is_active', false);
+      conditions.push(`is_active = false`);
     } else if (status === 'suspended') {
-      query = query.not('suspended_at', 'is', null);
+      conditions.push(`suspended_at IS NOT NULL`);
     }
 
     if (search) {
-      query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%`);
+      conditions.push(`(full_name ILIKE $${paramIndex} OR email ILIKE $${paramIndex} OR phone ILIKE $${paramIndex})`);
+      params.push(`%${search}%`);
+      paramIndex++;
     }
 
-    // Pagination
-    const offset = (parseInt(page) - 1) * parseInt(limit);
-    query = query.range(offset, offset + parseInt(limit) - 1);
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    const { data: users, error, count } = await query;
+    const parsedLimit = parseInt(limit);
+    const parsedPage = parseInt(page);
+    const offset = (parsedPage - 1) * parsedLimit;
 
-    if (error) throw error;
+    // Query with count(*) OVER() for total
+    const { rows } = await query(
+      `SELECT id, full_name, email, phone, role, is_active, created_at, last_login, suspended_at, suspension_reason,
+              count(*) OVER() AS total_count
+       FROM members
+       ${whereClause}
+       ORDER BY created_at DESC
+       LIMIT $${paramIndex++} OFFSET $${paramIndex++}`,
+      [...params, parsedLimit, offset]
+    );
+
+    const totalCount = rows.length > 0 ? parseInt(rows[0].total_count) : 0;
+    // Remove the total_count field from each row
+    const users = rows.map(({ total_count, ...rest }) => rest);
 
     res.json({
       success: true,
-      data: users || [],
+      data: users,
       pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total: count || 0,
-        pages: Math.ceil((count || 0) / parseInt(limit))
+        page: parsedPage,
+        limit: parsedLimit,
+        total: totalCount,
+        pages: Math.ceil(totalCount / parsedLimit)
       }
     });
   } catch (error) {
@@ -383,13 +385,12 @@ router.post('/users', authenticateToken, requireRole(['super_admin']), async (re
     const { full_name, email, phone, role, temporary_password } = value;
 
     // Check if user already exists
-    const { data: existingUser } = await supabase
-      .from('members')
-      .select('id')
-      .eq('email', email)
-      .single();
+    const { rows: existingRows } = await query(
+      'SELECT id FROM members WHERE email = $1',
+      [email]
+    );
 
-    if (existingUser) {
+    if (existingRows.length > 0) {
       return res.status(400).json({
         success: false,
         error: 'User with this email already exists'
@@ -400,22 +401,17 @@ router.post('/users', authenticateToken, requireRole(['super_admin']), async (re
     const hashedPassword = await bcrypt.hash(temporary_password, 10);
 
     // Create new user
-    const { data: newUser, error } = await supabase
-      .from('members')
-      .insert({
-        full_name,
-        email,
-        phone,
-        role: role || 'user_member',
-        password_hash: hashedPassword,
-        is_active: true,
-        membership_number: `MEM${Date.now()}`,
-        created_at: new Date().toISOString()
-      })
-      .select()
-      .single();
+    const { rows: newUserRows } = await query(
+      `INSERT INTO members (full_name, email, phone, role, password_hash, is_active, membership_number, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING *`,
+      [full_name, email, phone, role || 'user_member', hashedPassword, true, `MEM${Date.now()}`, new Date().toISOString()]
+    );
+    const newUser = newUserRows[0];
 
-    if (error) throw error;
+    if (!newUser) {
+      throw new Error('Failed to insert new user');
+    }
 
     // Log user creation
     await logActivity(
@@ -449,24 +445,43 @@ router.post('/users', authenticateToken, requireRole(['super_admin']), async (re
 router.put('/users/:userId', authenticateToken, requireRole(['super_admin']), async (req, res) => {
   try {
     const { userId } = req.params;
-    const updates = req.body;
+    const updates = { ...req.body };
 
     // Remove sensitive fields
     delete updates.password_hash;
     delete updates.id;
     delete updates.created_at;
 
-    const { data: updatedUser, error } = await supabase
-      .from('members')
-      .update({
-        ...updates,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', userId)
-      .select()
-      .single();
+    // Add updated_at timestamp
+    updates.updated_at = new Date().toISOString();
 
-    if (error) throw error;
+    // Build dynamic SET clause
+    const keys = Object.keys(updates);
+    if (keys.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'No fields to update'
+      });
+    }
+
+    const setClauses = keys.map((key, i) => `${key} = $${i + 1}`);
+    const values = keys.map(key => {
+      const val = updates[key];
+      return (val !== null && typeof val === 'object' && !(val instanceof Date)) ? JSON.stringify(val) : val;
+    });
+
+    const { rows } = await query(
+      `UPDATE members SET ${setClauses.join(', ')} WHERE id = $${keys.length + 1} RETURNING *`,
+      [...values, userId]
+    );
+    const updatedUser = rows[0];
+
+    if (!updatedUser) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
 
     // Log user update
     await logActivity(
@@ -510,19 +525,24 @@ router.delete('/users/:userId', authenticateToken, requireRole(['super_admin']),
     }
 
     // Get user info before deletion
-    const { data: userInfo } = await supabase
-      .from('members')
-      .select('email, full_name')
-      .eq('id', userId)
-      .single();
+    const { rows: infoRows } = await query(
+      'SELECT email, full_name FROM members WHERE id = $1',
+      [userId]
+    );
+    const userInfo = infoRows[0];
 
     // Delete user
-    const { error } = await supabase
-      .from('members')
-      .delete()
-      .eq('id', userId);
+    const { rowCount } = await query(
+      'DELETE FROM members WHERE id = $1',
+      [userId]
+    );
 
-    if (error) throw error;
+    if (rowCount === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
 
     // Log user deletion
     await logActivity(
@@ -557,47 +577,63 @@ router.get('/audit-logs', authenticateToken, requireRole(['super_admin']), async
   try {
     const { user_role, action_type, date_from, date_to, search, page = 1, limit = 50 } = req.query;
 
-    let query = supabase
-      .from('audit_logs')
-      .select('*', { count: 'exact' })
-      .order('created_at', { ascending: false });
+    const conditions = [];
+    const params = [];
+    let paramIndex = 1;
 
     if (user_role) {
-      query = query.eq('user_role', user_role);
+      conditions.push(`user_role = $${paramIndex++}`);
+      params.push(user_role);
     }
 
     if (action_type) {
-      query = query.eq('action_type', action_type);
+      conditions.push(`action_type = $${paramIndex++}`);
+      params.push(action_type);
     }
 
     if (date_from) {
-      query = query.gte('created_at', date_from);
+      conditions.push(`created_at >= $${paramIndex++}`);
+      params.push(date_from);
     }
 
     if (date_to) {
-      query = query.lte('created_at', date_to);
+      conditions.push(`created_at <= $${paramIndex++}`);
+      params.push(date_to);
     }
 
     if (search) {
-      query = query.or(`details.ilike.%${search}%,user_email.ilike.%${search}%`);
+      conditions.push(`(details ILIKE $${paramIndex} OR user_email ILIKE $${paramIndex})`);
+      params.push(`%${search}%`);
+      paramIndex++;
     }
 
-    // Pagination
-    const offset = (parseInt(page) - 1) * parseInt(limit);
-    query = query.range(offset, offset + parseInt(limit) - 1);
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    const { data: logs, error, count } = await query;
+    const parsedLimit = parseInt(limit);
+    const parsedPage = parseInt(page);
+    const offset = (parsedPage - 1) * parsedLimit;
 
-    if (error) throw error;
+    // Query with count(*) OVER() for total
+    const { rows } = await query(
+      `SELECT *, count(*) OVER() AS total_count
+       FROM audit_logs
+       ${whereClause}
+       ORDER BY created_at DESC
+       LIMIT $${paramIndex++} OFFSET $${paramIndex++}`,
+      [...params, parsedLimit, offset]
+    );
+
+    const totalCount = rows.length > 0 ? parseInt(rows[0].total_count) : 0;
+    const logs = rows.map(({ total_count, ...rest }) => rest);
 
     res.json({
       success: true,
-      data: logs || [],
+      data: logs,
       pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total: count || 0,
-        pages: Math.ceil((count || 0) / parseInt(limit))
+        page: parsedPage,
+        limit: parsedLimit,
+        total: totalCount,
+        pages: Math.ceil(totalCount / parsedLimit)
       }
     });
   } catch (error) {
@@ -620,12 +656,11 @@ router.get('/preferences', authenticateToken, async (req, res) => {
     const userRole = req.user.role || 'user_member';
 
     // Try to get user-specific preferences
-    const { data: userPrefs, error } = await supabase
-      .from('user_preferences')
-      .select('*')
-      .eq('user_id', req.user.id)
-      .eq('role', userRole)
-      .single();
+    const { rows } = await query(
+      'SELECT * FROM user_preferences WHERE user_id = $1 AND role = $2',
+      [req.user.id, userRole]
+    );
+    const userPrefs = rows[0];
 
     if (userPrefs) {
       return res.json({
@@ -705,42 +740,43 @@ router.put('/preferences', authenticateToken, async (req, res) => {
     const userRole = req.user.role || 'user_member';
 
     // Check if preferences exist
-    const { data: existing } = await supabase
-      .from('user_preferences')
-      .select('id')
-      .eq('user_id', req.user.id)
-      .eq('role', userRole)
-      .single();
+    const { rows: existingRows } = await query(
+      'SELECT id FROM user_preferences WHERE user_id = $1 AND role = $2',
+      [req.user.id, userRole]
+    );
+    const existing = existingRows[0];
 
     let result;
     if (existing) {
-      // Update existing preferences
-      const { data, error } = await supabase
-        .from('user_preferences')
-        .update({
-          ...value,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', existing.id)
-        .select()
-        .single();
+      // Update existing preferences - build dynamic SET clause
+      const fieldsToUpdate = { ...value, updated_at: new Date().toISOString() };
+      const keys = Object.keys(fieldsToUpdate);
+      const setClauses = keys.map((key, i) => `${key} = $${i + 1}`);
+      const values = keys.map(key => {
+        const val = fieldsToUpdate[key];
+        return (val !== null && typeof val === 'object' && !(val instanceof Date)) ? JSON.stringify(val) : val;
+      });
 
-      if (error) throw error;
-      result = data;
+      const { rows } = await query(
+        `UPDATE user_preferences SET ${setClauses.join(', ')} WHERE id = $${keys.length + 1} RETURNING *`,
+        [...values, existing.id]
+      );
+      result = rows[0];
     } else {
       // Create new preferences
-      const { data, error } = await supabase
-        .from('user_preferences')
-        .insert({
-          user_id: req.user.id,
-          role: userRole,
-          ...value
-        })
-        .select()
-        .single();
+      const fieldsToInsert = { user_id: req.user.id, role: userRole, ...value };
+      const keys = Object.keys(fieldsToInsert);
+      const placeholders = keys.map((_, i) => `$${i + 1}`);
+      const values = keys.map(key => {
+        const val = fieldsToInsert[key];
+        return (val !== null && typeof val === 'object' && !(val instanceof Date)) ? JSON.stringify(val) : val;
+      });
 
-      if (error) throw error;
-      result = data;
+      const { rows } = await query(
+        `INSERT INTO user_preferences (${keys.join(', ')}) VALUES (${placeholders.join(', ')}) RETURNING *`,
+        values
+      );
+      result = rows[0];
     }
 
     res.json({

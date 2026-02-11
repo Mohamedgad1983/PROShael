@@ -1,4 +1,4 @@
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
 
 export const getDashboardStats = async (req, res) => {
@@ -88,17 +88,11 @@ function getDefaultSubscriptionStats() {
 async function getMembersStatistics() {
   try {
     log.db('Fetching members statistics', 'members', 0);
-    const { data: allMembers, error } = await supabase
-      .from('members')
-      .select('id, full_name, is_active, created_at')
-      .limit(1000); // Add limit to prevent timeout
+    const { rows: allMembers } = await query(
+      'SELECT id, full_name, is_active, created_at FROM members LIMIT 1000'
+    );
 
-    if (error) {
-      log.error('Supabase members error', { error: error.message });
-      throw error;
-    }
-
-    if (!allMembers) {
+    if (!allMembers || allMembers.length === 0) {
       log.debug('No members data returned');
       return getDefaultMembersStats();
     }
@@ -134,15 +128,9 @@ async function getMembersStatistics() {
 async function getPaymentsStatistics() {
   try {
     log.db('Fetching payments statistics', 'payments', 0);
-    const { data: payments, error } = await supabase
-      .from('payments')
-      .select('id, amount, status, created_at')
-      .limit(1000); // Add limit to prevent timeout
-
-    if (error) {
-      log.error('Supabase payments error', { error: error.message });
-      throw error;
-    }
+    const { rows: payments } = await query(
+      'SELECT id, amount, status, created_at FROM payments LIMIT 1000'
+    );
 
     if (!payments || payments.length === 0) {
       log.debug('No payments data');
@@ -195,16 +183,9 @@ async function getPaymentsStatistics() {
 async function getSubscriptionStatistics() {
   try {
     log.db('Fetching subscription statistics', 'subscriptions', 0);
-    const { data: subscriptions, error } = await supabase
-      .from('subscriptions')
-      .select('id, amount, status')
-      .limit(1000); // Add limit to prevent timeout
-
-    if (error) {
-      log.error('Supabase subscriptions error', { error: error.message });
-      // Don't throw, just return defaults
-      return getDefaultSubscriptionStats();
-    }
+    const { rows: subscriptions } = await query(
+      'SELECT id, amount, status FROM subscriptions LIMIT 1000'
+    );
 
     if (!subscriptions || subscriptions.length === 0) {
       log.debug('No subscriptions data');
@@ -236,15 +217,9 @@ async function getSubscriptionStatistics() {
 async function getTribalSectionsStatistics() {
   try {
     log.db('Fetching tribal sections statistics', 'members', 0);
-    const { data: members, error } = await supabase
-      .from('members')
-      .select('tribal_section, total_paid')
-      .limit(1000);
-
-    if (error) {
-      log.error('Supabase tribal sections error', { error: error.message });
-      throw error;
-    }
+    const { rows: members } = await query(
+      'SELECT tribal_section, total_paid FROM members LIMIT 1000'
+    );
 
     if (!members || members.length === 0) {
       log.debug('No tribal section data');
@@ -283,23 +258,15 @@ async function getRecentActivities() {
 
     // Use Promise.allSettled to handle individual failures
     const [paymentsResult, membersResult] = await Promise.allSettled([
-      supabase
-        .from('payments')
-        .select('payment_id, amount, status, created_at')
-        .order('created_at', { ascending: false })
-        .limit(5),
-      supabase
-        .from('members')
-        .select('member_id, full_name, created_at')
-        .order('created_at', { ascending: false })
-        .limit(5)
+      query('SELECT payment_id, amount, status, created_at FROM payments ORDER BY created_at DESC LIMIT 5'),
+      query('SELECT member_id, full_name, created_at FROM members ORDER BY created_at DESC LIMIT 5')
     ]);
 
     const activities = [];
 
     // Process payments if successful
-    if (paymentsResult.status === 'fulfilled' && paymentsResult.value.data) {
-      paymentsResult.value.data.forEach(payment => {
+    if (paymentsResult.status === 'fulfilled' && paymentsResult.value.rows) {
+      paymentsResult.value.rows.forEach(payment => {
         if (payment.amount !== undefined && payment.amount !== null) {
           activities.push({
             type: 'payment',
@@ -315,8 +282,8 @@ async function getRecentActivities() {
     }
 
     // Process members if successful
-    if (membersResult.status === 'fulfilled' && membersResult.value.data) {
-      membersResult.value.data.forEach(member => {
+    if (membersResult.status === 'fulfilled' && membersResult.value.rows) {
+      membersResult.value.rows.forEach(member => {
         if (member.full_name) {
           activities.push({
             type: 'member',

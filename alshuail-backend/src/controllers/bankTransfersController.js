@@ -1,4 +1,5 @@
 import { log } from '../utils/logger.js';
+import { query } from '../services/database.js';
 import {
   uploadReceipt,
   createBankTransferRequest,
@@ -286,14 +287,9 @@ export const getMyTransferRequests = async (req, res) => {
  */
 export const getTransferStats = async (req, res) => {
   try {
-    const { data: stats, error } = await supabase
-      .from('bank_transfer_requests')
-      .select('status, amount')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      throw error;
-    }
+    const { rows: stats } = await query(
+      'SELECT status, amount FROM bank_transfer_requests ORDER BY created_at DESC'
+    );
 
     const summary = {
       total: stats?.length || 0,
@@ -328,6 +324,3 @@ export const getTransferStats = async (req, res) => {
     });
   }
 };
-
-// Import supabase for stats query
-import { supabase } from '../config/database.js';

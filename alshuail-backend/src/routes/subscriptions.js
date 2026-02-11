@@ -7,7 +7,7 @@ const cacheMiddleware = (duration = 300) => (req, res, next) => {
   next();
 };
 import express from 'express';
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 import { requireRole } from '../middleware/rbacMiddleware.js';
 
 const router = express.Router();
@@ -19,23 +19,30 @@ router.get('/', cacheMiddleware(300), requireRole(['super_admin', 'financial_man
     const limit = parseInt(req.query.limit) || 20;
     const offset = (page - 1) * limit;
 
-    const { data: subscriptions, error, count } = await supabase
-      .from('subscriptions')
-      .select('*', { count: 'exact' })
-      .range(offset, offset + limit - 1)
-      .order('created_at', { ascending: false });
+    // Get total count
+    const countResult = await query(
+      `SELECT COUNT(*) FROM subscriptions`
+    );
+    const count = parseInt(countResult.rows[0].count);
 
-    if (error) {throw error;}
+    // Get paginated subscriptions
+    const result = await query(
+      `SELECT * FROM subscriptions
+       ORDER BY created_at DESC
+       LIMIT $1 OFFSET $2`,
+      [limit, offset]
+    );
+    const subscriptions = result.rows;
 
     res.json({
       success: true,
       pagination: {
         page,
         limit,
-        total: count || subscriptions.length,
-        pages: Math.ceil((count || subscriptions.length) / limit)
+        total: count,
+        pages: Math.ceil(count / limit)
       },
-      data: subscriptions || []
+      data: subscriptions
     });
   } catch (error) {
     res.status(500).json({
@@ -64,13 +71,21 @@ router.post('/', requireRole(['super_admin', 'financial_manager']), async (req, 
       });
     }
 
-    const { data: subscription, error } = await supabase
-      .from('subscriptions')
-      .insert([subscriptionData])
-      .select()
-      .single();
-
-    if (error) {throw error;}
+    const result = await query(
+      `INSERT INTO subscriptions (
+        member_id, amount, subscription_type, start_date, end_date, status
+      ) VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING *`,
+      [
+        subscriptionData.member_id,
+        subscriptionData.amount,
+        subscriptionData.subscription_type,
+        subscriptionData.start_date,
+        subscriptionData.end_date,
+        subscriptionData.status || 'active'
+      ]
+    );
+    const subscription = result.rows[0];
 
     res.status(201).json({
       success: true,

@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
 import { config } from '../config/env.js';
 
@@ -71,13 +71,15 @@ export const authenticate = async (req, res, next) => {
 
       // If it's a member, get their data from members table
       if (decoded.role === 'member') {
-        const { data: member, error: _memberError } = await supabase
-          .from('members')
-          .select('*')
-          .eq('id', decoded.id)
-          .single();
+        let member = null;
+        try {
+          const { rows } = await query('SELECT * FROM members WHERE id = $1', [decoded.id]);
+          member = rows[0] || null;
+        } catch (dbErr) {
+          log.debug('Error fetching member from database', { memberId: decoded.id, error: dbErr.message });
+        }
 
-        if (_memberError || !member) {
+        if (!member) {
           log.debug('Member not found in database', { memberId: decoded.id });
           // Still allow the request with token data
           req.user = {
@@ -144,19 +146,8 @@ export const requireAdmin = async (req, res, next) => {
     }
 
     // Otherwise, check database for role
-    const { data: member, error } = await supabase
-      .from('members')
-      .select('role')
-      .eq('id', userId)
-      .single();
-
-    if (error) {
-      log.error('RequireAdmin: Database error', { error: error.message });
-      return res.status(500).json({
-        success: false,
-        error: 'Authorization check failed'
-      });
-    }
+    const { rows } = await query('SELECT role FROM members WHERE id = $1', [userId]);
+    const member = rows[0];
 
     if (!member) {
       log.warn('RequireAdmin: No member record found', { userId });
@@ -219,19 +210,8 @@ export const requireSuperAdmin = async (req, res, next) => {
     }
 
     // Otherwise, check database for role
-    const { data: member, error } = await supabase
-      .from('members')
-      .select('role')
-      .eq('id', userId)
-      .single();
-
-    if (error) {
-      log.error('RequireSuperAdmin: Database error', { error: error.message });
-      return res.status(500).json({
-        success: false,
-        error: 'Authorization check failed'
-      });
-    }
+    const { rows } = await query('SELECT role FROM members WHERE id = $1', [userId]);
+    const member = rows[0];
 
     if (!member) {
       log.warn('RequireSuperAdmin: No member record found', { userId });

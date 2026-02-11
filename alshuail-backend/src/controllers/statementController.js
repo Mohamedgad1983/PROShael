@@ -1,5 +1,5 @@
 // Optimized Statement Controller using Materialized Views
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
 
 // Phone validation
@@ -39,13 +39,11 @@ export const searchByPhone = async (req, res) => {
     }
 
     // Use materialized view for instant results
-    const { data: _data, error } = await supabase
-      .from('member_statement_view')
-      .select('*')
-      .eq('phone', phone)
-      .single();
+    const selectQuery = 'SELECT * FROM member_statement_view WHERE phone = $1';
+    const { rows } = await query(selectQuery, [phone]);
+    const _data = rows[0];
 
-    if (error || !_data) {
+    if (!_data) {
       return res.status(404).json({
         success: false,
         error: 'لم يتم العثور على عضو بهذا الرقم'
@@ -103,15 +101,8 @@ export const searchByName = async (req, res) => {
     const normalizedName = normalizeArabic(name);
 
     // Use materialized view for fast search
-    const { data: _data, error } = await supabase
-      .from('member_statement_view')
-      .select('*')
-      .ilike('full_name', `%${normalizedName}%`)
-      .limit(10);
-
-    if (error) {
-      throw error;
-    }
+    const selectQuery = 'SELECT * FROM member_statement_view WHERE full_name ILIKE $1 LIMIT 10';
+    const { rows: _data } = await query(selectQuery, [`%${normalizedName}%`]);
 
     if (!_data || _data.length === 0) {
       return res.status(404).json({
@@ -160,13 +151,11 @@ export const searchByMemberId = async (req, res) => {
     }
 
     // Use materialized view
-    const { data: _data, error } = await supabase
-      .from('member_statement_view')
-      .select('*')
-      .eq('membership_number', memberId)
-      .single();
+    const selectQuery = 'SELECT * FROM member_statement_view WHERE membership_number = $1';
+    const { rows } = await query(selectQuery, [memberId]);
+    const _data = rows[0];
 
-    if (error || !_data) {
+    if (!_data) {
       return res.status(404).json({
         success: false,
         error: 'لم يتم العثور على عضو بهذا الرقم'
@@ -212,12 +201,8 @@ export const searchByMemberId = async (req, res) => {
 export const getDashboardStatistics = async (req, res) => {
   try {
     // Call the database function
-    const { data: _data, error } = await supabase
-      .rpc('get_dashboard_stats');
-
-    if (error) {
-      throw error;
-    }
+    const selectQuery = 'SELECT * FROM get_dashboard_stats()';
+    const { rows: _data } = await query(selectQuery);
 
     res.json({
       success: true,
@@ -239,14 +224,8 @@ export const getCriticalMembers = async (req, res) => {
     const limit = parseInt(req.query.limit) || 50;
 
     // Use the critical members view
-    const { data: _data, error } = await supabase
-      .from('critical_members_view')
-      .select('*')
-      .limit(limit);
-
-    if (error) {
-      throw error;
-    }
+    const selectQuery = 'SELECT * FROM critical_members_view LIMIT $1';
+    const { rows: _data } = await query(selectQuery, [limit]);
 
     res.json({
       success: true,
@@ -267,12 +246,8 @@ export const getCriticalMembers = async (req, res) => {
 export const refreshViews = async (req, res) => {
   try {
     // Call the refresh function
-    const { data: _data, error } = await supabase
-      .rpc('refresh_all_views');
-
-    if (error) {
-      throw error;
-    }
+    const selectQuery = 'SELECT * FROM refresh_all_views()';
+    const { rows: _data } = await query(selectQuery);
 
     res.json({
       success: true,
@@ -302,26 +277,19 @@ export const generateStatement = async (req, res) => {
     }
 
     // Get member data - balance is stored in members.current_balance or members.total_paid
-    const { data: memberData, error: memberError } = await supabase
-      .from('members')
-      .select(`
-        id,
-        full_name_ar,
-        full_name,
-        phone,
-        email,
-        membership_number,
-        created_at,
-        balance,
-        current_balance,
-        total_paid,
-        tribal_section,
+    const memberQuery = `
+      SELECT
+        id, full_name_ar, full_name, phone, email, membership_number,
+        created_at, balance, current_balance, total_paid, tribal_section,
         family_branch_id
-      `)
-      .eq('membership_number', memberId)
-      .single();
+      FROM members
+      WHERE membership_number = $1
+    `;
 
-    if (memberError || !memberData) {
+    const { rows: memberRows } = await query(memberQuery, [memberId]);
+    const memberData = memberRows[0];
+
+    if (!memberData) {
       return res.status(404).json({
         success: false,
         error: 'لم يتم العثور على عضو بهذا الرقم'
@@ -476,18 +444,19 @@ export const getMemberStatementCounts = async (req, res) => {
   try {
     const MINIMUM_BALANCE = 3000;
 
-    // Single optimized query for counts using SQL aggregation
-    const { data, error } = await supabase
-      .rpc('get_member_statement_counts');
+    // Try using RPC function first
+    try {
+      const rpcQuery = 'SELECT * FROM get_member_statement_counts()';
+      const { rows: data } = await query(rpcQuery);
 
-    if (error) {
+      return res.json({
+        success: true,
+        data: data[0] || { total: 0, compliant: 0, nonCompliant: 0 }
+      });
+    } catch (rpcError) {
       // Fallback to direct query if RPC doesn't exist - use membership_status for consistency
-      const { data: members, error: fallbackError } = await supabase
-        .from('members')
-        .select('current_balance')
-        .eq('membership_status', 'active');
-
-      if (fallbackError) throw fallbackError;
+      const fallbackQuery = 'SELECT current_balance FROM members WHERE membership_status = $1';
+      const { rows: members } = await query(fallbackQuery, ['active']);
 
       const total = members.length;
       const compliant = members.filter(m => (m.current_balance || 0) >= MINIMUM_BALANCE).length;
@@ -503,11 +472,6 @@ export const getMemberStatementCounts = async (req, res) => {
         }
       });
     }
-
-    res.json({
-      success: true,
-      data: data || { total: 0, compliant: 0, nonCompliant: 0 }
-    });
 
   } catch (error) {
     log.error('Get member statement counts error', { error: error.message });
@@ -529,35 +493,50 @@ export const getPaginatedMembersForStatement = async (req, res) => {
 
     const offset = (page - 1) * limit;
 
-    // Build query - use membership_status for consistency with UI
-    let query = supabase
-      .from('members')
-      .select('id, membership_number, full_name, phone, tribal_section, current_balance, membership_status', { count: 'exact' })
-      .eq('membership_status', 'active');
+    // Build dynamic query
+    const conditions = ['membership_status = $1'];
+    const params = ['active'];
+    let paramCount = 2;
 
     // Apply filter
     if (filter === 'compliant') {
-      query = query.gte('current_balance', MINIMUM_BALANCE);
+      conditions.push(`current_balance >= $${paramCount++}`);
+      params.push(MINIMUM_BALANCE);
     } else if (filter === 'non-compliant') {
-      query = query.lt('current_balance', MINIMUM_BALANCE);
+      conditions.push(`current_balance < $${paramCount++}`);
+      params.push(MINIMUM_BALANCE);
     }
 
     // Apply search
     if (search && search.length >= 2) {
-      query = query.or(`full_name.ilike.%${search}%,membership_number.ilike.%${search}%,phone.ilike.%${search}%`);
+      conditions.push(`(full_name ILIKE $${paramCount} OR membership_number ILIKE $${paramCount} OR phone ILIKE $${paramCount})`);
+      params.push(`%${search}%`);
+      paramCount++;
     }
 
-    // Order and paginate
-    query = query
-      .order('membership_number', { ascending: true })
-      .range(offset, offset + limit - 1);
+    const whereClause = conditions.join(' AND ');
 
-    const { data: members, error, count } = await query;
+    // Count query
+    const countQuery = `SELECT COUNT(*) as count FROM members WHERE ${whereClause}`;
+    const { rows: countRows } = await query(countQuery, params);
+    const count = parseInt(countRows[0].count);
 
-    if (error) throw error;
+    // Data query with pagination
+    params.push(limit);
+    params.push(offset);
+
+    const dataQuery = `
+      SELECT id, membership_number, full_name, phone, tribal_section, current_balance, membership_status
+      FROM members
+      WHERE ${whereClause}
+      ORDER BY membership_number ASC
+      LIMIT $${paramCount++} OFFSET $${paramCount++}
+    `;
+
+    const { rows: members } = await query(dataQuery, params);
 
     // Transform data
-    const results = (members || []).map(m => ({
+    const results = members.map(m => ({
       id: m.id,
       member_no: m.membership_number,
       full_name: m.full_name,
@@ -566,7 +545,7 @@ export const getPaginatedMembersForStatement = async (req, res) => {
       balance: m.current_balance || 0
     }));
 
-    const totalPages = Math.ceil((count || 0) / limit);
+    const totalPages = Math.ceil(count / limit);
 
     res.json({
       success: true,
@@ -574,7 +553,7 @@ export const getPaginatedMembersForStatement = async (req, res) => {
       pagination: {
         page,
         limit,
-        total: count || 0,
+        total: count,
         totalPages,
         hasMore: page < totalPages
       }

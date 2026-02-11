@@ -1,4 +1,4 @@
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
 import { config } from '../config/env.js';
 
@@ -17,44 +17,61 @@ export const getAllOccasions = async (req, res) => {
       offset = 0
     } = req.query;
 
-    let query = supabase
-      .from('events')
-      .select('*')
-      .order('start_date', { ascending: true })
-      .range(offset, offset + limit - 1);
+    // Build dynamic WHERE conditions
+    const conditions = [];
+    const params = [];
+    let paramCount = 1;
 
-    // Apply filters
     if (status) {
-      query = query.eq('status', status);
+      conditions.push(`status = $${paramCount++}`);
+      params.push(status);
     }
 
     if (category) {
-      query = query.eq('event_type', category);
+      conditions.push(`event_type = $${paramCount++}`);
+      params.push(category);
     }
 
     if (organizer_id) {
-      query = query.eq('organizer', organizer_id);
+      conditions.push(`organizer = $${paramCount++}`);
+      params.push(organizer_id);
     }
 
     // Filter for upcoming events only
     if (upcoming === 'true') {
       const today = new Date().toISOString().split('T')[0];
-      query = query.gte('start_date', today);
+      conditions.push(`start_date >= $${paramCount++}`);
+      params.push(today);
     }
 
-    const { data: occasions, error, count } = await query;
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    if (error) {throw error;}
+    // Count query
+    const countQuery = `SELECT COUNT(*) as count FROM events ${whereClause}`;
+    const { rows: countRows } = await query(countQuery, params);
+    const totalCount = parseInt(countRows[0].count);
+
+    // Data query with pagination
+    params.push(parseInt(limit));
+    params.push(parseInt(offset));
+    const dataQuery = `
+      SELECT * FROM events
+      ${whereClause}
+      ORDER BY start_date ASC
+      LIMIT $${paramCount++} OFFSET $${paramCount++}
+    `;
+
+    const { rows: occasions } = await query(dataQuery, params);
 
     // Calculate additional metrics for each occasion
-    const enhancedOccasions = occasions?.map(occasion => ({
+    const enhancedOccasions = occasions.map(occasion => ({
       ...occasion,
       days_until_event: occasion.start_date ?
         Math.ceil((new Date(occasion.start_date) - new Date()) / (1000 * 60 * 60 * 24)) : null,
       attendance_rate: occasion.max_attendees && occasion.current_attendees ?
         Math.round((occasion.current_attendees / occasion.max_attendees) * 100) : 0,
       is_full: occasion.max_attendees ? (occasion.current_attendees || 0) >= occasion.max_attendees : false
-    })) || [];
+    }));
 
     res.json({
       success: true,
@@ -62,7 +79,7 @@ export const getAllOccasions = async (req, res) => {
       pagination: {
         limit: parseInt(limit),
         offset: parseInt(offset),
-        total: count || enhancedOccasions.length
+        total: totalCount
       },
       message: 'تم جلب المناسبات بنجاح'
     });
@@ -84,20 +101,15 @@ export const getOccasionById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const { data: occasion, error } = await supabase
-      .from('events')
-      .select('*')
-      .eq('id', id)
-      .single();
+    const selectQuery = 'SELECT * FROM events WHERE id = $1';
+    const { rows } = await query(selectQuery, [id]);
+    const occasion = rows[0];
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return res.status(404).json({
-          success: false,
-          error: 'المناسبة غير موجودة'
-        });
-      }
-      throw error;
+    if (!occasion) {
+      return res.status(404).json({
+        success: false,
+        error: 'المناسبة غير موجودة'
+      });
     }
 
     // Calculate additional metrics
@@ -165,13 +177,10 @@ export const createOccasion = async (req, res) => {
 
     // Validate organizer exists if provided
     if (organizer) {
-      const { data: organizerData, error: _organizerError } = await supabase
-        .from('members')
-        .select('id')
-        .eq('id', organizer)
-        .single();
+      const checkOrganizerQuery = 'SELECT id FROM members WHERE id = $1';
+      const { rows: organizerRows } = await query(checkOrganizerQuery, [organizer]);
 
-      if (_organizerError || !organizerData) {
+      if (organizerRows.length === 0) {
         return res.status(400).json({
           success: false,
           error: 'المنظم المحدد غير موجود'
@@ -179,26 +188,28 @@ export const createOccasion = async (req, res) => {
       }
     }
 
-    const occasionData = {
+    const insertQuery = `
+      INSERT INTO events (
+        title, description, start_date, end_date, location,
+        event_type, max_attendees, organizer, status, current_attendees
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      RETURNING *
+    `;
+
+    const { rows } = await query(insertQuery, [
       title,
       description,
       start_date,
       end_date,
       location,
       event_type,
-      max_attendees: max_attendees ? parseInt(max_attendees) : null,
+      max_attendees ? parseInt(max_attendees) : null,
       organizer,
       status,
-      current_attendees: 0
-    };
+      0
+    ]);
 
-    const { data: newOccasion, error } = await supabase
-      .from('events')
-      .insert([occasionData])
-      .select('*')
-      .single();
-
-    if (error) {throw error;}
+    const newOccasion = rows[0];
 
     res.status(201).json({
       success: true,
@@ -240,18 +251,17 @@ export const updateRSVP = async (req, res) => {
     }
 
     // Check if occasion exists
-    const { data: occasion, error: _occasionError } = await supabase
-      .from('events')
-      .select('id, max_attendees, current_attendees, status')
-      .eq('id', id)
-      .single();
+    const occasionQuery = 'SELECT id, max_attendees, current_attendees, status FROM events WHERE id = $1';
+    const { rows: occasionRows } = await query(occasionQuery, [id]);
 
-    if (_occasionError || !occasion) {
+    if (occasionRows.length === 0) {
       return res.status(404).json({
         success: false,
         error: 'المناسبة غير موجودة'
       });
     }
+
+    const occasion = occasionRows[0];
 
     if (occasion.status !== 'active') {
       return res.status(400).json({
@@ -261,13 +271,10 @@ export const updateRSVP = async (req, res) => {
     }
 
     // Check if member exists
-    const { data: member, error: _memberError } = await supabase
-      .from('members')
-      .select('id')
-      .eq('id', member_id)
-      .single();
+    const memberQuery = 'SELECT id FROM members WHERE id = $1';
+    const { rows: memberRows } = await query(memberQuery, [member_id]);
 
-    if (_memberError || !member) {
+    if (memberRows.length === 0) {
       return res.status(400).json({
         success: false,
         error: 'العضو المحدد غير موجود'
@@ -284,31 +291,24 @@ export const updateRSVP = async (req, res) => {
     }
 
     // Get existing RSVP if any
-    const { data: existingRsvp } = await supabase
-      .from('event_rsvps')
-      .select('*')
-      .eq('event_id', id)
-      .eq('member_id', member_id)
-      .single();
+    const existingRsvpQuery = 'SELECT * FROM event_rsvps WHERE event_id = $1 AND member_id = $2';
+    const { rows: existingRsvpRows } = await query(existingRsvpQuery, [id, member_id]);
+    const existingRsvp = existingRsvpRows[0];
 
     let rsvpResult;
     let attendeeChange = 0;
+    const now = new Date().toISOString();
 
     if (existingRsvp) {
       // Update existing RSVP
-      const { data: updatedRsvp, error: _updateError } = await supabase
-        .from('event_rsvps')
-        .update({
-          status,
-          notes,
-          response_date: new Date().toISOString()
-        })
-        .eq('id', existingRsvp.id)
-        .select('*')
-        .single();
-
-      if (_updateError) {throw _updateError;}
-      rsvpResult = updatedRsvp;
+      const updateRsvpQuery = `
+        UPDATE event_rsvps
+        SET status = $1, notes = $2, response_date = $3
+        WHERE id = $4
+        RETURNING *
+      `;
+      const { rows: updatedRows } = await query(updateRsvpQuery, [status, notes, now, existingRsvp.id]);
+      rsvpResult = updatedRows[0];
 
       // Calculate attendee change
       if (existingRsvp.status === 'confirmed' && status !== 'confirmed') {
@@ -318,20 +318,13 @@ export const updateRSVP = async (req, res) => {
       }
     } else {
       // Create new RSVP
-      const { data: newRsvp, error: _createError } = await supabase
-        .from('event_rsvps')
-        .insert([{
-          event_id: id,
-          member_id,
-          status,
-          notes,
-          response_date: new Date().toISOString()
-        }])
-        .select('*')
-        .single();
-
-      if (_createError) {throw _createError;}
-      rsvpResult = newRsvp;
+      const insertRsvpQuery = `
+        INSERT INTO event_rsvps (event_id, member_id, status, notes, response_date)
+        VALUES ($1, $2, $3, $4, $5)
+        RETURNING *
+      `;
+      const { rows: newRsvpRows } = await query(insertRsvpQuery, [id, member_id, status, notes, now]);
+      rsvpResult = newRsvpRows[0];
 
       // Calculate attendee change
       if (status === 'confirmed') {
@@ -341,15 +334,12 @@ export const updateRSVP = async (req, res) => {
 
     // Update current attendees count if needed
     if (attendeeChange !== 0) {
-      const { error: _updateAttendeeError } = await supabase
-        .from('events')
-        .update({
-          current_attendees: Math.max(0, occasion.current_attendees + attendeeChange),
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id);
-
-      if (_updateAttendeeError) {throw _updateAttendeeError;}
+      const updateAttendeesQuery = `
+        UPDATE events
+        SET current_attendees = GREATEST(0, current_attendees + $1), updated_at = $2
+        WHERE id = $3
+      `;
+      await query(updateAttendeesQuery, [attendeeChange, now, id]);
     }
 
     res.json({
@@ -387,13 +377,10 @@ export const updateOccasion = async (req, res) => {
     } = req.body;
 
     // Check if occasion exists
-    const { data: existingOccasion, error: _checkError } = await supabase
-      .from('events')
-      .select('*')
-      .eq('id', id)
-      .single();
+    const checkQuery = 'SELECT * FROM events WHERE id = $1';
+    const { rows: existingRows } = await query(checkQuery, [id]);
 
-    if (_checkError || !existingOccasion) {
+    if (existingRows.length === 0) {
       return res.status(404).json({
         success: false,
         error: 'المناسبة غير موجودة'
@@ -414,28 +401,58 @@ export const updateOccasion = async (req, res) => {
       }
     }
 
-    const updateData = {
-      updated_at: new Date().toISOString()
-    };
+    // Build dynamic update query
+    const updates = [];
+    const params = [];
+    let paramCount = 1;
 
-    // Only update provided fields
-    if (title !== undefined) {updateData.title = title;}
-    if (description !== undefined) {updateData.description = description;}
-    if (event_date !== undefined) {updateData.event_date = event_date;}
-    if (event_time !== undefined) {updateData.event_time = event_time;}
-    if (location !== undefined) {updateData.location = location;}
-    if (category !== undefined) {updateData.category = category;}
-    if (max_attendees !== undefined) {updateData.max_attendees = max_attendees ? parseInt(max_attendees) : null;}
-    if (status !== undefined) {updateData.status = status;}
+    if (title !== undefined) {
+      updates.push(`title = $${paramCount++}`);
+      params.push(title);
+    }
+    if (description !== undefined) {
+      updates.push(`description = $${paramCount++}`);
+      params.push(description);
+    }
+    if (event_date !== undefined) {
+      updates.push(`event_date = $${paramCount++}`);
+      params.push(event_date);
+    }
+    if (event_time !== undefined) {
+      updates.push(`event_time = $${paramCount++}`);
+      params.push(event_time);
+    }
+    if (location !== undefined) {
+      updates.push(`location = $${paramCount++}`);
+      params.push(location);
+    }
+    if (category !== undefined) {
+      updates.push(`category = $${paramCount++}`);
+      params.push(category);
+    }
+    if (max_attendees !== undefined) {
+      updates.push(`max_attendees = $${paramCount++}`);
+      params.push(max_attendees ? parseInt(max_attendees) : null);
+    }
+    if (status !== undefined) {
+      updates.push(`status = $${paramCount++}`);
+      params.push(status);
+    }
 
-    const { data: updatedOccasion, error } = await supabase
-      .from('events')
-      .update(updateData)
-      .eq('id', id)
-      .select('*')
-      .single();
+    updates.push(`updated_at = $${paramCount++}`);
+    params.push(new Date().toISOString());
 
-    if (error) {throw error;}
+    params.push(id);
+
+    const updateQuery = `
+      UPDATE events
+      SET ${updates.join(', ')}
+      WHERE id = $${paramCount++}
+      RETURNING *
+    `;
+
+    const { rows } = await query(updateQuery, params);
+    const updatedOccasion = rows[0];
 
     res.json({
       success: true,
@@ -461,13 +478,10 @@ export const deleteOccasion = async (req, res) => {
     const { id } = req.params;
 
     // Check if occasion exists
-    const { data: existingOccasion, error: _checkError } = await supabase
-      .from('events')
-      .select('*')
-      .eq('id', id)
-      .single();
+    const checkQuery = 'SELECT * FROM events WHERE id = $1';
+    const { rows: existingRows } = await query(checkQuery, [id]);
 
-    if (_checkError || !existingOccasion) {
+    if (existingRows.length === 0) {
       return res.status(404).json({
         success: false,
         error: 'المناسبة غير موجودة'
@@ -475,12 +489,8 @@ export const deleteOccasion = async (req, res) => {
     }
 
     // Delete the occasion (RSVPs will be deleted automatically due to CASCADE)
-    const { error } = await supabase
-      .from('events')
-      .delete()
-      .eq('id', id);
-
-    if (error) {throw error;}
+    const deleteQuery = 'DELETE FROM events WHERE id = $1';
+    await query(deleteQuery, [id]);
 
     res.json({
       success: true,
@@ -506,59 +516,57 @@ export const getOccasionAttendees = async (req, res) => {
     const { status_filter } = req.query;
 
     // Check if occasion exists
-    const { data: occasion, error: occasionError } = await supabase
-      .from('events')
-      .select('id, title, max_attendees, current_attendees')
-      .eq('id', id)
-      .single();
+    const occasionQuery = 'SELECT id, title, max_attendees, current_attendees FROM events WHERE id = $1';
+    const { rows: occasionRows } = await query(occasionQuery, [id]);
 
-    if (occasionError || !occasion) {
+    if (occasionRows.length === 0) {
       return res.status(404).json({
         success: false,
         error: 'المناسبة غير موجودة'
       });
     }
 
-    // Build query for attendees
-    let query = supabase
-      .from('event_rsvps')
-      .select(`
-        id,
-        status,
-        notes,
-        response_date,
-        member:member_id (
-          id,
-          full_name,
-          full_name_en,
-          phone,
-          email,
-          photo_url,
-          membership_status
-        )
-      `)
-      .eq('event_id', id)
-      .order('response_date', { ascending: false });
+    const occasion = occasionRows[0];
+
+    // Build query for attendees with member join
+    let attendeesQuery = `
+      SELECT
+        er.id, er.status, er.notes, er.response_date,
+        m.id as member_id, m.full_name, m.full_name_en, m.phone,
+        m.email, m.photo_url, m.membership_status
+      FROM event_rsvps er
+      JOIN members m ON er.member_id = m.id
+      WHERE er.event_id = $1
+    `;
+
+    const params = [id];
 
     // Apply status filter if provided
     if (status_filter && ['confirmed', 'pending', 'declined'].includes(status_filter)) {
-      query = query.eq('status', status_filter);
+      attendeesQuery += ' AND er.status = $2';
+      params.push(status_filter);
     }
 
-    const { data: rsvps, error: rsvpError } = await query;
+    attendeesQuery += ' ORDER BY er.response_date DESC';
 
-    if (rsvpError) {
-      throw rsvpError;
-    }
+    const { rows: rsvps } = await query(attendeesQuery, params);
 
     // Format attendees data
-    const attendees = rsvps?.map(rsvp => ({
+    const attendees = rsvps.map(rsvp => ({
       rsvp_id: rsvp.id,
       status: rsvp.status,
       notes: rsvp.notes,
       response_date: rsvp.response_date,
-      member: rsvp.member
-    })) || [];
+      member: {
+        id: rsvp.member_id,
+        full_name: rsvp.full_name,
+        full_name_en: rsvp.full_name_en,
+        phone: rsvp.phone,
+        email: rsvp.email,
+        photo_url: rsvp.photo_url,
+        membership_status: rsvp.membership_status
+      }
+    }));
 
     // Calculate statistics
     const stats = {
@@ -605,61 +613,46 @@ export const getOccasionAttendees = async (req, res) => {
 export const getOccasionStats = async (req, res) => {
   try {
     // Get total occasions
-    const { count: totalOccasions, error: _totalError } = await supabase
-      .from('events')
-      .select('*', { count: 'exact', head: true });
-
-    if (_totalError) {throw _totalError;}
+    const totalQuery = 'SELECT COUNT(*) as count FROM events';
+    const { rows: totalRows } = await query(totalQuery);
+    const totalOccasions = parseInt(totalRows[0].count);
 
     // Get upcoming occasions
     const today = new Date().toISOString().split('T')[0];
-    const { count: upcomingOccasions, error: _upcomingError } = await supabase
-      .from('events')
-      .select('*', { count: 'exact', head: true })
-      .eq('status', 'active')
-      .gte('event_date', today);
-
-    if (_upcomingError) {throw _upcomingError;}
+    const upcomingQuery = 'SELECT COUNT(*) as count FROM events WHERE status = $1 AND event_date >= $2';
+    const { rows: upcomingRows } = await query(upcomingQuery, ['active', today]);
+    const upcomingOccasions = parseInt(upcomingRows[0].count);
 
     // Get occasions by status
-    const { data: statusData, error: _statusError } = await supabase
-      .from('events')
-      .select('status')
-      .not('status', 'is', null);
+    const statusQuery = 'SELECT status, COUNT(*) as count FROM events WHERE status IS NOT NULL GROUP BY status';
+    const { rows: statusData } = await query(statusQuery);
 
-    if (_statusError) {throw _statusError;}
-
-    const statusStats = statusData?.reduce((acc, item) => {
-      acc[item.status] = (acc[item.status] || 0) + 1;
+    const statusStats = statusData.reduce((acc, item) => {
+      acc[item.status] = parseInt(item.count);
       return acc;
-    }, {}) || {};
+    }, {});
 
     // Get total RSVPs
-    const { count: totalRsvps, error: _rsvpError } = await supabase
-      .from('event_rsvps')
-      .select('*', { count: 'exact', head: true });
-
-    if (_rsvpError) {throw _rsvpError;}
+    const totalRsvpsQuery = 'SELECT COUNT(*) as count FROM event_rsvps';
+    const { rows: totalRsvpsRows } = await query(totalRsvpsQuery);
+    const totalRsvps = parseInt(totalRsvpsRows[0].count);
 
     // Get RSVPs by status
-    const { data: rsvpStatusData, error: _rsvpStatusError } = await supabase
-      .from('event_rsvps')
-      .select('status');
+    const rsvpStatusQuery = 'SELECT status, COUNT(*) as count FROM event_rsvps GROUP BY status';
+    const { rows: rsvpStatusData } = await query(rsvpStatusQuery);
 
-    if (_rsvpStatusError) {throw _rsvpStatusError;}
-
-    const rsvpStatusStats = rsvpStatusData?.reduce((acc, item) => {
-      acc[item.status] = (acc[item.status] || 0) + 1;
+    const rsvpStatusStats = rsvpStatusData.reduce((acc, item) => {
+      acc[item.status] = parseInt(item.count);
       return acc;
-    }, {}) || {};
+    }, {});
 
     res.json({
       success: true,
       data: {
-        total_occasions: totalOccasions || 0,
-        upcoming_occasions: upcomingOccasions || 0,
+        total_occasions: totalOccasions,
+        upcoming_occasions: upcomingOccasions,
         occasions_by_status: statusStats,
-        total_rsvps: totalRsvps || 0,
+        total_rsvps: totalRsvps,
         rsvps_by_status: rsvpStatusStats,
         attendance_rate: totalRsvps > 0 ?
           Math.round(((rsvpStatusStats.confirmed || 0) / totalRsvps) * 100) : 0

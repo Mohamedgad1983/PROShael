@@ -16,7 +16,7 @@ import { log } from '../utils/logger.js';
 import { config } from '../config/env.js';
 import * as firebaseService from './firebaseService.js';
 import * as twilioService from './twilioService.js';
-import { supabase } from '../config/database.js';
+import { query } from './database.js';
 
 /**
  * Notification types supported
@@ -131,15 +131,10 @@ export async function sendPushNotification(userId, notification, data = {}) {
     });
 
     // Get all active device tokens for this user
-    const { data: tokens, error } = await supabase
-      .from('device_tokens')
-      .select('token, platform')
-      .eq('member_id', userId)
-      .eq('is_active', true);
-
-    if (error) {
-      throw new Error(`Failed to fetch device tokens: ${error.message}`);
-    }
+    const { rows: tokens } = await query(
+      'SELECT token, platform FROM device_tokens WHERE member_id = $1 AND is_active = $2',
+      [userId, true]
+    );
 
     if (!tokens || tokens.length === 0) {
       log.warn('No active device tokens found for user', { userId });
@@ -175,10 +170,10 @@ export async function sendPushNotification(userId, notification, data = {}) {
         });
 
         // Mark tokens as inactive
-        await supabase
-          .from('device_tokens')
-          .update({ is_active: false })
-          .in('token', invalidTokens);
+        await query(
+          'UPDATE device_tokens SET is_active = $1 WHERE token = ANY($2)',
+          [false, invalidTokens]
+        );
       }
     }
 
@@ -303,20 +298,17 @@ export async function sendMultiChannelNotification(recipient, notification, chan
 export async function getUserNotificationPreferences(userId) {
   try {
     // Fetch from user_notification_preferences table
-    const { data: prefs, error } = await supabase
-      .from('user_notification_preferences')
-      .select('*')
-      .eq('member_id', userId)
-      .single();
+    const { rows } = await query(
+      'SELECT * FROM user_notification_preferences WHERE member_id = $1',
+      [userId]
+    );
 
-    if (error) {
-      // If no preferences found, return defaults
-      if (error.code === 'PGRST116') {
-        log.warn('No preferences found for user, using defaults', { userId });
-        return getDefaultPreferences(userId);
-      }
-      throw new Error(`Failed to fetch preferences: ${error.message}`);
+    if (!rows || rows.length === 0) {
+      log.warn('No preferences found for user, using defaults', { userId });
+      return getDefaultPreferences(userId);
     }
+
+    const prefs = rows[0];
 
     // Map database columns to expected format
     return {
@@ -462,22 +454,20 @@ export async function sendNotificationWithPreferences(userId, notificationType, 
     }
 
     // Get recipient information from database
-    const { data: member, error: memberError } = await supabase
-      .from('members')
-      .select('id, phone, email')
-      .eq('id', userId)
-      .single();
+    const { rows: memberRows } = await query(
+      'SELECT id, phone, email FROM members WHERE id = $1',
+      [userId]
+    );
 
-    if (memberError || !member) {
-      log.error('Failed to fetch member data', {
-        error: memberError?.message,
-        userId
-      });
+    if (!memberRows || memberRows.length === 0) {
+      log.error('Failed to fetch member data', { userId });
       return {
         success: false,
         reason: 'member_not_found'
       };
     }
+
+    const member = memberRows[0];
 
     const recipient = {
       userId: member.id,

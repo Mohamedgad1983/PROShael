@@ -5,7 +5,7 @@
  */
 
 import { log } from '../utils/logger.js';
-import { supabase } from '../config/database.js';
+import { query } from './database.js';
 
 /**
  * Optimized paginated query with indexing hints
@@ -25,33 +25,39 @@ export const getOptimizedFinancialData = async (options = {}) => {
 
   try {
     // Build optimized query with selective column fetching
-    let query = supabase
-      .from(table)
-      .select(selectColumns, { count: 'exact' });
+    const whereClauses = [];
+    const params = [];
+    let paramIndex = 1;
 
     // Apply date range filters (use indexes)
     if (dateFrom) {
-      query = query.gte('created_at', dateFrom);
+      whereClauses.push(`created_at >= $${paramIndex++}`);
+      params.push(dateFrom);
     }
     if (dateTo) {
-      query = query.lte('created_at', dateTo);
+      whereClauses.push(`created_at <= $${paramIndex++}`);
+      params.push(dateTo);
     }
 
     // Apply additional filters
     Object.entries(filters).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
-        query = query.eq(key, value);
+        whereClauses.push(`${key} = $${paramIndex++}`);
+        params.push(value);
       }
     });
 
-    // Apply pagination and ordering
-    query = query
-      .order(orderBy, { ascending: orderDirection === 'asc' })
-      .range(offset, offset + limit - 1);
+    const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+    const orderClause = `ORDER BY ${orderBy} ${orderDirection === 'asc' ? 'ASC' : 'DESC'}`;
 
-    const { data, count, error } = await query;
+    // Get total count
+    const countQuery = `SELECT COUNT(*) as total FROM ${table} ${whereClause}`;
+    const { rows: countRows } = await query(countQuery, params);
+    const count = parseInt(countRows[0].total);
 
-    if (error) {throw error;}
+    // Get paginated data
+    const dataQuery = `SELECT ${selectColumns} FROM ${table} ${whereClause} ${orderClause} LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+    const { rows: data } = await query(dataQuery, [...params, limit, offset]);
 
     return {
       data,
@@ -70,42 +76,27 @@ export const getOptimizedFinancialData = async (options = {}) => {
  * Batch query for multiple related tables
  */
 export const getBatchedReportData = async (dateFilter) => {
-  const queries = [];
-
-  // Use Promise.all for parallel execution
-  // Limit fields to reduce payload size
-  queries.push(
-    supabase
-      .from('payments')
-      .select('id, amount, payment_date, payment_type, status')
-      .gte('payment_date', dateFilter.startDate)
-      .lte('payment_date', dateFilter.endDate)
-      .limit(500)
-  );
-
-  queries.push(
-    supabase
-      .from('subscriptions')
-      .select('id, member_id, subscription_type, amount, status')
-      .eq('status', 'active')
-      .limit(500)
-  );
-
-  queries.push(
-    supabase
-      .from('expenses')
-      .select('id, amount, expense_category, expense_date, status')
-      .gte('expense_date', dateFilter.startDate)
-      .lte('expense_date', dateFilter.endDate)
-      .limit(500)
-  );
-
   try {
-    const results = await Promise.all(queries);
+    // Use Promise.all for parallel execution
+    const [paymentsResult, subscriptionsResult, expensesResult] = await Promise.all([
+      query(
+        'SELECT id, amount, payment_date, payment_type, status FROM payments WHERE payment_date >= $1 AND payment_date <= $2 LIMIT 500',
+        [dateFilter.startDate, dateFilter.endDate]
+      ),
+      query(
+        'SELECT id, member_id, subscription_type, amount, status FROM subscriptions WHERE status = $1 LIMIT 500',
+        ['active']
+      ),
+      query(
+        'SELECT id, amount, expense_category, expense_date, status FROM expenses WHERE expense_date >= $1 AND expense_date <= $2 LIMIT 500',
+        [dateFilter.startDate, dateFilter.endDate]
+      )
+    ]);
+
     return {
-      payments: results[0].data || [],
-      subscriptions: results[1].data || [],
-      expenses: results[2].data || []
+      payments: paymentsResult.rows || [],
+      subscriptions: subscriptionsResult.rows || [],
+      expenses: expensesResult.rows || []
     };
   } catch (error) {
     log.error('Batch query error:', { error: error.message });
@@ -118,19 +109,18 @@ export const getBatchedReportData = async (dateFilter) => {
  */
 export const getAggregatedSummary = async (dateFilter) => {
   try {
-    // Use RPC for complex aggregations (requires database functions)
-    const { data: summary, error } = await supabase
-      .rpc('get_financial_summary', {
-        start_date: dateFilter.startDate,
-        end_date: dateFilter.endDate
-      });
+    // Use database function for complex aggregations
+    const { rows } = await query(
+      'SELECT * FROM get_financial_summary($1, $2)',
+      [dateFilter.startDate, dateFilter.endDate]
+    );
 
-    if (error) {
-      // Fallback to manual aggregation if RPC not available
-      return getFallbackAggregation(dateFilter);
+    if (rows && rows.length > 0) {
+      return rows[0];
     }
 
-    return summary;
+    // Fallback to manual aggregation if function not available
+    return getFallbackAggregation(dateFilter);
   } catch (error) {
     log.error('Aggregation error:', { error: error.message });
     return getFallbackAggregation(dateFilter);
@@ -157,28 +147,24 @@ const getFallbackAggregation = async (dateFilter) => {
  * Optimized revenue calculation
  */
 const getOptimizedRevenue = async (dateFilter) => {
-  const { data } = await supabase
-    .from('payments')
-    .select('amount')
-    .gte('payment_date', dateFilter.startDate)
-    .lte('payment_date', dateFilter.endDate)
-    .eq('status', 'completed');
+  const { rows } = await query(
+    'SELECT amount FROM payments WHERE payment_date >= $1 AND payment_date <= $2 AND status = $3',
+    [dateFilter.startDate, dateFilter.endDate, 'completed']
+  );
 
-  return data?.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0) || 0;
+  return rows?.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0) || 0;
 };
 
 /**
  * Optimized expense calculation
  */
 const getOptimizedExpenses = async (dateFilter) => {
-  const { data } = await supabase
-    .from('expenses')
-    .select('amount')
-    .gte('expense_date', dateFilter.startDate)
-    .lte('expense_date', dateFilter.endDate)
-    .neq('status', 'deleted');
+  const { rows } = await query(
+    'SELECT amount FROM expenses WHERE expense_date >= $1 AND expense_date <= $2 AND status != $3',
+    [dateFilter.startDate, dateFilter.endDate, 'deleted']
+  );
 
-  return data?.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0) || 0;
+  return rows?.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0) || 0;
 };
 
 /**

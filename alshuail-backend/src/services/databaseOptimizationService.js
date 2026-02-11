@@ -1,4 +1,4 @@
-import { supabase } from '../config/database.js';
+import { query } from './database.js';
 import { log } from '../utils/logger.js';
 
 /**
@@ -58,15 +58,13 @@ export class DatabaseOptimizationService {
       const results = [];
       for (const index of indexes) {
         try {
-          const { data: _data, error } = await supabase.rpc('execute_sql', {
-            query: index.sql
-          });
-          
+          await query(index.sql);
+
           results.push({
             name: index.name,
-            success: !error,
+            success: true,
             description: index.description,
-            error: error?.message || null
+            error: null
           });
         } catch (err) {
           results.push({
@@ -81,13 +79,13 @@ export class DatabaseOptimizationService {
       return {
         success: true,
         data: results,
-        message: 'تم إنشاء فهارس قاعدة البيانات'
+        message: '\u062a\u0645 \u0625\u0646\u0634\u0627\u0621 \u0641\u0647\u0627\u0631\u0633 \u0642\u0627\u0639\u062f\u0629 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a'
       };
 
     } catch (error) {
       return {
         success: false,
-        error: error.message || 'فشل في إنشاء فهارس قاعدة البيانات'
+        error: error.message || '\u0641\u0634\u0644 \u0641\u064a \u0625\u0646\u0634\u0627\u0621 \u0641\u0647\u0627\u0631\u0633 \u0642\u0627\u0639\u062f\u0629 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a'
       };
     }
   }
@@ -102,7 +100,7 @@ export class DatabaseOptimizationService {
           name: 'payment_analytics_view',
           sql: `
             CREATE OR REPLACE VIEW payment_analytics_view AS
-            SELECT 
+            SELECT
               p.*,
               m.full_name,
               m.membership_number,
@@ -113,13 +111,13 @@ export class DatabaseOptimizationService {
               EXTRACT(DAY FROM p.created_at) as payment_day,
               DATE_TRUNC('month', p.created_at) as payment_month_start,
               DATE_TRUNC('week', p.created_at) as payment_week_start,
-              CASE 
-                WHEN p.status = 'paid' THEN p.amount 
-                ELSE 0 
+              CASE
+                WHEN p.status = 'paid' THEN p.amount
+                ELSE 0
               END as paid_amount,
-              CASE 
-                WHEN p.status = 'pending' THEN p.amount 
-                ELSE 0 
+              CASE
+                WHEN p.status = 'pending' THEN p.amount
+                ELSE 0
               END as pending_amount
             FROM payments p
             LEFT JOIN members m ON p.payer_id = m.id;
@@ -130,7 +128,7 @@ export class DatabaseOptimizationService {
           name: 'monthly_revenue_view',
           sql: `
             CREATE OR REPLACE VIEW monthly_revenue_view AS
-            SELECT 
+            SELECT
               DATE_TRUNC('month', created_at) as month,
               EXTRACT(YEAR FROM created_at) as year,
               EXTRACT(MONTH FROM created_at) as month_number,
@@ -140,7 +138,7 @@ export class DatabaseOptimizationService {
               SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) as pending_revenue,
               AVG(CASE WHEN status = 'paid' THEN amount ELSE NULL END) as avg_payment
             FROM payments
-            GROUP BY DATE_TRUNC('month', created_at), EXTRACT(YEAR FROM created_at), 
+            GROUP BY DATE_TRUNC('month', created_at), EXTRACT(YEAR FROM created_at),
                      EXTRACT(MONTH FROM created_at), category
             ORDER BY month DESC;
           `,
@@ -150,7 +148,7 @@ export class DatabaseOptimizationService {
           name: 'member_payment_summary_view',
           sql: `
             CREATE OR REPLACE VIEW member_payment_summary_view AS
-            SELECT 
+            SELECT
               m.id as member_id,
               m.full_name,
               m.membership_number,
@@ -173,13 +171,13 @@ export class DatabaseOptimizationService {
           name: 'overdue_payments_view',
           sql: `
             CREATE OR REPLACE VIEW overdue_payments_view AS
-            SELECT 
+            SELECT
               p.*,
               m.full_name,
               m.phone,
               m.email,
               DATE_PART('day', NOW() - p.created_at) as days_overdue,
-              CASE 
+              CASE
                 WHEN DATE_PART('day', NOW() - p.created_at) BETWEEN 30 AND 59 THEN '30-60 days'
                 WHEN DATE_PART('day', NOW() - p.created_at) BETWEEN 60 AND 89 THEN '60-90 days'
                 WHEN DATE_PART('day', NOW() - p.created_at) >= 90 THEN '90+ days'
@@ -187,7 +185,7 @@ export class DatabaseOptimizationService {
               END as overdue_category
             FROM payments p
             LEFT JOIN members m ON p.payer_id = m.id
-            WHERE p.status = 'pending' 
+            WHERE p.status = 'pending'
               AND p.created_at < NOW() - INTERVAL '30 days'
             ORDER BY p.created_at ASC;
           `,
@@ -198,15 +196,13 @@ export class DatabaseOptimizationService {
       const results = [];
       for (const view of views) {
         try {
-          const { data: _data, error } = await supabase.rpc('execute_sql', {
-            query: view.sql
-          });
-          
+          await query(view.sql);
+
           results.push({
             name: view.name,
-            success: !error,
+            success: true,
             description: view.description,
-            error: error?.message || null
+            error: null
           });
         } catch (err) {
           results.push({
@@ -221,13 +217,13 @@ export class DatabaseOptimizationService {
       return {
         success: true,
         data: results,
-        message: 'تم إنشاء عروض قاعدة البيانات للتحليلات'
+        message: '\u062a\u0645 \u0625\u0646\u0634\u0627\u0621 \u0639\u0631\u0648\u0636 \u0642\u0627\u0639\u062f\u0629 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0644\u0644\u062a\u062d\u0644\u064a\u0644\u0627\u062a'
       };
 
     } catch (error) {
       return {
         success: false,
-        error: error.message || 'فشل في إنشاء عروض قاعدة البيانات'
+        error: error.message || '\u0641\u0634\u0644 \u0641\u064a \u0625\u0646\u0634\u0627\u0621 \u0639\u0631\u0648\u0636 \u0642\u0627\u0639\u062f\u0629 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a'
       };
     }
   }
@@ -290,21 +286,27 @@ export class DatabaseOptimizationService {
         CREATE INDEX IF NOT EXISTS idx_audit_changed_at ON payment_audit_log(changed_at);
       `;
 
-      const { data: _data, error: _error } = await supabase.rpc('execute_sql', {
-        query: auditSQL
-      });
-
-      return {
-        success: !_error,
-        data: _data,
-        message: _error ? _error.message : 'تم إنشاء نظام تسجيل العمليات',
-        error: _error?.message || null
-      };
+      try {
+        await query(auditSQL);
+        return {
+          success: true,
+          data: null,
+          message: '\u062a\u0645 \u0625\u0646\u0634\u0627\u0621 \u0646\u0638\u0627\u0645 \u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u0639\u0645\u0644\u064a\u0627\u062a',
+          error: null
+        };
+      } catch (sqlError) {
+        return {
+          success: false,
+          data: null,
+          message: sqlError.message,
+          error: sqlError.message
+        };
+      }
 
     } catch (error) {
       return {
         success: false,
-        error: error.message || 'فشل في إنشاء نظام تسجيل العمليات'
+        error: error.message || '\u0641\u0634\u0644 \u0641\u064a \u0625\u0646\u0634\u0627\u0621 \u0646\u0638\u0627\u0645 \u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u0639\u0645\u0644\u064a\u0627\u062a'
       };
     }
   }
@@ -318,7 +320,7 @@ export class DatabaseOptimizationService {
         {
           name: 'Add missing columns',
           sql: `
-            ALTER TABLE payments 
+            ALTER TABLE payments
             ADD COLUMN IF NOT EXISTS processed_at TIMESTAMP,
             ADD COLUMN IF NOT EXISTS due_date DATE,
             ADD COLUMN IF NOT EXISTS receipt_generated BOOLEAN DEFAULT FALSE,
@@ -332,15 +334,15 @@ export class DatabaseOptimizationService {
           sql: `
             -- Add check constraints
             ALTER TABLE payments DROP CONSTRAINT IF EXISTS check_amount_positive;
-            ALTER TABLE payments ADD CONSTRAINT check_amount_positive 
+            ALTER TABLE payments ADD CONSTRAINT check_amount_positive
               CHECK (amount > 0 AND amount <= 100000);
-            
+
             ALTER TABLE payments DROP CONSTRAINT IF EXISTS check_valid_status;
-            ALTER TABLE payments ADD CONSTRAINT check_valid_status 
+            ALTER TABLE payments ADD CONSTRAINT check_valid_status
               CHECK (status IN ('pending', 'paid', 'cancelled', 'failed', 'refunded'));
-            
+
             ALTER TABLE payments DROP CONSTRAINT IF EXISTS check_valid_category;
-            ALTER TABLE payments ADD CONSTRAINT check_valid_category 
+            ALTER TABLE payments ADD CONSTRAINT check_valid_category
               CHECK (category IN ('subscription', 'donation', 'event', 'membership', 'other'));
           `
         },
@@ -349,7 +351,7 @@ export class DatabaseOptimizationService {
           sql: `
             -- Ensure reference number is unique
             ALTER TABLE payments DROP CONSTRAINT IF EXISTS unique_reference_number;
-            ALTER TABLE payments ADD CONSTRAINT unique_reference_number 
+            ALTER TABLE payments ADD CONSTRAINT unique_reference_number
               UNIQUE (reference_number);
           `
         }
@@ -358,14 +360,12 @@ export class DatabaseOptimizationService {
       const results = [];
       for (const optimization of optimizations) {
         try {
-          const { data: _data, error } = await supabase.rpc('execute_sql', {
-            query: optimization.sql
-          });
-          
+          await query(optimization.sql);
+
           results.push({
             name: optimization.name,
-            success: !error,
-            error: error?.message || null
+            success: true,
+            error: null
           });
         } catch (err) {
           results.push({
@@ -379,13 +379,13 @@ export class DatabaseOptimizationService {
       return {
         success: true,
         data: results,
-        message: 'تم تحسين هيكل جدول المدفوعات'
+        message: '\u062a\u0645 \u062a\u062d\u0633\u064a\u0646 \u0647\u064a\u0643\u0644 \u062c\u062f\u0648\u0644 \u0627\u0644\u0645\u062f\u0641\u0648\u0639\u0627\u062a'
       };
 
     } catch (error) {
       return {
         success: false,
-        error: error.message || 'فشل في تحسين هيكل جدول المدفوعات'
+        error: error.message || '\u0641\u0634\u0644 \u0641\u064a \u062a\u062d\u0633\u064a\u0646 \u0647\u064a\u0643\u0644 \u062c\u062f\u0648\u0644 \u0627\u0644\u0645\u062f\u0641\u0648\u0639\u0627\u062a'
       };
     }
   }
@@ -395,8 +395,8 @@ export class DatabaseOptimizationService {
    */
   static async runFullOptimization() {
     try {
-      log.info('🔧 Starting database optimization...');
-      
+      log.info('Starting database optimization...');
+
       const results = {
         tableOptimization: null,
         indexes: null,
@@ -420,19 +420,19 @@ export class DatabaseOptimizationService {
       log.info('4. Setting up audit logging...');
       results.auditLogging = await this.createAuditLogging();
 
-      log.info('✅ Database optimization completed!');
+      log.info('Database optimization completed!');
 
       return {
         success: true,
         data: results,
-        message: 'تم تحسين قاعدة البيانات بنجاح'
+        message: '\u062a\u0645 \u062a\u062d\u0633\u064a\u0646 \u0642\u0627\u0639\u062f\u0629 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a \u0628\u0646\u062c\u0627\u062d'
       };
 
     } catch (error) {
-      log.error('❌ Database optimization failed:', { error: error.message });
+      log.error('Database optimization failed:', { error: error.message });
       return {
         success: false,
-        error: error.message || 'فشل في تحسين قاعدة البيانات'
+        error: error.message || '\u0641\u0634\u0644 \u0641\u064a \u062a\u062d\u0633\u064a\u0646 \u0642\u0627\u0639\u062f\u0629 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a'
       };
     }
   }
@@ -449,9 +449,9 @@ export class DatabaseOptimizationService {
       };
 
       // Get table statistics
-      const { data: tableData } = await supabase.rpc('execute_sql', {
-        query: `
-          SELECT 
+      try {
+        const tableResult = await query(`
+          SELECT
             schemaname,
             tablename,
             n_tup_ins as inserts,
@@ -459,39 +459,43 @@ export class DatabaseOptimizationService {
             n_tup_del as deletes,
             n_live_tup as live_tuples,
             n_dead_tup as dead_tuples
-          FROM pg_stat_user_tables 
+          FROM pg_stat_user_tables
           WHERE tablename IN ('payments', 'members', 'subscriptions');
-        `
-      });
-      stats.tableStats = tableData;
+        `);
+        stats.tableStats = tableResult.rows;
+      } catch (err) {
+        log.error('Failed to get table stats:', { error: err.message });
+      }
 
       // Get index usage statistics
-      const { data: indexData } = await supabase.rpc('execute_sql', {
-        query: `
-          SELECT 
+      try {
+        const indexResult = await query(`
+          SELECT
             schemaname,
             tablename,
             indexname,
             idx_scan as index_scans,
             idx_tup_read as tuples_read,
             idx_tup_fetch as tuples_fetched
-          FROM pg_stat_user_indexes 
+          FROM pg_stat_user_indexes
           WHERE tablename IN ('payments', 'members', 'subscriptions')
           ORDER BY idx_scan DESC;
-        `
-      });
-      stats.indexStats = indexData;
+        `);
+        stats.indexStats = indexResult.rows;
+      } catch (err) {
+        log.error('Failed to get index stats:', { error: err.message });
+      }
 
       return {
         success: true,
         data: stats,
-        message: 'تم جلب إحصائيات الأداء'
+        message: '\u062a\u0645 \u062c\u0644\u0628 \u0625\u062d\u0635\u0627\u0626\u064a\u0627\u062a \u0627\u0644\u0623\u062f\u0627\u0621'
       };
 
     } catch (error) {
       return {
         success: false,
-        error: error.message || 'فشل في جلب إحصائيات الأداء'
+        error: error.message || '\u0641\u0634\u0644 \u0641\u064a \u062c\u0644\u0628 \u0625\u062d\u0635\u0627\u0626\u064a\u0627\u062a \u0627\u0644\u0623\u062f\u0627\u0621'
       };
     }
   }
@@ -502,24 +506,22 @@ export class DatabaseOptimizationService {
    */
   static async cleanupAuditLogs(daysToKeep = 90) {
     try {
-      const { data: _data, error: _error } = await supabase.rpc('execute_sql', {
-        query: `
-          DELETE FROM payment_audit_log
-          WHERE changed_at < NOW() - INTERVAL '${daysToKeep} days';
-        `
-      });
+      await query(
+        `DELETE FROM payment_audit_log WHERE changed_at < NOW() - $1::interval`,
+        [`${daysToKeep} days`]
+      );
 
       return {
-        success: !_error,
-        data: _data,
-        message: `تم تنظيف سجلات العمليات الأقدم من ${daysToKeep} يوم`,
-        error: _error?.message || null
+        success: true,
+        data: null,
+        message: `\u062a\u0645 \u062a\u0646\u0638\u064a\u0641 \u0633\u062c\u0644\u0627\u062a \u0627\u0644\u0639\u0645\u0644\u064a\u0627\u062a \u0627\u0644\u0623\u0642\u062f\u0645 \u0645\u0646 ${daysToKeep} \u064a\u0648\u0645`,
+        error: null
       };
 
     } catch (error) {
       return {
         success: false,
-        error: error.message || 'فشل في تنظيف سجلات العمليات'
+        error: error.message || '\u0641\u0634\u0644 \u0641\u064a \u062a\u0646\u0638\u064a\u0641 \u0633\u062c\u0644\u0627\u062a \u0627\u0644\u0639\u0645\u0644\u064a\u0627\u062a'
       };
     }
   }
@@ -532,46 +534,55 @@ export class DatabaseOptimizationService {
       const suggestions = [];
 
       // Check for missing indexes
-      const { data: slowQueries } = await supabase.rpc('execute_sql', {
-        query: `
+      let slowQueries = null;
+      try {
+        const slowResult = await query(`
           SELECT query, calls, total_time, mean_time
-          FROM pg_stat_statements 
+          FROM pg_stat_statements
           WHERE query LIKE '%payments%'
-          ORDER BY total_time DESC 
+          ORDER BY total_time DESC
           LIMIT 10;
-        `
-      });
+        `);
+        slowQueries = slowResult.rows;
+      } catch (err) {
+        // pg_stat_statements may not be available
+        log.warn('pg_stat_statements not available:', { error: err.message });
+      }
 
       if (slowQueries && slowQueries.length > 0) {
         suggestions.push({
           type: 'performance',
           severity: 'medium',
-          message: 'توجد استعلامات بطيئة تتعلق بجدول المدفوعات',
-          action: 'فحص وإضافة فهارس مناسبة'
+          message: '\u062a\u0648\u062c\u062f \u0627\u0633\u062a\u0639\u0644\u0627\u0645\u0627\u062a \u0628\u0637\u064a\u0626\u0629 \u062a\u062a\u0639\u0644\u0642 \u0628\u062c\u062f\u0648\u0644 \u0627\u0644\u0645\u062f\u0641\u0648\u0639\u0627\u062a',
+          action: '\u0641\u062d\u0635 \u0648\u0625\u0636\u0627\u0641\u0629 \u0641\u0647\u0627\u0631\u0633 \u0645\u0646\u0627\u0633\u0628\u0629'
         });
       }
 
       // Check table bloat
-      const { data: bloatData } = await supabase.rpc('execute_sql', {
-        query: `
-          SELECT 
+      let bloatData = null;
+      try {
+        const bloatResult = await query(`
+          SELECT
             n_dead_tup,
             n_live_tup,
-            CASE 
+            CASE
               WHEN n_live_tup > 0 THEN (n_dead_tup::float / n_live_tup * 100)
-              ELSE 0 
+              ELSE 0
             END as bloat_percentage
-          FROM pg_stat_user_tables 
+          FROM pg_stat_user_tables
           WHERE tablename = 'payments';
-        `
-      });
+        `);
+        bloatData = bloatResult.rows;
+      } catch (err) {
+        log.warn('Failed to check table bloat:', { error: err.message });
+      }
 
       if (bloatData && bloatData[0]?.bloat_percentage > 10) {
         suggestions.push({
           type: 'maintenance',
           severity: 'low',
-          message: 'جدول المدفوعات يحتاج إلى صيانة',
-          action: 'تشغيل VACUUM ANALYZE على الجدول'
+          message: '\u062c\u062f\u0648\u0644 \u0627\u0644\u0645\u062f\u0641\u0648\u0639\u0627\u062a \u064a\u062d\u062a\u0627\u062c \u0625\u0644\u0649 \u0635\u064a\u0627\u0646\u0629',
+          action: '\u062a\u0634\u063a\u064a\u0644 VACUUM ANALYZE \u0639\u0644\u0649 \u0627\u0644\u062c\u062f\u0648\u0644'
         });
       }
 
@@ -582,15 +593,14 @@ export class DatabaseOptimizationService {
           slowQueries,
           tableHealth: bloatData
         },
-        message: 'تم تحليل قاعدة البيانات'
+        message: '\u062a\u0645 \u062a\u062d\u0644\u064a\u0644 \u0642\u0627\u0639\u062f\u0629 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a'
       };
 
     } catch (error) {
       return {
         success: false,
-        error: error.message || 'فشل في تحليل قاعدة البيانات'
+        error: error.message || '\u0641\u0634\u0644 \u0641\u064a \u062a\u062d\u0644\u064a\u0644 \u0642\u0627\u0639\u062f\u0629 \u0627\u0644\u0628\u064a\u0627\u0646\u0627\u062a'
       };
     }
   }
 }
-

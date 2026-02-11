@@ -3,6 +3,8 @@
  * Validates user profile information updates (name, email, phone)
  */
 
+import { query } from '../services/database.js';
+
 /**
  * Validate profile update data
  * @param {Object} data - Profile data to validate
@@ -72,56 +74,42 @@ export function validateProfileUpdates(data) {
 
 /**
  * Check if email is unique (not used by another user)
- * @param {Object} supabase - Supabase client
  * @param {string} email - Email to check
  * @param {string} currentUserId - Current user's ID to exclude from check
  * @returns {Promise<boolean>} True if email is unique, false if already used
  */
-export async function isEmailUnique(supabase, email, currentUserId) {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('email', email)
-    .neq('id', currentUserId)
-    .maybeSingle();
+export async function isEmailUnique(email, currentUserId) {
+  const { rows } = await query(
+    'SELECT id FROM profiles WHERE email = $1 AND id != $2',
+    [email, currentUserId]
+  );
 
-  if (error) {
-    throw error;
-  }
-
-  return data === null;
+  return rows.length === 0;
 }
 
 /**
  * Check if phone is unique (not used by another member)
- * @param {Object} supabase - Supabase client
  * @param {string} phone - Phone number to check
  * @param {string} currentUserId - Current user's ID to exclude from check
  * @returns {Promise<boolean>} True if phone is unique, false if already used
  */
-export async function isPhoneUnique(supabase, phone, currentUserId) {
+export async function isPhoneUnique(phone, currentUserId) {
   // Get current user's member_id
-  const { data: profileData } = await supabase
-    .from('profiles')
-    .select('member_id')
-    .eq('id', currentUserId)
-    .maybeSingle();
+  const { rows: profileRows } = await query(
+    'SELECT member_id FROM profiles WHERE id = $1',
+    [currentUserId]
+  );
+  const profileData = profileRows[0];
 
   if (!profileData || !profileData.member_id) {
     return true; // User has no member record, skip check
   }
 
   // Check if phone is used by another member
-  const { data, error } = await supabase
-    .from('members')
-    .select('id')
-    .eq('phone', phone)
-    .neq('id', profileData.member_id)
-    .maybeSingle();
+  const { rows } = await query(
+    'SELECT id FROM members WHERE phone = $1 AND id != $2',
+    [phone, profileData.member_id]
+  );
 
-  if (error) {
-    throw error;
-  }
-
-  return data === null;
+  return rows.length === 0;
 }

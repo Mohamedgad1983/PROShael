@@ -9,7 +9,7 @@
 
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 import { sendWhatsAppOTP } from '../services/whatsappOtpService.js';
 import { generateSecureOTP } from '../utils/secureOtp.js';
 
@@ -74,13 +74,13 @@ const generateToken = (member) => {
  * Check if account is locked
  */
 const checkAccountLock = async (memberId) => {
-    const { data, error } = await supabase
-        .from('members')
-        .select('locked_until, failed_login_attempts')
-        .eq('id', memberId)
-        .single();
+    const { rows } = await query(
+        'SELECT locked_until, failed_login_attempts FROM members WHERE id = $1',
+        [memberId]
+    );
 
-    if (error || !data) return { locked: false };
+    const data = rows[0];
+    if (!data) return { locked: false };
 
     const { locked_until, failed_login_attempts } = data;
 
@@ -154,38 +154,46 @@ const logSecurityAction = async (memberId, actionType, performedBy = null, detai
 
     try {
         // Get member info for database record
-        const { data: member } = await supabase
-            .from('members')
-            .select('full_name_ar, phone')
-            .eq('id', memberId)
-            .single();
+        let member = null;
+        if (memberId) {
+            const { rows: memberRows } = await query(
+                'SELECT full_name_ar, phone FROM members WHERE id = $1',
+                [memberId]
+            );
+            member = memberRows[0] || null;
+        }
 
         let performerName = null;
         let performerRole = null;
 
         if (performedBy) {
-            const { data: performer } = await supabase
-                .from('members')
-                .select('full_name_ar, role')
-                .eq('id', performedBy)
-                .single();
+            const { rows: performerRows } = await query(
+                'SELECT full_name_ar, role FROM members WHERE id = $1',
+                [performedBy]
+            );
+            const performer = performerRows[0];
             if (performer) {
                 performerName = performer.full_name_ar;
                 performerRole = performer.role;
             }
         }
 
-        await supabase.from('security_audit_log').insert({
-            member_id: memberId,
-            member_name: member?.full_name_ar,
-            member_phone: member?.phone,
-            action_type: actionType,
-            performed_by: performedBy,
-            performed_by_name: performerName,
-            performed_by_role: performerRole,
-            details: { ...details, log_level: level },
-            ip_address: ip
-        });
+        await query(
+            `INSERT INTO security_audit_log
+                (member_id, member_name, member_phone, action_type, performed_by, performed_by_name, performed_by_role, details, ip_address)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+            [
+                memberId,
+                member?.full_name_ar || null,
+                member?.phone || null,
+                actionType,
+                performedBy,
+                performerName,
+                performerRole,
+                JSON.stringify({ ...details, log_level: level }),
+                ip
+            ]
+        );
     } catch (error) {
         console.error('[SECURITY] Error logging to database:', error.message);
     }
@@ -211,14 +219,16 @@ export const loginWithPassword = async (req, res) => {
         const normalizedPhone = normalizePhone(phone);
 
         // Find member by phone
-        const { data: member, error } = await supabase
-            .from('members')
-            .select('id, phone, full_name_ar, full_name_en, role, password_hash, has_password, is_active, failed_login_attempts, locked_until, must_change_password')
-            .eq('phone', normalizedPhone)
-            .single();
+        const { rows: memberRows } = await query(
+            `SELECT id, phone, full_name_ar, full_name_en, role, password_hash, has_password,
+                    is_active, failed_login_attempts, locked_until, must_change_password
+             FROM members WHERE phone = $1`,
+            [normalizedPhone]
+        );
+        const member = memberRows[0];
 
         // OWASP: Use generic message to prevent phone enumeration
-        if (error || !member) {
+        if (!member) {
             return res.status(401).json({
                 success: false,
                 message: 'بيانات الدخول غير صحيحة'
@@ -259,14 +269,21 @@ export const loginWithPassword = async (req, res) => {
         if (!isValidPassword) {
             // Handle failed login
             const newAttempts = (member.failed_login_attempts || 0) + 1;
-            const updateData = { failed_login_attempts: newAttempts };
 
             if (newAttempts >= MAX_LOGIN_ATTEMPTS) {
-                updateData.locked_until = new Date(Date.now() + LOCK_DURATION_MINUTES * 60000).toISOString();
+                const lockedUntil = new Date(Date.now() + LOCK_DURATION_MINUTES * 60000).toISOString();
+                await query(
+                    'UPDATE members SET failed_login_attempts = $1, locked_until = $2 WHERE id = $3',
+                    [newAttempts, lockedUntil, member.id]
+                );
                 await logSecurityAction(member.id, 'account_locked', null, { reason: 'too_many_failed_attempts', attempts: newAttempts }, ip);
+            } else {
+                await query(
+                    'UPDATE members SET failed_login_attempts = $1 WHERE id = $2',
+                    [newAttempts, member.id]
+                );
             }
 
-            await supabase.from('members').update(updateData).eq('id', member.id);
             await logSecurityAction(member.id, 'login_failed', null, { method: 'password' }, ip);
 
             return res.status(401).json({
@@ -278,12 +295,13 @@ export const loginWithPassword = async (req, res) => {
         }
 
         // Successful login - reset counters
-        await supabase.from('members').update({
-            failed_login_attempts: 0,
-            locked_until: null,
-            last_login_at: new Date().toISOString(),
-            last_login_method: 'password'
-        }).eq('id', member.id);
+        await query(
+            `UPDATE members
+             SET failed_login_attempts = 0, locked_until = NULL,
+                 last_login_at = $1, last_login_method = 'password'
+             WHERE id = $2`,
+            [new Date().toISOString(), member.id]
+        );
 
         await logSecurityAction(member.id, 'login_success', member.id, { method: 'password' }, ip);
 
@@ -330,14 +348,14 @@ export const checkPasswordStatus = async (req, res) => {
         }
 
         // Find member by phone
-        const { data: member, error } = await supabase
-            .from('members')
-            .select('id, has_password, is_active')
-            .eq('phone', phone)
-            .single();
+        const { rows } = await query(
+            'SELECT id, has_password, is_active FROM members WHERE phone = $1',
+            [phone]
+        );
+        const member = rows[0];
 
         // OWASP: Don't reveal if phone exists - return consistent response
-        if (error || !member) {
+        if (!member) {
             return res.json({
                 success: true,
                 hasPassword: false,
@@ -378,14 +396,12 @@ export const requestOTP = async (req, res) => {
 
         // OWASP: Always apply rate limiting regardless of phone existence
         // Check for existing unexpired OTP - rate limiting
-        const { data: existingOTP } = await supabase
-            .from('password_reset_tokens')
-            .select('id, created_at')
-            .eq('phone', phone)
-            .eq('is_used', false)
-            .gt('expires_at', new Date().toISOString())
-            .order('created_at', { ascending: false })
-            .limit(1);
+        const { rows: existingOTP } = await query(
+            `SELECT id, created_at FROM password_reset_tokens
+             WHERE phone = $1 AND is_used = false AND expires_at > $2
+             ORDER BY created_at DESC LIMIT 1`,
+            [phone, new Date().toISOString()]
+        );
 
         if (existingOTP && existingOTP.length > 0) {
             const lastOTP = existingOTP[0];
@@ -401,14 +417,14 @@ export const requestOTP = async (req, res) => {
         }
 
         // Find member (but don't reveal if not found)
-        const { data: member, error } = await supabase
-            .from('members')
-            .select('id, phone, full_name_ar, is_active, has_password')
-            .eq('phone', phone)
-            .single();
+        const { rows: memberRows } = await query(
+            'SELECT id, phone, full_name_ar, is_active, has_password FROM members WHERE phone = $1',
+            [phone]
+        );
+        const member = memberRows[0];
 
         // OWASP: Log internally but don't reveal to user
-        if (error || !member) {
+        if (!member) {
             console.log(`OTP request for unregistered phone: ${phone.substring(0, 4)}****`);
             // Return success response (but don't actually send OTP)
             return res.json({
@@ -434,12 +450,11 @@ export const requestOTP = async (req, res) => {
         const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60000);
 
         // Save OTP to database (hash only, no plain text)
-        await supabase.from('password_reset_tokens').insert({
-            member_id: member.id,
-            phone: phone,
-            otp_hash: otpHash,
-            expires_at: expiresAt.toISOString()
-        });
+        await query(
+            `INSERT INTO password_reset_tokens (member_id, phone, otp_hash, expires_at)
+             VALUES ($1, $2, $3, $4)`,
+            [member.id, phone, otpHash, expiresAt.toISOString()]
+        );
 
         // Send OTP via WhatsApp
         const whatsappResult = await sendWhatsAppOTP(phone, otp, member.full_name_ar);
@@ -494,16 +509,15 @@ export const verifyOTP = async (req, res) => {
         }
 
         // Find latest OTP for this phone
-        const { data: otpRecords, error } = await supabase
-            .from('password_reset_tokens')
-            .select('id, member_id, otp_hash, attempts, expires_at')
-            .eq('phone', phone)
-            .eq('is_used', false)
-            .gt('expires_at', new Date().toISOString())
-            .order('created_at', { ascending: false })
-            .limit(1);
+        const { rows: otpRecords } = await query(
+            `SELECT id, member_id, otp_hash, attempts, expires_at
+             FROM password_reset_tokens
+             WHERE phone = $1 AND is_used = false AND expires_at > $2
+             ORDER BY created_at DESC LIMIT 1`,
+            [phone, new Date().toISOString()]
+        );
 
-        if (error || !otpRecords || otpRecords.length === 0) {
+        if (!otpRecords || otpRecords.length === 0) {
             return res.status(400).json({
                 success: false,
                 message: 'رمز التحقق غير صالح أو منتهي الصلاحية'
@@ -514,9 +528,10 @@ export const verifyOTP = async (req, res) => {
 
         // Check max attempts
         if (otpRecord.attempts >= MAX_OTP_ATTEMPTS) {
-            await supabase.from('password_reset_tokens')
-                .update({ is_used: true })
-                .eq('id', otpRecord.id);
+            await query(
+                'UPDATE password_reset_tokens SET is_used = true WHERE id = $1',
+                [otpRecord.id]
+            );
 
             return res.status(400).json({
                 success: false,
@@ -528,9 +543,10 @@ export const verifyOTP = async (req, res) => {
         const isValidOTP = await bcrypt.compare(otp, otpRecord.otp_hash);
 
         if (!isValidOTP) {
-            await supabase.from('password_reset_tokens')
-                .update({ attempts: otpRecord.attempts + 1 })
-                .eq('id', otpRecord.id);
+            await query(
+                'UPDATE password_reset_tokens SET attempts = $1 WHERE id = $2',
+                [otpRecord.attempts + 1, otpRecord.id]
+            );
 
             return res.status(400).json({
                 success: false,
@@ -540,24 +556,26 @@ export const verifyOTP = async (req, res) => {
         }
 
         // Mark OTP as used
-        await supabase.from('password_reset_tokens')
-            .update({ is_used: true, used_at: new Date().toISOString() })
-            .eq('id', otpRecord.id);
+        await query(
+            'UPDATE password_reset_tokens SET is_used = true, used_at = $1 WHERE id = $2',
+            [new Date().toISOString(), otpRecord.id]
+        );
 
         // Get member details
-        const { data: member } = await supabase
-            .from('members')
-            .select('id, phone, full_name_ar, full_name_en, role, has_password')
-            .eq('id', otpRecord.member_id)
-            .single();
+        const { rows: memberRows } = await query(
+            'SELECT id, phone, full_name_ar, full_name_en, role, has_password FROM members WHERE id = $1',
+            [otpRecord.member_id]
+        );
+        const member = memberRows[0];
 
         // Update login info
-        await supabase.from('members').update({
-            failed_login_attempts: 0,
-            locked_until: null,
-            last_login_at: new Date().toISOString(),
-            last_login_method: 'otp'
-        }).eq('id', member.id);
+        await query(
+            `UPDATE members
+             SET failed_login_attempts = 0, locked_until = NULL,
+                 last_login_at = $1, last_login_method = 'otp'
+             WHERE id = $2`,
+            [new Date().toISOString(), member.id]
+        );
 
         await logSecurityAction(member.id, 'login_success', member.id, { method: 'otp' }, ip);
 
@@ -621,23 +639,22 @@ export const createPassword = async (req, res) => {
         const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
 
         // Check if updating or creating
-        const { data: memberData } = await supabase
-            .from('members')
-            .select('has_password')
-            .eq('id', memberId)
-            .single();
+        const { rows: memberRows } = await query(
+            'SELECT has_password FROM members WHERE id = $1',
+            [memberId]
+        );
+        const memberData = memberRows[0];
 
         const isNewPassword = !memberData?.has_password;
 
         // Update member - clear must_change_password flag
-        await supabase.from('members').update({
-            password_hash: passwordHash,
-            has_password: true,
-            must_change_password: false,
-            password_updated_at: new Date().toISOString(),
-            failed_login_attempts: 0,
-            locked_until: null
-        }).eq('id', memberId);
+        await query(
+            `UPDATE members
+             SET password_hash = $1, has_password = true, must_change_password = false,
+                 password_updated_at = $2, failed_login_attempts = 0, locked_until = NULL
+             WHERE id = $3`,
+            [passwordHash, new Date().toISOString(), memberId]
+        );
 
         // Log action
         await logSecurityAction(
@@ -692,14 +709,13 @@ export const resetPassword = async (req, res) => {
         }
 
         // Verify OTP first
-        const { data: otpRecords } = await supabase
-            .from('password_reset_tokens')
-            .select('id, member_id, otp_hash, attempts')
-            .eq('phone', phone)
-            .eq('is_used', false)
-            .gt('expires_at', new Date().toISOString())
-            .order('created_at', { ascending: false })
-            .limit(1);
+        const { rows: otpRecords } = await query(
+            `SELECT id, member_id, otp_hash, attempts
+             FROM password_reset_tokens
+             WHERE phone = $1 AND is_used = false AND expires_at > $2
+             ORDER BY created_at DESC LIMIT 1`,
+            [phone, new Date().toISOString()]
+        );
 
         if (!otpRecords || otpRecords.length === 0) {
             return res.status(400).json({
@@ -712,9 +728,10 @@ export const resetPassword = async (req, res) => {
         const isValidOTP = await bcrypt.compare(otp, otpRecord.otp_hash);
 
         if (!isValidOTP) {
-            await supabase.from('password_reset_tokens')
-                .update({ attempts: otpRecord.attempts + 1 })
-                .eq('id', otpRecord.id);
+            await query(
+                'UPDATE password_reset_tokens SET attempts = $1 WHERE id = $2',
+                [otpRecord.attempts + 1, otpRecord.id]
+            );
 
             return res.status(400).json({
                 success: false,
@@ -723,21 +740,22 @@ export const resetPassword = async (req, res) => {
         }
 
         // Mark OTP as used
-        await supabase.from('password_reset_tokens')
-            .update({ is_used: true, used_at: new Date().toISOString() })
-            .eq('id', otpRecord.id);
+        await query(
+            'UPDATE password_reset_tokens SET is_used = true, used_at = $1 WHERE id = $2',
+            [new Date().toISOString(), otpRecord.id]
+        );
 
         // Hash new password
         const passwordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
 
         // Update member password
-        await supabase.from('members').update({
-            password_hash: passwordHash,
-            has_password: true,
-            password_updated_at: new Date().toISOString(),
-            failed_login_attempts: 0,
-            locked_until: null
-        }).eq('id', otpRecord.member_id);
+        await query(
+            `UPDATE members
+             SET password_hash = $1, has_password = true, password_updated_at = $2,
+                 failed_login_attempts = 0, locked_until = NULL
+             WHERE id = $3`,
+            [passwordHash, new Date().toISOString(), otpRecord.member_id]
+        );
 
         // Log action
         await logSecurityAction(
@@ -778,13 +796,14 @@ export const loginWithFaceId = async (req, res) => {
         }
 
         // Get member
-        const { data: member, error } = await supabase
-            .from('members')
-            .select('id, phone, full_name_ar, full_name_en, role, face_id_token, has_face_id, is_active')
-            .eq('id', memberId)
-            .single();
+        const { rows: memberRows } = await query(
+            `SELECT id, phone, full_name_ar, full_name_en, role, face_id_token, has_face_id, is_active
+             FROM members WHERE id = $1`,
+            [memberId]
+        );
+        const member = memberRows[0];
 
-        if (error || !member) {
+        if (!member) {
             return res.status(404).json({
                 success: false,
                 message: 'العضو غير موجود'
@@ -817,12 +836,13 @@ export const loginWithFaceId = async (req, res) => {
         }
 
         // Successful login
-        await supabase.from('members').update({
-            failed_login_attempts: 0,
-            locked_until: null,
-            last_login_at: new Date().toISOString(),
-            last_login_method: 'face_id'
-        }).eq('id', member.id);
+        await query(
+            `UPDATE members
+             SET failed_login_attempts = 0, locked_until = NULL,
+                 last_login_at = $1, last_login_method = 'face_id'
+             WHERE id = $2`,
+            [new Date().toISOString(), member.id]
+        );
 
         await logSecurityAction(member.id, 'login_success', member.id, { method: 'face_id' }, ip);
 
@@ -866,11 +886,12 @@ export const enableFaceId = async (req, res) => {
             });
         }
 
-        await supabase.from('members').update({
-            face_id_token: faceIdToken,
-            has_face_id: true,
-            face_id_enabled_at: new Date().toISOString()
-        }).eq('id', memberId);
+        await query(
+            `UPDATE members
+             SET face_id_token = $1, has_face_id = true, face_id_enabled_at = $2
+             WHERE id = $3`,
+            [faceIdToken, new Date().toISOString(), memberId]
+        );
 
         await logSecurityAction(memberId, 'face_id_enabled', memberId, {}, ip);
 
@@ -896,11 +917,12 @@ export const disableFaceId = async (req, res) => {
         const memberId = req.user.id;
         const ip = req.ip;
 
-        await supabase.from('members').update({
-            face_id_token: null,
-            has_face_id: false,
-            face_id_enabled_at: null
-        }).eq('id', memberId);
+        await query(
+            `UPDATE members
+             SET face_id_token = NULL, has_face_id = false, face_id_enabled_at = NULL
+             WHERE id = $1`,
+            [memberId]
+        );
 
         await logSecurityAction(memberId, 'face_id_disabled', memberId, {}, ip);
 
@@ -936,13 +958,13 @@ export const adminDeletePassword = async (req, res) => {
         }
 
         // Get member info
-        const { data: member, error } = await supabase
-            .from('members')
-            .select('full_name_ar, phone')
-            .eq('id', memberId)
-            .single();
+        const { rows: memberRows } = await query(
+            'SELECT full_name_ar, phone FROM members WHERE id = $1',
+            [memberId]
+        );
+        const member = memberRows[0];
 
-        if (error || !member) {
+        if (!member) {
             return res.status(404).json({
                 success: false,
                 message: 'العضو غير موجود'
@@ -950,11 +972,10 @@ export const adminDeletePassword = async (req, res) => {
         }
 
         // Delete password
-        await supabase.from('members').update({
-            password_hash: null,
-            has_password: false,
-            password_updated_at: null
-        }).eq('id', memberId);
+        await query(
+            'UPDATE members SET password_hash = NULL, has_password = false, password_updated_at = NULL WHERE id = $1',
+            [memberId]
+        );
 
         // Log action
         await logSecurityAction(
@@ -997,13 +1018,13 @@ export const adminDeleteFaceId = async (req, res) => {
         }
 
         // Get member info
-        const { data: member, error } = await supabase
-            .from('members')
-            .select('full_name_ar, phone')
-            .eq('id', memberId)
-            .single();
+        const { rows: memberRows } = await query(
+            'SELECT full_name_ar, phone FROM members WHERE id = $1',
+            [memberId]
+        );
+        const member = memberRows[0];
 
-        if (error || !member) {
+        if (!member) {
             return res.status(404).json({
                 success: false,
                 message: 'العضو غير موجود'
@@ -1011,11 +1032,10 @@ export const adminDeleteFaceId = async (req, res) => {
         }
 
         // Delete Face ID
-        await supabase.from('members').update({
-            face_id_token: null,
-            has_face_id: false,
-            face_id_enabled_at: null
-        }).eq('id', memberId);
+        await query(
+            'UPDATE members SET face_id_token = NULL, has_face_id = false, face_id_enabled_at = NULL WHERE id = $1',
+            [memberId]
+        );
 
         // Log action
         await logSecurityAction(
@@ -1056,13 +1076,15 @@ export const getMemberSecurityInfo = async (req, res) => {
         }
 
         // Get security info
-        const { data: securityInfo, error } = await supabase
-            .from('members')
-            .select('has_password, password_updated_at, has_face_id, face_id_enabled_at, failed_login_attempts, locked_until, last_login_at, last_login_method')
-            .eq('id', memberId)
-            .single();
+        const { rows: securityRows } = await query(
+            `SELECT has_password, password_updated_at, has_face_id, face_id_enabled_at,
+                    failed_login_attempts, locked_until, last_login_at, last_login_method
+             FROM members WHERE id = $1`,
+            [memberId]
+        );
+        const securityInfo = securityRows[0];
 
-        if (error || !securityInfo) {
+        if (!securityInfo) {
             return res.status(404).json({
                 success: false,
                 message: 'العضو غير موجود'
@@ -1070,12 +1092,13 @@ export const getMemberSecurityInfo = async (req, res) => {
         }
 
         // Get recent security logs
-        const { data: logs } = await supabase
-            .from('security_audit_log')
-            .select('action_type, performed_by_name, created_at, details')
-            .eq('member_id', memberId)
-            .order('created_at', { ascending: false })
-            .limit(10);
+        const { rows: logs } = await query(
+            `SELECT action_type, performed_by_name, created_at, details
+             FROM security_audit_log
+             WHERE member_id = $1
+             ORDER BY created_at DESC LIMIT 10`,
+            [memberId]
+        );
 
         res.json({
             success: true,
@@ -1135,27 +1158,21 @@ export const adminSetDefaultPassword = async (req, res) => {
         let updatedCount = 0;
 
         if (allMembers === true) {
-            // Set default password for ALL members
-            const { data, error } = await supabase
-                .from('members')
-                .update({
-                    password_hash: passwordHash,
-                    has_password: true,
-                    must_change_password: true,
-                    password_updated_at: new Date().toISOString()
-                })
-                .neq('id', adminId); // Don't reset admin's own password
-
-            if (error) throw error;
+            // Set default password for ALL members (except admin)
+            const result = await query(
+                `UPDATE members
+                 SET password_hash = $1, has_password = true, must_change_password = true,
+                     password_updated_at = $2
+                 WHERE id != $3`,
+                [passwordHash, new Date().toISOString(), adminId]
+            );
 
             // Count updated members
-            const { count } = await supabase
-                .from('members')
-                .select('id', { count: 'exact', head: true })
-                .eq('has_password', true)
-                .eq('must_change_password', true);
+            const { rows: countRows } = await query(
+                'SELECT COUNT(*) as count FROM members WHERE has_password = true AND must_change_password = true'
+            );
 
-            updatedCount = count || 0;
+            updatedCount = parseInt(countRows[0].count) || 0;
 
             await logSecurityAction(
                 null,
@@ -1167,30 +1184,27 @@ export const adminSetDefaultPassword = async (req, res) => {
 
         } else if (memberId) {
             // Set default password for specific member
-            const { data: member, error: memberError } = await supabase
-                .from('members')
-                .select('id, full_name_ar, phone')
-                .eq('id', memberId)
-                .single();
+            const { rows: memberRows } = await query(
+                'SELECT id, full_name_ar, phone FROM members WHERE id = $1',
+                [memberId]
+            );
+            const member = memberRows[0];
 
-            if (memberError || !member) {
+            if (!member) {
                 return res.status(404).json({
                     success: false,
                     message: 'العضو غير موجود'
                 });
             }
 
-            const { error } = await supabase
-                .from('members')
-                .update({
-                    password_hash: passwordHash,
-                    has_password: true,
-                    must_change_password: true,
-                    password_updated_at: new Date().toISOString()
-                })
-                .eq('id', memberId);
+            await query(
+                `UPDATE members
+                 SET password_hash = $1, has_password = true, must_change_password = true,
+                     password_updated_at = $2
+                 WHERE id = $3`,
+                [passwordHash, new Date().toISOString(), memberId]
+            );
 
-            if (error) throw error;
             updatedCount = 1;
 
             await logSecurityAction(

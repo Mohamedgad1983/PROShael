@@ -3,7 +3,7 @@
  * This script applies all necessary indexes and functions for optimal performance
  */
 
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
 import _fs from 'fs';
 import path from 'path';
@@ -54,18 +54,10 @@ async function applyOptimizations() {
 
     for (const index of memberIndexes) {
       try {
-        const { error } = await supabase.rpc('exec_sql', {
-          sql: index.sql
-        });
-
-        if (!error) {
-          log.info(`  ✅ Created index: ${index.name}`);
-        } else {
-          log.info(`  ⚠️  Index ${index.name} might already exist or failed: ${error.message}`);
-        }
+        await query(index.sql);
+        log.info(`  ✅ Created index: ${index.name}`);
       } catch (err) {
-        // Try direct SQL execution as fallback
-        log.info(`  ℹ️  Attempting direct SQL for ${index.name}`);
+        log.info(`  ⚠️  Index ${index.name} might already exist or failed: ${err.message}`);
       }
     }
 
@@ -89,17 +81,10 @@ async function applyOptimizations() {
 
     for (const index of paymentIndexes) {
       try {
-        const { error } = await supabase.rpc('exec_sql', {
-          sql: index.sql
-        });
-
-        if (!error) {
-          log.info(`  ✅ Created index: ${index.name}`);
-        } else {
-          log.info(`  ⚠️  Index ${index.name} might already exist or failed: ${error.message}`);
-        }
+        await query(index.sql);
+        log.info(`  ✅ Created index: ${index.name}`);
       } catch (err) {
-        log.info(`  ℹ️  Attempting direct SQL for ${index.name}`);
+        log.info(`  ⚠️  Index ${index.name} might already exist or failed: ${err.message}`);
       }
     }
 
@@ -118,15 +103,10 @@ async function applyOptimizations() {
     for (const column of columns) {
       try {
         const sql = `ALTER TABLE members ADD COLUMN IF NOT EXISTS ${column.name} ${column.type};`;
-        const { error } = await supabase.rpc('exec_sql', { sql });
-
-        if (!error) {
-          log.info(`  ✅ Added column: ${column.name}`);
-        } else {
-          log.info(`  ⚠️  Column ${column.name} might already exist`);
-        }
+        await query(sql);
+        log.info(`  ✅ Added column: ${column.name}`);
       } catch (err) {
-        log.info(`  ℹ️  Column ${column.name} operation: ${err.message}`);
+        log.info(`  ⚠️  Column ${column.name} might already exist: ${err.message}`);
       }
     }
 
@@ -146,15 +126,10 @@ async function applyOptimizations() {
     `;
 
     try {
-      const { error } = await supabase.rpc('exec_sql', { sql: auditTableSQL });
-
-      if (!error) {
-        log.info(`  ✅ Created audit_log table`);
-      } else {
-        log.info(`  ⚠️  audit_log table might already exist`);
-      }
+      await query(auditTableSQL);
+      log.info(`  ✅ Created audit_log table`);
     } catch (err) {
-      log.info(`  ℹ️  audit_log table operation: ${err.message}`);
+      log.info(`  ⚠️  audit_log table might already exist: ${err.message}`);
     }
 
     // 5. Create SMS queue table
@@ -176,15 +151,10 @@ async function applyOptimizations() {
     `;
 
     try {
-      const { error } = await supabase.rpc('exec_sql', { sql: smsQueueSQL });
-
-      if (!error) {
-        log.info(`  ✅ Created sms_queue table`);
-      } else {
-        log.info(`  ⚠️  sms_queue table might already exist`);
-      }
+      await query(smsQueueSQL);
+      log.info(`  ✅ Created sms_queue table`);
     } catch (err) {
-      log.info(`  ℹ️  sms_queue table operation: ${err.message}`);
+      log.info(`  ⚠️  sms_queue table might already exist: ${err.message}`);
     }
 
     // 6. Test the optimizations
@@ -193,33 +163,26 @@ async function applyOptimizations() {
     const startTime = Date.now();
 
     // Test query with filters
-    const { data: testData, error: _testError } = await supabase
-      .from('members')
-      .select('*', { count: 'exact' })
-      .limit(50);
-
-    const queryTime = Date.now() - startTime;
-
-    if (!_testError) {
+    try {
+      const { rows: testData } = await query('SELECT * FROM members LIMIT 50');
+      const queryTime = Date.now() - startTime;
       log.info(`  ✅ Test query successful in ${queryTime}ms`);
       log.info(`  📊 Found ${testData.length} members`);
-    } else {
-      log.info(`  ❌ Test query failed: ${_testError.message}`);
+    } catch (testError) {
+      log.info(`  ❌ Test query failed: ${testError.message}`);
     }
 
     // 7. Get statistics
     log.info(`\n${colors.cyan}Database Statistics:${colors.reset}`);
 
-    const { count: memberCount } = await supabase
-      .from('members')
-      .select('*', { count: 'exact', head: true });
+    const { rows: memberCountResult } = await query('SELECT COUNT(*) as count FROM members');
+    const memberCount = memberCountResult[0]?.count || 0;
 
-    const { count: paymentCount } = await supabase
-      .from('payments')
-      .select('*', { count: 'exact', head: true });
+    const { rows: paymentCountResult } = await query('SELECT COUNT(*) as count FROM payments');
+    const paymentCount = paymentCountResult[0]?.count || 0;
 
-    log.info(`  📊 Total Members: ${memberCount || 0}`);
-    log.info(`  💰 Total Payments: ${paymentCount || 0}`);
+    log.info(`  📊 Total Members: ${memberCount}`);
+    log.info(`  💰 Total Payments: ${paymentCount}`);
 
     log.info(`\n${colors.green}${colors.bright}✨ Optimizations Applied Successfully!${colors.reset}`);
     log.info(`${colors.green}Performance target: < 300ms for queries with 1000+ members${colors.reset}\n`);
@@ -237,39 +200,24 @@ async function performanceTest() {
   const tests = [
     {
       name: 'Simple member fetch',
-      query: () => {
-        return supabase
-          .from('members')
-          .select('*')
-          .limit(50);
-      }
+      queryFn: () => query('SELECT * FROM members LIMIT 50')
     },
     {
       name: 'Member with payment join',
-      query: async () => {
-        const { data: members } = await supabase
-          .from('members')
-          .select('id, full_name')
-          .limit(10);
+      queryFn: async () => {
+        const { rows: members } = await query('SELECT id, full_name FROM members LIMIT 10');
 
         if (members && members.length > 0) {
-          const { data: _payments } = await supabase
-            .from('payments')
-            .select('amount')
-            .eq('payer_id', members[0].id)
-            .in('status', ['completed', 'approved']);
+          await query(
+            'SELECT amount FROM payments WHERE payer_id = $1 AND status = ANY($2)',
+            [members[0].id, ['completed', 'approved']]
+          );
         }
       }
     },
     {
       name: 'Text search (Arabic)',
-      query: () => {
-        return supabase
-          .from('members')
-          .select('*')
-          .ilike('full_name', '%محمد%')
-          .limit(10);
-      }
+      queryFn: () => query("SELECT * FROM members WHERE full_name ILIKE $1 LIMIT 10", ['%محمد%'])
     }
   ];
 
@@ -277,7 +225,7 @@ async function performanceTest() {
     const startTime = Date.now();
 
     try {
-      await test.query();
+      await test.queryFn();
       const duration = Date.now() - startTime;
 
       const status = duration < 300 ? '✅' : '⚠️';

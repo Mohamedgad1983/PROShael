@@ -3,7 +3,7 @@
  * Handles CRUD operations for expense categories with role-based access
  */
 
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 import { hasFinancialAccess, logFinancialAccess } from '../utils/accessControl.js';
 import { log } from '../utils/logger.js';
 
@@ -20,30 +20,21 @@ export const getExpenseCategories = async (req, res) => {
     // Log access attempt
     await logFinancialAccess(userId, 'GRANTED', 'expense_categories_view', userRole, {}, req.ip);
 
-    let query = supabase
-      .from('expense_categories')
-      .select('*')
-      .order('sort_order', { ascending: true })
-      .order('category_name_ar', { ascending: true });
+    let sql = 'SELECT * FROM expense_categories';
+    const params = [];
 
     // Filter out inactive categories by default
     if (include_inactive !== 'true') {
-      query = query.eq('is_active', true);
+      sql += ' WHERE is_active = $1';
+      params.push(true);
     }
 
-    const { data, error } = await query;
+    sql += ' ORDER BY sort_order ASC, category_name_ar ASC';
 
-    if (error) {
-      log.error('Error fetching expense categories:', error);
-      return res.status(500).json({
-        success: false,
-        error: 'فشل في جلب فئات المصروفات',
-        error_en: 'Failed to fetch expense categories'
-      });
-    }
+    const { rows } = await query(sql, params);
 
     // Transform data to match frontend expectations
-    const categories = data.map(cat => ({
+    const categories = rows.map(cat => ({
       id: cat.id,
       value: cat.category_code,
       label_ar: cat.category_name_ar,
@@ -118,13 +109,12 @@ export const createExpenseCategory = async (req, res) => {
       `cat_${Date.now()}`;
 
     // Check for duplicate category_code
-    const { data: existing } = await supabase
-      .from('expense_categories')
-      .select('id')
-      .eq('category_code', generatedCode)
-      .single();
+    const { rows: existingRows } = await query(
+      'SELECT id FROM expense_categories WHERE category_code = $1',
+      [generatedCode]
+    );
 
-    if (existing) {
+    if (existingRows.length > 0) {
       return res.status(400).json({
         success: false,
         error: 'كود الفئة موجود مسبقاً',
@@ -133,25 +123,29 @@ export const createExpenseCategory = async (req, res) => {
     }
 
     // Insert new category
-    const { data, error } = await supabase
-      .from('expense_categories')
-      .insert([{
-        category_code: generatedCode,
+    const { rows } = await query(
+      `INSERT INTO expense_categories (
+        category_code, category_name_ar, category_name_en, color_code,
+        icon_name, is_active, is_system, sort_order, created_by, created_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+      [
+        generatedCode,
         category_name_ar,
-        category_name_en: category_name_en || category_name_ar,
+        category_name_en || category_name_ar,
         color_code,
         icon_name,
-        is_active: true,
-        is_system: false,
+        true,
+        false,
         sort_order,
-        created_by: userId,
-        created_at: new Date().toISOString()
-      }])
-      .select()
-      .single();
+        userId,
+        new Date().toISOString()
+      ]
+    );
 
-    if (error) {
-      log.error('Error creating expense category:', error);
+    const data = rows[0];
+
+    if (!data) {
+      log.error('Error creating expense category: no row returned');
       return res.status(500).json({
         success: false,
         error: 'فشل في إنشاء فئة المصروفات',
@@ -216,13 +210,12 @@ export const updateExpenseCategory = async (req, res) => {
     }
 
     // Check if category exists
-    const { data: existingCategory, error: fetchError } = await supabase
-      .from('expense_categories')
-      .select('*')
-      .eq('id', id)
-      .single();
+    const { rows: existingRows } = await query(
+      'SELECT * FROM expense_categories WHERE id = $1', [id]
+    );
+    const existingCategory = existingRows[0];
 
-    if (fetchError || !existingCategory) {
+    if (!existingCategory) {
       return res.status(404).json({
         success: false,
         error: 'الفئة غير موجودة',
@@ -248,27 +241,29 @@ export const updateExpenseCategory = async (req, res) => {
       is_active
     } = req.body;
 
-    // Build update object
-    const updateData = {
-      updated_at: new Date().toISOString()
-    };
+    // Build dynamic update
+    const setClauses = ['updated_at = $1'];
+    const params = [new Date().toISOString()];
+    let paramIndex = 2;
 
-    if (category_name_ar !== undefined) updateData.category_name_ar = category_name_ar;
-    if (category_name_en !== undefined) updateData.category_name_en = category_name_en;
-    if (color_code !== undefined) updateData.color_code = color_code;
-    if (icon_name !== undefined) updateData.icon_name = icon_name;
-    if (sort_order !== undefined) updateData.sort_order = sort_order;
-    if (is_active !== undefined) updateData.is_active = is_active;
+    if (category_name_ar !== undefined) { setClauses.push(`category_name_ar = $${paramIndex++}`); params.push(category_name_ar); }
+    if (category_name_en !== undefined) { setClauses.push(`category_name_en = $${paramIndex++}`); params.push(category_name_en); }
+    if (color_code !== undefined) { setClauses.push(`color_code = $${paramIndex++}`); params.push(color_code); }
+    if (icon_name !== undefined) { setClauses.push(`icon_name = $${paramIndex++}`); params.push(icon_name); }
+    if (sort_order !== undefined) { setClauses.push(`sort_order = $${paramIndex++}`); params.push(sort_order); }
+    if (is_active !== undefined) { setClauses.push(`is_active = $${paramIndex++}`); params.push(is_active); }
 
-    const { data, error } = await supabase
-      .from('expense_categories')
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .single();
+    params.push(id);
 
-    if (error) {
-      log.error('Error updating expense category:', error);
+    const { rows } = await query(
+      `UPDATE expense_categories SET ${setClauses.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+      params
+    );
+
+    const data = rows[0];
+
+    if (!data) {
+      log.error('Error updating expense category: no row returned');
       return res.status(500).json({
         success: false,
         error: 'فشل في تحديث فئة المصروفات',
@@ -279,7 +274,7 @@ export const updateExpenseCategory = async (req, res) => {
     // Log successful update
     await logFinancialAccess(userId, 'SUCCESS', 'expense_category_update', userRole, {
       category_id: id,
-      changes: updateData
+      changes: req.body
     }, req.ip);
 
     log.info(`Expense category updated: ${id} by user ${userId}`);
@@ -333,13 +328,12 @@ export const deleteExpenseCategory = async (req, res) => {
     }
 
     // Check if category exists
-    const { data: existingCategory, error: fetchError } = await supabase
-      .from('expense_categories')
-      .select('*')
-      .eq('id', id)
-      .single();
+    const { rows: existingRows } = await query(
+      'SELECT * FROM expense_categories WHERE id = $1', [id]
+    );
+    const existingCategory = existingRows[0];
 
-    if (fetchError || !existingCategory) {
+    if (!existingCategory) {
       return res.status(404).json({
         success: false,
         error: 'الفئة غير موجودة',
@@ -357,24 +351,20 @@ export const deleteExpenseCategory = async (req, res) => {
     }
 
     // Check if category is used in expenses
-    const { data: usedExpenses, error: usageError } = await supabase
-      .from('expenses')
-      .select('id')
-      .eq('expense_category', existingCategory.category_code)
-      .limit(1);
+    const { rows: usedExpenses } = await query(
+      'SELECT id FROM expenses WHERE expense_category = $1 LIMIT 1',
+      [existingCategory.category_code]
+    );
 
-    if (!usageError && usedExpenses && usedExpenses.length > 0) {
+    if (usedExpenses && usedExpenses.length > 0) {
       // Soft delete instead of hard delete if category is in use
-      const { error: softDeleteError } = await supabase
-        .from('expense_categories')
-        .update({
-          is_active: false,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id);
+      const { rowCount } = await query(
+        'UPDATE expense_categories SET is_active = $1, updated_at = $2 WHERE id = $3',
+        [false, new Date().toISOString(), id]
+      );
 
-      if (softDeleteError) {
-        log.error('Error soft-deleting expense category:', softDeleteError);
+      if (rowCount === 0) {
+        log.error('Error soft-deleting expense category');
         return res.status(500).json({
           success: false,
           error: 'فشل في إلغاء تفعيل فئة المصروفات',
@@ -396,19 +386,7 @@ export const deleteExpenseCategory = async (req, res) => {
     }
 
     // Hard delete if category is not in use
-    const { error } = await supabase
-      .from('expense_categories')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      log.error('Error deleting expense category:', error);
-      return res.status(500).json({
-        success: false,
-        error: 'فشل في حذف فئة المصروفات',
-        error_en: 'Failed to delete expense category'
-      });
-    }
+    await query('DELETE FROM expense_categories WHERE id = $1', [id]);
 
     // Log successful deletion
     await logFinancialAccess(userId, 'SUCCESS', 'expense_category_delete', userRole, {
@@ -441,13 +419,12 @@ export const getExpenseCategoryById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const { data, error } = await supabase
-      .from('expense_categories')
-      .select('*')
-      .eq('id', id)
-      .single();
+    const { rows } = await query(
+      'SELECT * FROM expense_categories WHERE id = $1', [id]
+    );
+    const data = rows[0];
 
-    if (error || !data) {
+    if (!data) {
       return res.status(404).json({
         success: false,
         error: 'الفئة غير موجودة',

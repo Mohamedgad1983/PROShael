@@ -1,4 +1,4 @@
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
 import {
   MEMBER_STATUS,
@@ -65,28 +65,34 @@ export const suspendMember = async (req, res) => {
     }
 
     // LOW #7: Optimized single-query approach with better error handling
-    const { data: updatedMember, error: updateError } = await supabase
-      .from('members')
-      .update({
-        [MEMBER_COLUMNS.MEMBERSHIP_STATUS]: MEMBER_STATUS.SUSPENDED,
-        [MEMBER_COLUMNS.SUSPENDED_AT]: new Date().toISOString(),
-        [MEMBER_COLUMNS.SUSPENDED_BY]: superAdmin.id,
-        [MEMBER_COLUMNS.SUSPENSION_REASON]: sanitizedReason,
-        [MEMBER_COLUMNS.UPDATED_AT]: new Date().toISOString()
-      })
-      .eq(MEMBER_COLUMNS.ID, memberId)
-      .select()
-      .single();
+    const updateQuery = `
+      UPDATE members
+      SET
+        ${MEMBER_COLUMNS.MEMBERSHIP_STATUS} = $1,
+        ${MEMBER_COLUMNS.SUSPENDED_AT} = $2,
+        ${MEMBER_COLUMNS.SUSPENDED_BY} = $3,
+        ${MEMBER_COLUMNS.SUSPENSION_REASON} = $4,
+        ${MEMBER_COLUMNS.UPDATED_AT} = $5
+      WHERE ${MEMBER_COLUMNS.ID} = $6
+      RETURNING *
+    `;
 
-    if (updateError) {
-      // MEDIUM #5: Enhanced error logging with Supabase details
-      log.error('[Suspend] Database error:', {
-        error: updateError,
-        memberId,
-        errorCode: updateError.code,
-        errorDetails: updateError.details,
-        errorHint: updateError.hint,
-        errorMessage: updateError.message
+    const now = new Date().toISOString();
+    const { rows } = await query(updateQuery, [
+      MEMBER_STATUS.SUSPENDED,
+      now,
+      superAdmin.id,
+      sanitizedReason,
+      now,
+      memberId
+    ]);
+
+    const updatedMember = rows[0];
+
+    if (!updatedMember) {
+      // MEDIUM #5: Enhanced error logging
+      log.error('[Suspend] Database error: No rows returned', {
+        memberId
       });
 
       return res.status(500).json({
@@ -184,28 +190,34 @@ export const activateMember = async (req, res) => {
     }
 
     // LOW #7: Optimized single-query approach
-    const { data: updatedMember, error: updateError } = await supabase
-      .from('members')
-      .update({
-        [MEMBER_COLUMNS.MEMBERSHIP_STATUS]: MEMBER_STATUS.ACTIVE,
-        [MEMBER_COLUMNS.REACTIVATED_AT]: new Date().toISOString(),
-        [MEMBER_COLUMNS.REACTIVATED_BY]: superAdmin.id,
-        [MEMBER_COLUMNS.REACTIVATION_NOTES]: sanitizedNotes,
-        [MEMBER_COLUMNS.UPDATED_AT]: new Date().toISOString()
-      })
-      .eq(MEMBER_COLUMNS.ID, memberId)
-      .select()
-      .single();
+    const updateQuery = `
+      UPDATE members
+      SET
+        ${MEMBER_COLUMNS.MEMBERSHIP_STATUS} = $1,
+        ${MEMBER_COLUMNS.REACTIVATED_AT} = $2,
+        ${MEMBER_COLUMNS.REACTIVATED_BY} = $3,
+        ${MEMBER_COLUMNS.REACTIVATION_NOTES} = $4,
+        ${MEMBER_COLUMNS.UPDATED_AT} = $5
+      WHERE ${MEMBER_COLUMNS.ID} = $6
+      RETURNING *
+    `;
 
-    if (updateError) {
-      // MEDIUM #5: Enhanced error logging with Supabase details
-      log.error('[Activate] Database error:', {
-        error: updateError,
-        memberId,
-        errorCode: updateError.code,
-        errorDetails: updateError.details,
-        errorHint: updateError.hint,
-        errorMessage: updateError.message
+    const now = new Date().toISOString();
+    const { rows } = await query(updateQuery, [
+      MEMBER_STATUS.ACTIVE,
+      now,
+      superAdmin.id,
+      sanitizedNotes,
+      now,
+      memberId
+    ]);
+
+    const updatedMember = rows[0];
+
+    if (!updatedMember) {
+      // MEDIUM #5: Enhanced error logging
+      log.error('[Activate] Database error: No rows returned', {
+        memberId
       });
 
       return res.status(500).json({
@@ -274,10 +286,9 @@ export const getSuspensionHistory = async (req, res) => {
       });
     }
 
-    // HIGH #1: Use reusable helper
-    const { data: member, error } = await supabase
-      .from('members')
-      .select(`
+    // HIGH #1: Use direct query
+    const selectQuery = `
+      SELECT
         ${MEMBER_COLUMNS.ID},
         ${MEMBER_COLUMNS.FULL_NAME},
         ${MEMBER_COLUMNS.MEMBERSHIP_STATUS},
@@ -287,20 +298,18 @@ export const getSuspensionHistory = async (req, res) => {
         ${MEMBER_COLUMNS.REACTIVATED_AT},
         ${MEMBER_COLUMNS.REACTIVATED_BY},
         ${MEMBER_COLUMNS.REACTIVATION_NOTES}
-      `)
-      .eq(MEMBER_COLUMNS.ID, memberId)
-      .single();
+      FROM members
+      WHERE ${MEMBER_COLUMNS.ID} = $1
+    `;
 
-    if (error || !member) {
+    const { rows } = await query(selectQuery, [memberId]);
+    const member = rows[0];
+
+    if (!member) {
       // MEDIUM #5: Enhanced error logging
-      if (error) {
-        log.error('[SuspensionHistory] Database error:', {
-          error,
-          memberId,
-          errorCode: error.code,
-          errorDetails: error.details
-        });
-      }
+      log.error('[SuspensionHistory] Member not found:', {
+        memberId
+      });
 
       return res.status(404).json({
         success: false,

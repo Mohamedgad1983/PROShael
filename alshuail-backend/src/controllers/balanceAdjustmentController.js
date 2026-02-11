@@ -4,7 +4,7 @@
  * @version 1.0.0
  * @module controllers/balanceAdjustmentController
  *
- * @requires ../config/database.js - Supabase client
+ * @requires ../services/database.js - PostgreSQL client
  * @requires ../utils/logger.js - Logging utility
  *
  * @features
@@ -19,7 +19,7 @@
  * - financial_manager: Can make balance adjustments
  */
 
-import { supabase } from '../config/database.js';
+import { query, getClient } from '../services/database.js';
 import { log } from '../utils/logger.js';
 
 // Business constants
@@ -98,20 +98,21 @@ export const adjustBalance = async (req, res) => {
     }
 
     // Get current member data
-    const { data: member, error: memberError } = await supabase
-      .from('members')
-      .select('id, full_name, membership_number, balance, payment_2021, payment_2022, payment_2023, payment_2024, payment_2025')
-      .eq('id', member_id)
-      .single();
+    const memberResult = await query(
+      'SELECT id, full_name, membership_number, balance, payment_2021, payment_2022, payment_2023, payment_2024, payment_2025 FROM members WHERE id = $1',
+      [member_id]
+    );
 
-    if (memberError || !member) {
-      log.error('Balance adjustment: Member not found', { member_id, error: memberError?.message });
+    if (!memberResult.rows || memberResult.rows.length === 0) {
+      log.error('Balance adjustment: Member not found', { member_id });
       return res.status(404).json({
         success: false,
         error: 'العضو غير موجود',
         message_en: 'Member not found'
       });
     }
+
+    const member = memberResult.rows[0];
 
     // Calculate new balance
     const previousBalance = parseFloat(member.balance) || 0;
@@ -139,103 +140,115 @@ export const adjustBalance = async (req, res) => {
     }
 
     // Prepare member update data
-    const memberUpdateData = {
-      balance: newBalance,
-      current_balance: newBalance,
-      total_balance: newBalance,
-      updated_at: new Date().toISOString()
-    };
+    const memberUpdateFields = ['balance = $1', 'current_balance = $2', 'total_balance = $3', 'updated_at = $4'];
+    const memberUpdateValues = [newBalance, newBalance, newBalance, new Date().toISOString()];
+    let paramIndex = 5;
 
     // If target year is specified, also update the yearly payment field
     if (target_year && target_year >= 2021 && target_year <= 2025) {
       const yearField = `payment_${target_year}`;
       const currentYearPayment = parseFloat(member[yearField]) || 0;
+      let updatedYearPayment;
 
       if (adjustment_type === 'credit' || adjustment_type === 'yearly_payment') {
-        memberUpdateData[yearField] = currentYearPayment + parseFloat(amount);
+        updatedYearPayment = currentYearPayment + parseFloat(amount);
       } else if (adjustment_type === 'debit') {
-        memberUpdateData[yearField] = Math.max(0, currentYearPayment - parseFloat(amount));
+        updatedYearPayment = Math.max(0, currentYearPayment - parseFloat(amount));
       } else if (adjustment_type === 'correction') {
-        memberUpdateData[yearField] = parseFloat(amount);
+        updatedYearPayment = parseFloat(amount);
+      }
+
+      if (updatedYearPayment !== undefined) {
+        memberUpdateFields.push(`${yearField} = $${paramIndex}`);
+        memberUpdateValues.push(updatedYearPayment);
+        paramIndex++;
       }
     }
 
-    // Start transaction: Update member balance
-    const { error: updateMemberError } = await supabase
-      .from('members')
-      .update(memberUpdateData)
-      .eq('id', member_id);
+    memberUpdateValues.push(member_id);
 
-    if (updateMemberError) {
-      throw updateMemberError;
-    }
+    // Start transaction: Update member balance
+    await query(
+      `UPDATE members SET ${memberUpdateFields.join(', ')} WHERE id = $${paramIndex}`,
+      memberUpdateValues
+    );
 
     // Update subscription if exists
-    const { data: subscription } = await supabase
-      .from('subscriptions')
-      .select('id, current_balance')
-      .eq('member_id', member_id)
-      .single();
+    const subscriptionResult = await query(
+      'SELECT id, current_balance FROM subscriptions WHERE member_id = $1',
+      [member_id]
+    );
 
-    if (subscription) {
+    if (subscriptionResult.rows && subscriptionResult.rows.length > 0) {
+      const subscription = subscriptionResult.rows[0];
       const monthsPaidAhead = Math.floor(newBalance / MONTHLY_SUBSCRIPTION);
       const nextPaymentDue = new Date();
       nextPaymentDue.setMonth(nextPaymentDue.getMonth() + monthsPaidAhead);
 
-      await supabase
-        .from('subscriptions')
-        .update({
-          current_balance: newBalance,
-          months_paid_ahead: monthsPaidAhead,
-          next_payment_due: nextPaymentDue.toISOString(),
-          status: newBalance >= 0 ? 'active' : 'overdue',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', subscription.id);
+      await query(
+        `UPDATE subscriptions
+         SET current_balance = $1,
+             months_paid_ahead = $2,
+             next_payment_due = $3,
+             status = $4,
+             updated_at = $5
+         WHERE id = $6`,
+        [
+          newBalance,
+          monthsPaidAhead,
+          nextPaymentDue.toISOString(),
+          newBalance >= 0 ? 'active' : 'overdue',
+          new Date().toISOString(),
+          subscription.id
+        ]
+      );
     }
 
     // Create audit record
-    const auditRecord = {
-      member_id,
-      adjustment_type,
-      amount: parseFloat(amount),
-      previous_balance: previousBalance,
-      new_balance: newBalance,
-      target_year: target_year || null,
-      target_month: target_month || null,
-      reason,
-      notes: notes || null,
-      adjusted_by: req.user.id,
-      adjusted_by_email: req.user.email,
-      adjusted_by_role: req.user.role,
-      ip_address: req.ip || req.connection?.remoteAddress,
-      user_agent: req.headers['user-agent']
-    };
+    const auditResult = await query(
+      `INSERT INTO balance_adjustments (
+        member_id, adjustment_type, amount, previous_balance, new_balance,
+        target_year, target_month, reason, notes, adjusted_by,
+        adjusted_by_email, adjusted_by_role, ip_address, user_agent
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+      RETURNING *`,
+      [
+        member_id,
+        adjustment_type,
+        parseFloat(amount),
+        previousBalance,
+        newBalance,
+        target_year || null,
+        target_month || null,
+        reason,
+        notes || null,
+        req.user.id,
+        req.user.email,
+        req.user.role,
+        req.ip || req.connection?.remoteAddress,
+        req.headers['user-agent']
+      ]
+    );
 
-    const { data: adjustment, error: auditError } = await supabase
-      .from('balance_adjustments')
-      .insert(auditRecord)
-      .select()
-      .single();
-
-    if (auditError) {
-      log.error('Balance adjustment: Failed to create audit record', { error: auditError.message });
-      // Don't fail the request, balance was already updated
-    }
+    const adjustment = auditResult.rows[0];
 
     // Also log to financial_audit_trail for comprehensive tracking
-    await supabase
-      .from('financial_audit_trail')
-      .insert({
-        user_id: req.user.id,
-        operation: 'BALANCE_ADJUSTMENT',
-        resource_type: 'member_balance',
-        resource_id: member_id,
-        previous_value: { balance: previousBalance },
-        new_value: { balance: newBalance, adjustment_type, amount },
-        metadata: { reason, target_year, target_month, notes },
-        ip_address: req.ip
-      });
+    await query(
+      `INSERT INTO financial_audit_trail (
+        user_id, operation, resource_type, resource_id,
+        previous_value, new_value, metadata, ip_address
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [
+        req.user.id,
+        'BALANCE_ADJUSTMENT',
+        'member_balance',
+        member_id,
+        JSON.stringify({ balance: previousBalance }),
+        JSON.stringify({ balance: newBalance, adjustment_type, amount }),
+        JSON.stringify({ reason, target_year, target_month, notes }),
+        req.ip
+      ]
+    );
 
     log.info('Balance adjustment successful', {
       member_id,
@@ -287,29 +300,29 @@ export const getMemberAdjustments = async (req, res) => {
     const offset = (page - 1) * limit;
 
     // Get total count
-    const { count } = await supabase
-      .from('balance_adjustments')
-      .select('*', { count: 'exact', head: true })
-      .eq('member_id', memberId);
+    const countResult = await query(
+      'SELECT COUNT(*) as count FROM balance_adjustments WHERE member_id = $1',
+      [memberId]
+    );
+    const count = parseInt(countResult.rows[0].count);
 
     // Get adjustments with pagination
-    const { data: adjustments, error } = await supabase
-      .from('balance_adjustments')
-      .select('*')
-      .eq('member_id', memberId)
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
-
-    if (error) throw error;
+    const adjustmentsResult = await query(
+      `SELECT * FROM balance_adjustments
+       WHERE member_id = $1
+       ORDER BY created_at DESC
+       LIMIT $2 OFFSET $3`,
+      [memberId, limit, offset]
+    );
 
     res.json({
       success: true,
-      data: adjustments || [],
+      data: adjustmentsResult.rows || [],
       pagination: {
         page,
         limit,
-        total: count || 0,
-        pages: Math.ceil((count || 0) / limit)
+        total: count,
+        pages: Math.ceil(count / limit)
       }
     });
 
@@ -334,50 +347,74 @@ export const getAllAdjustments = async (req, res) => {
     const offset = (page - 1) * limit;
     const { adjustment_type, target_year, from_date, to_date } = req.query;
 
-    // Build query
-    let query = supabase
-      .from('balance_adjustments')
-      .select(`
-        *,
-        members:member_id (
-          full_name,
-          membership_number,
-          phone
-        )
-      `, { count: 'exact' });
+    // Build query with filters
+    const whereClauses = [];
+    const queryParams = [];
+    let paramIndex = 1;
 
-    // Apply filters
     if (adjustment_type) {
-      query = query.eq('adjustment_type', adjustment_type);
+      whereClauses.push(`ba.adjustment_type = $${paramIndex}`);
+      queryParams.push(adjustment_type);
+      paramIndex++;
     }
     if (target_year) {
-      query = query.eq('target_year', parseInt(target_year));
+      whereClauses.push(`ba.target_year = $${paramIndex}`);
+      queryParams.push(parseInt(target_year));
+      paramIndex++;
     }
     if (from_date) {
-      query = query.gte('created_at', from_date);
+      whereClauses.push(`ba.created_at >= $${paramIndex}`);
+      queryParams.push(from_date);
+      paramIndex++;
     }
     if (to_date) {
-      query = query.lte('created_at', to_date);
+      whereClauses.push(`ba.created_at <= $${paramIndex}`);
+      queryParams.push(to_date);
+      paramIndex++;
     }
 
+    const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
     // Get total count
-    const { count } = await query;
+    const countResult = await query(
+      `SELECT COUNT(*) as count FROM balance_adjustments ba ${whereClause}`,
+      queryParams
+    );
+    const count = parseInt(countResult.rows[0].count);
 
     // Get data with pagination
-    const { data: adjustments, error } = await query
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+    queryParams.push(limit);
+    queryParams.push(offset);
 
-    if (error) throw error;
+    const adjustmentsResult = await query(
+      `SELECT ba.*,
+              m.full_name, m.membership_number, m.phone
+       FROM balance_adjustments ba
+       LEFT JOIN members m ON ba.member_id = m.id
+       ${whereClause}
+       ORDER BY ba.created_at DESC
+       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+      queryParams
+    );
+
+    // Format data to match expected structure
+    const formattedData = adjustmentsResult.rows.map(row => ({
+      ...row,
+      members: {
+        full_name: row.full_name,
+        membership_number: row.membership_number,
+        phone: row.phone
+      }
+    }));
 
     res.json({
       success: true,
-      data: adjustments || [],
+      data: formattedData,
       pagination: {
         page,
         limit,
-        total: count || 0,
-        pages: Math.ceil((count || 0) / limit)
+        total: count,
+        pages: Math.ceil(count / limit)
       }
     });
 
@@ -408,17 +445,21 @@ export const bulkRestoreBalances = async (req, res) => {
     }
 
     // Get members to restore
-    let query = supabase
-      .from('members')
-      .select('id, full_name, membership_number, balance, payment_2021, payment_2022, payment_2023, payment_2024, payment_2025');
+    let membersQuery;
+    let queryParams;
 
     if (member_ids && member_ids.length > 0) {
-      query = query.in('id', member_ids);
+      membersQuery = `SELECT id, full_name, membership_number, balance, payment_2021, payment_2022, payment_2023, payment_2024, payment_2025
+                      FROM members WHERE id = ANY($1)`;
+      queryParams = [member_ids];
+    } else {
+      membersQuery = `SELECT id, full_name, membership_number, balance, payment_2021, payment_2022, payment_2023, payment_2024, payment_2025
+                      FROM members`;
+      queryParams = [];
     }
 
-    const { data: members, error: fetchError } = await query;
-
-    if (fetchError) throw fetchError;
+    const membersResult = await query(membersQuery, queryParams);
+    const members = membersResult.rows;
 
     const results = {
       success: [],
@@ -463,49 +504,58 @@ export const bulkRestoreBalances = async (req, res) => {
         }
 
         // Update member balance
-        const { error: updateError } = await supabase
-          .from('members')
-          .update({
-            balance: calculatedBalance,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', member.id);
-
-        if (updateError) throw updateError;
+        await query(
+          `UPDATE members
+           SET balance = $1, updated_at = $2
+           WHERE id = $3`,
+          [calculatedBalance, new Date().toISOString(), member.id]
+        );
 
         // Update subscription
         const monthsPaidAhead = Math.floor(calculatedBalance / MONTHLY_SUBSCRIPTION);
         const nextPaymentDue = new Date();
         nextPaymentDue.setMonth(nextPaymentDue.getMonth() + monthsPaidAhead);
 
-        await supabase
-          .from('subscriptions')
-          .update({
-            current_balance: calculatedBalance,
-            months_paid_ahead: monthsPaidAhead,
-            next_payment_due: nextPaymentDue.toISOString(),
-            status: calculatedBalance >= 0 ? 'active' : 'overdue',
-            updated_at: new Date().toISOString()
-          })
-          .eq('member_id', member.id);
+        await query(
+          `UPDATE subscriptions
+           SET current_balance = $1,
+               months_paid_ahead = $2,
+               next_payment_due = $3,
+               status = $4,
+               updated_at = $5
+           WHERE member_id = $6`,
+          [
+            calculatedBalance,
+            monthsPaidAhead,
+            nextPaymentDue.toISOString(),
+            calculatedBalance >= 0 ? 'active' : 'overdue',
+            new Date().toISOString(),
+            member.id
+          ]
+        );
 
         // Create audit record
-        await supabase
-          .from('balance_adjustments')
-          .insert({
-            member_id: member.id,
-            adjustment_type: 'bulk_restore',
-            amount: calculatedBalance,
-            previous_balance: previousBalance,
-            new_balance: calculatedBalance,
-            target_year: restore_year || null,
-            reason: reason,
-            notes: `Bulk restore from yearly payment fields${restore_year ? ` (year ${restore_year})` : ' (all years)'}`,
-            adjusted_by: req.user.id,
-            adjusted_by_email: req.user.email,
-            adjusted_by_role: req.user.role,
-            ip_address: req.ip
-          });
+        await query(
+          `INSERT INTO balance_adjustments (
+            member_id, adjustment_type, amount, previous_balance, new_balance,
+            target_year, reason, notes, adjusted_by, adjusted_by_email,
+            adjusted_by_role, ip_address
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+          [
+            member.id,
+            'bulk_restore',
+            calculatedBalance,
+            previousBalance,
+            calculatedBalance,
+            restore_year || null,
+            reason,
+            `Bulk restore from yearly payment fields${restore_year ? ` (year ${restore_year})` : ' (all years)'}`,
+            req.user.id,
+            req.user.email,
+            req.user.role,
+            req.ip
+          ]
+        );
 
         results.success.push({
           member_id: member.id,
@@ -557,25 +607,15 @@ export const getMemberBalanceSummary = async (req, res) => {
     const { memberId } = req.params;
 
     // Get member with all payment fields
-    const { data: member, error: memberError } = await supabase
-      .from('members')
-      .select(`
-        id,
-        full_name,
-        membership_number,
-        phone,
-        balance,
-        payment_2021,
-        payment_2022,
-        payment_2023,
-        payment_2024,
-        payment_2025,
-        created_at
-      `)
-      .eq('id', memberId)
-      .single();
+    const memberResult = await query(
+      `SELECT id, full_name, membership_number, phone, balance,
+              payment_2021, payment_2022, payment_2023, payment_2024, payment_2025,
+              created_at
+       FROM members WHERE id = $1`,
+      [memberId]
+    );
 
-    if (memberError || !member) {
+    if (!memberResult.rows || memberResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
         error: 'العضو غير موجود',
@@ -583,20 +623,23 @@ export const getMemberBalanceSummary = async (req, res) => {
       });
     }
 
+    const member = memberResult.rows[0];
+
     // Get subscription data
-    const { data: subscription } = await supabase
-      .from('subscriptions')
-      .select('*')
-      .eq('member_id', memberId)
-      .single();
+    const subscriptionResult = await query(
+      'SELECT * FROM subscriptions WHERE member_id = $1',
+      [memberId]
+    );
+    const subscription = subscriptionResult.rows.length > 0 ? subscriptionResult.rows[0] : null;
 
     // Get recent adjustments
-    const { data: recentAdjustments } = await supabase
-      .from('balance_adjustments')
-      .select('*')
-      .eq('member_id', memberId)
-      .order('created_at', { ascending: false })
-      .limit(10);
+    const adjustmentsResult = await query(
+      `SELECT * FROM balance_adjustments
+       WHERE member_id = $1
+       ORDER BY created_at DESC
+       LIMIT 10`,
+      [memberId]
+    );
 
     // Calculate totals
     const yearlyBreakdown = {
@@ -631,7 +674,7 @@ export const getMemberBalanceSummary = async (req, res) => {
         balance_discrepancy: Math.abs(totalFromYearlyPayments - (parseFloat(member.balance) || 0)) > 0.01
           ? totalFromYearlyPayments - (parseFloat(member.balance) || 0)
           : 0,
-        recent_adjustments: recentAdjustments || []
+        recent_adjustments: adjustmentsResult.rows || []
       }
     });
 

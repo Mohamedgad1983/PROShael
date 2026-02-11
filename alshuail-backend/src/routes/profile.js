@@ -6,7 +6,9 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
 import { authenticateToken } from '../middleware/auth.js';
-import { upload, supabase, BUCKET_NAME, generateFilePath, uploadToSupabase, deleteFromSupabase, getSignedUrl } from '../config/documentStorage.js';
+import { upload, uploadToSupabase, deleteFromSupabase, getSignedUrl } from '../config/documentStorage.js';
+import { query } from '../services/database.js';
+import { validateProfileUpdates, isEmailUnique, isPhoneUnique } from '../utils/profileValidation.js';
 import { log } from '../utils/logger.js';
 
 const router = express.Router();
@@ -35,16 +37,11 @@ router.get('/', authenticateToken, async (req, res) => {
     const userId = req.user.id;
 
     // Query user_details view for comprehensive user info
-    const { data, error } = await supabase
-      .from('user_details')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
-
-    if (error) {
-      log.error('Error fetching user profile:', error);
-      throw error;
-    }
+    const { rows } = await query(
+      'SELECT * FROM user_details WHERE id = $1',
+      [userId]
+    );
+    const data = rows[0];
 
     if (!data) {
       return res.status(404).json({
@@ -90,16 +87,11 @@ router.get('/notifications', authenticateToken, async (req, res) => {
     const userId = req.user.id;
 
     // Query profiles for notification_preferences
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('notification_preferences')
-      .eq('id', userId)
-      .maybeSingle();
-
-    if (error) {
-      log.error('Error fetching notification preferences:', error);
-      throw error;
-    }
+    const { rows } = await query(
+      'SELECT notification_preferences FROM profiles WHERE id = $1',
+      [userId]
+    );
+    const data = rows[0];
 
     if (!data) {
       return res.status(404).json({
@@ -172,11 +164,11 @@ router.put('/notifications', authenticateToken, async (req, res) => {
     if (system_updates !== undefined) preferences.system_updates = !!system_updates;
 
     // Fetch current preferences first
-    const { data: currentData } = await supabase
-      .from('profiles')
-      .select('notification_preferences')
-      .eq('id', userId)
-      .maybeSingle();
+    const { rows: currentRows } = await query(
+      'SELECT notification_preferences FROM profiles WHERE id = $1',
+      [userId]
+    );
+    const currentData = currentRows[0];
 
     // Merge with existing preferences
     const currentPreferences = currentData?.notification_preferences || {
@@ -193,17 +185,14 @@ router.put('/notifications', authenticateToken, async (req, res) => {
     };
 
     // Update notification preferences in profiles table
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({
-        notification_preferences: updatedPreferences,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', userId);
+    const { rowCount } = await query(
+      'UPDATE profiles SET notification_preferences = $1, updated_at = $2 WHERE id = $3',
+      [JSON.stringify(updatedPreferences), new Date().toISOString(), userId]
+    );
 
-    if (updateError) {
-      log.error('Notification preferences update error:', updateError);
-      throw updateError;
+    if (rowCount === 0) {
+      log.error('Notification preferences update failed: no rows affected');
+      throw new Error('Update failed');
     }
 
     log.info(`Notification preferences updated for user ${userId}`);
@@ -263,19 +252,19 @@ router.post('/avatar', authenticateToken, upload.single('avatar'), async (req, r
       });
     }
 
-    // Get current avatar and member_id to delete old avatar and update member record
-    const { data: currentUser } = await supabase
-      .from('user_details')
-      .select('avatar_url')
-      .eq('id', userId)
-      .maybeSingle();
+    // Get current avatar to delete old avatar
+    const { rows: userRows } = await query(
+      'SELECT avatar_url FROM user_details WHERE id = $1',
+      [userId]
+    );
+    const currentUser = userRows[0];
 
     // Get user's member_id from profiles table
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('member_id')
-      .eq('id', userId)
-      .maybeSingle();
+    const { rows: profileRows } = await query(
+      'SELECT member_id FROM profiles WHERE id = $1',
+      [userId]
+    );
+    const profileData = profileRows[0];
 
     if (!profileData || !profileData.member_id) {
       return res.status(400).json({
@@ -292,19 +281,16 @@ router.post('/avatar', authenticateToken, upload.single('avatar'), async (req, r
     const publicUrl = uploadResult.url;
 
     // Update member's profile_image_url
-    const { error: updateError } = await supabase
-      .from('members')
-      .update({
-        profile_image_url: publicUrl,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', memberId);
+    const { rowCount } = await query(
+      'UPDATE members SET profile_image_url = $1, updated_at = $2 WHERE id = $3',
+      [publicUrl, new Date().toISOString(), memberId]
+    );
 
-    if (updateError) {
-      log.error('Database update error:', updateError);
+    if (rowCount === 0) {
+      log.error('Database update error: no rows affected for member avatar update');
       // Try to clean up uploaded file
       await deleteFromSupabase(uploadResult.path);
-      throw updateError;
+      throw new Error('Failed to update member avatar in database');
     }
 
     // Delete old avatar if exists
@@ -355,18 +341,18 @@ router.delete('/avatar', authenticateToken, async (req, res) => {
     const userId = req.user.id;
 
     // Get current avatar
-    const { data: currentUser } = await supabase
-      .from('user_details')
-      .select('avatar_url')
-      .eq('id', userId)
-      .maybeSingle();
+    const { rows: userRows } = await query(
+      'SELECT avatar_url FROM user_details WHERE id = $1',
+      [userId]
+    );
+    const currentUser = userRows[0];
 
     // Get user's member_id from profiles table
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('member_id')
-      .eq('id', userId)
-      .maybeSingle();
+    const { rows: profileRows } = await query(
+      'SELECT member_id FROM profiles WHERE id = $1',
+      [userId]
+    );
+    const profileData = profileRows[0];
 
     if (!profileData || !profileData.member_id) {
       return res.status(400).json({
@@ -379,17 +365,14 @@ router.delete('/avatar', authenticateToken, async (req, res) => {
     const memberId = profileData.member_id;
 
     // Remove avatar_url from member's profile_image_url
-    const { error: updateError } = await supabase
-      .from('members')
-      .update({
-        profile_image_url: null,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', memberId);
+    const { rowCount } = await query(
+      'UPDATE members SET profile_image_url = NULL, updated_at = $1 WHERE id = $2',
+      [new Date().toISOString(), memberId]
+    );
 
-    if (updateError) {
-      log.error('Database update error:', updateError);
-      throw updateError;
+    if (rowCount === 0) {
+      log.error('Database update error: no rows affected for avatar removal');
+      throw new Error('Failed to remove avatar from database');
     }
 
     // Delete file from storage
@@ -464,7 +447,7 @@ router.put('/', authenticateToken, async (req, res) => {
 
     // Check email uniqueness if email is being updated
     if (updateData.email) {
-      const emailUnique = await isEmailUnique(supabase, updateData.email, userId);
+      const emailUnique = await isEmailUnique(updateData.email, userId);
       if (!emailUnique) {
         return res.status(409).json({
           success: false,
@@ -481,7 +464,7 @@ router.put('/', authenticateToken, async (req, res) => {
 
     // Check phone uniqueness if phone is being updated
     if (updateData.phone) {
-      const phoneUnique = await isPhoneUnique(supabase, updateData.phone, userId);
+      const phoneUnique = await isPhoneUnique(updateData.phone, userId);
       if (!phoneUnique) {
         return res.status(409).json({
           success: false,
@@ -496,23 +479,29 @@ router.put('/', authenticateToken, async (req, res) => {
       }
     }
 
-    // Update profiles table
-    const profileUpdates = {};
-    if (updateData.full_name !== undefined) profileUpdates.full_name = updateData.full_name;
-    if (updateData.email !== undefined) profileUpdates.email = updateData.email;
-    profileUpdates.updated_at = new Date().toISOString();
+    // Build dynamic UPDATE for profiles table
+    const setClauses = [];
+    const params = [];
+    let paramIndex = 1;
 
-    const { data: profileData, error: profileError } = await supabase
-      .from('profiles')
-      .update(profileUpdates)
-      .eq('id', userId)
-      .select('member_id')
-      .maybeSingle();
-
-    if (profileError) {
-      log.error('Profile update error:', profileError);
-      throw profileError;
+    if (updateData.full_name !== undefined) {
+      setClauses.push(`full_name = $${paramIndex++}`);
+      params.push(updateData.full_name);
     }
+    if (updateData.email !== undefined) {
+      setClauses.push(`email = $${paramIndex++}`);
+      params.push(updateData.email);
+    }
+    const updatedAt = new Date().toISOString();
+    setClauses.push(`updated_at = $${paramIndex++}`);
+    params.push(updatedAt);
+    params.push(userId); // WHERE clause param
+
+    const { rows: profileRows } = await query(
+      `UPDATE profiles SET ${setClauses.join(', ')} WHERE id = $${paramIndex} RETURNING member_id`,
+      params
+    );
+    const profileData = profileRows[0];
 
     if (!profileData) {
       return res.status(404).json({
@@ -524,26 +513,23 @@ router.put('/', authenticateToken, async (req, res) => {
 
     // If phone is being updated and user has member record, update members table
     if (updateData.phone && profileData.member_id) {
-      const { error: memberError } = await supabase
-        .from('members')
-        .update({
-          phone: updateData.phone,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', profileData.member_id);
-
-      if (memberError) {
+      try {
+        await query(
+          'UPDATE members SET phone = $1, updated_at = $2 WHERE id = $3',
+          [updateData.phone, new Date().toISOString(), profileData.member_id]
+        );
+      } catch (memberError) {
         log.error('Member phone update error:', memberError);
         // Non-critical error, continue
       }
     }
 
     // Fetch updated user details
-    const { data: updatedUser } = await supabase
-      .from('user_details')
-      .select('id, email, full_name, phone, avatar_url')
-      .eq('id', userId)
-      .maybeSingle();
+    const { rows: updatedRows } = await query(
+      'SELECT id, email, full_name, phone, avatar_url FROM user_details WHERE id = $1',
+      [userId]
+    );
+    const updatedUser = updatedRows[0];
 
     log.info(`Profile updated for user ${userId}`);
 
@@ -557,7 +543,7 @@ router.put('/', authenticateToken, async (req, res) => {
         email: updatedUser.email,
         phone: updatedUser.phone,
         avatar_url: updatedUser.avatar_url,
-        updated_at: profileUpdates.updated_at
+        updated_at: updatedAt
       }
     });
   } catch (error) {
@@ -641,14 +627,14 @@ router.post('/change-password', authenticateToken, async (req, res) => {
     }
 
     // Get current password hash from users table
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('password_hash')
-      .eq('id', userId)
-      .maybeSingle();
+    const { rows: userRows } = await query(
+      'SELECT password_hash FROM users WHERE id = $1',
+      [userId]
+    );
+    const userData = userRows[0];
 
-    if (userError || !userData) {
-      log.error('Error fetching user for password change:', userError);
+    if (!userData) {
+      log.error('Error fetching user for password change: user not found');
       return res.status(404).json({
         success: false,
         message: 'المستخدم غير موجود',
@@ -680,17 +666,14 @@ router.post('/change-password', authenticateToken, async (req, res) => {
     const hashedPassword = await bcrypt.hash(newPassword, 12);
 
     // Update password in users table
-    const { error: updateError } = await supabase
-      .from('users')
-      .update({
-        password_hash: hashedPassword,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', userId);
+    const { rowCount } = await query(
+      'UPDATE users SET password_hash = $1, updated_at = $2 WHERE id = $3',
+      [hashedPassword, new Date().toISOString(), userId]
+    );
 
-    if (updateError) {
-      log.error('Password update error:', updateError);
-      throw updateError;
+    if (rowCount === 0) {
+      log.error('Password update error: no rows affected');
+      throw new Error('Failed to update password');
     }
 
     // Log password change audit trail
@@ -791,16 +774,11 @@ router.get('/notification-settings', authenticateToken, async (req, res) => {
     log.info(`Fetching notification settings for user ${userId}`);
 
     // Query user's notification settings
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('notification_settings')
-      .eq('id', userId)
-      .maybeSingle();
-
-    if (userError) {
-      log.error('Database error fetching notification settings:', userError);
-      throw userError;
-    }
+    const { rows } = await query(
+      'SELECT notification_settings FROM users WHERE id = $1',
+      [userId]
+    );
+    const userData = rows[0];
 
     if (!userData) {
       log.warn(`User not found: ${userId}`);
@@ -1009,16 +987,11 @@ router.put('/notification-settings', authenticateToken, async (req, res) => {
     }
 
     // Fetch current settings
-    const { data: currentUser, error: fetchError } = await supabase
-      .from('users')
-      .select('notification_settings')
-      .eq('id', userId)
-      .maybeSingle();
-
-    if (fetchError) {
-      log.error('Database error fetching current settings:', fetchError);
-      throw fetchError;
-    }
+    const { rows: currentRows } = await query(
+      'SELECT notification_settings FROM users WHERE id = $1',
+      [userId]
+    );
+    const currentUser = currentRows[0];
 
     if (!currentUser) {
       log.warn(`User not found: ${userId}`);
@@ -1038,29 +1011,21 @@ router.put('/notification-settings', authenticateToken, async (req, res) => {
 
     log.info(`Merged settings for user ${userId}:`, updatedSettings);
 
-    // Update database
-    const { data: updatedUser, error: updateError } = await supabase
-      .from('users')
-      .update({ notification_settings: updatedSettings })
-      .eq('id', userId)
-      .select('notification_settings')
-      .single();
+    // Update database with RETURNING to get the updated value
+    const { rows: updatedRows, rowCount } = await query(
+      'UPDATE users SET notification_settings = $1 WHERE id = $2 RETURNING notification_settings',
+      [JSON.stringify(updatedSettings), userId]
+    );
 
-    if (updateError) {
-      log.error('Database error updating notification settings:', updateError);
-
-      // Check if it's a constraint violation
-      if (updateError.code === '23514') {
-        return res.status(400).json({
-          success: false,
-          message: 'البيانات المدخلة لا تتوافق مع القيود المطلوبة',
-          message_en: 'Data does not meet required constraints',
-          error: updateError.message
-        });
-      }
-
-      throw updateError;
+    if (rowCount === 0) {
+      log.error('Database error updating notification settings: no rows affected');
+      throw new Error('Update failed');
     }
+
+    const updatedUser = updatedRows[0];
+
+    // Check for constraint violation is handled by the catch block
+    // PostgreSQL will throw with error.code === '23514' for check constraint violations
 
     // Log successful update in audit log
     log.info(`Notification settings updated successfully for user ${userId}`, {
@@ -1077,6 +1042,17 @@ router.put('/notification-settings', authenticateToken, async (req, res) => {
 
   } catch (error) {
     log.error('Error updating notification settings:', error);
+
+    // Check if it's a constraint violation
+    if (error.code === '23514') {
+      return res.status(400).json({
+        success: false,
+        message: 'البيانات المدخلة لا تتوافق مع القيود المطلوبة',
+        message_en: 'Data does not meet required constraints',
+        error: error.message
+      });
+    }
+
     res.status(500).json({
       success: false,
       message: 'فشل في تحديث إعدادات الإشعارات',
@@ -1141,16 +1117,11 @@ router.get('/appearance-settings', authenticateToken, async (req, res) => {
     const userId = req.user.id;
     log.info(`Fetching appearance settings for user ${userId}`);
 
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('appearance_settings')
-      .eq('id', userId)
-      .maybeSingle();
-
-    if (userError) {
-      log.error('Database error fetching appearance settings:', userError);
-      throw userError;
-    }
+    const { rows } = await query(
+      'SELECT appearance_settings FROM users WHERE id = $1',
+      [userId]
+    );
+    const userData = rows[0];
 
     if (!userData) {
       return res.status(404).json({
@@ -1294,16 +1265,11 @@ router.put('/appearance-settings', authenticateToken, async (req, res) => {
     }
 
     // Fetch current settings to merge with updates
-    const { data: currentUser, error: fetchError } = await supabase
-      .from('users')
-      .select('appearance_settings')
-      .eq('id', userId)
-      .maybeSingle();
-
-    if (fetchError) {
-      log.error('Error fetching current appearance settings:', fetchError);
-      throw fetchError;
-    }
+    const { rows: currentRows } = await query(
+      'SELECT appearance_settings FROM users WHERE id = $1',
+      [userId]
+    );
+    const currentUser = currentRows[0];
 
     if (!currentUser) {
       return res.status(404).json({
@@ -1322,29 +1288,18 @@ router.put('/appearance-settings', authenticateToken, async (req, res) => {
     // Remove updated_at if user provided it (we control this field)
     delete updatedSettings.updated_at;
 
-    // Update database
-    const { data: updatedUser, error: updateError } = await supabase
-      .from('users')
-      .update({ appearance_settings: updatedSettings })
-      .eq('id', userId)
-      .select('appearance_settings')
-      .single();
+    // Update database with RETURNING
+    const { rows: updatedRows, rowCount } = await query(
+      'UPDATE users SET appearance_settings = $1 WHERE id = $2 RETURNING appearance_settings',
+      [JSON.stringify(updatedSettings), userId]
+    );
 
-    if (updateError) {
-      log.error('Error updating appearance settings:', updateError);
-
-      // Handle database constraint violations
-      if (updateError.code === '23514') {
-        return res.status(400).json({
-          success: false,
-          message: 'بيانات الإعدادات غير صالحة',
-          message_en: 'Invalid settings data',
-          details: updateError.message
-        });
-      }
-
-      throw updateError;
+    if (rowCount === 0) {
+      log.error('Error updating appearance settings: no rows affected');
+      throw new Error('Update failed');
     }
+
+    const updatedUser = updatedRows[0];
 
     log.info(`Appearance settings updated successfully for user ${userId}`, {
       oldSettings: currentUser.appearance_settings,
@@ -1359,6 +1314,17 @@ router.put('/appearance-settings', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error updating appearance settings:', error);
+
+    // Handle database constraint violations
+    if (error.code === '23514') {
+      return res.status(400).json({
+        success: false,
+        message: 'بيانات الإعدادات غير صالحة',
+        message_en: 'Invalid settings data',
+        details: error.message
+      });
+    }
+
     res.status(500).json({
       success: false,
       message: 'فشل في تحديث إعدادات المظهر',
@@ -1421,16 +1387,11 @@ router.get('/language-settings', authenticateToken, async (req, res) => {
     const userId = req.user.id;
     log.info(`Fetching language settings for user ${userId}`);
 
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('language_settings')
-      .eq('id', userId)
-      .maybeSingle();
-
-    if (userError) {
-      log.error('Database error fetching language settings:', userError);
-      throw userError;
-    }
+    const { rows } = await query(
+      'SELECT language_settings FROM users WHERE id = $1',
+      [userId]
+    );
+    const userData = rows[0];
 
     if (!userData) {
       return res.status(404).json({
@@ -1651,16 +1612,11 @@ router.put('/language-settings', authenticateToken, async (req, res) => {
     }
 
     // Fetch current settings to merge with updates
-    const { data: currentUser, error: fetchError } = await supabase
-      .from('users')
-      .select('language_settings')
-      .eq('id', userId)
-      .maybeSingle();
-
-    if (fetchError) {
-      log.error('Error fetching current language settings:', fetchError);
-      throw fetchError;
-    }
+    const { rows: currentRows } = await query(
+      'SELECT language_settings FROM users WHERE id = $1',
+      [userId]
+    );
+    const currentUser = currentRows[0];
 
     if (!currentUser) {
       return res.status(404).json({
@@ -1679,29 +1635,18 @@ router.put('/language-settings', authenticateToken, async (req, res) => {
     // Remove updated_at if user provided it (we control this field)
     delete updatedSettings.updated_at;
 
-    // Update database
-    const { data: updatedUser, error: updateError } = await supabase
-      .from('users')
-      .update({ language_settings: updatedSettings })
-      .eq('id', userId)
-      .select('language_settings')
-      .single();
+    // Update database with RETURNING
+    const { rows: updatedRows, rowCount } = await query(
+      'UPDATE users SET language_settings = $1 WHERE id = $2 RETURNING language_settings',
+      [JSON.stringify(updatedSettings), userId]
+    );
 
-    if (updateError) {
-      log.error('Error updating language settings:', updateError);
-
-      // Handle database constraint violations
-      if (updateError.code === '23514') {
-        return res.status(400).json({
-          success: false,
-          message: 'بيانات الإعدادات غير صالحة',
-          message_en: 'Invalid settings data',
-          details: updateError.message
-        });
-      }
-
-      throw updateError;
+    if (rowCount === 0) {
+      log.error('Error updating language settings: no rows affected');
+      throw new Error('Update failed');
     }
+
+    const updatedUser = updatedRows[0];
 
     log.info(`Language settings updated successfully for user ${userId}`, {
       oldSettings: currentUser.language_settings,
@@ -1716,6 +1661,17 @@ router.put('/language-settings', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     log.error('Error updating language settings:', error);
+
+    // Handle database constraint violations
+    if (error.code === '23514') {
+      return res.status(400).json({
+        success: false,
+        message: 'بيانات الإعدادات غير صالحة',
+        message_en: 'Invalid settings data',
+        details: error.message
+      });
+    }
+
     res.status(500).json({
       success: false,
       message: 'فشل في تحديث إعدادات اللغة والمنطقة',
@@ -1745,18 +1701,18 @@ router.delete('/language-settings', authenticateToken, async (req, res) => {
       week_start: 'saturday'
     };
 
-    // Update database with defaults
-    const { data: updatedUser, error: updateError } = await supabase
-      .from('users')
-      .update({ language_settings: defaultSettings })
-      .eq('id', userId)
-      .select('language_settings')
-      .single();
+    // Update database with defaults using RETURNING
+    const { rows: updatedRows, rowCount } = await query(
+      'UPDATE users SET language_settings = $1 WHERE id = $2 RETURNING language_settings',
+      [JSON.stringify(defaultSettings), userId]
+    );
 
-    if (updateError) {
-      log.error('Error resetting language settings:', updateError);
-      throw updateError;
+    if (rowCount === 0) {
+      log.error('Error resetting language settings: no rows affected');
+      throw new Error('Reset failed');
     }
+
+    const updatedUser = updatedRows[0];
 
     log.info(`Language settings reset to defaults for user ${userId}`);
 

@@ -1,4 +1,4 @@
-import { supabase } from '../config/database.js';
+import { query, getClient } from './database.js';
 import { log } from '../utils/logger.js';
 
 /**
@@ -41,26 +41,40 @@ export class PaymentProcessingService {
       const referenceNumber = this.generateReferenceNumber();
 
       // Sanitize description/notes
-      const sanitizedData = {
+      const sanitizedNotes = this.sanitizeDescription(paymentData.notes || '');
+      const status = paymentData.status || 'pending';
+      const now = new Date().toISOString();
+
+      // Build columns and values from paymentData, overriding specific fields
+      const insertData = {
         ...paymentData,
         reference_number: referenceNumber,
-        status: paymentData.status || 'pending',
-        notes: this.sanitizeDescription(paymentData.notes || ''),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        status,
+        notes: sanitizedNotes,
+        created_at: now,
+        updated_at: now
       };
 
-      // Insert payment
-      const { data: payment, error } = await supabase
-        .from('payments')
-        .insert([sanitizedData])
-        .select(`
-          *,
-          payer:members(id, full_name, phone, email)
-        `)
-        .single();
+      const columns = Object.keys(insertData);
+      const values = Object.values(insertData);
+      const placeholders = columns.map((_, i) => `$${i + 1}`);
 
-      if (error) {throw error;}
+      const { rows } = await query(
+        `INSERT INTO payments (${columns.join(', ')})
+         VALUES (${placeholders.join(', ')})
+         RETURNING *`,
+        values
+      );
+
+      const payment = rows[0];
+
+      // Fetch payer details separately
+      const { rows: payerRows } = await query(
+        `SELECT id, full_name, phone, email FROM members WHERE id = $1`,
+        [payment.payer_id]
+      );
+
+      payment.payer = payerRows[0] || null;
 
       return {
         success: true,
@@ -77,12 +91,14 @@ export class PaymentProcessingService {
   }
 
   /**
-   * Process payment by updating status and handling business logic
+   * Process payment by updating status and handling business logic.
+   * Uses a database transaction because it may modify both payments and subscriptions tables.
    * @param {string} paymentId - Payment ID
    * @param {string} method - Payment method
    * @returns {Object} Processing result
    */
   static async processPayment(paymentId, method) {
+    const client = await getClient();
     try {
       // Validate payment method
       const validMethods = ['cash', 'card', 'transfer', 'online', 'check'];
@@ -90,14 +106,19 @@ export class PaymentProcessingService {
         throw new Error('طريقة دفع غير صالحة');
       }
 
-      // Get current payment
-      const { data: currentPayment, error: _fetchError } = await supabase
-        .from('payments')
-        .select('*')
-        .eq('id', paymentId)
-        .single();
+      await client.query('BEGIN');
 
-      if (_fetchError) {throw new Error('المدفوع غير موجود');}
+      // Get current payment (lock the row for update)
+      const { rows: paymentRows } = await client.query(
+        `SELECT * FROM payments WHERE id = $1 FOR UPDATE`,
+        [paymentId]
+      );
+
+      if (!paymentRows.length) {
+        throw new Error('المدفوع غير موجود');
+      }
+
+      const currentPayment = paymentRows[0];
 
       if (currentPayment.status === 'paid') {
         throw new Error('المدفوع مدفوع مسبقاً');
@@ -107,28 +128,33 @@ export class PaymentProcessingService {
         throw new Error('لا يمكن معالجة مدفوع ملغى');
       }
 
+      const now = new Date().toISOString();
+
       // Update payment status and method
-      const { data: updatedPayment, error: _updateError } = await supabase
-        .from('payments')
-        .update({
-          status: 'paid',
-          payment_method: method,
-          processed_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', paymentId)
-        .select(`
-          *,
-          payer:members(id, full_name, phone, email)
-        `)
-        .single();
+      const { rows: updatedRows } = await client.query(
+        `UPDATE payments
+         SET status = 'paid', payment_method = $1, processed_at = $2, updated_at = $2
+         WHERE id = $3
+         RETURNING *`,
+        [method, now, paymentId]
+      );
 
-      if (_updateError) {throw _updateError;}
+      const updatedPayment = updatedRows[0];
 
-      // If subscription payment, update member's subscription
+      // If subscription payment, update member's subscription within the same transaction
       if (currentPayment.category === 'subscription') {
-        await this.updateMemberSubscription(currentPayment.payer_id, currentPayment.amount);
+        await this.updateMemberSubscription(currentPayment.payer_id, currentPayment.amount, client);
       }
+
+      await client.query('COMMIT');
+
+      // Fetch payer details outside the transaction
+      const { rows: payerRows } = await query(
+        `SELECT id, full_name, phone, email FROM members WHERE id = $1`,
+        [updatedPayment.payer_id]
+      );
+
+      updatedPayment.payer = payerRows[0] || null;
 
       return {
         success: true,
@@ -137,10 +163,13 @@ export class PaymentProcessingService {
       };
 
     } catch (error) {
+      await client.query('ROLLBACK');
       return {
         success: false,
         error: error.message || 'فشل في معالجة المدفوع'
       };
+    } finally {
+      client.release();
     }
   }
 
@@ -157,27 +186,38 @@ export class PaymentProcessingService {
         throw new Error('حالة غير صالحة');
       }
 
-      const updateData = {
-        status,
-        updated_at: new Date().toISOString()
-      };
+      const now = new Date().toISOString();
+      const params = [status, now, paymentId];
+      let sql;
 
       // Add processed timestamp for paid status
       if (status === 'paid') {
-        updateData.processed_at = new Date().toISOString();
+        sql = `UPDATE payments
+               SET status = $1, updated_at = $2, processed_at = $2
+               WHERE id = $3
+               RETURNING *`;
+      } else {
+        sql = `UPDATE payments
+               SET status = $1, updated_at = $2
+               WHERE id = $3
+               RETURNING *`;
       }
 
-      const { data: payment, error } = await supabase
-        .from('payments')
-        .update(updateData)
-        .eq('id', paymentId)
-        .select(`
-          *,
-          payer:members(id, full_name, phone, email)
-        `)
-        .single();
+      const { rows } = await query(sql, params);
 
-      if (error) {throw error;}
+      if (!rows.length) {
+        throw new Error('المدفوع غير موجود');
+      }
+
+      const payment = rows[0];
+
+      // Fetch payer details
+      const { rows: payerRows } = await query(
+        `SELECT id, full_name, phone, email FROM members WHERE id = $1`,
+        [payment.payer_id]
+      );
+
+      payment.payer = payerRows[0] || null;
 
       return {
         success: true,
@@ -274,7 +314,7 @@ export class PaymentProcessingService {
 
   /**
    * Detect duplicate payment
-   * @param {Object} memberData - Payment data to check
+   * @param {Object} paymentData - Payment data to check
    * @returns {boolean} True if duplicate found
    */
   static async detectDuplicatePayment(paymentData) {
@@ -282,18 +322,23 @@ export class PaymentProcessingService {
       const timeThreshold = new Date();
       timeThreshold.setHours(timeThreshold.getHours() - 1); // 1 hour window
 
-      const { data: existingPayments, error } = await supabase
-        .from('payments')
-        .select('id')
-        .eq('payer_id', paymentData.payer_id)
-        .eq('amount', paymentData.amount)
-        .eq('category', paymentData.category)
-        .in('status', ['pending', 'paid'])
-        .gte('created_at', timeThreshold.toISOString());
+      const { rows } = await query(
+        `SELECT id FROM payments
+         WHERE payer_id = $1
+           AND amount = $2
+           AND category = $3
+           AND status = ANY($4)
+           AND created_at >= $5`,
+        [
+          paymentData.payer_id,
+          paymentData.amount,
+          paymentData.category,
+          ['pending', 'paid'],
+          timeThreshold.toISOString()
+        ]
+      );
 
-      if (error) {throw error;}
-
-      return existingPayments && existingPayments.length > 0;
+      return rows && rows.length > 0;
 
     } catch (error) {
       log.error('Error detecting duplicate payment:', { error: error.message });
@@ -308,14 +353,12 @@ export class PaymentProcessingService {
    */
   static async validateMemberExists(memberId) {
     try {
-      const { data: member, error } = await supabase
-        .from('members')
-        .select('id')
-        .eq('id', memberId)
-        .eq('is_active', true)
-        .single();
+      const { rows } = await query(
+        `SELECT id FROM members WHERE id = $1 AND is_active = true`,
+        [memberId]
+      );
 
-      return !error && member;
+      return rows.length > 0;
     } catch (error) {
       return false;
     }
@@ -343,11 +386,18 @@ export class PaymentProcessingService {
   }
 
   /**
-   * Update member subscription after payment
+   * Update member subscription after payment.
+   * Accepts an optional database client to participate in an existing transaction.
    * @param {string} memberId - Member ID
    * @param {number} amount - Payment amount
+   * @param {Object} [dbClient] - Optional pg client for transaction participation
    */
-  static async updateMemberSubscription(memberId, amount) {
+  static async updateMemberSubscription(memberId, amount, dbClient) {
+    // Use the provided client (transaction) or fall back to pool query
+    const exec = dbClient
+      ? (text, params) => dbClient.query(text, params)
+      : (text, params) => query(text, params);
+
     try {
       // Calculate subscription duration based on amount (50 SAR = 1 month)
       const months = Math.floor(amount / 50);
@@ -357,38 +407,42 @@ export class PaymentProcessingService {
       endDate.setMonth(endDate.getMonth() + months);
 
       // Check if member has active subscription
-      const { data: existingSubscription } = await supabase
-        .from('subscriptions')
-        .select('*')
-        .eq('member_id', memberId)
-        .eq('status', 'active')
-        .single();
+      const { rows: subRows } = await exec(
+        `SELECT * FROM subscriptions WHERE member_id = $1 AND status = 'active' LIMIT 1`,
+        [memberId]
+      );
+
+      const existingSubscription = subRows[0];
 
       if (existingSubscription) {
         // Extend existing subscription
         const newEndDate = new Date(existingSubscription.end_date);
         newEndDate.setMonth(newEndDate.getMonth() + months);
 
-        await supabase
-          .from('subscriptions')
-          .update({
-            end_date: newEndDate.toISOString().split('T')[0],
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingSubscription.id);
+        await exec(
+          `UPDATE subscriptions
+           SET end_date = $1, updated_at = $2
+           WHERE id = $3`,
+          [
+            newEndDate.toISOString().split('T')[0],
+            new Date().toISOString(),
+            existingSubscription.id
+          ]
+        );
       } else {
         // Create new subscription
-        await supabase
-          .from('subscriptions')
-          .insert([{
-            member_id: memberId,
-            plan_name: `اشتراك ${months} شهر`,
-            amount: amount,
-            duration_months: months,
-            status: 'active',
-            start_date: startDate.toISOString().split('T')[0],
-            end_date: endDate.toISOString().split('T')[0]
-          }]);
+        await exec(
+          `INSERT INTO subscriptions (member_id, plan_name, amount, duration_months, status, start_date, end_date)
+           VALUES ($1, $2, $3, $4, 'active', $5, $6)`,
+          [
+            memberId,
+            `اشتراك ${months} شهر`,
+            amount,
+            months,
+            startDate.toISOString().split('T')[0],
+            endDate.toISOString().split('T')[0]
+          ]
+        );
       }
     } catch (error) {
       log.error('Error updating member subscription:', { error: error.message });
@@ -403,20 +457,28 @@ export class PaymentProcessingService {
    */
   static async getPaymentById(paymentId) {
     try {
-      const { data: payment, error } = await supabase
-        .from('payments')
-        .select(`
-          *,
-          payer:members(id, full_name, phone, email, membership_number)
-        `)
-        .eq('id', paymentId)
-        .single();
+      const { rows } = await query(
+        `SELECT p.*,
+                json_build_object(
+                  'id', m.id,
+                  'full_name', m.full_name,
+                  'phone', m.phone,
+                  'email', m.email,
+                  'membership_number', m.membership_number
+                ) AS payer
+         FROM payments p
+         LEFT JOIN members m ON m.id = p.payer_id
+         WHERE p.id = $1`,
+        [paymentId]
+      );
 
-      if (error) {throw error;}
+      if (!rows.length) {
+        throw new Error('المدفوع غير موجود');
+      }
 
       return {
         success: true,
-        data: payment
+        data: rows[0]
       };
     } catch (error) {
       return {

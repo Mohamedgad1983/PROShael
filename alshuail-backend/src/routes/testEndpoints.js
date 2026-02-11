@@ -1,5 +1,5 @@
 import express from 'express';
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
 import { config } from '../config/env.js';
 
@@ -13,28 +13,24 @@ router.get('/occasions', async (req, res) => {
     const limit = 50;
     const offset = 0;
 
-    const query = supabase
-      .from('events')
-      .select('*')
-      .order('start_date', { ascending: true })
-      .range(offset, offset + limit - 1);
+    const eventsResult = await query(
+      `SELECT * FROM events ORDER BY start_date ASC LIMIT $1 OFFSET $2`,
+      [limit, offset]
+    );
+    const occasions = eventsResult.rows;
 
-    const { data: occasions, error, count } = await query;
-
-    if (error) {
-      log.error('Test occasions error', { error: error.message });
-      throw error;
-    }
+    const countResult = await query(`SELECT COUNT(*) FROM events`);
+    const count = parseInt(countResult.rows[0].count);
 
     // Calculate additional metrics for each occasion
-    const enhancedOccasions = occasions?.map(occasion => ({
+    const enhancedOccasions = occasions.map(occasion => ({
       ...occasion,
       days_until_event: occasion.start_date ?
         Math.ceil((new Date(occasion.start_date) - new Date()) / (1000 * 60 * 60 * 24)) : null,
       attendance_rate: occasion.max_attendees && occasion.current_attendees ?
         Math.round((occasion.current_attendees / occasion.max_attendees) * 100) : 0,
       is_full: occasion.max_attendees ? (occasion.current_attendees || 0) >= occasion.max_attendees : false
-    })) || [];
+    }));
 
     res.json({
       success: true,
@@ -60,17 +56,13 @@ router.get('/initiatives', async (req, res) => {
   try {
     log.info('Test initiatives endpoint called');
 
-    const { data: initiatives, error } = await supabase
-      .from('activities')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .range(0, 49);
-
-    if (error) {throw error;}
+    const result = await query(
+      `SELECT * FROM activities ORDER BY created_at DESC LIMIT 50`
+    );
 
     res.json({
       success: true,
-      data: initiatives || [],
+      data: result.rows,
       message: 'تم جلب المبادرات بنجاح (test route)'
     });
   } catch (error) {
@@ -87,17 +79,13 @@ router.get('/notifications', async (req, res) => {
   try {
     log.info('Test notifications endpoint called');
 
-    const { data: notifications, error } = await supabase
-      .from('notifications')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .range(0, 49);
-
-    if (error) {throw error;}
+    const result = await query(
+      `SELECT * FROM notifications ORDER BY created_at DESC LIMIT 50`
+    );
 
     res.json({
       success: true,
-      data: notifications || [],
+      data: result.rows,
       message: 'تم جلب الإشعارات بنجاح (test route)'
     });
   } catch (error) {
@@ -129,34 +117,35 @@ router.post('/sync-diya-amounts', async (req, res) => {
     const results = [];
 
     for (const item of syncMapping) {
-      const { data, error } = await supabase
-        .from('diya_cases')
-        .update({
-          collected_amount: item.collected_amount,
-          status: item.status
-        })
-        .eq('case_number', item.case_number)
-        .select();
+      try {
+        const result = await query(
+          `UPDATE diya_cases
+           SET collected_amount = $1, status = $2
+           WHERE case_number = $3
+           RETURNING *`,
+          [item.collected_amount, item.status, item.case_number]
+        );
 
-      if (error) {
-        log.error('Error syncing diya', { case_number: item.case_number, error: error.message });
-        results.push({ case_number: item.case_number, success: false, error: error.message });
-      } else {
         log.info('Synced diya', { case_number: item.case_number, collected_amount: item.collected_amount });
         results.push({ case_number: item.case_number, success: true, collected_amount: item.collected_amount });
+      } catch (error) {
+        log.error('Error syncing diya', { case_number: item.case_number, error: error.message });
+        results.push({ case_number: item.case_number, success: false, error: error.message });
       }
     }
 
     // Verify the updates by getting current state
-    const { data: diyas, error: verifyError } = await supabase
-      .from('diya_cases')
-      .select('case_number, title_ar, collected_amount, status, diya_type')
-      .order('case_number');
+    const diyasResult = await query(
+      `SELECT case_number, title_ar, collected_amount, status, diya_type
+       FROM diya_cases
+       ORDER BY case_number`
+    );
+    const diyas = diyasResult.rows;
 
     res.json({
       success: true,
       results,
-      current_state: diyas || [],
+      current_state: diyas,
       total_collected: syncMapping.reduce((sum, item) => sum + item.collected_amount, 0),
       message: 'تم مزامنة مبالغ الدية بنجاح'
     });

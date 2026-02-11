@@ -4,7 +4,7 @@
  */
 
 import express from 'express';
-import { supabase as supabaseAdmin } from '../config/database.js';
+import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
 
 const router = express.Router();
@@ -16,24 +16,45 @@ const router = express.Router();
 router.get('/dashboard', async (req, res) => {
     try {
         // Get all diya activities
-        const { data: activities, error: _activitiesError } = await supabaseAdmin
-            .from('activities')
-            .select('*')
-            .or('title_ar.ilike.%دية%,title_en.ilike.%Diya%')
-            .order('created_at', { ascending: false });
-
-        if (_activitiesError) {throw _activitiesError;}
+        const activitiesResult = await query(
+            `SELECT * FROM activities
+             WHERE title_ar ILIKE $1 OR title_en ILIKE $2
+             ORDER BY created_at DESC`,
+            ['%دية%', '%Diya%']
+        );
+        const activities = activitiesResult.rows;
 
         // Get statistics for each activity
         const diyaStats = await Promise.all(activities.map(async (activity) => {
-            // Get contribution stats
-            const { data: contributions, error: _contribError } = await supabaseAdmin
-                .from('financial_contributions')
-                .select('contribution_amount, contributor_id')
-                .eq('activity_id', activity.id);
+            try {
+                // Get contribution stats
+                const contributionsResult = await query(
+                    `SELECT contribution_amount, contributor_id
+                     FROM financial_contributions
+                     WHERE activity_id = $1`,
+                    [activity.id]
+                );
+                const contributions = contributionsResult.rows;
 
-            if (_contribError) {
-                log.error('Error fetching contributions:', { error: _contribError.message });
+                // Calculate statistics
+                const uniqueContributors = new Set(contributions.map(c => c.contributor_id));
+                const totalAmount = contributions.reduce((sum, c) => sum + (parseFloat(c.contribution_amount) || 0), 0);
+                const avgAmount = contributions.length > 0 ? totalAmount / contributions.length : 0;
+
+                return {
+                    activity_id: activity.id,
+                    title_ar: activity.title_ar,
+                    title_en: activity.title_en,
+                    description_ar: activity.description_ar,
+                    total_contributors: uniqueContributors.size,
+                    total_collected: totalAmount,
+                    average_contribution: avgAmount,
+                    status: activity.status,
+                    collection_status: activity.collection_status,
+                    target_amount: activity.target_amount || 100000
+                };
+            } catch (contribError) {
+                log.error('Error fetching contributions:', { error: contribError.message });
                 return {
                     ...activity,
                     total_contributors: 0,
@@ -41,24 +62,6 @@ router.get('/dashboard', async (req, res) => {
                     average_contribution: 0
                 };
             }
-
-            // Calculate statistics
-            const uniqueContributors = new Set(contributions?.map(c => c.contributor_id) || []);
-            const totalAmount = contributions?.reduce((sum, c) => sum + (parseFloat(c.contribution_amount) || 0), 0) || 0;
-            const avgAmount = contributions?.length > 0 ? totalAmount / contributions.length : 0;
-
-            return {
-                activity_id: activity.id,
-                title_ar: activity.title_ar,
-                title_en: activity.title_en,
-                description_ar: activity.description_ar,
-                total_contributors: uniqueContributors.size,
-                total_collected: totalAmount,
-                average_contribution: avgAmount,
-                status: activity.status,
-                collection_status: activity.collection_status,
-                target_amount: activity.target_amount || 100000
-            };
         }));
 
         res.json({
@@ -87,33 +90,33 @@ router.get('/:id/contributors', async (req, res) => {
         const offset = (page - 1) * limit;
 
         // Get total count first for pagination metadata
-        const { count, error: _countError } = await supabaseAdmin
-            .from('financial_contributions')
-            .select('*', { count: 'exact', head: true })
-            .eq('activity_id', id);
-
-        if (_countError) {throw _countError;}
+        const countResult = await query(
+            `SELECT COUNT(*) FROM financial_contributions WHERE activity_id = $1`,
+            [id]
+        );
+        const count = parseInt(countResult.rows[0].count);
 
         // Get paginated contributions
-        const { data: contributions, error: _contribError } = await supabaseAdmin
-            .from('financial_contributions')
-            .select('*')
-            .eq('activity_id', id)
-            .order('contribution_date', { ascending: false })
-            .range(offset, offset + limit - 1);
-
-        if (_contribError) {throw _contribError;}
+        const contributionsResult = await query(
+            `SELECT * FROM financial_contributions
+             WHERE activity_id = $1
+             ORDER BY contribution_date DESC
+             LIMIT $2 OFFSET $3`,
+            [id, limit, offset]
+        );
+        const contributions = contributionsResult.rows;
 
         // Get all member IDs for this page
         const memberIds = [...new Set(contributions.map(c => c.contributor_id))];
 
         // Get member details for this page only
-        const { data: members, error: _membersError } = await supabaseAdmin
-            .from('members')
-            .select('id, full_name, membership_number, tribal_section, phone')
-            .in('id', memberIds);
-
-        if (_membersError) {throw _membersError;}
+        const membersResult = await query(
+            `SELECT id, full_name, membership_number, tribal_section, phone
+             FROM members
+             WHERE id = ANY($1)`,
+            [memberIds]
+        );
+        const members = membersResult.rows;
 
         // Create a member lookup map
         const memberMap = {};
@@ -170,24 +173,25 @@ router.get('/:id/contributors/all', async (req, res) => {
         const { id } = req.params;
 
         // Get ALL contributions (no pagination)
-        const { data: contributions, error: _contribError } = await supabaseAdmin
-            .from('financial_contributions')
-            .select('*')
-            .eq('activity_id', id)
-            .order('contribution_date', { ascending: false });
-
-        if (_contribError) {throw _contribError;}
+        const contributionsResult = await query(
+            `SELECT * FROM financial_contributions
+             WHERE activity_id = $1
+             ORDER BY contribution_date DESC`,
+            [id]
+        );
+        const contributions = contributionsResult.rows;
 
         // Get all member IDs
         const memberIds = [...new Set(contributions.map(c => c.contributor_id))];
 
         // Get member details
-        const { data: members, error: _membersError } = await supabaseAdmin
-            .from('members')
-            .select('id, full_name, membership_number, tribal_section, phone')
-            .in('id', memberIds);
-
-        if (_membersError) {throw _membersError;}
+        const membersResult = await query(
+            `SELECT id, full_name, membership_number, tribal_section, phone
+             FROM members
+             WHERE id = ANY($1)`,
+            [memberIds]
+        );
+        const members = membersResult.rows;
 
         // Create member lookup map
         const memberMap = {};
@@ -211,11 +215,11 @@ router.get('/:id/contributors/all', async (req, res) => {
         });
 
         // Get diya details for export header
-        const { data: activity } = await supabaseAdmin
-            .from('activities')
-            .select('*')
-            .eq('id', id)
-            .single();
+        const activityResult = await query(
+            `SELECT * FROM activities WHERE id = $1`,
+            [id]
+        );
+        const activity = activityResult.rows[0];
 
         res.json({
             success: true,
@@ -246,37 +250,38 @@ router.get('/:id/stats', async (req, res) => {
         const { id } = req.params;
 
         // Get activity details
-        const { data: activity, error: _activityError } = await supabaseAdmin
-            .from('activities')
-            .select('*')
-            .eq('id', id)
-            .single();
+        const activityResult = await query(
+            `SELECT * FROM activities WHERE id = $1`,
+            [id]
+        );
+        const activity = activityResult.rows[0];
 
-        if (_activityError) {throw _activityError;}
+        if (!activity) {
+            return res.status(404).json({
+                success: false,
+                error: 'Activity not found'
+            });
+        }
 
-        // Get contributions
-        const { data: contributions, error: _contribError } = await supabaseAdmin
-            .from('financial_contributions')
-            .select(`
-                contribution_amount,
-                contributor_id,
-                contribution_date,
-                members:contributor_id (
-                    tribal_section
-                )
-            `)
-            .eq('activity_id', id);
-
-        if (_contribError) {throw _contribError;}
+        // Get contributions with member tribal sections
+        const contributionsResult = await query(
+            `SELECT fc.contribution_amount, fc.contributor_id, fc.contribution_date,
+                    m.tribal_section
+             FROM financial_contributions fc
+             LEFT JOIN members m ON fc.contributor_id = m.id
+             WHERE fc.activity_id = $1`,
+            [id]
+        );
+        const contributions = contributionsResult.rows;
 
         // Calculate statistics
-        const uniqueContributors = new Set(contributions?.map(c => c.contributor_id) || []);
-        const totalAmount = contributions?.reduce((sum, c) => sum + (parseFloat(c.contribution_amount) || 0), 0) || 0;
+        const uniqueContributors = new Set(contributions.map(c => c.contributor_id));
+        const totalAmount = contributions.reduce((sum, c) => sum + (parseFloat(c.contribution_amount) || 0), 0);
 
         // Group by tribal section
         const bySection = {};
-        contributions?.forEach(contrib => {
-            const section = contrib.members?.tribal_section || 'غير محدد';
+        contributions.forEach(contrib => {
+            const section = contrib.tribal_section || 'غير محدد';
             if (!bySection[section]) {
                 bySection[section] = { count: 0, amount: 0 };
             }
@@ -285,7 +290,7 @@ router.get('/:id/stats', async (req, res) => {
         });
 
         // Get contribution dates
-        const dates = contributions?.map(c => c.contribution_date).filter(d => d) || [];
+        const dates = contributions.map(c => c.contribution_date).filter(d => d);
         const firstDate = dates.length > 0 ? Math.min(...dates.map(d => new Date(d))) : null;
         const lastDate = dates.length > 0 ? Math.max(...dates.map(d => new Date(d))) : null;
 
@@ -301,7 +306,7 @@ router.get('/:id/stats', async (req, res) => {
                 total_collected: totalAmount,
                 target_amount: activity.target_amount || 100000,
                 completion_percentage: ((totalAmount / (activity.target_amount || 100000)) * 100).toFixed(2),
-                average_contribution: contributions?.length > 0 ? totalAmount / contributions.length : 0,
+                average_contribution: contributions.length > 0 ? totalAmount / contributions.length : 0,
                 first_contribution: firstDate ? new Date(firstDate).toISOString() : null,
                 last_contribution: lastDate ? new Date(lastDate).toISOString() : null,
                 collection_status: activity.collection_status,
@@ -324,26 +329,27 @@ router.get('/:id/stats', async (req, res) => {
 router.get('/summary', async (req, res) => {
     try {
         // Get all diya activities
-        const { data: activities, error: _activitiesError } = await supabaseAdmin
-            .from('activities')
-            .select('id')
-            .or('title_ar.ilike.%دية%,title_en.ilike.%Diya%');
-
-        if (_activitiesError) {throw _activitiesError;}
-
+        const activitiesResult = await query(
+            `SELECT id, status, collection_status
+             FROM activities
+             WHERE title_ar ILIKE $1 OR title_en ILIKE $2`,
+            ['%دية%', '%Diya%']
+        );
+        const activities = activitiesResult.rows;
         const activityIds = activities.map(a => a.id);
 
         // Get all contributions for diya activities
-        const { data: contributions, error: _contribError } = await supabaseAdmin
-            .from('financial_contributions')
-            .select('contribution_amount, contributor_id')
-            .in('activity_id', activityIds);
-
-        if (_contribError) {throw _contribError;}
+        const contributionsResult = await query(
+            `SELECT contribution_amount, contributor_id
+             FROM financial_contributions
+             WHERE activity_id = ANY($1)`,
+            [activityIds]
+        );
+        const contributions = contributionsResult.rows;
 
         // Calculate summary statistics
-        const uniqueContributors = new Set(contributions?.map(c => c.contributor_id) || []);
-        const totalAmount = contributions?.reduce((sum, c) => sum + (parseFloat(c.contribution_amount) || 0), 0) || 0;
+        const uniqueContributors = new Set(contributions.map(c => c.contributor_id));
+        const totalAmount = contributions.reduce((sum, c) => sum + (parseFloat(c.contribution_amount) || 0), 0);
 
         res.json({
             success: true,
@@ -382,20 +388,14 @@ router.post('/:id/contribution', async (req, res) => {
         }
 
         // Create contribution record
-        const { data: contribution, error } = await supabaseAdmin
-            .from('financial_contributions')
-            .insert({
-                activity_id: id,
-                contributor_id,
-                contribution_amount: amount,
-                payment_method,
-                contribution_date: new Date().toISOString().split('T')[0],
-                notes
-            })
-            .select()
-            .single();
-
-        if (error) {throw error;}
+        const result = await query(
+            `INSERT INTO financial_contributions
+             (activity_id, contributor_id, contribution_amount, payment_method, contribution_date, notes)
+             VALUES ($1, $2, $3, $4, $5, $6)
+             RETURNING *`,
+            [id, contributor_id, amount, payment_method, new Date().toISOString().split('T')[0], notes]
+        );
+        const contribution = result.rows[0];
 
         res.json({
             success: true,

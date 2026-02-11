@@ -1,4 +1,4 @@
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { sanitizeJSON as _sanitizeJSON, prepareUpdateData } from '../utils/jsonSanitizer.js';
@@ -105,47 +105,50 @@ export const getAllMembers = async (req, res) => {
     const profileCompleted = profile_completed !== undefined ? sanitizeBoolean(profile_completed) : undefined;
     const membershipStatus = status === 'active' || status === 'inactive' ? status : undefined;
 
-    let query = supabase
-      .from('members')
-      .select('*', { count: 'exact' });
+    // Build dynamic WHERE clauses
+    const conditions = [];
+    const params = [];
+    let paramIndex = 1;
 
-    // Apply filters with sanitized inputs
     if (profileCompleted !== undefined) {
-      query = query.eq('profile_completed', profileCompleted);
+      conditions.push(`profile_completed = $${paramIndex++}`);
+      params.push(profileCompleted);
     }
 
     if (membershipStatus !== undefined) {
-      query = query.eq('membership_status', membershipStatus);
+      conditions.push(`membership_status = $${paramIndex++}`);
+      params.push(membershipStatus);
     }
 
     // Sanitize search term to prevent SQL injection
     if (search) {
       const sanitizedSearch = sanitizeSearchTerm(search);
       if (sanitizedSearch) {
-        query = query.or(
-          `full_name.ilike.%${sanitizedSearch}%,` +
-          `phone.ilike.%${sanitizedSearch}%,` +
-          `membership_number.ilike.%${sanitizedSearch}%,` +
-          `email.ilike.%${sanitizedSearch}%`
-        );
+        const searchPattern = `%${sanitizedSearch}%`;
+        conditions.push(`(full_name ILIKE $${paramIndex} OR phone ILIKE $${paramIndex + 1} OR membership_number ILIKE $${paramIndex + 2} OR email ILIKE $${paramIndex + 3})`);
+        params.push(searchPattern, searchPattern, searchPattern, searchPattern);
+        paramIndex += 4;
       }
     }
 
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
     // Apply pagination with sanitized values
     const offset = (pageNum - 1) * pageLimit;
-    query = query
-      .order('created_at', { ascending: false })
-      .range(offset, offset + pageLimit - 1);
 
-    const { data: members, error, count } = await query;
+    // Use COUNT(*) OVER() window function for total count with pagination
+    const sql = `SELECT *, COUNT(*) OVER() AS total_count FROM members ${whereClause} ORDER BY created_at DESC LIMIT $${paramIndex++} OFFSET $${paramIndex++}`;
+    params.push(pageLimit, offset);
 
-    if (error) {
-      log.error('Failed to fetch members', { error: error.message });
-      throw error;
-    }
+    const { rows } = await query(sql, params);
+
+    const count = rows.length > 0 ? parseInt(rows[0].total_count) : 0;
+
+    // Remove the total_count column from each row before transforming
+    const members = rows.map(({ total_count, ...member }) => member);
 
     // Transform all members to match frontend expected format
-    const transformedMembers = (members || []).map(transformMemberForFrontend);
+    const transformedMembers = members.map(transformMemberForFrontend);
 
     res.json({
       success: true,
@@ -153,8 +156,8 @@ export const getAllMembers = async (req, res) => {
       pagination: {
         page: pageNum,
         limit: pageLimit,
-        total: count || 0,
-        pages: Math.ceil((count || 0) / pageLimit)
+        total: count,
+        pages: Math.ceil(count / pageLimit)
       }
     });
   } catch (error) {
@@ -169,13 +172,8 @@ export const getMemberById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const { data: member, error } = await supabase
-      .from('members')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (error) {throw error;}
+    const { rows } = await query('SELECT * FROM members WHERE id = $1', [id]);
+    const member = rows[0];
 
     if (!member) {
       return res.status(404).json({
@@ -247,16 +245,20 @@ export const createMember = async (req, res) => {
 
     log.debug('Preparing to create member', { membershipNumber: memberToCreate.membership_number });
 
-    const { data: newMember, error } = await supabase
-      .from('members')
-      .insert([memberToCreate])
-      .select()
-      .single();
+    const { rows } = await query(
+      `INSERT INTO members (full_name, phone, email, national_id, tribal_section, city, district, address, occupation, employer, password, membership_number, membership_status, profile_completed, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+       RETURNING *`,
+      [
+        memberToCreate.full_name, memberToCreate.phone, memberToCreate.email,
+        memberToCreate.national_id, memberToCreate.tribal_section, memberToCreate.city,
+        memberToCreate.district, memberToCreate.address, memberToCreate.occupation,
+        memberToCreate.employer, memberToCreate.password, memberToCreate.membership_number,
+        memberToCreate.membership_status, memberToCreate.profile_completed, memberToCreate.created_at
+      ]
+    );
 
-    if (error) {
-      log.error('Supabase create member error', { error: error.message });
-      throw error;
-    }
+    const newMember = rows[0];
 
     log.info('Member created successfully', { memberId: newMember.id, membershipNumber: newMember.membership_number });
 
@@ -343,40 +345,18 @@ export const updateMember = async (req, res) => {
       });
     }
 
-    // Try to update with error handling
-    const { data: updatedMember, error } = await supabase
-      .from('members')
-      .update(fieldsToUpdate)
-      .eq('id', id)
-      .select()
-      .single();
+    // Build dynamic UPDATE query
+    const keys = Object.keys(fieldsToUpdate);
+    const setClauses = keys.map((key, i) => `${key} = $${i + 1}`);
+    const values = keys.map(key => fieldsToUpdate[key]);
+    values.push(id);
 
-    if (error) {
-      log.error('Supabase member update error', {
-        error: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint,
-        fieldsAttempted: Object.keys(fieldsToUpdate)
-      });
+    const { rows } = await query(
+      `UPDATE members SET ${setClauses.join(', ')} WHERE id = $${keys.length + 1} RETURNING *`,
+      values
+    );
 
-      // Provide more specific error messages
-      if (error.code === '23505') {
-        return res.status(409).json({
-          success: false,
-          error: 'البيانات المدخلة موجودة مسبقاً (مكررة)'
-        });
-      }
-
-      if (error.code === '22P02' || error.code === '22001') {
-        return res.status(400).json({
-          success: false,
-          error: 'البيانات المدخلة غير صحيحة أو طويلة جداً'
-        });
-      }
-
-      throw new Error(`Database error: ${error.message}`);
-    }
+    const updatedMember = rows[0];
 
     if (!updatedMember) {
       return res.status(404).json({
@@ -402,6 +382,21 @@ export const updateMember = async (req, res) => {
       stack: config.isDevelopment ? error.stack : undefined
     });
 
+    // Provide more specific error messages for PostgreSQL error codes
+    if (error.code === '23505') {
+      return res.status(409).json({
+        success: false,
+        error: 'البيانات المدخلة موجودة مسبقاً (مكررة)'
+      });
+    }
+
+    if (error.code === '22P02' || error.code === '22001') {
+      return res.status(400).json({
+        success: false,
+        error: 'البيانات المدخلة غير صحيحة أو طويلة جداً'
+      });
+    }
+
     // Send a more detailed error response for debugging
     const errorMessage = error.message || 'فشل في تحديث بيانات العضو';
     const statusCode = error.status || 500;
@@ -421,12 +416,7 @@ export const deleteMember = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const { error } = await supabase
-      .from('members')
-      .delete()
-      .eq('id', id);
-
-    if (error) {throw error;}
+    await query('DELETE FROM members WHERE id = $1', [id]);
 
     res.json({
       success: true,
@@ -442,76 +432,41 @@ export const deleteMember = async (req, res) => {
 
 export const getMemberStatistics = async (req, res) => {
   try {
-    // Get total members count
-    const { count: totalMembers, error: _totalError } = await supabase
-      .from('members')
-      .select('*', { count: 'exact', head: true });
-
-    if (_totalError) {throw _totalError;}
-
-    // Get active members count
-    const { count: activeMembers, error: _activeError } = await supabase
-      .from('members')
-      .select('*', { count: 'exact', head: true })
-      .eq('membership_status', 'active');
-
-    if (_activeError) {throw _activeError;}
-
-    // Get completed profiles count
-    const { count: completedProfiles, error: _completedError } = await supabase
-      .from('members')
-      .select('*', { count: 'exact', head: true })
-      .eq('profile_completed', true);
-
-    if (_completedError) {throw _completedError;}
-
-    // Get pending profiles count
-    const { count: pendingProfiles, error: _pendingError } = await supabase
-      .from('members')
-      .select('*', { count: 'exact', head: true })
-      .eq('profile_completed', false);
-
-    if (_pendingError) {throw _pendingError;}
-
-    // Get social security beneficiaries count
-    const { count: socialSecurityBeneficiaries, error: _socialSecurityError } = await supabase
-      .from('members')
-      .select('*', { count: 'exact', head: true })
-      .eq('social_security_beneficiary', true)
-      .eq('profile_completed', true);
-
-    if (_socialSecurityError) {throw _socialSecurityError;}
-
-    // Get members joined this month
+    // Get all counts in a single query for efficiency
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
 
-    const { count: thisMonthMembers, error: _thisMonthError } = await supabase
-      .from('members')
-      .select('*', { count: 'exact', head: true })
-      .gte('created_at', startOfMonth.toISOString());
+    const { rows: statsRows } = await query(`
+      SELECT
+        COUNT(*) AS total_members,
+        COUNT(*) FILTER (WHERE membership_status = 'active') AS active_members,
+        COUNT(*) FILTER (WHERE profile_completed = true) AS completed_profiles,
+        COUNT(*) FILTER (WHERE profile_completed = false) AS pending_profiles,
+        COUNT(*) FILTER (WHERE social_security_beneficiary = true AND profile_completed = true) AS social_security_beneficiaries,
+        COUNT(*) FILTER (WHERE created_at >= $1) AS this_month_members
+      FROM members
+    `, [startOfMonth.toISOString()]);
 
-    if (_thisMonthError) {throw _thisMonthError;}
+    const stats = statsRows[0];
 
     // Get recent imports
-    const { data: recentImports, error: _importsError } = await supabase
-      .from('excel_import_batches')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(5);
+    const { rows: recentImports } = await query(
+      'SELECT * FROM excel_import_batches ORDER BY created_at DESC LIMIT 5'
+    );
 
-    if (_importsError) {throw _importsError;}
+    const totalMembers = parseInt(stats.total_members) || 0;
+    const completedProfiles = parseInt(stats.completed_profiles) || 0;
 
     res.json({
       success: true,
       data: {
-        total_members: totalMembers || 0,
-        active_members: activeMembers || 0,
-        completed_profiles: completedProfiles || 0,
-        pending_profiles: pendingProfiles || 0,
-        social_security_beneficiaries: socialSecurityBeneficiaries || 0,
-        this_month_members: thisMonthMembers || 0,
+        total_members: totalMembers,
+        active_members: parseInt(stats.active_members) || 0,
+        completed_profiles: completedProfiles,
+        pending_profiles: parseInt(stats.pending_profiles) || 0,
+        social_security_beneficiaries: parseInt(stats.social_security_beneficiaries) || 0,
+        this_month_members: parseInt(stats.this_month_members) || 0,
         completion_rate: totalMembers > 0 ? ((completedProfiles / totalMembers) * 100).toFixed(1) : 0,
         recent_imports: recentImports || []
       }
@@ -537,26 +492,17 @@ export const sendRegistrationReminders = async (req, res) => {
     }
 
     // Get members with incomplete profiles and their registration tokens
-    const { data: membersData, error: __membersError } = await supabase
-      .from('members')
-      .select(`
-        id,
-        full_name,
-        phone,
-        membership_number,
-        member_registration_tokens!inner (
-          token,
-          temp_password,
-          expires_at,
-          is_used
-        )
-      `)
-      .in('id', memberIds)
-      .eq('profile_completed', false)
-      .eq('member_registration_tokens.is_used', false)
-      .order('member_registration_tokens.created_at', { ascending: false });
-
-    if (__membersError) {throw __membersError;}
+    const { rows: membersData } = await query(`
+      SELECT
+        m.id, m.full_name, m.phone, m.membership_number,
+        mrt.token, mrt.temp_password, mrt.expires_at, mrt.is_used
+      FROM members m
+      INNER JOIN member_registration_tokens mrt ON mrt.member_id = m.id
+      WHERE m.id = ANY($1)
+        AND m.profile_completed = false
+        AND mrt.is_used = false
+      ORDER BY mrt.created_at DESC
+    `, [memberIds]);
 
     if (!membersData || membersData.length === 0) {
       return res.status(404).json({
@@ -565,19 +511,24 @@ export const sendRegistrationReminders = async (req, res) => {
       });
     }
 
+    // Group by member to get the latest token per member (first row per member due to ORDER BY DESC)
+    const memberMap = new Map();
+    for (const row of membersData) {
+      if (!memberMap.has(row.id)) {
+        memberMap.set(row.id, row);
+      }
+    }
+
     // Prepare SMS data for each member
-    const smsData = membersData.map(member => {
-      const token = member.member_registration_tokens[0];
-      return {
-        member_id: member.id,
-        name: member.full_name,
-        phone: member.phone,
-        membership_number: member.membership_number,
-        registration_token: token.token,
-        temp_password: token.temp_password,
-        expires_at: token.expires_at
-      };
-    });
+    const smsData = Array.from(memberMap.values()).map(member => ({
+      member_id: member.id,
+      name: member.full_name,
+      phone: member.phone,
+      membership_number: member.membership_number,
+      registration_token: member.token,
+      temp_password: member.temp_password,
+      expires_at: member.expires_at
+    }));
 
     // In a real implementation, you would integrate with an SMS service here
     // For now, we'll just return the data that would be sent
@@ -620,22 +571,31 @@ export const getIncompleteProfiles = async (req, res) => {
     const offset = (page - 1) * limit;
 
     // Get members with incomplete profiles and their registration tokens
-    const { data: members, error, count } = await supabase
-      .from('members')
-      .select(`
-        *,
-        member_registration_tokens (
-          token,
-          expires_at,
-          is_used,
-          created_at
-        )
-      `, { count: 'exact' })
-      .eq('profile_completed', false)
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+    const { rows } = await query(`
+      SELECT m.*, COUNT(*) OVER() AS total_count,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'token', mrt.token,
+              'expires_at', mrt.expires_at,
+              'is_used', mrt.is_used,
+              'created_at', mrt.created_at
+            )
+          ) FILTER (WHERE mrt.id IS NOT NULL),
+          '[]'::json
+        ) AS member_registration_tokens
+      FROM members m
+      LEFT JOIN member_registration_tokens mrt ON mrt.member_id = m.id
+      WHERE m.profile_completed = false
+      GROUP BY m.id
+      ORDER BY m.created_at DESC
+      LIMIT $1 OFFSET $2
+    `, [parseInt(limit), parseInt(offset)]);
 
-    if (error) {throw error;}
+    const count = rows.length > 0 ? parseInt(rows[0].total_count) : 0;
+
+    // Remove total_count from each row
+    const members = rows.map(({ total_count, ...member }) => member);
 
     res.json({
       success: true,
@@ -643,8 +603,8 @@ export const getIncompleteProfiles = async (req, res) => {
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
-        total: count || 0,
-        pages: Math.ceil((count || 0) / limit)
+        total: count,
+        pages: Math.ceil(count / parseInt(limit))
       }
     });
 
@@ -682,13 +642,12 @@ export const addMemberManually = async (req, res) => {
     const finalMembershipNumber = membership_number || `SH-${Math.floor(10000 + Math.random() * 90000)}`;
 
     // Check if phone number already exists
-    const { data: existingMember } = await supabase
-      .from('members')
-      .select('id')
-      .eq('phone', phone)
-      .single();
+    const { rows: existingRows } = await query(
+      'SELECT id FROM members WHERE phone = $1',
+      [phone]
+    );
 
-    if (existingMember) {
+    if (existingRows.length > 0) {
       return res.status(400).json({
         success: false,
         error: 'رقم الهاتف مسجل مسبقاً'
@@ -696,28 +655,19 @@ export const addMemberManually = async (req, res) => {
     }
 
     // Create member record
-    const memberData = {
-      full_name,
-      membership_number: finalMembershipNumber,
-      phone,
-      whatsapp_number: whatsapp_number || phone,
-      email: email || null,
-      employer: employer || null,
-      social_security_beneficiary: social_security_beneficiary || false,
-      status: 'pending_verification',
-      membership_status: 'active',
-      profile_completed: false,
-      additional_info: additional_info || null,
-      created_at: new Date().toISOString()
-    };
+    const { rows: insertRows } = await query(
+      `INSERT INTO members (full_name, membership_number, phone, whatsapp_number, email, employer, social_security_beneficiary, status, membership_status, profile_completed, additional_info, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+       RETURNING *`,
+      [
+        full_name, finalMembershipNumber, phone,
+        whatsapp_number || phone, email || null, employer || null,
+        social_security_beneficiary || false, 'pending_verification', 'active',
+        false, additional_info || null, new Date().toISOString()
+      ]
+    );
 
-    const { data: newMember, error: _memberError } = await supabase
-      .from('members')
-      .insert([memberData])
-      .select()
-      .single();
-
-    if (_memberError) {throw _memberError;}
+    const newMember = insertRows[0];
 
     // Generate registration token and temporary password
     const chars = 'ABCDEFGHIJKLMNPQRSTUVWXYZ123456789';
@@ -734,30 +684,25 @@ export const addMemberManually = async (req, res) => {
     const expiryDate = new Date();
     expiryDate.setDate(expiryDate.getDate() + 30);
 
-    const { error: _tokenError } = await supabase
-      .from('member_registration_tokens')
-      .insert([{
-        member_id: newMember.id,
-        token: registrationToken,
-        temp_password: hashedPassword,
-        expires_at: expiryDate.toISOString(),
-        is_used: false,
-        created_at: new Date().toISOString()
-      }]);
-
-    if (_tokenError) {
-      log.error('Error creating registration token', { error: _tokenError.message });
+    try {
+      await query(
+        `INSERT INTO member_registration_tokens (member_id, token, temp_password, expires_at, is_used, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [newMember.id, registrationToken, hashedPassword, expiryDate.toISOString(), false, new Date().toISOString()]
+      );
+    } catch (tokenErr) {
+      log.error('Error creating registration token', { error: tokenErr.message });
       // Don't fail the whole operation if token creation fails
     }
 
     // Store temporary password in member record
-    const { error: _updateError } = await supabase
-      .from('members')
-      .update({ temp_password: hashedPassword })
-      .eq('id', newMember.id);
-
-    if (_updateError) {
-      log.error('Error updating member with temp password', { error: _updateError.message });
+    try {
+      await query(
+        'UPDATE members SET temp_password = $1 WHERE id = $2',
+        [hashedPassword, newMember.id]
+      );
+    } catch (updateErr) {
+      log.error('Error updating member with temp password', { error: updateErr.message });
     }
 
     // Prepare response
@@ -806,13 +751,8 @@ export const getMemberProfile = async (req, res) => {
       memberId = decoded.id;
     }
 
-    const { data: member, error } = await supabase
-      .from('members')
-      .select('*')
-      .eq('id', memberId)
-      .single();
-
-    if (error) {throw error;}
+    const { rows } = await query('SELECT * FROM members WHERE id = $1', [memberId]);
+    const member = rows[0];
 
     if (!member) {
       return res.status(404).json({
@@ -843,25 +783,27 @@ export const getMemberBalance = async (req, res) => {
     const memberId = decoded.id;
 
     // Get member balance from payments table using correct column names
-    const { data: payments, error: __paymentsError } = await supabase
-      .from('payments')
-      .select('amount, category, status')
-      .eq('payer_id', memberId)
-      .eq('status', 'completed');
-
-    if (__paymentsError) {throw __paymentsError;}
+    const { rows: payments } = await query(
+      "SELECT amount, category, status FROM payments WHERE payer_id = $1 AND status = 'completed'",
+      [memberId]
+    );
 
     // Calculate total payments
     const totalPaid = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
 
     // Get member details for minimum balance
-    const { data: member, error: _memberError } = await supabase
-      .from('members')
-      .select('membership_status, full_name')
-      .eq('id', memberId)
-      .single();
+    const { rows: memberRows } = await query(
+      'SELECT membership_status, full_name FROM members WHERE id = $1',
+      [memberId]
+    );
+    const member = memberRows[0];
 
-    if (_memberError) {throw _memberError;}
+    if (!member) {
+      return res.status(404).json({
+        success: false,
+        error: 'العضو غير موجود'
+      });
+    }
 
     // Calculate minimum required balance (example: 1000 SAR)
     const minimumBalance = 1000;
@@ -897,23 +839,26 @@ export const getMemberTransactions = async (req, res) => {
     const offset = (page - 1) * limit;
 
     // Get member transactions/payments using correct column name
-    const { data: transactions, error, count } = await supabase
-      .from('payments')
-      .select('*', { count: 'exact' })
-      .eq('payer_id', memberId)
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+    const { rows } = await query(
+      `SELECT *, COUNT(*) OVER() AS total_count
+       FROM payments
+       WHERE payer_id = $1
+       ORDER BY created_at DESC
+       LIMIT $2 OFFSET $3`,
+      [memberId, parseInt(limit), parseInt(offset)]
+    );
 
-    if (error) {throw error;}
+    const count = rows.length > 0 ? parseInt(rows[0].total_count) : 0;
+    const transactions = rows.map(({ total_count, ...row }) => row);
 
     res.json({
       success: true,
-      data: transactions || [],
+      data: transactions,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
-        total: count || 0,
-        pages: Math.ceil((count || 0) / limit)
+        total: count,
+        pages: Math.ceil(count / parseInt(limit))
       }
     });
   } catch (error) {
@@ -933,29 +878,39 @@ export const getMemberNotifications = async (req, res) => {
     const { page = 1, limit = 20, unread_only = false } = req.query;
     const offset = (page - 1) * limit;
 
-    let query = supabase
-      .from('notifications')
-      .select('*', { count: 'exact' })
-      .eq('user_id', memberId)
-      .order('created_at', { ascending: false });
+    // Build dynamic WHERE clause
+    const conditions = ['user_id = $1'];
+    const params = [memberId];
+    let paramIndex = 2;
 
     if (unread_only === 'true') {
-      query = query.eq('is_read', false);
+      conditions.push(`is_read = $${paramIndex++}`);
+      params.push(false);
     }
 
-    const { data: notifications, error, count } = await query
-      .range(offset, offset + limit - 1);
+    const whereClause = conditions.join(' AND ');
+    params.push(parseInt(limit), parseInt(offset));
 
-    if (error) {throw error;}
+    const { rows } = await query(
+      `SELECT *, COUNT(*) OVER() AS total_count
+       FROM notifications
+       WHERE ${whereClause}
+       ORDER BY created_at DESC
+       LIMIT $${paramIndex++} OFFSET $${paramIndex++}`,
+      params
+    );
+
+    const count = rows.length > 0 ? parseInt(rows[0].total_count) : 0;
+    const notifications = rows.map(({ total_count, ...row }) => row);
 
     res.json({
       success: true,
-      data: notifications || [],
+      data: notifications,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
-        total: count || 0,
-        pages: Math.ceil((count || 0) / limit)
+        total: count,
+        pages: Math.ceil(count / parseInt(limit))
       }
     });
   } catch (error) {
@@ -989,14 +944,25 @@ export const updateMemberProfile = async (req, res) => {
     // Add updated timestamp
     allowedUpdates.updated_at = new Date().toISOString();
 
-    const { data: updatedMember, error } = await supabase
-      .from('members')
-      .update(allowedUpdates)
-      .eq('id', memberId)
-      .select()
-      .single();
+    // Build dynamic UPDATE query
+    const keys = Object.keys(allowedUpdates);
+    const setClauses = keys.map((key, i) => `${key} = $${i + 1}`);
+    const values = keys.map(key => allowedUpdates[key]);
+    values.push(memberId);
 
-    if (error) {throw error;}
+    const { rows } = await query(
+      `UPDATE members SET ${setClauses.join(', ')} WHERE id = $${keys.length + 1} RETURNING *`,
+      values
+    );
+
+    const updatedMember = rows[0];
+
+    if (!updatedMember) {
+      return res.status(404).json({
+        success: false,
+        error: 'العضو غير موجود'
+      });
+    }
 
     // Remove sensitive data from response
     const { temp_password: _, password_hash: __, ...memberData } = updatedMember;
@@ -1033,29 +999,18 @@ export const searchMembers = async (req, res) => {
 
     const searchTerm = sanitizeSearchTerm(q.trim());
     const searchLimit = Math.min(sanitizeNumber(limit, 10), 20); // Max 20 results
+    const searchPattern = `%${searchTerm}%`;
 
     // Search by membership_number, full_name, or phone
-    // Using ilike for case-insensitive partial matching
-    const { data: members, error } = await supabase
-      .from('members')
-      .select(`
-        id,
-        membership_number,
-        full_name,
-        phone,
-        current_balance,
-        balance,
-        total_paid,
-        membership_status
-      `)
-      .or(`membership_number.ilike.%${searchTerm}%,full_name.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%`)
-      .eq('membership_status', 'active')
-      .limit(searchLimit);
-
-    if (error) {
-      log.error('Error searching members:', error);
-      throw error;
-    }
+    // Using ILIKE for case-insensitive partial matching
+    const { rows: members } = await query(
+      `SELECT id, membership_number, full_name, phone, current_balance, balance, total_paid, membership_status
+       FROM members
+       WHERE (membership_number ILIKE $1 OR full_name ILIKE $1 OR phone ILIKE $1)
+         AND membership_status = 'active'
+       LIMIT $2`,
+      [searchPattern, searchLimit]
+    );
 
     // Transform results to expected format
     const transformedMembers = (members || []).map(member => {

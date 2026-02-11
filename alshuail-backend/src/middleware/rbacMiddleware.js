@@ -5,7 +5,7 @@
  */
 
 import jwt from 'jsonwebtoken';
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
 import { config } from '../config/env.js';
 
@@ -92,16 +92,8 @@ const _ROLE_HIERARCHY = {
  */
 async function _getUserRole(userId) {
   try {
-    const { data: _data, error } = await supabase.rpc('get_user_role', {
-      p_user_id: userId
-    });
-
-    if (error) {
-      log.error('Error fetching user role', { error: error.message });
-      return null;
-    }
-
-    return _data?.[0] || null;
+    const { rows } = await query('SELECT * FROM get_user_role($1)', [userId]);
+    return rows[0] || null;
   } catch (err) {
     log.error('Error in getUserRole', { error: err.message });
     return null;
@@ -113,17 +105,8 @@ async function _getUserRole(userId) {
  */
 async function _hasPermission(userId, permissionName) {
   try {
-    const { data: _data, error } = await supabase.rpc('has_permission', {
-      p_user_id: userId,
-      p_permission_name: permissionName
-    });
-
-    if (error) {
-      log.error('Error checking permission', { error: error.message });
-      return false;
-    }
-
-    return _data === true;
+    const { rows } = await query('SELECT * FROM has_permission($1, $2)', [userId, permissionName]);
+    return rows[0]?.has_permission === true;
   } catch (err) {
     log.error('Error in hasPermission', { error: err.message });
     return false;
@@ -345,21 +328,19 @@ export const requireAnyAuthenticated = requireRole([
  */
 async function logAccess(req) {
   try {
-    const { error } = await supabase
-      .from('audit_logs')
-      .insert({
-        user_id: req.user.id,
-        user_email: req.user.email || null,
-        user_role: req.user.role || null,
-        action_type: `${req.method} ${req.path}`,
-        details: `Module: ${extractModule(req.path)}`,
-        ip_address: req.ip,
-        user_agent: req.headers['user-agent']
-      });
-
-    if (error) {
-      log.error('Error logging access', { error: error.message });
-    }
+    await query(
+      `INSERT INTO audit_logs (user_id, user_email, user_role, action_type, details, ip_address, user_agent)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [
+        req.user.id,
+        req.user.email || null,
+        req.user.role || null,
+        `${req.method} ${req.path}`,
+        `Module: ${extractModule(req.path)}`,
+        req.ip,
+        req.headers['user-agent']
+      ]
+    );
   } catch (err) {
     log.error('Error in logAccess', { error: err.message });
   }

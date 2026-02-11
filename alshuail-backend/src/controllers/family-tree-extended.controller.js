@@ -3,7 +3,7 @@
  * For HTML-based family tree interface
  */
 
-import { supabase } from "../config/database.js";
+import { query } from "../services/database.js";
 
 
 /**
@@ -13,31 +13,26 @@ import { supabase } from "../config/database.js";
 export const getBranches = async (req, res) => {
   try {
     // Simplified query without branch_head JOIN to avoid FK issues
-    const { data: branches, error } = await supabase
-      .from('family_branches')
-      .select('*')
-      .order('branch_name', { ascending: true });
-
-    if (error) throw error;
+    const { rows: branches } = await query(
+      'SELECT * FROM family_branches ORDER BY branch_name ASC'
+    );
 
     // Get member counts for each branch
     const branchesWithCounts = await Promise.all((branches || []).map(async (branch) => {
-      const { count } = await supabase
-        .from('members')
-        .select('*', { count: 'exact', head: true })
-        .eq('family_branch_id', branch.id)
-        .eq('membership_status', 'active');
+      const { rows: countRows } = await query(
+        "SELECT COUNT(*)::int AS count FROM members WHERE family_branch_id = $1 AND membership_status = 'active'",
+        [branch.id]
+      );
 
-      const { count: pendingCount } = await supabase
-        .from('members')
-        .select('*', { count: 'exact', head: true })
-        .eq('family_branch_id', branch.id)
-        .eq('membership_status', 'pending_approval');
+      const { rows: pendingRows } = await query(
+        "SELECT COUNT(*)::int AS count FROM members WHERE family_branch_id = $1 AND membership_status = 'pending_approval'",
+        [branch.id]
+      );
 
       return {
         ...branch,
-        memberCount: count || 0,
-        pendingCount: pendingCount || 0
+        memberCount: countRows[0]?.count || 0,
+        pendingCount: pendingRows[0]?.count || 0
       };
     }));
 
@@ -62,39 +57,49 @@ export const getGenerations = async (req, res) => {
   try {
     const { branchId } = req.query;
 
-    let query = supabase
-      .from('members')
-      .select(`
-        id,
-        full_name_ar,
-        full_name_en,
-        generation_level,
-        birth_order,
-        date_of_birth,
-        gender,
-        is_alive,
-        photo_url,
-        family_branch_id,
-        family_branches!members_family_branch_id_fkey(
-          id,
-          branch_name
-        )
-      `)
-      .eq('membership_status', 'active')
-      .order('generation_level', { ascending: false })
-      .order('birth_order', { ascending: true });
+    const conditions = ["m.membership_status = 'active'"];
+    const params = [];
+    let paramIndex = 1;
 
     if (branchId) {
-      query = query.eq('family_branch_id', branchId);
+      conditions.push(`m.family_branch_id = $${paramIndex++}`);
+      params.push(branchId);
     }
 
-    const { data: members, error } = await query;
+    const whereClause = `WHERE ${conditions.join(' AND ')}`;
 
-    if (error) throw error;
+    const { rows: members } = await query(
+      `SELECT m.id, m.full_name_ar, m.full_name_en, m.generation_level, m.birth_order,
+              m.date_of_birth, m.gender, m.is_alive, m.photo_url, m.family_branch_id,
+              fb.id AS branch_id, fb.branch_name
+       FROM members m
+       LEFT JOIN family_branches fb ON m.family_branch_id = fb.id
+       ${whereClause}
+       ORDER BY m.generation_level DESC, m.birth_order ASC`,
+      params
+    );
+
+    // Format to match previous nested structure
+    const formattedMembers = members.map(m => ({
+      id: m.id,
+      full_name_ar: m.full_name_ar,
+      full_name_en: m.full_name_en,
+      generation_level: m.generation_level,
+      birth_order: m.birth_order,
+      date_of_birth: m.date_of_birth,
+      gender: m.gender,
+      is_alive: m.is_alive,
+      photo_url: m.photo_url,
+      family_branch_id: m.family_branch_id,
+      family_branches: m.branch_id ? {
+        id: m.branch_id,
+        branch_name: m.branch_name
+      } : null
+    }));
 
     // Group members by generation
     const generationMap = {};
-    (members || []).forEach(member => {
+    formattedMembers.forEach(member => {
       const generation = member.generation_level || 0;
       if (!generationMap[generation]) {
         generationMap[generation] = [];
@@ -145,48 +150,51 @@ export const getMembers = async (req, res) => {
       search
     } = req.query;
 
-    let query = supabase
-      .from('members')
-      .select(`
-        *,
-        family_branches!members_family_branch_id_fkey(
-          id,
-          branch_name,
-          branch_name_en
-        )
-      `);
+    const conditions = [];
+    const params = [];
+    let paramIndex = 1;
 
     // Apply filters
     if (status) {
-      query = query.eq('membership_status', status);
+      conditions.push(`m.membership_status = $${paramIndex++}`);
+      params.push(status);
     }
     if (branchId) {
-      query = query.eq('family_branch_id', branchId);
+      conditions.push(`m.family_branch_id = $${paramIndex++}`);
+      params.push(branchId);
     }
     if (generation) {
-      query = query.eq('generation_level', generation);
+      conditions.push(`m.generation_level = $${paramIndex++}`);
+      params.push(generation);
     }
     if (search) {
-      // Fixed: Use proper column references with quotes for Supabase
-      query = query.or(`full_name.ilike.%${search}%,phone.ilike.%${search}%`);
+      const searchPattern = `%${search}%`;
+      conditions.push(`(m.full_name ILIKE $${paramIndex} OR m.phone ILIKE $${paramIndex})`);
+      paramIndex++;
+      params.push(searchPattern);
     }
 
-    // Order by name only (generation_level can be NULL causing errors)
-    query = query
-      .order('full_name', { ascending: true });
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    const { data: members, error } = await query;
-
-    if (error) {
-      console.error('Supabase query error details:', error);
-      throw error;
-    }
+    const { rows: members } = await query(
+      `SELECT m.*, fb.id AS branch_id, fb.branch_name, fb.branch_name_en
+       FROM members m
+       LEFT JOIN family_branches fb ON m.family_branch_id = fb.id
+       ${whereClause}
+       ORDER BY m.full_name ASC`,
+      params
+    );
 
     // Map column names to match frontend expectations
     const mappedMembers = (members || []).map(member => ({
       ...member,
       full_name_ar: member.full_name, // Map full_name to full_name_ar for frontend
-      birth_date: member.date_of_birth // Map date_of_birth to birth_date for frontend
+      birth_date: member.date_of_birth, // Map date_of_birth to birth_date for frontend
+      family_branches: member.branch_id ? {
+        id: member.branch_id,
+        branch_name: member.branch_name,
+        branch_name_en: member.branch_name_en
+      } : null
     }));
 
     res.json({
@@ -196,7 +204,7 @@ export const getMembers = async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching members:', error);
-    console.error('Error details:', error.message, error.details, error.hint);
+    console.error('Error details:', error.message);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch members',
@@ -220,40 +228,21 @@ export const getRelationships = async (req, res) => {
       });
     }
 
-    // Get the member's relationships
-    const { data: relationships, error } = await supabase
-      .from('family_relationships')
-      .select(`
-        *,
-        member:members!family_relationships_member_id_fkey(
-          id,
-          full_name_ar,
-          full_name_en,
-          generation_level
-        ),
-        father:members!family_relationships_father_id_fkey(
-          id,
-          full_name_ar,
-          full_name_en,
-          generation_level
-        ),
-        mother:members!family_relationships_mother_id_fkey(
-          id,
-          full_name_ar,
-          full_name_en,
-          generation_level
-        ),
-        related:members!family_relationships_related_member_id_fkey(
-          id,
-          full_name_ar,
-          full_name_en,
-          generation_level,
-          relationship_type
-        )
-      `)
-      .or(`member_id.eq.${memberId},related_member_id.eq.${memberId}`);
-
-    if (error) throw error;
+    // Get the member's relationships with joined member data
+    const { rows: relationships } = await query(
+      `SELECT fr.*,
+              m.id AS m_id, m.full_name_ar AS m_full_name_ar, m.full_name_en AS m_full_name_en, m.generation_level AS m_generation_level,
+              f.id AS f_id, f.full_name_ar AS f_full_name_ar, f.full_name_en AS f_full_name_en, f.generation_level AS f_generation_level,
+              mo.id AS mo_id, mo.full_name_ar AS mo_full_name_ar, mo.full_name_en AS mo_full_name_en, mo.generation_level AS mo_generation_level,
+              r.id AS r_id, r.full_name_ar AS r_full_name_ar, r.full_name_en AS r_full_name_en, r.generation_level AS r_generation_level, r.relationship_type AS r_relationship_type
+       FROM family_relationships fr
+       LEFT JOIN members m ON fr.member_id = m.id
+       LEFT JOIN members f ON fr.father_id = f.id
+       LEFT JOIN members mo ON fr.mother_id = mo.id
+       LEFT JOIN members r ON fr.related_member_id = r.id
+       WHERE fr.member_id = $1 OR fr.related_member_id = $1`,
+      [memberId]
+    );
 
     // Build family tree structure
     const familyTree = {
@@ -265,24 +254,30 @@ export const getRelationships = async (req, res) => {
     };
 
     (relationships || []).forEach(rel => {
+      // Reconstruct nested objects
+      const member = rel.m_id ? { id: rel.m_id, full_name_ar: rel.m_full_name_ar, full_name_en: rel.m_full_name_en, generation_level: rel.m_generation_level } : null;
+      const father = rel.f_id ? { id: rel.f_id, full_name_ar: rel.f_full_name_ar, full_name_en: rel.f_full_name_en, generation_level: rel.f_generation_level } : null;
+      const mother = rel.mo_id ? { id: rel.mo_id, full_name_ar: rel.mo_full_name_ar, full_name_en: rel.mo_full_name_en, generation_level: rel.mo_generation_level } : null;
+      const related = rel.r_id ? { id: rel.r_id, full_name_ar: rel.r_full_name_ar, full_name_en: rel.r_full_name_en, generation_level: rel.r_generation_level, relationship_type: rel.r_relationship_type } : null;
+
       if (rel.member_id === memberId) {
-        if (rel.father) familyTree.parents.push({ ...rel.father, type: 'father' });
-        if (rel.mother) familyTree.parents.push({ ...rel.mother, type: 'mother' });
+        if (father) familyTree.parents.push({ ...father, type: 'father' });
+        if (mother) familyTree.parents.push({ ...mother, type: 'mother' });
       }
 
       if (rel.relationship_type === 'child' && rel.member_id === memberId) {
-        familyTree.children.push(rel.related);
+        familyTree.children.push(related);
       }
 
       if (rel.relationship_type === 'sibling') {
-        const sibling = rel.member_id === memberId ? rel.related : rel.member;
+        const sibling = rel.member_id === memberId ? related : member;
         if (sibling && sibling.id !== memberId) {
           familyTree.siblings.push(sibling);
         }
       }
 
       if (rel.relationship_type === 'spouse') {
-        familyTree.spouse = rel.member_id === memberId ? rel.related : rel.member;
+        familyTree.spouse = rel.member_id === memberId ? related : member;
       }
     });
 
@@ -308,18 +303,14 @@ export const approveMember = async (req, res) => {
     const { memberId } = req.params;
 
     // Update member status
-    const { data, error } = await supabase
-      .from('members')
-      .update({
-        membership_status: 'active',
-        approved_at: new Date().toISOString(),
-        approved_by: req.user?.id || 'admin'
-      })
-      .eq('id', memberId)
-      .select()
-      .single();
+    const { rows } = await query(
+      `UPDATE members SET membership_status = 'active', approved_at = $1, approved_by = $2
+       WHERE id = $3
+       RETURNING *`,
+      [new Date().toISOString(), req.user?.id || 'admin', memberId]
+    );
 
-    if (error) throw error;
+    const data = rows[0];
 
     res.json({
       success: true,
@@ -345,19 +336,14 @@ export const rejectMember = async (req, res) => {
     const { reason } = req.body;
 
     // Update member status
-    const { data, error } = await supabase
-      .from('members')
-      .update({
-        membership_status: 'rejected',
-        rejection_reason: reason,
-        rejected_at: new Date().toISOString(),
-        rejected_by: req.user?.id || 'admin'
-      })
-      .eq('id', memberId)
-      .select()
-      .single();
+    const { rows } = await query(
+      `UPDATE members SET membership_status = 'rejected', rejection_reason = $1, rejected_at = $2, rejected_by = $3
+       WHERE id = $4
+       RETURNING *`,
+      [reason, new Date().toISOString(), req.user?.id || 'admin', memberId]
+    );
 
-    if (error) throw error;
+    const data = rows[0];
 
     res.json({
       success: true,
@@ -382,26 +368,37 @@ export const getUnassignedMembers = async (req, res) => {
     const { page = 1, limit = 50, search } = req.query;
     const offset = (page - 1) * limit;
 
-    // Base query for unassigned members
-    let query = supabase
-      .from('members')
-      .select('*', { count: 'exact' })
-      .is('family_branch_id', null)
-      .eq('membership_status', 'active');
+    const conditions = ["family_branch_id IS NULL", "membership_status = 'active'"];
+    const params = [];
+    let paramIndex = 1;
 
     // Apply search filter if provided
     if (search) {
-      query = query.or(`full_name_ar.ilike.%${search}%,full_name_en.ilike.%${search}%,phone.ilike.%${search}%`);
+      const searchPattern = `%${search}%`;
+      conditions.push(`(full_name_ar ILIKE $${paramIndex} OR full_name_en ILIKE $${paramIndex} OR phone ILIKE $${paramIndex})`);
+      paramIndex++;
+      params.push(searchPattern);
     }
 
-    // Apply pagination and ordering
-    query = query
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+    const whereClause = `WHERE ${conditions.join(' AND ')}`;
 
-    const { data: members, error, count } = await query;
+    // Get count
+    const { rows: countRows } = await query(
+      `SELECT COUNT(*)::int AS count FROM members ${whereClause}`,
+      params
+    );
+    const count = countRows[0].count;
 
-    if (error) throw error;
+    // Get paginated results
+    params.push(parseInt(limit));
+    const limitParam = paramIndex++;
+    params.push(parseInt(offset));
+    const offsetParam = paramIndex++;
+
+    const { rows: members } = await query(
+      `SELECT * FROM members ${whereClause} ORDER BY created_at DESC LIMIT $${limitParam} OFFSET $${offsetParam}`,
+      params
+    );
 
     res.json({
       success: true,
@@ -438,38 +435,38 @@ export const assignMemberToBranch = async (req, res) => {
     }
 
     // Verify branch exists
-    const { data: branch, error: branchError } = await supabase
-      .from('family_branches')
-      .select('id, branch_name')
-      .eq('id', branchId)
-      .single();
+    const { rows: branchRows } = await query(
+      'SELECT id, branch_name FROM family_branches WHERE id = $1',
+      [branchId]
+    );
 
-    if (branchError || !branch) {
+    if (branchRows.length === 0) {
       return res.status(404).json({
         success: false,
         error: 'Branch not found'
       });
     }
 
-    // Update member's branch assignment
-    const { data: member, error: updateError } = await supabase
-      .from('members')
-      .update({
-        family_branch_id: branchId,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', memberId)
-      .select(`
-        *,
-        family_branches!members_family_branch_id_fkey(
-          id,
-          branch_name,
-          branch_name_en
-        )
-      `)
-      .single();
+    const branch = branchRows[0];
 
-    if (updateError) throw updateError;
+    // Update member's branch assignment and fetch with branch info
+    const { rows: memberRows } = await query(
+      `UPDATE members SET family_branch_id = $1, updated_at = $2
+       WHERE id = $3
+       RETURNING *`,
+      [branchId, new Date().toISOString(), memberId]
+    );
+
+    const member = memberRows[0];
+
+    // Fetch branch info separately
+    if (member) {
+      const { rows: branchInfo } = await query(
+        'SELECT id, branch_name, branch_name_en FROM family_branches WHERE id = $1',
+        [branchId]
+      );
+      member.family_branches = branchInfo[0] || null;
+    }
 
     res.json({
       success: true,
@@ -508,21 +505,20 @@ export const bulkAssignMembers = async (req, res) => {
       const { memberId, branchId } = assignment;
 
       try {
-        const { data, error } = await supabase
-          .from('members')
-          .update({
-            family_branch_id: branchId,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', memberId)
-          .select()
-          .single();
+        const { rows } = await query(
+          `UPDATE members SET family_branch_id = $1, updated_at = $2
+           WHERE id = $3
+           RETURNING *`,
+          [branchId, new Date().toISOString(), memberId]
+        );
 
-        if (error) throw error;
-
-        results.push({ memberId, branchId, success: true });
-      } catch (error) {
-        errors.push({ memberId, branchId, error: error.message });
+        if (rows.length === 0) {
+          errors.push({ memberId, branchId, error: 'Member not found' });
+        } else {
+          results.push({ memberId, branchId, success: true });
+        }
+      } catch (err) {
+        errors.push({ memberId, branchId, error: err.message });
       }
     }
 

@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { supabase } from '../src/config/database.js';
+import { query } from '../src/services/database.js';
 import { config } from '../src/config/env.js';
 
 // Authentication middleware - Supports both httpOnly cookies and Authorization header
@@ -25,19 +25,38 @@ const authenticate = async (req, res, next) => {
         const decoded = jwt.verify(token, config.jwt.secret);
 
         // Check if it's a member or admin based on the role in token
-        let user;
-        let error;
-
         if (decoded.role === 'member') {
             // For members, check in members table
-            const { data: member, error: memberError } = await supabase
-                .from('members')
-                .select('*')
-                .eq('id', decoded.id)
-                .single();
+            try {
+                const result = await query(
+                    'SELECT * FROM members WHERE id = $1',
+                    [decoded.id]
+                );
+                const member = result.rows[0];
 
-            if (memberError || !member) {
-                console.log(`[Auth] Member not found in database: ${decoded.id}`);
+                if (!member) {
+                    console.log(`[Auth] Member not found in database: ${decoded.id}`);
+                    // Still allow the request with token data for backward compatibility
+                    req.user = {
+                        id: decoded.id,
+                        role: decoded.role,
+                        phone: decoded.phone,
+                        fullName: decoded.fullName,
+                        membershipNumber: decoded.membershipNumber
+                    };
+                } else {
+                    // Check membership_status
+                    if (member.membership_status && member.membership_status !== 'active') {
+                        console.log(`[Auth] Member is not active: ${member.membership_status}`);
+                    }
+                    req.user = {
+                        ...member,
+                        role: 'member',
+                        id: member.id
+                    };
+                }
+            } catch (memberError) {
+                console.log(`[Auth] Error fetching member: ${memberError.message}`);
                 // Still allow the request with token data for backward compatibility
                 req.user = {
                     id: decoded.id,
@@ -46,27 +65,16 @@ const authenticate = async (req, res, next) => {
                     fullName: decoded.fullName,
                     membershipNumber: decoded.membershipNumber
                 };
-            } else {
-                // Check membership_status
-                if (member.membership_status && member.membership_status !== 'active') {
-                    console.log(`[Auth] Member is not active: ${member.membership_status}`);
-                }
-                req.user = {
-                    ...member,
-                    role: 'member',
-                    id: member.id
-                };
             }
         } else {
             // For admins/other roles, check in users table
-            const { data: adminUser, error: adminError } = await supabase
-                .from('users')
-                .select('*')
-                .eq('id', decoded.id)
-                .eq('is_active', true)
-                .single();
+            const result = await query(
+                'SELECT * FROM users WHERE id = $1 AND is_active = $2',
+                [decoded.id, true]
+            );
+            const adminUser = result.rows[0];
 
-            if (adminError || !adminUser) {
+            if (!adminUser) {
                 return res.status(401).json({
                     success: false,
                     message: 'المستخدم غير موجود أو غير نشط',
@@ -140,31 +148,34 @@ const optionalAuth = async (req, res, next) => {
             // Use centralized JWT configuration
             const decoded = jwt.verify(token, config.jwt.secret);
 
-            let user;
-            let error;
+            let user = null;
 
-            if (decoded.role === 'member') {
-                ({ data: user, error } = await supabase
-                    .from('members')
-                    .select('*')
-                    .eq('id', decoded.id)
-                    .single());
+            try {
+                if (decoded.role === 'member') {
+                    const result = await query(
+                        'SELECT * FROM members WHERE id = $1',
+                        [decoded.id]
+                    );
+                    user = result.rows[0];
 
-                // Check membership_status instead of is_active for members
-                if (user && user.membership_status && user.membership_status !== 'active') {
-                    user = null;
+                    // Check membership_status instead of is_active for members
+                    if (user && user.membership_status && user.membership_status !== 'active') {
+                        user = null;
+                    }
+                } else {
+                    const result = await query(
+                        'SELECT * FROM users WHERE id = $1 AND is_active = $2',
+                        [decoded.id, true]
+                    );
+                    user = result.rows[0];
                 }
-            } else {
-                ({ data: user, error } = await supabase
-                    .from('users')
-                    .select('*')
-                    .eq('id', decoded.id)
-                    .eq('is_active', true)
-                    .single());
-            }
 
-            if (!error && user) {
-                req.user = user;
+                if (user) {
+                    req.user = user;
+                }
+            } catch (error) {
+                // Ignore errors in optional auth
+                console.log(`[OptionalAuth] Error fetching user: ${error.message}`);
             }
         }
 

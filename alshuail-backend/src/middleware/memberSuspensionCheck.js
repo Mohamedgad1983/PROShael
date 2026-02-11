@@ -1,4 +1,4 @@
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
 
 /**
@@ -16,17 +16,11 @@ export const checkMemberSuspension = async (req, res, next) => {
     }
 
     // Find member record by user ID or email
-    const { data: member, error } = await supabase
-      .from('members')
-      .select('id, full_name_arabic, membership_status, suspended_at, suspension_reason')
-      .or(`user_id.eq.${userId},email.eq.${userEmail}`)
-      .single();
-
-    if (error && error.code !== 'PGRST116') {
-      // Error other than "not found"
-      log.error('[SuspensionCheck] Database error:', error);
-      return next(); // Allow login on error (fail open)
-    }
+    const { rows } = await query(
+      'SELECT id, full_name_arabic, membership_status, suspended_at, suspension_reason FROM members WHERE user_id = $1 OR email = $2 LIMIT 1',
+      [userId, userEmail]
+    );
+    const member = rows[0];
 
     // If member is suspended, block login
     if (member && member.membership_status === 'suspended') {

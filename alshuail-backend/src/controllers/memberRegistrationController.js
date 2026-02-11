@@ -1,4 +1,4 @@
-import { supabase } from '../config/database.js';
+import { query, getClient } from '../services/database.js';
 import bcrypt from 'bcryptjs';
 import { log } from '../utils/logger.js';
 
@@ -81,29 +81,24 @@ export const verifyRegistrationToken = async (req, res) => {
     }
 
     // Get token data with member information
-    const { data: tokenData, error: _tokenError } = await supabase
-      .from('member_registration_tokens')
-      .select(`
-        *,
-        members (
-          id,
-          full_name,
-          phone,
-          whatsapp_number,
-          membership_number,
-          profile_completed
-        )
-      `)
-      .eq('token', token.toUpperCase())
-      .eq('is_used', false)
-      .single();
+    const tokenResult = await query(
+      `SELECT mrt.*,
+              m.id as member_id, m.full_name, m.phone, m.whatsapp_number,
+              m.membership_number, m.profile_completed
+       FROM member_registration_tokens mrt
+       INNER JOIN members m ON mrt.member_id = m.id
+       WHERE mrt.token = $1 AND mrt.is_used = false`,
+      [token.toUpperCase()]
+    );
 
-    if (_tokenError || !tokenData) {
+    if (!tokenResult.rows || tokenResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
         error: 'رمز التسجيل غير موجود أو تم استخدامه مسبقاً'
       });
     }
+
+    const tokenData = tokenResult.rows[0];
 
     // Check if token is expired
     const now = new Date();
@@ -117,7 +112,7 @@ export const verifyRegistrationToken = async (req, res) => {
     }
 
     // Check if profile is already completed
-    if (tokenData.members.profile_completed) {
+    if (tokenData.profile_completed) {
       return res.status(400).json({
         success: false,
         error: 'تم إكمال الملف الشخصي مسبقاً'
@@ -130,11 +125,11 @@ export const verifyRegistrationToken = async (req, res) => {
       data: {
         token: tokenData.token,
         member: {
-          id: tokenData.members.id,
-          full_name: tokenData.members.full_name,
-          phone: tokenData.members.phone,
-          whatsapp_number: tokenData.members.whatsapp_number,
-          membership_number: tokenData.members.membership_number
+          id: tokenData.member_id,
+          full_name: tokenData.full_name,
+          phone: tokenData.phone,
+          whatsapp_number: tokenData.whatsapp_number,
+          membership_number: tokenData.membership_number
         },
         expires_at: tokenData.expires_at
       },
@@ -208,26 +203,23 @@ export const completeProfile = async (req, res) => {
     }
 
     // Get and verify token
-    const { data: tokenData, error: _tokenError } = await supabase
-      .from('member_registration_tokens')
-      .select(`
-        *,
-        members (
-          id,
-          temp_password,
-          profile_completed
-        )
-      `)
-      .eq('token', token.toUpperCase())
-      .eq('is_used', false)
-      .single();
+    const tokenResult = await query(
+      `SELECT mrt.*,
+              m.id as member_id, m.temp_password, m.profile_completed
+       FROM member_registration_tokens mrt
+       INNER JOIN members m ON mrt.member_id = m.id
+       WHERE mrt.token = $1 AND mrt.is_used = false`,
+      [token.toUpperCase()]
+    );
 
-    if (_tokenError || !tokenData) {
+    if (!tokenResult.rows || tokenResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
         error: 'رمز التسجيل غير موجود أو تم استخدامه مسبقاً'
       });
     }
+
+    const tokenData = tokenResult.rows[0];
 
     // Check if token is expired
     const now = new Date();
@@ -241,7 +233,7 @@ export const completeProfile = async (req, res) => {
     }
 
     // Check if profile is already completed
-    if (tokenData.members.profile_completed) {
+    if (tokenData.profile_completed) {
       return res.status(400).json({
         success: false,
         error: 'تم إكمال الملف الشخصي مسبقاً'
@@ -249,7 +241,7 @@ export const completeProfile = async (req, res) => {
     }
 
     // Verify temporary password
-    const passwordMatch = await bcrypt.compare(temp_password, tokenData.members.temp_password);
+    const passwordMatch = await bcrypt.compare(temp_password, tokenData.temp_password);
     if (!passwordMatch) {
       return res.status(400).json({
         success: false,
@@ -257,19 +249,14 @@ export const completeProfile = async (req, res) => {
       });
     }
 
-    // Store national_id in additional_info for now (since it's not a direct column)
-    // In a production environment, you'd want to add this as a proper column
-
     // Check for duplicate email if provided
     if (email) {
-      const { data: existingEmail } = await supabase
-        .from('members')
-        .select('id')
-        .eq('email', email)
-        .neq('id', tokenData.members.id)
-        .single();
+      const existingEmailResult = await query(
+        'SELECT id FROM members WHERE email = $1 AND id != $2',
+        [email, tokenData.member_id]
+      );
 
-      if (existingEmail) {
+      if (existingEmailResult.rows && existingEmailResult.rows.length > 0) {
         return res.status(400).json({
           success: false,
           error: 'البريد الإلكتروني موجود مسبقاً'
@@ -281,45 +268,49 @@ export const completeProfile = async (req, res) => {
     const hijriBirthDate = convertToHijri(birth_date);
 
     // Update member profile
-    const updateData = {
-      date_of_birth: birth_date,
-      date_of_birth_hijri: hijriBirthDate,
-      employer: employer || null,
-      email: email || null,
-      social_security_beneficiary: social_security_beneficiary === true || social_security_beneficiary === 'true',
-      profile_image_url: profile_image_url || null,
-      profile_completed: true,
-      temp_password: null, // Clear temporary password
-      additional_info: JSON.stringify({
-        national_id,
-        national_id_document_url,
-        national_id_verified: false, // Admin will verify later
-        document_upload_date: new Date().toISOString()
-      }), // Store national_id and document info
-      updated_at: new Date().toISOString()
-    };
+    const updatedMemberResult = await query(
+      `UPDATE members
+       SET date_of_birth = $1,
+           date_of_birth_hijri = $2,
+           employer = $3,
+           email = $4,
+           social_security_beneficiary = $5,
+           profile_image_url = $6,
+           profile_completed = $7,
+           temp_password = $8,
+           additional_info = $9,
+           updated_at = $10
+       WHERE id = $11
+       RETURNING *`,
+      [
+        birth_date,
+        hijriBirthDate,
+        employer || null,
+        email || null,
+        social_security_beneficiary === true || social_security_beneficiary === 'true',
+        profile_image_url || null,
+        true,
+        null, // Clear temporary password
+        JSON.stringify({
+          national_id,
+          national_id_document_url,
+          national_id_verified: false,
+          document_upload_date: new Date().toISOString()
+        }),
+        new Date().toISOString(),
+        tokenData.member_id
+      ]
+    );
 
-    const { data: updatedMember, error: _updateError } = await supabase
-      .from('members')
-      .update(updateData)
-      .eq('id', tokenData.members.id)
-      .select()
-      .single();
-
-    if (_updateError) {throw _updateError;}
+    const updatedMember = updatedMemberResult.rows[0];
 
     // Mark token as used
-    const { error: _tokenUpdateError } = await supabase
-      .from('member_registration_tokens')
-      .update({
-        is_used: true,
-        used_at: new Date().toISOString()
-      })
-      .eq('id', tokenData.id);
-
-    if (_tokenUpdateError) {
-      log.error('Error updating token status', { error: _tokenUpdateError.message });
-    }
+    await query(
+      `UPDATE member_registration_tokens
+       SET is_used = $1, used_at = $2
+       WHERE id = $3`,
+      [true, new Date().toISOString(), tokenData.id]
+    );
 
     // Return success response
     res.json({
@@ -350,18 +341,19 @@ export const resendRegistrationToken = async (req, res) => {
     const { memberId } = req.params;
 
     // Get member data
-    const { data: member, error: _memberError } = await supabase
-      .from('members')
-      .select('id, full_name, phone, profile_completed')
-      .eq('id', memberId)
-      .single();
+    const memberResult = await query(
+      'SELECT id, full_name, phone, profile_completed FROM members WHERE id = $1',
+      [memberId]
+    );
 
-    if (_memberError || !member) {
+    if (!memberResult.rows || memberResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
         error: 'العضو غير موجود'
       });
     }
+
+    const member = memberResult.rows[0];
 
     if (member.profile_completed) {
       return res.status(400).json({
@@ -371,15 +363,12 @@ export const resendRegistrationToken = async (req, res) => {
     }
 
     // Deactivate old tokens
-    const { error: _deactivateError } = await supabase
-      .from('member_registration_tokens')
-      .update({ is_used: true })
-      .eq('member_id', memberId)
-      .eq('is_used', false);
-
-    if (_deactivateError) {
-      log.error('Error deactivating old tokens', { error: _deactivateError.message });
-    }
+    await query(
+      `UPDATE member_registration_tokens
+       SET is_used = true
+       WHERE member_id = $1 AND is_used = false`,
+      [memberId]
+    );
 
     // Generate new token
     const chars = 'ABCDEFGHIJKLMNPQRSTUVWXYZ123456789';
@@ -392,41 +381,37 @@ export const resendRegistrationToken = async (req, res) => {
         registrationToken += chars.charAt(Math.floor(Math.random() * chars.length));
       }
 
-      const { data: existingToken } = await supabase
-        .from('member_registration_tokens')
-        .select('id')
-        .eq('token', registrationToken)
-        .single();
+      const existingTokenResult = await query(
+        'SELECT id FROM member_registration_tokens WHERE token = $1',
+        [registrationToken]
+      );
 
-      tokenExists = !!existingToken;
+      tokenExists = existingTokenResult.rows && existingTokenResult.rows.length > 0;
     }
 
-    // Get temporary password from member record
-    const { data: memberWithPassword } = await supabase
-      .from('member_registration_tokens')
-      .select('temp_password')
-      .eq('member_id', memberId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
+    // Get temporary password from most recent token
+    const recentTokenResult = await query(
+      `SELECT temp_password FROM member_registration_tokens
+       WHERE member_id = $1
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [memberId]
+    );
 
-    const tempPassword = memberWithPassword?.temp_password || '123456';
+    const tempPassword = recentTokenResult.rows && recentTokenResult.rows.length > 0
+      ? recentTokenResult.rows[0].temp_password
+      : '123456';
 
     // Create new token record
     const expiryDate = new Date();
     expiryDate.setDate(expiryDate.getDate() + 30);
 
-    const { error: _tokenError } = await supabase
-      .from('member_registration_tokens')
-      .insert({
-        member_id: memberId,
-        token: registrationToken,
-        temp_password: tempPassword,
-        expires_at: expiryDate.toISOString(),
-        is_used: false
-      });
-
-    if (_tokenError) {throw _tokenError;}
+    await query(
+      `INSERT INTO member_registration_tokens (
+        member_id, token, temp_password, expires_at, is_used
+      ) VALUES ($1, $2, $3, $4, $5)`,
+      [memberId, registrationToken, tempPassword, expiryDate.toISOString(), false]
+    );
 
     res.json({
       success: true,

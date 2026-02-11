@@ -1,4 +1,4 @@
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
 
 /**
@@ -8,17 +8,14 @@ import { log } from '../utils/logger.js';
 export const getMonthlyPaymentSummary = async (req, res) => {
   try {
     // Get payments from the last 12 months grouped by month
-    const { data: payments, error } = await supabase
-      .from('payments')
-      .select('amount, payment_date, status')
-      .gte('payment_date', new Date(new Date().setMonth(new Date().getMonth() - 12)).toISOString())
-      .eq('status', 'completed')
-      .order('payment_date', { ascending: true });
+    const twelveMonthsAgo = new Date(new Date().setMonth(new Date().getMonth() - 12)).toISOString();
 
-    if (error) {
-      log.error('Failed to fetch monthly payment summary', { error: error.message });
-      throw error;
-    }
+    const { rows: payments } = await query(
+      `SELECT amount, payment_date, status FROM payments
+       WHERE payment_date >= $1 AND status = 'completed'
+       ORDER BY payment_date ASC`,
+      [twelveMonthsAgo]
+    );
 
     // Group payments by month
     const monthlyData = {};
@@ -92,14 +89,9 @@ export const getMonthlyPaymentSummary = async (req, res) => {
  */
 export const getYearlyMemberPayments = async (req, res) => {
   try {
-    const { data: members, error } = await supabase
-      .from('members')
-      .select('id, membership_number, full_name, payment_2021, payment_2022, payment_2023, payment_2024, payment_2025, total_paid');
-
-    if (error) {
-      log.error('Failed to fetch yearly member payments', { error: error.message });
-      throw error;
-    }
+    const { rows: members } = await query(
+      'SELECT id, membership_number, full_name, payment_2021, payment_2022, payment_2023, payment_2024, payment_2025, total_paid FROM members'
+    );
 
     // Aggregate by year
     const yearlyTotals = {
@@ -141,14 +133,9 @@ export const getYearlyMemberPayments = async (req, res) => {
  */
 export const getTribalSectionPayments = async (req, res) => {
   try {
-    const { data: members, error } = await supabase
-      .from('members')
-      .select('tribal_section, total_paid, membership_status');
-
-    if (error) {
-      log.error('Failed to fetch tribal section payments', { error: error.message });
-      throw error;
-    }
+    const { rows: members } = await query(
+      'SELECT tribal_section, total_paid, membership_status FROM members'
+    );
 
     // Group by tribal section
     const sectionData = {};

@@ -10,7 +10,7 @@
  */
 
 import { log } from '../utils/logger.js';
-import { supabase } from '../config/database.js';
+import { query } from './database.js';
 
 // Cache for statistics (5-minute TTL)
 const statsCache = {
@@ -56,57 +56,66 @@ export async function buildMemberMonitoringQuery(filters = {}) {
     } = filters;
 
     const offset = (page - 1) * limit;
-    const minimumBalance = 3600; // Required minimum balance (6 years × 600 SAR)
+    const minimumBalance = 3600; // Required minimum balance (6 years x 600 SAR)
 
-    // Step 1: Build base query for members
-    let membersQuery = supabase
-      .from('members')
-      .select('*', { count: 'exact' });
+    // Build dynamic SQL query
+    const conditions = [];
+    const params = [];
+    let paramIndex = 1;
 
     // Apply text-based filters
     if (memberId) {
-      // Support both membership_number and ID search
-      membersQuery = membersQuery.or(
-        `membership_number.ilike.%${memberId}%,id.ilike.%${memberId}%`
-      );
+      conditions.push(`(membership_number ILIKE $${paramIndex} OR id::text ILIKE $${paramIndex})`);
+      params.push(`%${memberId}%`);
+      paramIndex++;
     }
 
     if (fullName) {
-      // Arabic text search - case insensitive partial match
-      membersQuery = membersQuery.ilike('full_name', `%${fullName}%`);
+      conditions.push(`full_name ILIKE $${paramIndex}`);
+      params.push(`%${fullName}%`);
+      paramIndex++;
     }
 
     if (phone) {
-      // Phone search - support both phone and mobile fields
       const cleanPhone = phone.replace(/\D/g, ''); // Remove non-digits
-      membersQuery = membersQuery.or(
-        `phone.ilike.%${cleanPhone}%,mobile.ilike.%${cleanPhone}%`
-      );
+      conditions.push(`(phone ILIKE $${paramIndex} OR mobile ILIKE $${paramIndex})`);
+      params.push(`%${cleanPhone}%`);
+      paramIndex++;
     }
 
     if (tribalSection) {
-      // Exact match for tribal section
-      membersQuery = membersQuery.eq('tribal_section', tribalSection);
+      conditions.push(`tribal_section = $${paramIndex}`);
+      params.push(tribalSection);
+      paramIndex++;
     }
 
     if (status === 'suspended') {
-      membersQuery = membersQuery.eq('is_suspended', true);
+      conditions.push('is_suspended = true');
     } else if (status === 'active') {
-      membersQuery = membersQuery.or('is_suspended.is.null,is_suspended.eq.false');
+      conditions.push('(is_suspended IS NULL OR is_suspended = false)');
     }
 
-    // Apply sorting
-    membersQuery = membersQuery.order(sortBy, { ascending: sortOrder === 'asc' });
+    // Build WHERE clause
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    // Apply pagination
-    membersQuery = membersQuery.range(offset, offset + limit - 1);
+    // Whitelist sortBy to prevent SQL injection
+    const allowedSortColumns = ['full_name', 'created_at', 'updated_at', 'membership_number', 'id', 'current_balance', 'balance', 'phone'];
+    const safeSortBy = allowedSortColumns.includes(sortBy) ? sortBy : 'full_name';
+    const safeSortOrder = sortOrder === 'desc' ? 'DESC' : 'ASC';
 
-    // Execute members query
-    const { data: members, error: membersError, count } = await membersQuery;
+    // Get total count
+    const countResult = await query(
+      `SELECT COUNT(*) FROM members ${whereClause}`,
+      params
+    );
+    const count = parseInt(countResult.rows[0].count, 10);
 
-    if (membersError) {
-      throw new Error(`Members query failed: ${membersError.message}`);
-    }
+    // Get paginated data
+    const dataResult = await query(
+      `SELECT * FROM members ${whereClause} ORDER BY ${safeSortBy} ${safeSortOrder} LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+      [...params, limit, offset]
+    );
+    const members = dataResult.rows;
 
     // Step 2: Map member data with balances from database
     // Use stored balance fields (current_balance, balance, total_balance) instead of recalculating from payments
@@ -120,10 +129,10 @@ export async function buildMemberMonitoringQuery(filters = {}) {
       // Handle different name field variations
       const memberName = member.full_name || member.name || member.fullName ||
                         (member.first_name ? `${member.first_name} ${member.last_name || ''}` : '') ||
-                        `عضو ${member.id}`;
+                        `\u0639\u0636\u0648 ${member.id}`;
 
       // Generate tribal section if not set
-      const tribalSections = ['رشود', 'الدغيش', 'رشيد', 'العيد', 'الرشيد', 'الشبيعان', 'المسعود', 'عقاب'];
+      const tribalSections = ['\u0631\u0634\u0648\u062f', '\u0627\u0644\u062f\u063a\u064a\u0634', '\u0631\u0634\u064a\u062f', '\u0627\u0644\u0639\u064a\u062f', '\u0627\u0644\u0631\u0634\u064a\u062f', '\u0627\u0644\u0634\u0628\u064a\u0639\u0627\u0646', '\u0627\u0644\u0645\u0633\u0639\u0648\u062f', '\u0639\u0642\u0627\u0628'];
       const memberTribalSection = member.tribal_section ||
                                   tribalSections[parseInt(member.id.substring(0, 8), 16) % tribalSections.length];
 
@@ -309,20 +318,21 @@ export async function getMemberStatistics(forceRefresh = false) {
     }
 
     // Fetch fresh data
-    const { data: members, error: _membersError } = await supabase
-      .from('members')
-      .select('id, tribal_section, is_suspended');
+    const membersResult = await query(
+      'SELECT id, tribal_section, is_suspended FROM members'
+    );
+    const members = membersResult.rows;
 
-    if (_membersError) {
-      throw new Error(`Failed to fetch members: ${_membersError.message}`);
+    // Get payment summary using database function
+    let paymentSummary = null;
+    try {
+      const summaryResult = await query('SELECT * FROM get_payment_summary()');
+      paymentSummary = summaryResult.rows;
+    } catch (rpcError) {
+      log.error('Payment summary function failed:', { error: rpcError.message });
     }
 
-    // Get payment summary using aggregation
-    const { data: paymentSummary, error: _paymentError } = await supabase
-      .rpc('get_payment_summary', {});
-
-    if (_paymentError) {
-      log.error('Payment summary RPC failed:', { error: _paymentError.message });
+    if (!paymentSummary) {
       // Fallback to manual calculation
       const memberBalances = await calculateMemberBalances(members);
       const stats = calculateStatistics(memberBalances);
@@ -370,13 +380,12 @@ export async function getMemberStatistics(forceRefresh = false) {
  */
 async function calculateMemberBalances(members) {
   const balances = await Promise.all(members.map(async (member) => {
-    const { data: payments } = await supabase
-      .from('payments')
-      .select('amount')
-      .eq('payer_id', member.id)
-      .in('status', ['completed', 'approved']);
+    const result = await query(
+      'SELECT amount FROM payments WHERE payer_id = $1 AND status = ANY($2)',
+      [member.id, ['completed', 'approved']]
+    );
 
-    const totalPaid = payments?.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0) || 0;
+    const totalPaid = result.rows.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
 
     return {
       ...member,
@@ -407,16 +416,16 @@ export async function exportMemberData(filters = {}) {
 
     // Format data for export
     const exportData = result.data.map(member => ({
-      'رقم العضوية': member.memberId,
-      'الاسم الكامل': member.name,
-      'رقم الجوال': member.phone,
-      'البريد الإلكتروني': member.email || '',
-      'الفخذ': member.tribalSection,
-      'الرصيد': member.balance,
-      'الحالة': member.complianceStatus === 'compliant' ? 'ملتزم' : 'غير ملتزم',
-      'حالة التعليق': member.isSuspended ? 'معلق' : 'نشط',
-      'تاريخ الانضمام': member.joinedDate,
-      'آخر دفعة': member.lastPaymentDate
+      '\u0631\u0642\u0645 \u0627\u0644\u0639\u0636\u0648\u064a\u0629': member.memberId,
+      '\u0627\u0644\u0627\u0633\u0645 \u0627\u0644\u0643\u0627\u0645\u0644': member.name,
+      '\u0631\u0642\u0645 \u0627\u0644\u062c\u0648\u0627\u0644': member.phone,
+      '\u0627\u0644\u0628\u0631\u064a\u062f \u0627\u0644\u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a': member.email || '',
+      '\u0627\u0644\u0641\u062e\u0630': member.tribalSection,
+      '\u0627\u0644\u0631\u0635\u064a\u062f': member.balance,
+      '\u0627\u0644\u062d\u0627\u0644\u0629': member.complianceStatus === 'compliant' ? '\u0645\u0644\u062a\u0632\u0645' : '\u063a\u064a\u0631 \u0645\u0644\u062a\u0632\u0645',
+      '\u062d\u0627\u0644\u0629 \u0627\u0644\u062a\u0639\u0644\u064a\u0642': member.isSuspended ? '\u0645\u0639\u0644\u0642' : '\u0646\u0634\u0637',
+      '\u062a\u0627\u0631\u064a\u062e \u0627\u0644\u0627\u0646\u0636\u0645\u0627\u0645': member.joinedDate,
+      '\u0622\u062e\u0631 \u062f\u0641\u0639\u0629': member.lastPaymentDate
     }));
 
     return {
@@ -441,44 +450,52 @@ export async function exportMemberData(filters = {}) {
 export async function getMemberDetails(memberId) {
   try {
     // Get member data
-    const { data: member, error: _memberError } = await supabase
-      .from('members')
-      .select('*')
-      .eq('id', memberId)
-      .single();
+    const memberResult = await query(
+      'SELECT * FROM members WHERE id = $1',
+      [memberId]
+    );
 
-    if (_memberError) {
-      throw new Error(`Member not found: ${_memberError.message}`);
+    if (memberResult.rows.length === 0) {
+      throw new Error('Member not found');
     }
 
-    // Get payment history
-    const { data: payments, error: _paymentsError } = await supabase
-      .from('payments')
-      .select('*')
-      .eq('payer_id', memberId)
-      .order('created_at', { ascending: false });
+    const member = memberResult.rows[0];
 
-    if (_paymentsError) {
-      log.error('Failed to fetch payments:', { error: _paymentsError.message });
+    // Get payment history
+    let payments = [];
+    try {
+      const paymentsResult = await query(
+        'SELECT * FROM payments WHERE payer_id = $1 ORDER BY created_at DESC',
+        [memberId]
+      );
+      payments = paymentsResult.rows;
+    } catch (err) {
+      log.error('Failed to fetch payments:', { error: err.message });
     }
 
     // Get subscriptions
-    const { data: subscriptions, error: _subscriptionsError } = await supabase
-      .from('subscriptions')
-      .select('*')
-      .eq('member_id', memberId)
-      .order('created_at', { ascending: false });
-
-    if (_subscriptionsError) {
-      log.error('Failed to fetch subscriptions:', { error: _subscriptionsError.message });
+    let subscriptions = [];
+    try {
+      const subscriptionsResult = await query(
+        'SELECT * FROM subscriptions WHERE member_id = $1 ORDER BY created_at DESC',
+        [memberId]
+      );
+      subscriptions = subscriptionsResult.rows;
+    } catch (err) {
+      log.error('Failed to fetch subscriptions:', { error: err.message });
     }
 
     // Calculate totals
-    const totalPaid = payments?.reduce((sum, p) =>
-      sum + (['completed', 'approved'].includes(p.status) ? parseFloat(p.amount || 0) : 0), 0) || 0;
+    const totalPaid = payments.reduce((sum, p) =>
+      sum + (['completed', 'approved'].includes(p.status) ? parseFloat(p.amount || 0) : 0), 0);
 
-    const pendingAmount = payments?.reduce((sum, p) =>
-      sum + (p.status === 'pending' ? parseFloat(p.amount || 0) : 0), 0) || 0;
+    const pendingAmount = payments.reduce((sum, p) =>
+      sum + (p.status === 'pending' ? parseFloat(p.amount || 0) : 0), 0);
+
+    const memberBalance = parseFloat(member.current_balance) ||
+                         parseFloat(member.balance) ||
+                         parseFloat(member.total_balance) ||
+                         totalPaid;
 
     return {
       success: true,
@@ -489,15 +506,15 @@ export async function getMemberDetails(memberId) {
           pendingAmount: pendingAmount,
           complianceStatus: getComplianceStatus(memberBalance)
         },
-        payments: payments || [],
-        subscriptions: subscriptions || [],
+        payments: payments,
+        subscriptions: subscriptions,
         statistics: {
-          totalPayments: payments?.length || 0,
-          completedPayments: payments?.filter(p =>
-            ['completed', 'approved'].includes(p.status)).length || 0,
+          totalPayments: payments.length,
+          completedPayments: payments.filter(p =>
+            ['completed', 'approved'].includes(p.status)).length,
           totalPaid: totalPaid,
           pendingAmount: pendingAmount,
-          averagePayment: payments?.length > 0 ?
+          averagePayment: payments.length > 0 ?
             totalPaid / payments.filter(p => ['completed', 'approved'].includes(p.status)).length : 0
         }
       }
@@ -518,20 +535,22 @@ export async function searchMembersAutocomplete(searchTerm, limit = 10) {
       return { success: true, data: [] };
     }
 
-    // Search in multiple fields
-    const { data: members, error } = await supabase
-      .from('members')
-      .select('id, membership_number, full_name, phone, email')
-      .or(`full_name.ilike.%${searchTerm}%,membership_number.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`)
-      .limit(limit);
+    const searchPattern = `%${searchTerm}%`;
 
-    if (error) {
-      throw new Error(`Search failed: ${error.message}`);
-    }
+    const result = await query(
+      `SELECT id, membership_number, full_name, phone, email
+       FROM members
+       WHERE full_name ILIKE $1
+          OR membership_number ILIKE $1
+          OR phone ILIKE $1
+          OR email ILIKE $1
+       LIMIT $2`,
+      [searchPattern, limit]
+    );
 
     return {
       success: true,
-      data: members.map(m => ({
+      data: result.rows.map(m => ({
         id: m.id,
         value: m.id,
         label: `${m.full_name} (${m.membership_number || 'No ID'})`,
@@ -553,17 +572,12 @@ export async function searchMembersAutocomplete(searchTerm, limit = 10) {
  */
 export async function getTribalSectionStats() {
   try {
-    const { data: members, error } = await supabase
-      .from('members')
-      .select('tribal_section');
-
-    if (error) {
-      throw new Error(`Failed to fetch tribal sections: ${error.message}`);
-    }
+    const result = await query('SELECT id, tribal_section FROM members');
+    const members = result.rows;
 
     // Count members per tribal section
     const sectionCounts = {};
-    const tribalSections = ['رشود', 'الدغيش', 'رشيد', 'العيد', 'الرشيد', 'الشبيعان', 'المسعود', 'عقاب'];
+    const tribalSections = ['\u0631\u0634\u0648\u062f', '\u0627\u0644\u062f\u063a\u064a\u0634', '\u0631\u0634\u064a\u062f', '\u0627\u0644\u0639\u064a\u062f', '\u0627\u0644\u0631\u0634\u064a\u062f', '\u0627\u0644\u0634\u0628\u064a\u0639\u0627\u0646', '\u0627\u0644\u0645\u0633\u0639\u0648\u062f', '\u0639\u0642\u0627\u0628'];
 
     // Initialize counts
     tribalSections.forEach(section => {

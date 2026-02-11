@@ -1,4 +1,4 @@
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
 import { config } from '../config/env.js';
 
@@ -30,62 +30,65 @@ export const getAllDiyas = async (req, res) => {
       max_amount
     } = req.query;
 
-    // Query activities table filtered for diya-related activities
-    // The activities link to financial_contributions via activity_id FK
-    // Step 1: Query activities without nested selects (pgQueryBuilder limitation)
-    let query = supabase
-      .from('activities')
-      .select('*')
-      .or('title_ar.ilike.%دية%,title_en.ilike.%diya%')
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+    // Build dynamic query for activities filtered for diya-related activities
+    const conditions = ["(title_ar ILIKE '%دية%' OR title_en ILIKE '%diya%')"];
+    const params = [];
+    let paramIndex = 1;
 
     // Apply filters
     if (status) {
-      query = query.eq('status', status);
+      conditions.push(`status = $${paramIndex++}`);
+      params.push(status);
     }
 
     if (payment_status) {
-      query = query.eq('payment_status', payment_status);
+      conditions.push(`payment_status = $${paramIndex++}`);
+      params.push(payment_status);
     }
 
     // Date range filter
     if (start_date) {
-      query = query.gte('created_at', start_date);
+      conditions.push(`created_at >= $${paramIndex++}`);
+      params.push(start_date);
     }
 
     if (end_date) {
-      query = query.lte('created_at', end_date);
+      conditions.push(`created_at <= $${paramIndex++}`);
+      params.push(end_date);
     }
 
     // Amount range filter
     if (min_amount) {
-      query = query.gte('target_amount', min_amount);
+      conditions.push(`target_amount >= $${paramIndex++}`);
+      params.push(min_amount);
     }
 
     if (max_amount) {
-      query = query.lte('target_amount', max_amount);
+      conditions.push(`target_amount <= $${paramIndex++}`);
+      params.push(max_amount);
     }
 
-    const { data: activities, error: activitiesError, count } = await query;
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    if (activitiesError) {throw activitiesError;}
+    params.push(parseInt(limit));
+    const limitParam = paramIndex++;
+    params.push(parseInt(offset));
+    const offsetParam = paramIndex++;
 
-    // Step 2: Get contributions separately using .in() query
+    const sql = `SELECT * FROM activities ${whereClause} ORDER BY created_at DESC LIMIT $${limitParam} OFFSET $${offsetParam}`;
+
+    const { rows: activities } = await query(sql, params);
+
+    // Step 2: Get contributions separately using ANY() query
     const activityIds = (activities || []).map(a => a.id);
     let contributions = [];
 
     if (activityIds.length > 0) {
-      const { data: contribData, error: contribError } = await supabase
-        .from('financial_contributions')
-        .select('id, activity_id, contributor_id, contribution_amount, status, contribution_date')
-        .in('activity_id', activityIds);
-
-      if (contribError) {
-        log.error('Error fetching contributions', { error: contribError.message });
-      } else {
-        contributions = contribData || [];
-      }
+      const { rows: contribData } = await query(
+        'SELECT id, activity_id, contributor_id, contribution_amount, status, contribution_date FROM financial_contributions WHERE activity_id = ANY($1)',
+        [activityIds]
+      );
+      contributions = contribData || [];
     }
 
     // Step 3: Map contributions to their activities
@@ -116,7 +119,7 @@ export const getAllDiyas = async (req, res) => {
       pagination: {
         limit: parseInt(limit),
         offset: parseInt(offset),
-        total: count || diyas?.length || 0
+        total: diyas?.length || 0
       },
       summary: {
         total_cases: diyas?.length || 0,
@@ -147,36 +150,35 @@ export const getDiyaById = async (req, res) => {
     const { id } = req.params;
 
     // Step 1: Get the activity
-    const { data: activity, error: activityError } = await supabase
-      .from('activities')
-      .select('*')
-      .eq('id', id)
-      .single();
+    const { rows: activityRows } = await query(
+      'SELECT * FROM activities WHERE id = $1',
+      [id]
+    );
 
-    if (activityError) {
-      if (activityError.code === 'PGRST116') {
-        return res.status(404).json({
-          success: false,
-          error: 'قضية الدية غير موجودة'
-        });
-      }
-      throw activityError;
+    const activity = activityRows[0];
+    if (!activity) {
+      return res.status(404).json({
+        success: false,
+        error: 'قضية الدية غير موجودة'
+      });
     }
 
     // Step 2: Get contributions separately
-    const { data: contributions, error: contribError } = await supabase
-      .from('financial_contributions')
-      .select('*')
-      .eq('activity_id', id);
-
-    if (contribError) {
-      log.error('Error fetching contributions for diya', { error: contribError.message });
+    let contributions = [];
+    try {
+      const { rows: contribRows } = await query(
+        'SELECT * FROM financial_contributions WHERE activity_id = $1',
+        [id]
+      );
+      contributions = contribRows || [];
+    } catch (contribErr) {
+      log.error('Error fetching contributions for diya', { error: contribErr.message });
     }
 
     // Step 3: Combine data
     const diya = {
       ...activity,
-      financial_contributions: contributions || []
+      financial_contributions: contributions
     };
 
     res.json({
@@ -227,13 +229,12 @@ export const createDiya = async (req, res) => {
     }
 
     // Check if payer exists
-    const { data: payer, error: _payerError } = await supabase
-      .from('members')
-      .select('id, full_name')
-      .eq('id', payer_id)
-      .single();
+    const { rows: payerRows } = await query(
+      'SELECT id, full_name FROM members WHERE id = $1',
+      [payer_id]
+    );
 
-    if (_payerError || !payer) {
+    if (payerRows.length === 0) {
       return res.status(400).json({
         success: false,
         error: 'الدافع المحدد غير موجود'
@@ -243,29 +244,16 @@ export const createDiya = async (req, res) => {
     // Generate reference number
     const referenceNumber = generateDiyaReference();
 
-    const diyaData = {
-      payer_id,
-      amount: diyaAmount,
-      category: 'diya',
-      title,
-      description,
-      payment_method,
-      status,
-      reference_number: referenceNumber,
-      notes
-    };
-
-    const { data: newDiya, error } = await supabase
-      .from('payments')
-      .insert([diyaData])
-      .select('*')
-      .single();
-
-    if (error) {throw error;}
+    const { rows } = await query(
+      `INSERT INTO payments (payer_id, amount, category, title, description, payment_method, status, reference_number, notes)
+       VALUES ($1, $2, 'diya', $3, $4, $5, $6, $7, $8)
+       RETURNING *`,
+      [payer_id, diyaAmount, title, description, payment_method, status, referenceNumber, notes]
+    );
 
     res.status(201).json({
       success: true,
-      data: newDiya,
+      data: rows[0],
       message: 'تم إنشاء قضية الدية بنجاح'
     });
   } catch (error) {
@@ -295,40 +283,35 @@ export const updateDiyaStatus = async (req, res) => {
     }
 
     // Check if diya exists
-    const { data: existingDiya, error: _checkError } = await supabase
-      .from('payments')
-      .select('*')
-      .eq('id', id)
-      .eq('category', 'diya')
-      .single();
+    const { rows: existingRows } = await query(
+      "SELECT * FROM payments WHERE id = $1 AND category = 'diya'",
+      [id]
+    );
 
-    if (_checkError || !existingDiya) {
+    if (existingRows.length === 0) {
       return res.status(404).json({
         success: false,
         error: 'قضية الدية غير موجودة'
       });
     }
 
-    const updateData = {
-      status,
-      updated_at: new Date().toISOString()
-    };
+    const setClauses = ['status = $1', 'updated_at = $2'];
+    const params = [status, new Date().toISOString()];
+    let pIdx = 3;
 
-    if (payment_method) {updateData.payment_method = payment_method;}
-    if (notes !== undefined) {updateData.notes = notes;}
+    if (payment_method) { setClauses.push(`payment_method = $${pIdx++}`); params.push(payment_method); }
+    if (notes !== undefined) { setClauses.push(`notes = $${pIdx++}`); params.push(notes); }
 
-    const { data: updatedDiya, error } = await supabase
-      .from('payments')
-      .update(updateData)
-      .eq('id', id)
-      .select('*')
-      .single();
+    params.push(id);
 
-    if (error) {throw error;}
+    const { rows } = await query(
+      `UPDATE payments SET ${setClauses.join(', ')} WHERE id = $${pIdx} RETURNING *`,
+      params
+    );
 
     res.json({
       success: true,
-      data: updatedDiya,
+      data: rows[0],
       message: status === 'paid' ? 'تم تأكيد دفع الدية' :
                status === 'cancelled' ? 'تم إلغاء قضية الدية' : 'تم تحديث حالة الدية'
     });
@@ -358,14 +341,12 @@ export const updateDiya = async (req, res) => {
     } = req.body;
 
     // Check if diya exists
-    const { data: existingDiya, error: _checkError } = await supabase
-      .from('payments')
-      .select('*')
-      .eq('id', id)
-      .eq('category', 'diya')
-      .single();
+    const { rows: existingRows } = await query(
+      "SELECT * FROM payments WHERE id = $1 AND category = 'diya'",
+      [id]
+    );
 
-    if (_checkError || !existingDiya) {
+    if (existingRows.length === 0) {
       return res.status(404).json({
         success: false,
         error: 'قضية الدية غير موجودة'
@@ -380,29 +361,27 @@ export const updateDiya = async (req, res) => {
       });
     }
 
-    const updateData = {
-      updated_at: new Date().toISOString()
-    };
+    const setClauses = ['updated_at = $1'];
+    const params = [new Date().toISOString()];
+    let pIdx = 2;
 
     // Only update provided fields
-    if (amount !== undefined) {updateData.amount = Number(amount);}
-    if (title !== undefined) {updateData.title = title;}
-    if (description !== undefined) {updateData.description = description;}
-    if (payment_method !== undefined) {updateData.payment_method = payment_method;}
-    if (notes !== undefined) {updateData.notes = notes;}
+    if (amount !== undefined) { setClauses.push(`amount = $${pIdx++}`); params.push(Number(amount)); }
+    if (title !== undefined) { setClauses.push(`title = $${pIdx++}`); params.push(title); }
+    if (description !== undefined) { setClauses.push(`description = $${pIdx++}`); params.push(description); }
+    if (payment_method !== undefined) { setClauses.push(`payment_method = $${pIdx++}`); params.push(payment_method); }
+    if (notes !== undefined) { setClauses.push(`notes = $${pIdx++}`); params.push(notes); }
 
-    const { data: updatedDiya, error } = await supabase
-      .from('payments')
-      .update(updateData)
-      .eq('id', id)
-      .select('*')
-      .single();
+    params.push(id);
 
-    if (error) {throw error;}
+    const { rows } = await query(
+      `UPDATE payments SET ${setClauses.join(', ')} WHERE id = $${pIdx} RETURNING *`,
+      params
+    );
 
     res.json({
       success: true,
-      data: updatedDiya,
+      data: rows[0],
       message: 'تم تحديث قضية الدية بنجاح'
     });
   } catch (error) {
@@ -424,14 +403,12 @@ export const deleteDiya = async (req, res) => {
     const { id } = req.params;
 
     // Check if diya exists
-    const { data: existingDiya, error: _checkError } = await supabase
-      .from('payments')
-      .select('*')
-      .eq('id', id)
-      .eq('category', 'diya')
-      .single();
+    const { rows: existingRows } = await query(
+      "SELECT * FROM payments WHERE id = $1 AND category = 'diya'",
+      [id]
+    );
 
-    if (_checkError || !existingDiya) {
+    if (existingRows.length === 0) {
       return res.status(404).json({
         success: false,
         error: 'قضية الدية غير موجودة'
@@ -439,19 +416,14 @@ export const deleteDiya = async (req, res) => {
     }
 
     // Don't allow deletion of paid diyas
-    if (existingDiya.status === 'paid') {
+    if (existingRows[0].status === 'paid') {
       return res.status(400).json({
         success: false,
         error: 'لا يمكن حذف قضية دية مدفوعة'
       });
     }
 
-    const { error } = await supabase
-      .from('payments')
-      .delete()
-      .eq('id', id);
-
-    if (error) {throw error;}
+    await query('DELETE FROM payments WHERE id = $1', [id]);
 
     res.json({
       success: true,
@@ -475,10 +447,9 @@ export const getDiyaStats = async (req, res) => {
   try {
     const { period = 'all' } = req.query;
 
-    let query = supabase
-      .from('payments')
-      .select('*')
-      .eq('category', 'diya');
+    const conditions = ["category = 'diya'"];
+    const params = [];
+    let paramIndex = 1;
 
     // Apply period filter
     if (period !== 'all') {
@@ -502,13 +473,17 @@ export const getDiyaStats = async (req, res) => {
       }
 
       if (startDate) {
-        query = query.gte('created_at', startDate.toISOString());
+        conditions.push(`created_at >= $${paramIndex++}`);
+        params.push(startDate.toISOString());
       }
     }
 
-    const { data: diyas, error } = await query;
+    const whereClause = `WHERE ${conditions.join(' AND ')}`;
 
-    if (error) {throw error;}
+    const { rows: diyas } = await query(
+      `SELECT * FROM payments ${whereClause}`,
+      params
+    );
 
     // Calculate statistics
     const totalCases = diyas?.length || 0;
@@ -598,28 +573,24 @@ export const getMemberDiyas = async (req, res) => {
     const { limit = 50, offset = 0 } = req.query;
 
     // Check if member exists
-    const { data: member, error: _memberError } = await supabase
-      .from('members')
-      .select('id, full_name')
-      .eq('id', memberId)
-      .single();
+    const { rows: memberRows } = await query(
+      'SELECT id, full_name FROM members WHERE id = $1',
+      [memberId]
+    );
 
-    if (_memberError || !member) {
+    if (memberRows.length === 0) {
       return res.status(404).json({
         success: false,
         error: 'العضو غير موجود'
       });
     }
 
-    const { data: diyas, error, count } = await supabase
-      .from('payments')
-      .select('*')
-      .eq('category', 'diya')
-      .eq('payer_id', memberId)
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+    const member = memberRows[0];
 
-    if (error) {throw error;}
+    const { rows: diyas } = await query(
+      "SELECT * FROM payments WHERE category = 'diya' AND payer_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3",
+      [memberId, parseInt(limit), parseInt(offset)]
+    );
 
     // Calculate member summary
     const totalAmount = diyas?.reduce((sum, diya) => sum + Number(diya.amount), 0) || 0;
@@ -633,7 +604,7 @@ export const getMemberDiyas = async (req, res) => {
       pagination: {
         limit: parseInt(limit),
         offset: parseInt(offset),
-        total: count || diyas?.length || 0
+        total: diyas?.length || 0
       },
       summary: {
         total_cases: diyas?.length || 0,

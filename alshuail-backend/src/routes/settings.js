@@ -1,7 +1,7 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
 
 const router = express.Router();
@@ -22,29 +22,26 @@ const authenticateToken = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // First try to find user in 'users' table (admin users)
-    let { data: user, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', decoded.id)
-      .eq('is_active', true)
-      .single();
+    const { rows: userRows } = await query(
+      'SELECT * FROM users WHERE id = $1 AND is_active = true',
+      [decoded.id]
+    );
+    let user = userRows[0];
 
     // If not found in users table, try members table
-    if (error || !user) {
-      const { data: memberUser, error: memberError } = await supabase
-        .from('members')
-        .select('*')
-        .eq('id', decoded.id)
-        .eq('is_active', true)
-        .single();
+    if (!user) {
+      const { rows: memberRows } = await query(
+        'SELECT * FROM members WHERE id = $1 AND is_active = true',
+        [decoded.id]
+      );
+      user = memberRows[0];
 
-      if (memberError || !memberUser) {
+      if (!user) {
         return res.status(401).json({
           success: false,
           message: 'المستخدم غير موجود أو غير نشط'
         });
       }
-      user = memberUser;
     }
 
     req.user = user;
@@ -80,16 +77,10 @@ const requireRole = (allowedRoles) => {
 // Helper function to log activities
 const logActivity = async (userId, userEmail, userRole, actionType, details, ipAddress) => {
   try {
-    await supabase
-      .from('audit_logs')
-      .insert({
-        user_id: userId,
-        user_email: userEmail,
-        user_role: userRole,
-        action_type: actionType,
-        details: details,
-        ip_address: ipAddress
-      });
+    await query(
+      'INSERT INTO audit_logs (user_id, user_email, user_role, action_type, details, ip_address) VALUES ($1, $2, $3, $4, $5, $6)',
+      [userId, userEmail, userRole, actionType, details, ipAddress]
+    );
   } catch (error) {
     log.error('Failed to log activity', { error: error.message });
   }
@@ -98,12 +89,9 @@ const logActivity = async (userId, userEmail, userRole, actionType, details, ipA
 // Get system settings - Super Admin only
 router.get('/system', authenticateToken, requireRole(['super_admin']), async (req, res) => {
   try {
-    const { data: settings, error } = await supabase
-      .from('system_settings')
-      .select('*')
-      .single();
+    const { rows } = await query('SELECT * FROM system_settings LIMIT 1');
 
-    if (error && error.code === 'PGRST116') {
+    if (rows.length === 0) {
       // No settings found, return defaults
       return res.json({
         system_name: 'نظام إدارة عائلة الشعيل',
@@ -130,8 +118,7 @@ router.get('/system', authenticateToken, requireRole(['super_admin']), async (re
       });
     }
 
-    if (error) {throw error;}
-    res.json(settings);
+    res.json(rows[0]);
   } catch (error) {
     log.error('Failed to fetch system settings', { error: error.message });
     res.status(500).json({ error: 'Failed to fetch system settings' });
@@ -141,40 +128,35 @@ router.get('/system', authenticateToken, requireRole(['super_admin']), async (re
 // Update system settings - Super Admin only
 router.put('/system', authenticateToken, requireRole(['super_admin']), async (req, res) => {
   try {
-    const { data: existing } = await supabase
-      .from('system_settings')
-      .select('id')
-      .single();
+    const { rows: existingRows } = await query('SELECT id FROM system_settings LIMIT 1');
+    const existing = existingRows[0];
 
     let result;
     if (existing) {
-      // Update existing settings
-      const { data: _data, error: _error } = await supabase
-        .from('system_settings')
-        .update({
-          ...req.body,
-          updated_at: new Date().toISOString(),
-          updated_by: req.user.id
-        })
-        .eq('id', existing.id)
-        .select()
-        .single();
+      // Update existing settings - build dynamic SET clause from req.body
+      const body = { ...req.body, updated_at: new Date().toISOString(), updated_by: req.user.id };
+      const keys = Object.keys(body);
+      const setClauses = keys.map((key, i) => `"${key}" = $${i + 1}`);
+      const values = keys.map(key => body[key]);
+      values.push(existing.id);
 
-      if (_error) {throw _error;}
-      result = _data;
+      const { rows } = await query(
+        `UPDATE system_settings SET ${setClauses.join(', ')} WHERE id = $${values.length} RETURNING *`,
+        values
+      );
+      result = rows[0];
     } else {
       // Create new settings
-      const { data: _data, error: _error } = await supabase
-        .from('system_settings')
-        .insert({
-          ...req.body,
-          updated_by: req.user.id
-        })
-        .select()
-        .single();
+      const body = { ...req.body, updated_by: req.user.id };
+      const keys = Object.keys(body);
+      const placeholders = keys.map((_, i) => `$${i + 1}`);
+      const values = keys.map(key => body[key]);
 
-      if (_error) {throw _error;}
-      result = _data;
+      const { rows } = await query(
+        `INSERT INTO system_settings (${keys.map(k => `"${k}"`).join(', ')}) VALUES (${placeholders.join(', ')}) RETURNING *`,
+        values
+      );
+      result = rows[0];
     }
 
     // Log the settings change
@@ -202,46 +184,71 @@ router.get('/users', authenticateToken, requireRole(['super_admin']), async (req
     // Admin roles stored in 'users' table
     const adminRoles = ['super_admin', 'admin', 'financial_manager', 'family_tree_admin', 'occasions_initiatives_diyas_admin', 'operational_manager'];
 
-    // Query users table (admin users)
-    let usersQuery = supabase
-      .from('users')
-      .select('id, full_name_ar, full_name_en, email, phone, role, is_active, created_at, last_login')
-      .order('created_at', { ascending: false });
+    // Build users query dynamically
+    const usersConditions = [];
+    const usersParams = [];
+    let usersParamIdx = 1;
 
-    // Query members table (member users with roles)
-    let membersQuery = supabase
-      .from('members')
-      .select('id, full_name, email, phone, role, is_active, created_at, last_login')
-      .in('role', ['super_admin', 'admin', 'financial_manager', 'family_tree_admin', 'occasions_initiatives_diyas_admin', 'operational_manager', 'member'])
-      .order('created_at', { ascending: false });
-
-    // Apply filters
     if (role) {
-      usersQuery = usersQuery.eq('role', role);
-      membersQuery = membersQuery.eq('role', role);
+      usersConditions.push(`role = $${usersParamIdx++}`);
+      usersParams.push(role);
     }
 
     if (status === 'active') {
-      usersQuery = usersQuery.eq('is_active', true);
-      membersQuery = membersQuery.eq('is_active', true);
+      usersConditions.push(`is_active = true`);
     } else if (status === 'inactive') {
-      usersQuery = usersQuery.eq('is_active', false);
-      membersQuery = membersQuery.eq('is_active', false);
+      usersConditions.push(`is_active = false`);
     }
 
     if (search) {
-      usersQuery = usersQuery.or(`full_name_ar.ilike.%${search}%,full_name_en.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%`);
-      membersQuery = membersQuery.or(`full_name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%`);
+      usersConditions.push(`(full_name_ar ILIKE $${usersParamIdx} OR full_name_en ILIKE $${usersParamIdx} OR email ILIKE $${usersParamIdx} OR phone ILIKE $${usersParamIdx})`);
+      usersParams.push(`%${search}%`);
+      usersParamIdx++;
     }
 
-    // Execute both queries
+    const usersWhere = usersConditions.length > 0 ? 'WHERE ' + usersConditions.join(' AND ') : '';
+    const usersSql = `SELECT id, full_name_ar, full_name_en, email, phone, role, is_active, created_at, last_login FROM users ${usersWhere} ORDER BY created_at DESC`;
+
+    // Build members query dynamically
+    const membersConditions = [];
+    const membersParams = [];
+    let membersParamIdx = 1;
+
+    // Members must have one of the known roles
+    const allRoles = ['super_admin', 'admin', 'financial_manager', 'family_tree_admin', 'occasions_initiatives_diyas_admin', 'operational_manager', 'member'];
+    const rolePlaceholders = allRoles.map((_, i) => `$${membersParamIdx + i}`);
+    membersConditions.push(`role IN (${rolePlaceholders.join(', ')})`);
+    membersParams.push(...allRoles);
+    membersParamIdx += allRoles.length;
+
+    if (role) {
+      membersConditions.push(`role = $${membersParamIdx++}`);
+      membersParams.push(role);
+    }
+
+    if (status === 'active') {
+      membersConditions.push(`is_active = true`);
+    } else if (status === 'inactive') {
+      membersConditions.push(`is_active = false`);
+    }
+
+    if (search) {
+      membersConditions.push(`(full_name ILIKE $${membersParamIdx} OR email ILIKE $${membersParamIdx} OR phone ILIKE $${membersParamIdx})`);
+      membersParams.push(`%${search}%`);
+      membersParamIdx++;
+    }
+
+    const membersWhere = membersConditions.length > 0 ? 'WHERE ' + membersConditions.join(' AND ') : '';
+    const membersSql = `SELECT id, full_name, email, phone, role, is_active, created_at, last_login FROM members ${membersWhere} ORDER BY created_at DESC`;
+
+    // Execute both queries in parallel
     const [usersResult, membersResult] = await Promise.all([
-      usersQuery,
-      membersQuery
+      query(usersSql, usersParams),
+      query(membersSql, membersParams)
     ]);
 
     // Combine results from both tables
-    const adminUsers = (usersResult.data || []).map(u => ({
+    const adminUsers = (usersResult.rows || []).map(u => ({
       id: u.id,
       full_name: u.full_name_ar || u.full_name_en || u.email,
       email: u.email,
@@ -253,7 +260,7 @@ router.get('/users', authenticateToken, requireRole(['super_admin']), async (req
       source: 'users'
     }));
 
-    const memberUsers = (membersResult.data || [])
+    const memberUsers = (membersResult.rows || [])
       .filter(m => adminRoles.includes(m.role)) // Only include members with admin roles
       .map(m => ({
         id: m.id,
@@ -299,41 +306,33 @@ router.post('/users', authenticateToken, requireRole(['super_admin']), async (re
     const targetTable = isAdminRole ? 'users' : 'members';
 
     // Check if user already exists in both tables
-    const { data: existingInUsers } = await supabase
-      .from('users')
-      .select('id')
-      .eq('email', email)
-      .single();
+    const [{ rows: existingInUsers }, { rows: existingInMembers }] = await Promise.all([
+      query('SELECT id FROM users WHERE email = $1', [email]),
+      query('SELECT id FROM members WHERE email = $1', [email])
+    ]);
 
-    const { data: existingInMembers } = await supabase
-      .from('members')
-      .select('id')
-      .eq('email', email)
-      .single();
-
-    if (existingInUsers || existingInMembers) {
+    if (existingInUsers.length > 0 || existingInMembers.length > 0) {
       return res.status(400).json({ error: 'User with this email already exists' });
     }
 
     // Hash the temporary password
     const hashedPassword = await bcrypt.hash(temporary_password, 10);
 
-    // Create new user in appropriate table
-    const { data: newUser, error } = await supabase
-      .from(targetTable)
-      .insert({
-        full_name,
-        email,
-        phone,
-        role: role || (isAdminRole ? 'super_admin' : 'member'),
-        password_hash: hashedPassword,
-        is_active: true,
-        ...(targetTable === 'members' && { membership_number: `MEM${Date.now()}` })
-      })
-      .select()
-      .single();
+    // Build insert for appropriate table
+    const assignedRole = role || (isAdminRole ? 'super_admin' : 'member');
+    let insertSql;
+    let insertParams;
 
-    if (error) {throw error;}
+    if (targetTable === 'members') {
+      insertSql = `INSERT INTO members (full_name, email, phone, role, password_hash, is_active, membership_number) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`;
+      insertParams = [full_name, email, phone, assignedRole, hashedPassword, true, `MEM${Date.now()}`];
+    } else {
+      insertSql = `INSERT INTO users (full_name, email, phone, role, password_hash, is_active) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`;
+      insertParams = [full_name, email, phone, assignedRole, hashedPassword, true];
+    }
+
+    const { rows } = await query(insertSql, insertParams);
+    const newUser = rows[0];
 
     // Log user creation
     await logActivity(
@@ -356,23 +355,35 @@ router.post('/users', authenticateToken, requireRole(['super_admin']), async (re
 router.put('/users/:userId', authenticateToken, requireRole(['super_admin']), async (req, res) => {
   try {
     const { userId } = req.params;
-    const updates = req.body;
+    const updates = { ...req.body };
 
     // Remove sensitive fields
     delete updates.password_hash;
     delete updates.id;
 
-    const { data: updatedUser, error } = await supabase
-      .from('members')
-      .update({
-        ...updates,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', userId)
-      .select()
-      .single();
+    // Add updated_at timestamp
+    updates.updated_at = new Date().toISOString();
 
-    if (error) {throw error;}
+    // Build dynamic SET clause
+    const keys = Object.keys(updates);
+    if (keys.length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    const setClauses = keys.map((key, i) => `"${key}" = $${i + 1}`);
+    const values = keys.map(key => updates[key]);
+    values.push(userId);
+
+    const { rows } = await query(
+      `UPDATE members SET ${setClauses.join(', ')} WHERE id = $${values.length} RETURNING *`,
+      values
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const updatedUser = rows[0];
 
     // Log user update
     await logActivity(
@@ -397,19 +408,21 @@ router.delete('/users/:userId', authenticateToken, requireRole(['super_admin']),
     const { userId } = req.params;
 
     // Get user info before deletion
-    const { data: userInfo } = await supabase
-      .from('members')
-      .select('email')
-      .eq('id', userId)
-      .single();
+    const { rows: infoRows } = await query(
+      'SELECT email FROM members WHERE id = $1',
+      [userId]
+    );
+    const userInfo = infoRows[0];
 
     // Delete user
-    const { error } = await supabase
-      .from('members')
-      .delete()
-      .eq('id', userId);
+    const { rowCount } = await query(
+      'DELETE FROM members WHERE id = $1',
+      [userId]
+    );
 
-    if (error) {throw error;}
+    if (rowCount === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
 
     // Log user deletion
     await logActivity(
@@ -433,46 +446,61 @@ router.get('/audit-logs', authenticateToken, requireRole(['super_admin']), async
   try {
     const { user_role, action_type, date_from, date_to, search, page = 1, limit = 50 } = req.query;
 
-    let query = supabase
-      .from('audit_logs')
-      .select('*', { count: 'exact' })
-      .order('created_at', { ascending: false });
+    const conditions = [];
+    const params = [];
+    let paramIdx = 1;
 
     if (user_role) {
-      query = query.eq('user_role', user_role);
+      conditions.push(`user_role = $${paramIdx++}`);
+      params.push(user_role);
     }
 
     if (action_type) {
-      query = query.eq('action_type', action_type);
+      conditions.push(`action_type = $${paramIdx++}`);
+      params.push(action_type);
     }
 
     if (date_from) {
-      query = query.gte('created_at', date_from);
+      conditions.push(`created_at >= $${paramIdx++}`);
+      params.push(date_from);
     }
 
     if (date_to) {
-      query = query.lte('created_at', date_to);
+      conditions.push(`created_at <= $${paramIdx++}`);
+      params.push(date_to);
     }
 
     if (search) {
-      query = query.or(`details.ilike.%${search}%,user_email.ilike.%${search}%`);
+      conditions.push(`(details ILIKE $${paramIdx} OR user_email ILIKE $${paramIdx})`);
+      params.push(`%${search}%`);
+      paramIdx++;
     }
 
+    const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
+
     // Pagination
-    const offset = (parseInt(page) - 1) * parseInt(limit);
-    query = query.range(offset, offset + parseInt(limit) - 1);
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const offset = (pageNum - 1) * limitNum;
 
-    const { data: logs, error, count } = await query;
+    // Use window function for total count alongside data
+    const sql = `SELECT *, count(*) OVER() AS total_count FROM audit_logs ${whereClause} ORDER BY created_at DESC LIMIT $${paramIdx++} OFFSET $${paramIdx++}`;
+    params.push(limitNum, offset);
 
-    if (error) {throw error;}
+    const { rows } = await query(sql, params);
+
+    const totalCount = rows.length > 0 ? parseInt(rows[0].total_count) : 0;
+
+    // Strip the total_count field from each row before returning
+    const logs = rows.map(({ total_count, ...rest }) => rest);
 
     res.json({
-      logs: logs || [],
+      logs,
       pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total: count || 0,
-        pages: Math.ceil((count || 0) / parseInt(limit))
+        page: pageNum,
+        limit: limitNum,
+        total: totalCount,
+        pages: Math.ceil(totalCount / limitNum)
       }
     });
   } catch (error) {

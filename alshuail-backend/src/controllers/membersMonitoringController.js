@@ -1,4 +1,4 @@
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
 
 // Financial calculation constants for 5-year subscription (2021-2025)
@@ -69,9 +69,9 @@ const transformMemberForFrontend = (member) => {
     ...member,
     // Mapped fields for frontend
     member_number: member.membership_number || member.id,
-    full_name_arabic: member.full_name || 'غير محدد',
+    full_name_arabic: member.full_name || '\u063a\u064a\u0631 \u0645\u062d\u062f\u062f',
     phone_number: member.phone || '',
-    branch_arabic: member.tribal_section || 'غير محدد',
+    branch_arabic: member.tribal_section || '\u063a\u064a\u0631 \u0645\u062d\u062f\u062f',
     // Correct financial calculations
     current_balance: currentPaid,
     required_balance: requiredRemaining,
@@ -99,23 +99,25 @@ export const getAllMembersForMonitoring = async (req, res) => {
     let hasMore = true;
 
     while (hasMore) {
-      const { data, error, count } = await supabase
-        .from('members')
-        .select('id, membership_number, full_name, full_name_en, phone, email, tribal_section, membership_status, status, balance_status, current_balance, balance, total_balance, total_paid, is_active, created_at, updated_at', { count: 'exact' })
-        .order('created_at', { ascending: false })
-        .range(page * batchSize, (page + 1) * batchSize - 1);
+      const offset = page * batchSize;
 
-      if (error) {
-        log.error('Error fetching members batch', { error: error.message, page });
-        throw error;
-      }
+      const { rows: data, rowCount } = await query(
+        `SELECT id, membership_number, full_name, full_name_en, phone, email,
+                tribal_section, membership_status, status, balance_status,
+                current_balance, balance, total_balance, total_paid,
+                is_active, created_at, updated_at
+         FROM members
+         ORDER BY created_at DESC
+         LIMIT $1 OFFSET $2`,
+        [batchSize, offset]
+      );
 
       if (data && data.length > 0) {
         allMembers = allMembers.concat(data);
         page++;
 
         // Check if we got all members
-        if (data.length < batchSize || allMembers.length >= count) {
+        if (data.length < batchSize) {
           hasMore = false;
         }
       } else {
@@ -173,14 +175,14 @@ export const getAllMembersForMonitoring = async (req, res) => {
       total: transformedMembers.length,
       statistics: statistics,
       subscription_config: SUBSCRIPTION_CONFIG,
-      message: `تم جلب جميع ${transformedMembers.length} عضو`
+      message: `\u062a\u0645 \u062c\u0644\u0628 \u062c\u0645\u064a\u0639 ${transformedMembers.length} \u0639\u0636\u0648`
     });
 
   } catch (error) {
     log.error('Failed to fetch all members for monitoring', { error: error.message });
     res.status(500).json({
       success: false,
-      error: error.message || 'فشل في جلب بيانات الأعضاء للمراقبة'
+      error: error.message || '\u0641\u0634\u0644 \u0641\u064a \u062c\u0644\u0628 \u0628\u064a\u0627\u0646\u0627\u062a \u0627\u0644\u0623\u0639\u0636\u0627\u0621 \u0644\u0644\u0645\u0631\u0627\u0642\u0628\u0629'
     });
   }
 };

@@ -2,10 +2,10 @@
  * @fileoverview Subscription Management Controller
  * @description Handles all subscription-related operations including
  *              plans, member subscriptions, payments, and reminders
- * @version 2.0.0
+ * @version 3.0.0
  * @module controllers/subscriptionController
  *
- * @requires ../config/database.js - Supabase client
+ * @requires ../services/database.js - Direct PostgreSQL via pg.Pool
  * @requires ../utils/logger.js - Logging utility
  *
  * @business-rules
@@ -15,7 +15,7 @@
  * - Active status: balance >= 0
  */
 
-import { supabase } from '../config/database.js';
+import { query, getClient } from '../services/database.js';
 import { log } from '../utils/logger.js';
 
 // ========================================
@@ -23,13 +23,10 @@ import { log } from '../utils/logger.js';
 // ========================================
 export const getSubscriptionPlans = async (req, res) => {
   try {
-    const { data: plans, error } = await supabase
-      .from('subscription_plans')
-      .select('*')
-      .eq('is_active', true)
-      .order('base_amount', { ascending: true });
-
-    if (error) {throw error;}
+    const { rows: plans } = await query(
+      'SELECT * FROM subscription_plans WHERE is_active = $1 ORDER BY base_amount ASC',
+      [true]
+    );
 
     res.json({
       success: true,
@@ -60,14 +57,15 @@ export const getMemberSubscription = async (req, res) => {
     }
 
     // Get subscription from view (has all calculated fields)
-    const { data: subscription, error } = await supabase
-      .from('v_subscription_overview')
-      .select('*')
-      .eq('member_id', member_id)
-      .single();
+    const { rows } = await query(
+      'SELECT * FROM v_subscription_overview WHERE member_id = $1 LIMIT 1',
+      [member_id]
+    );
 
-    if (error) {
-      log.error('Subscription: Get member subscription error', { error: error.message });
+    const subscription = rows[0];
+
+    if (!subscription) {
+      log.error('Subscription: Get member subscription error', { member_id });
       return res.status(404).json({
         success: false,
         message: 'لم يتم العثور على اشتراك لهذا العضو'
@@ -115,11 +113,12 @@ export const getPaymentHistory = async (req, res) => {
     }
 
     // Get subscription_id first
-    const { data: subscription } = await supabase
-      .from('subscriptions')
-      .select('id')
-      .eq('member_id', member_id)
-      .single();
+    const { rows: subRows } = await query(
+      'SELECT id FROM subscriptions WHERE member_id = $1 LIMIT 1',
+      [member_id]
+    );
+
+    const subscription = subRows[0];
 
     if (!subscription) {
       return res.json({
@@ -132,25 +131,22 @@ export const getPaymentHistory = async (req, res) => {
     }
 
     // Get total count
-    const { count } = await supabase
-      .from('payments')
-      .select('*', { count: 'exact', head: true })
-      .eq('subscription_id', subscription.id);
+    const { rows: countRows } = await query(
+      'SELECT COUNT(*) AS count FROM payments WHERE subscription_id = $1',
+      [subscription.id]
+    );
+    const total = parseInt(countRows[0].count) || 0;
 
     // Get payments with pagination
-    const { data: payments, error } = await supabase
-      .from('payments')
-      .select('*')
-      .eq('subscription_id', subscription.id)
-      .order('payment_date', { ascending: false })
-      .range(offset, offset + limit - 1);
-
-    if (error) {throw error;}
+    const { rows: payments } = await query(
+      'SELECT * FROM payments WHERE subscription_id = $1 ORDER BY payment_date DESC LIMIT $2 OFFSET $3',
+      [subscription.id, limit, offset]
+    );
 
     res.json({
       success: true,
       payments: payments || [],
-      total: count || 0,
+      total,
       page,
       limit
     });
@@ -175,34 +171,41 @@ export const getAllSubscriptions = async (req, res) => {
     const statusFilter = req.query.status; // 'all', 'active', 'overdue'
     const searchTerm = req.query.search;
 
-    // Build query
-    let query = supabase
-      .from('v_subscription_overview')
-      .select('*', { count: 'exact' });
+    // Build dynamic WHERE clauses
+    const conditions = [];
+    const params = [];
+    let paramIndex = 1;
 
-    // Apply filters
     if (statusFilter && statusFilter !== 'all') {
-      query = query.eq('status', statusFilter);
+      conditions.push(`status = $${paramIndex++}`);
+      params.push(statusFilter);
     }
 
     if (searchTerm) {
-      query = query.or(`member_name.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%`);
+      conditions.push(`(member_name ILIKE $${paramIndex} OR phone ILIKE $${paramIndex})`);
+      params.push(`%${searchTerm}%`);
+      paramIndex++;
     }
 
+    const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
+
     // Get total count
-    const { count } = await query;
+    const { rows: countRows } = await query(
+      `SELECT COUNT(*) AS count FROM v_subscription_overview ${whereClause}`,
+      params
+    );
+    const total = parseInt(countRows[0].count) || 0;
 
     // Get paginated data
-    const { data: subscriptions, error } = await query
-      .order('next_payment_due', { ascending: true })
-      .range(offset, offset + limit - 1);
-
-    if (error) {throw error;}
+    const { rows: subscriptions } = await query(
+      `SELECT * FROM v_subscription_overview ${whereClause} ORDER BY next_payment_due ASC LIMIT $${paramIndex++} OFFSET $${paramIndex}`,
+      [...params, limit, offset]
+    );
 
     // Get quick stats
-    const { data: stats } = await supabase
-      .from('v_subscription_overview')
-      .select('status');
+    const { rows: stats } = await query(
+      'SELECT status FROM v_subscription_overview'
+    );
 
     const statsData = {
       total_members: stats?.length || 0,
@@ -213,7 +216,7 @@ export const getAllSubscriptions = async (req, res) => {
     res.json({
       success: true,
       subscriptions: subscriptions || [],
-      total: count || 0,
+      total,
       page,
       limit,
       stats: statsData
@@ -234,11 +237,9 @@ export const getAllSubscriptions = async (req, res) => {
 export const getSubscriptionStats = async (req, res) => {
   try {
     // Get all subscriptions from view
-    const { data: subscriptions, error } = await supabase
-      .from('v_subscription_overview')
-      .select('*');
-
-    if (error) {throw error;}
+    const { rows: subscriptions } = await query(
+      'SELECT * FROM v_subscription_overview'
+    );
 
     const total_members = subscriptions.length;
     const active = subscriptions.filter(s => s.status === 'active').length;
@@ -280,13 +281,10 @@ export const getSubscriptionStats = async (req, res) => {
 // ========================================
 export const getOverdueMembers = async (req, res) => {
   try {
-    const { data: overdueMembers, error } = await supabase
-      .from('v_subscription_overview')
-      .select('*')
-      .eq('status', 'overdue')
-      .order('next_payment_due', { ascending: true });
-
-    if (error) {throw error;}
+    const { rows: overdueMembers } = await query(
+      'SELECT * FROM v_subscription_overview WHERE status = $1 ORDER BY next_payment_due ASC',
+      ['overdue']
+    );
 
     const total_due = overdueMembers.reduce((sum, member) =>
       sum + (member.amount_due || 50), 0);
@@ -309,6 +307,7 @@ export const getOverdueMembers = async (req, res) => {
 // ========================================
 // 7. Record a payment (ADMIN ONLY)
 // Supports pay-on-behalf: payer_id pays, beneficiary_id receives credit
+// TRANSACTION: payment insert + subscription update + member balance update + notification
 // ========================================
 export const recordPayment = async (req, res) => {
   try {
@@ -350,14 +349,14 @@ export const recordPayment = async (req, res) => {
       });
     }
 
-    // Get beneficiary's subscription (the person receiving credit)
-    const { data: subscription, error: _subError } = await supabase
-      .from('subscriptions')
-      .select('*')
-      .eq('member_id', actualBeneficiaryId)
-      .single();
+    // Read-only lookups before transaction
+    const { rows: subRows } = await query(
+      'SELECT * FROM subscriptions WHERE member_id = $1 LIMIT 1',
+      [actualBeneficiaryId]
+    );
+    const subscription = subRows[0];
 
-    if (_subError || !subscription) {
+    if (!subscription) {
       return res.status(404).json({
         success: false,
         message: 'لم يتم العثور على اشتراك للعضو المستفيد'
@@ -365,49 +364,23 @@ export const recordPayment = async (req, res) => {
     }
 
     // Get beneficiary's user_id for notification
-    const { data: beneficiaryMember } = await supabase
-      .from('members')
-      .select('user_id, full_name')
-      .eq('id', actualBeneficiaryId)
-      .single();
+    const { rows: beneficiaryRows } = await query(
+      'SELECT user_id, full_name FROM members WHERE id = $1 LIMIT 1',
+      [actualBeneficiaryId]
+    );
+    const beneficiaryMember = beneficiaryRows[0];
 
     // Get payer's info if on-behalf payment
     let payerMember = null;
     if (isOnBehalf && actualPayerId) {
-      const { data: payer } = await supabase
-        .from('members')
-        .select('user_id, full_name')
-        .eq('id', actualPayerId)
-        .single();
-      payerMember = payer;
+      const { rows: payerRows } = await query(
+        'SELECT user_id, full_name FROM members WHERE id = $1 LIMIT 1',
+        [actualPayerId]
+      );
+      payerMember = payerRows[0];
     }
 
-    // Start transaction: Record payment
-    const { data: payment, error: _paymentError } = await supabase
-      .from('payments')
-      .insert({
-        subscription_id: subscription.id,
-        payer_id: actualPayerId,
-        beneficiary_id: actualBeneficiaryId,
-        is_on_behalf: isOnBehalf,
-        amount: amount,
-        months_purchased: months,
-        payment_date: new Date().toISOString(),
-        payment_method: payment_method || 'cash',
-        receipt_number: receipt_number || `REC-${Date.now()}`,
-        reference_number: `REF-${Date.now()}`,
-        status: 'completed',
-        processed_by: req.user.id || req.user.user_id,
-        processing_notes: isOnBehalf
-          ? `دفع نيابة عن العضو - ${notes || ''}`.trim()
-          : (notes || '')
-      })
-      .select()
-      .single();
-
-    if (_paymentError) {throw _paymentError;}
-
-    // Calculate new values - cap balance at 3000 SAR (50 SAR × 60 months = 5 years max)
+    // Calculate new values - cap balance at 3000 SAR (50 SAR x 60 months = 5 years max)
     const MAX_BALANCE = 3000;
     const calculated_balance = (subscription.current_balance || 0) + amount;
     const new_balance = Math.min(calculated_balance, MAX_BALANCE);
@@ -415,50 +388,91 @@ export const recordPayment = async (req, res) => {
     const next_payment_due = new Date();
     next_payment_due.setMonth(next_payment_due.getMonth() + months_paid_ahead);
 
-    // Update subscription
-    const { error: _updateError } = await supabase
-      .from('subscriptions')
-      .update({
-        current_balance: new_balance,
-        months_paid_ahead: months_paid_ahead,
-        next_payment_due: next_payment_due.toISOString(),
-        last_payment_date: new Date().toISOString(),
-        last_payment_amount: amount,
-        status: 'active',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', subscription.id);
+    // === TRANSACTION: payment + subscription + member balance + notification ===
+    const client = await getClient();
+    let payment;
+    try {
+      await client.query('BEGIN');
 
-    if (_updateError) {throw _updateError;}
+      // 1. Insert payment
+      const { rows: paymentRows } = await client.query(
+        `INSERT INTO payments (
+          subscription_id, payer_id, beneficiary_id, is_on_behalf,
+          amount, months_purchased, payment_date, payment_method,
+          receipt_number, reference_number, status, processed_by, processing_notes
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        RETURNING *`,
+        [
+          subscription.id,
+          actualPayerId,
+          actualBeneficiaryId,
+          isOnBehalf,
+          amount,
+          months,
+          new Date().toISOString(),
+          payment_method || 'cash',
+          receipt_number || `REC-${Date.now()}`,
+          `REF-${Date.now()}`,
+          'completed',
+          req.user.id || req.user.user_id,
+          isOnBehalf
+            ? `دفع نيابة عن العضو - ${notes || ''}`.trim()
+            : (notes || '')
+        ]
+      );
+      payment = paymentRows[0];
 
-    // Update beneficiary's member balance (all balance fields)
-    const { error: _memberUpdateError } = await supabase
-      .from('members')
-      .update({
-        balance: new_balance,
-        current_balance: new_balance,
-        total_paid: new_balance
-      })
-      .eq('id', actualBeneficiaryId);
+      // 2. Update subscription
+      await client.query(
+        `UPDATE subscriptions SET
+          current_balance = $1, months_paid_ahead = $2,
+          next_payment_due = $3, last_payment_date = $4,
+          last_payment_amount = $5, status = $6, updated_at = $7
+        WHERE id = $8`,
+        [
+          new_balance,
+          months_paid_ahead,
+          next_payment_due.toISOString(),
+          new Date().toISOString(),
+          amount,
+          'active',
+          new Date().toISOString(),
+          subscription.id
+        ]
+      );
 
-    if (_memberUpdateError) {throw _memberUpdateError;}
+      // 3. Update beneficiary's member balance (all balance fields)
+      await client.query(
+        `UPDATE members SET balance = $1, current_balance = $1, total_paid = $1 WHERE id = $2`,
+        [new_balance, actualBeneficiaryId]
+      );
 
-    // Create notification for beneficiary
-    if (beneficiaryMember?.user_id) {
-      const notificationMessage = isOnBehalf && payerMember
-        ? `تم تسجيل دفعة بمبلغ ${amount} ريال من ${payerMember.full_name} نيابة عنك. شكراً لك!`
-        : `تم تسجيل دفعة بمبلغ ${amount} ريال. شكراً لك!`;
+      // 4. Create notification for beneficiary
+      if (beneficiaryMember?.user_id) {
+        const notificationMessage = isOnBehalf && payerMember
+          ? `تم تسجيل دفعة بمبلغ ${amount} ريال من ${payerMember.full_name} نيابة عنك. شكراً لك!`
+          : `تم تسجيل دفعة بمبلغ ${amount} ريال. شكراً لك!`;
 
-      await supabase
-        .from('notifications')
-        .insert({
-          user_id: beneficiaryMember.user_id,
-          title: isOnBehalf ? 'تم استلام دفعة نيابة عنك' : 'تم استلام دفعتك',
-          message: notificationMessage,
-          type: 'payment_confirmation',
-          priority: 'high',
-          read: false
-        });
+        await client.query(
+          `INSERT INTO notifications (user_id, title, message, type, priority, read)
+           VALUES ($1, $2, $3, $4, $5, $6)`,
+          [
+            beneficiaryMember.user_id,
+            isOnBehalf ? 'تم استلام دفعة نيابة عنك' : 'تم استلام دفعتك',
+            notificationMessage,
+            'payment_confirmation',
+            'high',
+            false
+          ]
+        );
+      }
+
+      await client.query('COMMIT');
+    } catch (e) {
+      await client.query('ROLLBACK');
+      throw e;
+    } finally {
+      client.release();
     }
 
     res.json({
@@ -501,10 +515,10 @@ export const sendPaymentReminder = async (req, res) => {
 
     if (send_to_all) {
       // Get all overdue members
-      const { data: overdue } = await supabase
-        .from('v_subscription_overview')
-        .select('member_id')
-        .eq('status', 'overdue');
+      const { rows: overdue } = await query(
+        'SELECT member_id FROM v_subscription_overview WHERE status = $1',
+        ['overdue']
+      );
 
       targetMembers = overdue?.map(m => m.member_id) || [];
     } else if (member_ids && Array.isArray(member_ids)) {
@@ -526,10 +540,10 @@ export const sendPaymentReminder = async (req, res) => {
     }
 
     // Get member details
-    const { data: members } = await supabase
-      .from('members')
-      .select('id, user_id, full_name, phone')
-      .in('id', targetMembers);
+    const { rows: members } = await query(
+      'SELECT id, user_id, full_name, phone FROM members WHERE id = ANY($1)',
+      [targetMembers]
+    );
 
     let sent = 0;
     let failed = 0;
@@ -539,18 +553,18 @@ export const sendPaymentReminder = async (req, res) => {
     for (const member of members) {
       if (member.user_id) {
         try {
-          const { error } = await supabase
-            .from('notifications')
-            .insert({
-              user_id: member.user_id,
-              title: 'تنبيه دفع الاشتراك',
-              message: 'اشتراكك الشهري (50 ريال) متأخر. الرجاء الدفع في أقرب وقت.',
-              type: 'payment_reminder',
-              priority: 'high',
-              read: false
-            });
-
-          if (error) {throw error;}
+          await query(
+            `INSERT INTO notifications (user_id, title, message, type, priority, read)
+             VALUES ($1, $2, $3, $4, $5, $6)`,
+            [
+              member.user_id,
+              'تنبيه دفع الاشتراك',
+              'اشتراكك الشهري (50 ريال) متأخر. الرجاء الدفع في أقرب وقت.',
+              'payment_reminder',
+              'high',
+              false
+            ]
+          );
 
           sent++;
           details.push({

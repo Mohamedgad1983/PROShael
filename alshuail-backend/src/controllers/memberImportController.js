@@ -1,4 +1,4 @@
-import { supabase } from '../config/database.js';
+import { query, getClient } from '../services/database.js';
 import ExcelJS from 'exceljs';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
@@ -44,7 +44,7 @@ function validatePhoneNumber(phone) {
 
   // Try to fix common formats
   if (cleanPhone.startsWith('5') && cleanPhone.length === 9) {
-    return `0${  cleanPhone}`;
+    return `0${cleanPhone}`;
   }
 
   return null;
@@ -53,17 +53,15 @@ function validatePhoneNumber(phone) {
 // Helper function to generate next membership number
 async function getNextMembershipNumber() {
   try {
-    const { data: lastMember, error } = await supabase
-      .from('members')
-      .select('membership_number')
-      .like('membership_number', '1%')
-      .order('membership_number', { ascending: false })
-      .limit(1);
+    const result = await query(
+      `SELECT membership_number FROM members
+       WHERE membership_number LIKE '1%'
+       ORDER BY membership_number DESC
+       LIMIT 1`
+    );
 
-    if (error) {throw error;}
-
-    if (lastMember && lastMember.length > 0) {
-      const lastNumber = parseInt(lastMember[0].membership_number);
+    if (result.rows && result.rows.length > 0) {
+      const lastNumber = parseInt(result.rows[0].membership_number);
       return (lastNumber + 1).toString();
     }
 
@@ -142,16 +140,11 @@ export const importMembersFromExcel = async (req, res) => {
 
     // Create import batch record
     batchId = uuidv4();
-    const { error: _batchError } = await supabase
-      .from('excel_import_batches')
-      .insert({
-        id: batchId,
-        filename: req.file.originalname,
-        total_records: jsonData.length,
-        status: 'processing'
-      });
-
-    if (_batchError) {throw _batchError;}
+    await query(
+      `INSERT INTO excel_import_batches (id, filename, total_records, status)
+       VALUES ($1, $2, $3, $4)`,
+      [batchId, req.file.originalname, jsonData.length, 'processing']
+    );
 
     let successfulImports = 0;
     let failedImports = 0;
@@ -184,13 +177,12 @@ export const importMembersFromExcel = async (req, res) => {
         }
 
         // Check for duplicate phone number
-        const { data: existingMember } = await supabase
-          .from('members')
-          .select('id, phone')
-          .eq('phone', phone)
-          .single();
+        const existingMemberResult = await query(
+          'SELECT id, phone FROM members WHERE phone = $1',
+          [phone]
+        );
 
-        if (existingMember) {
+        if (existingMemberResult.rows && existingMemberResult.rows.length > 0) {
           errors.push({ row: rowNum, error: `رقم الهاتف ${phone} موجود مسبقاً` });
           failedImports++;
           continue;
@@ -203,13 +195,12 @@ export const importMembersFromExcel = async (req, res) => {
         }
 
         // Check for duplicate membership number
-        const { data: existingMembershipNumber } = await supabase
-          .from('members')
-          .select('id, membership_number')
-          .eq('membership_number', finalMembershipNumber)
-          .single();
+        const existingMembershipResult = await query(
+          'SELECT id, membership_number FROM members WHERE membership_number = $1',
+          [finalMembershipNumber]
+        );
 
-        if (existingMembershipNumber) {
+        if (existingMembershipResult.rows && existingMembershipResult.rows.length > 0) {
           finalMembershipNumber = await getNextMembershipNumber();
         }
 
@@ -218,25 +209,27 @@ export const importMembersFromExcel = async (req, res) => {
         const hashedTempPassword = await bcrypt.hash(tempPassword, 12);
 
         // Create member record
-        const memberData = {
-          full_name: fullNameArabic,
-          phone: phone,
-          whatsapp_number: whatsapp,
-          membership_number: finalMembershipNumber,
-          temp_password: hashedTempPassword,
-          excel_import_batch: batchId,
-          profile_completed: false,
-          membership_status: 'active',
-          membership_date: new Date().toISOString().split('T')[0]
-        };
+        const newMemberResult = await query(
+          `INSERT INTO members (
+            full_name, phone, whatsapp_number, membership_number,
+            temp_password, excel_import_batch, profile_completed,
+            membership_status, membership_date
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+          RETURNING *`,
+          [
+            fullNameArabic,
+            phone,
+            whatsapp,
+            finalMembershipNumber,
+            hashedTempPassword,
+            batchId,
+            false,
+            'active',
+            new Date().toISOString().split('T')[0]
+          ]
+        );
 
-        const { data: newMember, error: _memberError } = await supabase
-          .from('members')
-          .insert(memberData)
-          .select()
-          .single();
-
-        if (_memberError) {throw _memberError;}
+        const newMember = newMemberResult.rows[0];
 
         // Generate registration token
         let registrationToken;
@@ -245,30 +238,23 @@ export const importMembersFromExcel = async (req, res) => {
         // Ensure unique token
         while (tokenExists) {
           registrationToken = generateRegistrationToken();
-          const { data: existingToken } = await supabase
-            .from('member_registration_tokens')
-            .select('id')
-            .eq('token', registrationToken)
-            .single();
-
-          tokenExists = !!existingToken;
+          const existingTokenResult = await query(
+            'SELECT id FROM member_registration_tokens WHERE token = $1',
+            [registrationToken]
+          );
+          tokenExists = existingTokenResult.rows && existingTokenResult.rows.length > 0;
         }
 
         // Create registration token record
         const expiryDate = new Date();
         expiryDate.setDate(expiryDate.getDate() + 30); // 30 days expiry
 
-        const { error: _tokenError } = await supabase
-          .from('member_registration_tokens')
-          .insert({
-            member_id: newMember.id,
-            token: registrationToken,
-            temp_password: tempPassword, // Store plain text for SMS
-            expires_at: expiryDate.toISOString(),
-            is_used: false
-          });
-
-        if (_tokenError) {throw _tokenError;}
+        await query(
+          `INSERT INTO member_registration_tokens (
+            member_id, token, temp_password, expires_at, is_used
+          ) VALUES ($1, $2, $3, $4, $5)`,
+          [newMember.id, registrationToken, tempPassword, expiryDate.toISOString(), false]
+        );
 
         importedMembers.push({
           ...newMember,
@@ -290,20 +276,23 @@ export const importMembersFromExcel = async (req, res) => {
 
     // Update batch status
     const batchStatus = failedImports > 0 ? 'completed_with_errors' : 'completed';
-    const { error: _updateBatchError } = await supabase
-      .from('excel_import_batches')
-      .update({
-        successful_imports: successfulImports,
-        failed_imports: failedImports,
-        status: batchStatus,
-        error_details: errors.length > 0 ? errors : null,
-        completed_at: new Date().toISOString()
-      })
-      .eq('id', batchId);
-
-    if (_updateBatchError) {
-      log.error('Error updating batch status', { error: _updateBatchError.message });
-    }
+    await query(
+      `UPDATE excel_import_batches
+       SET successful_imports = $1,
+           failed_imports = $2,
+           status = $3,
+           error_details = $4,
+           completed_at = $5
+       WHERE id = $6`,
+      [
+        successfulImports,
+        failedImports,
+        batchStatus,
+        errors.length > 0 ? JSON.stringify(errors) : null,
+        new Date().toISOString(),
+        batchId
+      ]
+    );
 
     // Return response
     res.json({
@@ -324,14 +313,14 @@ export const importMembersFromExcel = async (req, res) => {
 
     // Update batch status to failed if batch was created
     if (batchId) {
-      await supabase
-        .from('excel_import_batches')
-        .update({
-          status: 'failed',
-          error_details: [{ error: error.message }],
-          completed_at: new Date().toISOString()
-        })
-        .eq('id', batchId);
+      await query(
+        `UPDATE excel_import_batches
+         SET status = $1,
+             error_details = $2,
+             completed_at = $3
+         WHERE id = $4`,
+        ['failed', JSON.stringify([{ error: error.message }]), new Date().toISOString(), batchId]
+      );
     }
 
     res.status(500).json({
@@ -346,26 +335,24 @@ export const getImportHistory = async (req, res) => {
     const { page = 1, limit = 10 } = req.query;
     const offset = (page - 1) * limit;
 
-    const { data: importHistory, error } = await supabase
-      .from('excel_import_batches')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+    const result = await query(
+      `SELECT * FROM excel_import_batches
+       ORDER BY created_at DESC
+       LIMIT $1 OFFSET $2`,
+      [limit, offset]
+    );
 
-    if (error) {throw error;}
-
-    const { count } = await supabase
-      .from('excel_import_batches')
-      .select('*', { count: 'exact', head: true });
+    const countResult = await query('SELECT COUNT(*) as count FROM excel_import_batches');
+    const count = parseInt(countResult.rows[0].count);
 
     res.json({
       success: true,
-      data: importHistory || [],
+      data: result.rows || [],
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
-        total: count || 0,
-        pages: Math.ceil((count || 0) / limit)
+        total: count,
+        pages: Math.ceil(count / limit)
       }
     });
 
@@ -381,35 +368,34 @@ export const getImportBatchDetails = async (req, res) => {
   try {
     const { batchId } = req.params;
 
-    const { data: batch, error: _batchError } = await supabase
-      .from('excel_import_batches')
-      .select('*')
-      .eq('id', batchId)
-      .single();
+    const batchResult = await query(
+      'SELECT * FROM excel_import_batches WHERE id = $1',
+      [batchId]
+    );
 
-    if (_batchError) {throw _batchError;}
-
-    if (!batch) {
+    if (!batchResult.rows || batchResult.rows.length === 0) {
       return res.status(404).json({
         success: false,
         error: 'دفعة الاستيراد غير موجودة'
       });
     }
 
-    // Get members imported in this batch
-    const { data: members, error: _membersError } = await supabase
-      .from('members')
-      .select('id, full_name, phone, membership_number, profile_completed, created_at')
-      .eq('excel_import_batch', batchId)
-      .order('created_at', { ascending: false });
+    const batch = batchResult.rows[0];
 
-    if (_membersError) {throw _membersError;}
+    // Get members imported in this batch
+    const membersResult = await query(
+      `SELECT id, full_name, phone, membership_number, profile_completed, created_at
+       FROM members
+       WHERE excel_import_batch = $1
+       ORDER BY created_at DESC`,
+      [batchId]
+    );
 
     res.json({
       success: true,
       data: {
         batch_info: batch,
-        imported_members: members || []
+        imported_members: membersResult.rows || []
       }
     });
 

@@ -1,14 +1,13 @@
 // Admin Management Controller
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 import { logAdminAction, ACTIONS, RESOURCE_TYPES } from '../utils/audit-logger.js';
 
 /**
  * Generate unique member ID
  */
 async function generateMemberId() {
-  const { count } = await supabase
-    .from('members')
-    .select('id', { count: 'exact', head: true });
+  const { rows } = await query('SELECT COUNT(*) as count FROM members');
+  const count = parseInt(rows[0].count);
 
   return `SH-${String(count + 1).padStart(4, '0')}`;
 }
@@ -46,13 +45,12 @@ export const addMember = async (req, res) => {
     }
 
     // Check if phone already exists
-    const { data: existing } = await supabase
-      .from('members')
-      .select('id')
-      .eq('phone', phone)
-      .single();
+    const { rows: existing } = await query(
+      'SELECT id FROM members WHERE phone = $1',
+      [phone]
+    );
 
-    if (existing) {
+    if (existing.length > 0) {
       return res.status(400).json({
         success: false,
         message: 'رقم الهاتف مسجل مسبقاً'
@@ -63,29 +61,34 @@ export const addMember = async (req, res) => {
     const memberId = await generateMemberId();
 
     // Insert member
-    const { data: member, error: insertError } = await supabase
-      .from('members')
-      .insert({
-        member_id: memberId,
+    const { rows: memberRows } = await query(
+      `INSERT INTO members (
+        member_id, full_name_ar, full_name_en, phone, family_branch_id,
+        registration_status, is_active, created_by, created_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      RETURNING *`,
+      [
+        memberId,
         full_name_ar,
-        full_name_en: full_name_en || full_name_ar,
+        full_name_en || full_name_ar,
         phone,
         family_branch_id,
-        registration_status: 'pending_approval',
-        is_active: false,
-        created_by: adminId,
-        created_at: new Date().toISOString()
-      })
-      .select()
-      .single();
+        'pending_approval',
+        false,
+        adminId,
+        new Date().toISOString()
+      ]
+    );
 
-    if (insertError) {
-      console.error('Insert Error:', insertError);
+    if (!memberRows || memberRows.length === 0) {
+      console.error('Insert Error: No rows returned');
       return res.status(500).json({
         success: false,
         message: 'خطأ في إضافة العضو'
       });
     }
+
+    const member = memberRows[0];
 
     // Log audit event
     await logAdminAction({
@@ -137,23 +140,23 @@ export const assignSubdivision = async (req, res) => {
     }
 
     // Update member
-    const { data: member, error: updateError } = await supabase
-      .from('members')
-      .update({
-        family_branch_id,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', memberId)
-      .select()
-      .single();
+    const { rows: memberRows } = await query(
+      `UPDATE members
+       SET family_branch_id = $1, updated_at = $2
+       WHERE id = $3
+       RETURNING *`,
+      [family_branch_id, new Date().toISOString(), memberId]
+    );
 
-    if (updateError) {
-      console.error('Update Error:', updateError);
+    if (!memberRows || memberRows.length === 0) {
+      console.error('Update Error: No rows returned');
       return res.status(500).json({
         success: false,
         message: 'خطأ في تعيين الفخذ'
       });
     }
+
+    const member = memberRows[0];
 
     // Log audit event
     await logAdminAction({
@@ -189,18 +192,9 @@ export const assignSubdivision = async (req, res) => {
  */
 export const getSubdivisions = async (req, res) => {
   try {
-    const { data: subdivisions, error } = await supabase
-      .from('family_branches')
-      .select('*')
-      .order('branch_name');
-
-    if (error) {
-      console.error('Get Subdivisions Error:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'خطأ في جلب الفخوذ'
-      });
-    }
+    const { rows: subdivisions } = await query(
+      'SELECT * FROM family_branches ORDER BY branch_name'
+    );
 
     res.json({
       success: true,
@@ -223,26 +217,26 @@ export const getSubdivisions = async (req, res) => {
 export const getDashboardStats = async (req, res) => {
   try {
     // Total members count
-    const { count: totalMembers } = await supabase
-      .from('members')
-      .select('id', { count: 'exact', head: true });
+    const { rows: totalRows } = await query('SELECT COUNT(*) as count FROM members');
+    const totalMembers = parseInt(totalRows[0].count);
 
     // Active members count
-    const { count: activeMembers } = await supabase
-      .from('members')
-      .select('id', { count: 'exact', head: true })
-      .eq('is_active', true);
+    const { rows: activeRows } = await query(
+      'SELECT COUNT(*) as count FROM members WHERE is_active = $1',
+      [true]
+    );
+    const activeMembers = parseInt(activeRows[0].count);
 
     // Pending approvals count
-    const { count: pendingApprovals } = await supabase
-      .from('members')
-      .select('id', { count: 'exact', head: true })
-      .eq('membership_status', 'pending_approval');
+    const { rows: pendingRows } = await query(
+      'SELECT COUNT(*) as count FROM members WHERE membership_status = $1',
+      ['pending_approval']
+    );
+    const pendingApprovals = parseInt(pendingRows[0].count);
 
     // Subdivisions count
-    const { count: subdivisions } = await supabase
-      .from('family_branches')
-      .select('id', { count: 'exact', head: true });
+    const { rows: subdivisionRows } = await query('SELECT COUNT(*) as count FROM family_branches');
+    const subdivisions = parseInt(subdivisionRows[0].count);
 
     res.json({
       success: true,

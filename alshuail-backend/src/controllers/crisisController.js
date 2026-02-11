@@ -1,20 +1,19 @@
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
 import { config } from '../config/env.js';
 
 // Get crisis dashboard data - members below minimum balance
 export const getCrisisDashboard = async (req, res) => {
   try {
-    const minimumBalance = 3600; // Required minimum balance (6 years × 600 SAR)
+    const minimumBalance = 3600; // Required minimum balance (6 years x 600 SAR)
 
     // Get all members with their current balance
-    const { data: members, error: _membersError } = await supabase
-      .from('members')
-      .select('*')
-      .order('full_name');
-
-    if (_membersError) {
-      log.error('Error fetching members', { error: _membersError.message });
+    let members;
+    try {
+      const { rows } = await query('SELECT * FROM members ORDER BY full_name');
+      members = rows;
+    } catch (membersErr) {
+      log.error('Error fetching members', { error: membersErr.message });
       // Return mock data if database is not ready
       return res.json(getMockCrisisData());
     }
@@ -22,11 +21,10 @@ export const getCrisisDashboard = async (req, res) => {
     // Calculate balances for each member
     const memberBalances = await Promise.all(members.map(async (member) => {
       // Get total payments for this member
-      const { data: payments, error: __paymentsError } = await supabase
-        .from('payments')
-        .select('amount')
-        .eq('payer_id', member.id)
-        .eq('status', 'completed');
+      const { rows: payments } = await query(
+        "SELECT amount FROM payments WHERE payer_id = $1 AND status = 'completed'",
+        [member.id]
+      );
 
       const totalPaid = payments?.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0) || 0;
 
@@ -88,30 +86,20 @@ export const updateMemberBalance = async (req, res) => {
     const { memberId, amount, type } = req.body;
 
     // Record the payment
-    const { data: payment, error: _paymentError } = await supabase
-      .from('payments')
-      .insert({
-        payer_id: memberId,
-        amount: amount,
-        category: type || 'contribution',
-        status: 'completed',
-        payment_method: 'online',
-        title: 'مساهمة في الصندوق',
-        created_at: new Date().toISOString()
-      })
-      .select()
-      .single();
+    const { rows: paymentRows } = await query(
+      `INSERT INTO payments (payer_id, amount, category, status, payment_method, title, created_at)
+       VALUES ($1, $2, $3, 'completed', 'online', 'مساهمة في الصندوق', $4)
+       RETURNING *`,
+      [memberId, amount, type || 'contribution', new Date().toISOString()]
+    );
 
-    if (_paymentError) {
-      throw _paymentError;
-    }
+    const payment = paymentRows[0];
 
     // Get updated balance for this member
-    const { data: allPayments, error: __fetchError } = await supabase
-      .from('payments')
-      .select('amount')
-      .eq('payer_id', memberId)
-      .eq('status', 'completed');
+    const { rows: allPayments } = await query(
+      "SELECT amount FROM payments WHERE payer_id = $1 AND status = 'completed'",
+      [memberId]
+    );
 
     const newBalance = allPayments?.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0) || 0;
 
@@ -186,27 +174,33 @@ function getMockCrisisData() {
 export const getCrisisAlerts = async (req, res) => {
   try {
     // Get active crisis alert
-    const { data: activeCrisis, error: activeError } = await supabase
-      .from('crisis_alerts')
-      .select('*')
-      .eq('status', 'active')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
+    let activeCrisis = null;
+    try {
+      const { rows: activeRows } = await query(
+        "SELECT * FROM crisis_alerts WHERE status = 'active' ORDER BY created_at DESC LIMIT 1"
+      );
+      activeCrisis = activeRows[0] || null;
+    } catch (_err) {
+      // Table may not exist yet
+    }
 
     // Get crisis history (last 20 alerts)
-    const { data: historyData, error: historyError } = await supabase
-      .from('crisis_alerts')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(20);
+    let historyData = [];
+    try {
+      const { rows: historyRows } = await query(
+        'SELECT * FROM crisis_alerts ORDER BY created_at DESC LIMIT 20'
+      );
+      historyData = historyRows || [];
+    } catch (_err) {
+      // Table may not exist yet
+    }
 
     // Return data (active can be null if no active crisis)
     res.json({
       success: true,
       data: {
-        active: activeCrisis || null,
-        history: historyData || []
+        active: activeCrisis,
+        history: historyData
       },
       message: 'تم جلب بيانات الطوارئ بنجاح'
     });
@@ -248,13 +242,13 @@ export const markMemberSafe = async (req, res) => {
     }
 
     // Verify crisis exists and is active
-    const { data: crisis, error: crisisError } = await supabase
-      .from('crisis_alerts')
-      .select('id, title, status')
-      .eq('id', crisis_id)
-      .single();
+    const { rows: crisisRows } = await query(
+      'SELECT id, title, status FROM crisis_alerts WHERE id = $1',
+      [crisis_id]
+    );
 
-    if (crisisError || !crisis) {
+    const crisis = crisisRows[0];
+    if (!crisis) {
       return res.status(404).json({
         success: false,
         error: 'تنبيه الطوارئ غير موجود',
@@ -263,14 +257,12 @@ export const markMemberSafe = async (req, res) => {
     }
 
     // Check if member already marked safe
-    const { data: existing, error: existingError } = await supabase
-      .from('crisis_responses')
-      .select('id')
-      .eq('crisis_id', crisis_id)
-      .eq('member_id', member_id)
-      .single();
+    const { rows: existingRows } = await query(
+      'SELECT id FROM crisis_responses WHERE crisis_id = $1 AND member_id = $2',
+      [crisis_id, member_id]
+    );
 
-    if (existing) {
+    if (existingRows.length > 0) {
       return res.json({
         success: true,
         data: {
@@ -284,32 +276,26 @@ export const markMemberSafe = async (req, res) => {
     }
 
     // Insert safe response
-    const { data: response, error: responseError } = await supabase
-      .from('crisis_responses')
-      .insert({
-        crisis_id,
-        member_id,
-        status: 'safe',
-        response_time: new Date().toISOString(),
-        created_at: new Date().toISOString()
-      })
-      .select()
-      .single();
+    const { rows: responseRows } = await query(
+      `INSERT INTO crisis_responses (crisis_id, member_id, status, response_time, created_at)
+       VALUES ($1, $2, 'safe', $3, $3)
+       RETURNING *`,
+      [crisis_id, member_id, new Date().toISOString()]
+    );
 
-    if (responseError) {
-      throw responseError;
+    const response = responseRows[0];
+
+    // Create notification for admin (fire-and-forget)
+    try {
+      await query(
+        `INSERT INTO notifications (member_id, title, message, type, created_at)
+         VALUES (1, 'رد على تنبيه طوارئ', $1, 'crisis_response', $2)`,
+        [`أبلغ عضو أنه بخير في "${crisis.title}"`, new Date().toISOString()]
+      );
+    } catch (_notifErr) {
+      // Non-critical, log but don't fail
+      log.error('Failed to create admin notification', { error: _notifErr.message });
     }
-
-    // Create notification for admin
-    await supabase
-      .from('notifications')
-      .insert({
-        member_id: 1, // Admin ID
-        title: 'رد على تنبيه طوارئ',
-        message: `أبلغ عضو أنه بخير في "${crisis.title}"`,
-        type: 'crisis_response',
-        created_at: new Date().toISOString()
-      });
 
     res.json({
       success: true,
@@ -336,16 +322,13 @@ export const markMemberSafe = async (req, res) => {
 export const getEmergencyContacts = async (req, res) => {
   try {
     // Get members marked as emergency contacts or family leadership
-    const { data: contacts, error: contactsError } = await supabase
-      .from('members')
-      .select('id, full_name, full_name_en, phone, email, role, photo_url')
-      .in('role', ['admin', 'board_member', 'emergency_contact'])
-      .eq('membership_status', 'active')
-      .order('role', { ascending: true });
-
-    if (contactsError) {
-      throw contactsError;
-    }
+    const { rows: contacts } = await query(
+      `SELECT id, full_name, full_name_en, phone, email, role, photo_url
+       FROM members
+       WHERE role = ANY($1) AND membership_status = 'active'
+       ORDER BY role ASC`,
+      [['admin', 'board_member', 'emergency_contact']]
+    );
 
     // Format contacts with priorities
     const formattedContacts = contacts.map(contact => ({

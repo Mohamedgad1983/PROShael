@@ -16,7 +16,7 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 import { config } from '../config/env.js';
 import { log } from '../utils/logger.js';
 import * as ultramsgService from '../services/ultramsgService.js';
@@ -150,28 +150,24 @@ async function findMemberByPhone(phone) {
     phone.startsWith('966') ? `0${phone.substring(3)}` : phone,
     phone.startsWith('965') ? phone.substring(3) : phone
   ];
-  
+
   for (const variant of phoneVariants) {
-    const { data, error } = await supabase
-      .from('members')
-      .select(`
-        id, 
-        full_name, 
-        phone, 
-        membership_number, 
-        membership_status,
-        balance,
-        family_branch_id,
-        created_at
-      `)
-      .or(`phone.eq.${variant},phone.eq.+${variant}`)
-      .single();
-    
-    if (data && !error) {
-      return data;
+    try {
+      const result = await query(
+        `SELECT id, full_name, phone, membership_number, membership_status, balance, family_branch_id, created_at
+         FROM members
+         WHERE phone = $1 OR phone = $2`,
+        [variant, `+${variant}`]
+      );
+
+      if (result.rows.length > 0) {
+        return result.rows[0];
+      }
+    } catch (error) {
+      log.error('Error finding member by phone', { error: error.message, variant });
     }
   }
-  
+
   return null;
 }
 
@@ -327,14 +323,17 @@ router.post('/verify', async (req, res) => {
     // Get branch info
     let branchName = 'غير محدد';
     if (member.family_branch_id) {
-      const { data: branch } = await supabase
-        .from('family_branches')
-        .select('branch_name')
-        .eq('id', member.family_branch_id)
-        .single();
-      
-      if (branch) {
-        branchName = branch.branch_name;
+      try {
+        const branchResult = await query(
+          'SELECT branch_name FROM family_branches WHERE id = $1',
+          [member.family_branch_id]
+        );
+
+        if (branchResult.rows.length > 0) {
+          branchName = branchResult.rows[0].branch_name;
+        }
+      } catch (error) {
+        log.error('Error fetching branch info', { error: error.message });
       }
     }
     

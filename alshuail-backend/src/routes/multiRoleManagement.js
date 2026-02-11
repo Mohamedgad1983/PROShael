@@ -1,5 +1,5 @@
 import express from 'express';
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { requireRole } from '../middleware/rbacMiddleware.js';
@@ -45,39 +45,43 @@ router.get('/search-members', authenticateToken, requireRole(['super_admin']), a
     const searchTerm = `%${q}%`;
 
     // Search in both users and members tables
-    const { data: usersResults, error: usersError } = await supabase
-      .from('users')
-      .select('id, email, full_name_en, phone, role, is_active')
-      .or(`email.ilike.${searchTerm},full_name_en.ilike.${searchTerm},phone.ilike.${searchTerm}`)
-      .eq('is_active', true)
-      .limit(limit);
+    const usersResult = await query(
+      `SELECT id, email, full_name_en, phone, role, is_active
+       FROM users
+       WHERE is_active = true
+       AND (email ILIKE $1 OR full_name_en ILIKE $1 OR phone ILIKE $1)
+       LIMIT $2`,
+      [searchTerm, limit]
+    );
+    const usersResults = usersResult.rows;
 
-    const { data: membersResults, error: membersError } = await supabase
-      .from('members')
-      .select('id, email, full_name, phone, role, is_active, membership_number')
-      .or(`email.ilike.${searchTerm},full_name.ilike.${searchTerm},phone.ilike.${searchTerm},membership_number.ilike.${searchTerm}`)
-      .eq('is_active', true)
-      .limit(limit);
-
-    if (usersError) throw usersError;
-    if (membersError) throw membersError;
+    const membersResult = await query(
+      `SELECT id, email, full_name, phone, role, is_active, membership_number
+       FROM members
+       WHERE is_active = true
+       AND (email ILIKE $1 OR full_name ILIKE $1 OR phone ILIKE $1 OR membership_number ILIKE $1)
+       LIMIT $2`,
+      [searchTerm, limit]
+    );
+    const membersResults = membersResult.rows;
 
     // Get current roles for each user
     const allResults = [
-      ...(usersResults || []).map(u => ({ ...u, full_name: u.full_name_en, source: 'users' })),
-      ...(membersResults || []).map(m => ({ ...m, source: 'members' }))
+      ...usersResults.map(u => ({ ...u, full_name: u.full_name_en, source: 'users' })),
+      ...membersResults.map(m => ({ ...m, source: 'members' }))
     ];
 
     // Fetch active role assignments for all found users
     const userIds = allResults.map(u => u.id);
-    const { data: roleAssignments } = await supabase
-      .from('v_user_roles_with_periods')
-      .select('*')
-      .in('user_id', userIds)
-      .eq('status', 'active');
+    const roleAssignmentsResult = await query(
+      `SELECT * FROM v_user_roles_with_periods
+       WHERE user_id = ANY($1) AND status = 'active'`,
+      [userIds]
+    );
+    const roleAssignments = roleAssignmentsResult.rows;
 
     // Group roles by user_id
-    const rolesByUser = (roleAssignments || []).reduce((acc, assignment) => {
+    const rolesByUser = roleAssignments.reduce((acc, assignment) => {
       if (!acc[assignment.user_id]) acc[assignment.user_id] = [];
       acc[assignment.user_id].push({
         role_id: assignment.role_id,
@@ -130,18 +134,18 @@ router.get('/users/:userId/roles', authenticateToken, requireRole(['super_admin'
   try {
     const { userId } = req.params;
 
-    const { data: assignments, error } = await supabase
-      .from('v_user_roles_with_periods')
-      .select('*')
-      .eq('user_id', userId)
-      .order('start_date_gregorian', { ascending: false });
-
-    if (error) throw error;
+    const result = await query(
+      `SELECT * FROM v_user_roles_with_periods
+       WHERE user_id = $1
+       ORDER BY start_date_gregorian DESC`,
+      [userId]
+    );
+    const assignments = result.rows;
 
     res.json({
       success: true,
-      data: assignments || [],
-      count: (assignments || []).length
+      data: assignments,
+      count: assignments.length
     });
 
   } catch (error) {
@@ -189,17 +193,17 @@ router.post('/assign', authenticateToken, requireRole(['super_admin']), async (r
     } = value;
 
     // Check if user exists in either users or members table
-    const { data: userInUsers } = await supabase
-      .from('users')
-      .select('id, email, full_name_en')
-      .eq('id', user_id)
-      .single();
+    const userInUsersResult = await query(
+      `SELECT id, email, full_name_en FROM users WHERE id = $1`,
+      [user_id]
+    );
+    const userInUsers = userInUsersResult.rows[0];
 
-    const { data: userInMembers } = await supabase
-      .from('members')
-      .select('id, email, full_name')
-      .eq('id', user_id)
-      .single();
+    const userInMembersResult = await query(
+      `SELECT id, email, full_name FROM members WHERE id = $1`,
+      [user_id]
+    );
+    const userInMembers = userInMembersResult.rows[0];
 
     if (!userInUsers && !userInMembers) {
       return res.status(404).json({
@@ -211,13 +215,13 @@ router.post('/assign', authenticateToken, requireRole(['super_admin']), async (r
     const user = userInUsers ? { ...userInUsers, full_name: userInUsers.full_name_en } : userInMembers;
 
     // Check if role exists
-    const { data: role, error: roleError } = await supabase
-      .from('user_roles')
-      .select('id, role_name, role_name_ar')
-      .eq('id', role_id)
-      .single();
+    const roleResult = await query(
+      `SELECT id, role_name, role_name_ar FROM user_roles WHERE id = $1`,
+      [role_id]
+    );
+    const role = roleResult.rows[0];
 
-    if (roleError || !role) {
+    if (!role) {
       return res.status(404).json({
         success: false,
         error: 'Role not found'
@@ -225,14 +229,15 @@ router.post('/assign', authenticateToken, requireRole(['super_admin']), async (r
     }
 
     // Check for overlapping active assignments (same role, overlapping dates)
-    const { data: overlapping } = await supabase
-      .from('user_role_assignments')
-      .select('id, start_date_gregorian, end_date_gregorian')
-      .eq('user_id', user_id)
-      .eq('role_id', role_id)
-      .eq('is_active', true);
+    const overlappingResult = await query(
+      `SELECT id, start_date_gregorian, end_date_gregorian
+       FROM user_role_assignments
+       WHERE user_id = $1 AND role_id = $2 AND is_active = true`,
+      [user_id, role_id]
+    );
+    const overlapping = overlappingResult.rows;
 
-    if (overlapping && overlapping.length > 0) {
+    if (overlapping.length > 0) {
       // Check for date overlap
       const hasOverlap = overlapping.some(existing => {
         const existingStart = existing.start_date_gregorian ? new Date(existing.start_date_gregorian) : null;
@@ -260,24 +265,16 @@ router.post('/assign', authenticateToken, requireRole(['super_admin']), async (r
     }
 
     // Create the role assignment
-    const { data: assignment, error: assignError } = await supabase
-      .from('user_role_assignments')
-      .insert({
-        user_id,
-        role_id,
-        start_date_gregorian,
-        end_date_gregorian,
-        start_date_hijri,
-        end_date_hijri,
-        notes,
-        is_active,
-        assigned_by: req.user.id,
-        assigned_at: new Date().toISOString()
-      })
-      .select()
-      .single();
-
-    if (assignError) throw assignError;
+    const assignmentResult = await query(
+      `INSERT INTO user_role_assignments
+       (user_id, role_id, start_date_gregorian, end_date_gregorian, start_date_hijri, end_date_hijri,
+        notes, is_active, assigned_by, assigned_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       RETURNING *`,
+      [user_id, role_id, start_date_gregorian, end_date_gregorian, start_date_hijri, end_date_hijri,
+       notes, is_active, req.user.id, new Date().toISOString()]
+    );
+    const assignment = assignmentResult.rows[0];
 
     log.info('Role assigned to user', {
       assignment_id: assignment.id,
@@ -329,18 +326,17 @@ router.put('/assignments/:assignmentId', authenticateToken, requireRole(['super_
     }
 
     // Update the assignment
-    const { data: updated, error: updateError } = await supabase
-      .from('user_role_assignments')
-      .update({
-        ...value,
-        updated_by: req.user.id,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', assignmentId)
-      .select()
-      .single();
+    const updateFields = Object.keys(value).map((key, idx) => `${key} = $${idx + 3}`).join(', ');
+    const updateValues = Object.values(value);
 
-    if (updateError) throw updateError;
+    const updateResult = await query(
+      `UPDATE user_role_assignments
+       SET ${updateFields}, updated_by = $1, updated_at = $2
+       WHERE id = $${updateValues.length + 3}
+       RETURNING *`,
+      [req.user.id, new Date().toISOString(), ...updateValues, assignmentId]
+    );
+    const updated = updateResult.rows[0];
 
     if (!updated) {
       return res.status(404).json({
@@ -382,18 +378,14 @@ router.delete('/assignments/:assignmentId', authenticateToken, requireRole(['sup
     const { assignmentId } = req.params;
 
     // Soft delete by setting is_active = false
-    const { data: deleted, error: deleteError } = await supabase
-      .from('user_role_assignments')
-      .update({
-        is_active: false,
-        updated_by: req.user.id,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', assignmentId)
-      .select()
-      .single();
-
-    if (deleteError) throw deleteError;
+    const deleteResult = await query(
+      `UPDATE user_role_assignments
+       SET is_active = false, updated_by = $1, updated_at = $2
+       WHERE id = $3
+       RETURNING *`,
+      [req.user.id, new Date().toISOString(), assignmentId]
+    );
+    const deleted = deleteResult.rows[0];
 
     if (!deleted) {
       return res.status(404).json({
@@ -432,19 +424,17 @@ router.delete('/assignments/:assignmentId', authenticateToken, requireRole(['sup
 router.get('/all-assignments', authenticateToken, requireRole(['super_admin']), async (req, res) => {
   try {
     // Get all active role assignments with user details
-    const { data: assignments, error: assignmentError } = await supabase
-      .from('v_user_roles_with_periods')
-      .select('*')
-      .eq('status', 'active')
-      .order('user_id', { ascending: true })
-      .order('start_date_gregorian', { ascending: false });
-
-    if (assignmentError) throw assignmentError;
+    const assignmentsResult = await query(
+      `SELECT * FROM v_user_roles_with_periods
+       WHERE status = 'active'
+       ORDER BY user_id ASC, start_date_gregorian DESC`
+    );
+    const assignments = assignmentsResult.rows;
 
     // Group assignments by user
     const usersByIdMap = {};
 
-    (assignments || []).forEach(assignment => {
+    assignments.forEach(assignment => {
       if (!usersByIdMap[assignment.user_id]) {
         usersByIdMap[assignment.user_id] = {
           user_id: assignment.user_id,
@@ -474,7 +464,7 @@ router.get('/all-assignments', authenticateToken, requireRole(['super_admin']), 
 
     log.info('Fetched all users with role assignments', {
       user_count: usersWithRoles.length,
-      total_assignments: (assignments || []).length
+      total_assignments: assignments.length
     });
 
     res.json({
@@ -482,7 +472,7 @@ router.get('/all-assignments', authenticateToken, requireRole(['super_admin']), 
       data: {
         users: usersWithRoles,
         total_users: usersWithRoles.length,
-        total_assignments: (assignments || []).length
+        total_assignments: assignments.length
       }
     });
 
@@ -505,16 +495,15 @@ router.get('/all-assignments', authenticateToken, requireRole(['super_admin']), 
  */
 router.get('/roles', authenticateToken, requireRole(['super_admin']), async (req, res) => {
   try {
-    const { data: roles, error } = await supabase
-      .from('user_roles')
-      .select('id, role_name, role_name_ar, description, priority, permissions')
-      .order('priority', { ascending: false });
-
-    if (error) throw error;
+    const rolesResult = await query(
+      `SELECT id, role_name, role_name_ar, description, priority, permissions
+       FROM user_roles
+       ORDER BY priority DESC`
+    );
 
     res.json({
       success: true,
-      data: roles || []
+      data: rolesResult.rows
     });
 
   } catch (error) {
@@ -536,29 +525,25 @@ router.get('/roles', authenticateToken, requireRole(['super_admin']), async (req
  */
 router.get('/my-roles', authenticateToken, async (req, res) => {
   try {
-    const { data: activeRoles, error } = await supabase
-      .rpc('get_active_roles', {
-        p_user_id: req.user.id,
-        p_check_date: new Date().toISOString().split('T')[0]
-      });
-
-    if (error) throw error;
+    const activeRolesResult = await query(
+      `SELECT * FROM get_active_roles($1, $2)`,
+      [req.user.id, new Date().toISOString().split('T')[0]]
+    );
+    const activeRoles = activeRolesResult.rows;
 
     // Get merged permissions
-    const { data: mergedPermissions, error: permError } = await supabase
-      .rpc('get_merged_permissions', {
-        p_user_id: req.user.id,
-        p_check_date: new Date().toISOString().split('T')[0]
-      });
-
-    if (permError) throw permError;
+    const mergedPermissionsResult = await query(
+      `SELECT * FROM get_merged_permissions($1, $2)`,
+      [req.user.id, new Date().toISOString().split('T')[0]]
+    );
+    const mergedPermissions = mergedPermissionsResult.rows[0] || {};
 
     res.json({
       success: true,
       data: {
-        active_roles: activeRoles || [],
-        merged_permissions: mergedPermissions || {},
-        role_count: (activeRoles || []).length
+        active_roles: activeRoles,
+        merged_permissions: mergedPermissions,
+        role_count: activeRoles.length
       }
     });
 

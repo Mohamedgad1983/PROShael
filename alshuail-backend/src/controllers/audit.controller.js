@@ -1,11 +1,11 @@
 /**
  * Audit Log Controller
  * Handles audit trail logging and retrieval
- * 
+ *
  * @module audit.controller
  */
 
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
 
 /**
@@ -22,24 +22,24 @@ export const logAuditAction = async ({
   userAgent = null
 }) => {
   try {
-    const { error } = await supabase
-      .from('audit_logs')
-      .insert({
-        admin_id: adminId,
+    await query(
+      `INSERT INTO audit_logs (
+        admin_id, action, resource_type, resource_id, changes,
+        ip_address, user_agent, created_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [
+        adminId,
         action,
-        resource_type: resourceType,
-        resource_id: resourceId,
-        changes,
-        ip_address: ipAddress,
-        user_agent: userAgent,
-        created_at: new Date().toISOString()
-      });
-
-    if (error) {
-      log.error('Failed to log audit action:', { error: error.message, action });
-    }
+        resourceType,
+        resourceId,
+        JSON.stringify(changes),
+        ipAddress,
+        userAgent,
+        new Date().toISOString()
+      ]
+    );
   } catch (error) {
-    log.error('Audit log error:', { error: error.message });
+    log.error('Failed to log audit action:', { error: error.message, action });
   }
 };
 
@@ -62,56 +62,78 @@ export const getAuditLogs = async (req, res) => {
 
     const offset = (page - 1) * limit;
 
-    let query = supabase
-      .from('audit_logs')
-      .select(`
-        *,
-        admin:users!audit_logs_admin_id_fkey (
-          id,
-          full_name,
-          email,
-          role
-        )
-      `, { count: 'exact' });
+    // Build query with filters
+    let conditions = [];
+    let params = [];
+    let paramIndex = 1;
 
-    // Apply filters
     if (action) {
-      query = query.eq('action', action);
+      conditions.push(`action = $${paramIndex++}`);
+      params.push(action);
     }
     if (resourceType) {
-      query = query.eq('resource_type', resourceType);
+      conditions.push(`resource_type = $${paramIndex++}`);
+      params.push(resourceType);
     }
     if (adminId) {
-      query = query.eq('admin_id', adminId);
+      conditions.push(`admin_id = $${paramIndex++}`);
+      params.push(adminId);
     }
     if (startDate) {
-      query = query.gte('created_at', startDate);
+      conditions.push(`created_at >= $${paramIndex++}`);
+      params.push(startDate);
     }
     if (endDate) {
-      query = query.lte('created_at', endDate);
+      conditions.push(`created_at <= $${paramIndex++}`);
+      params.push(endDate);
     }
     if (search) {
-      query = query.or(`action.ilike.%${search}%,resource_type.ilike.%${search}%`);
+      conditions.push(`(action ILIKE $${paramIndex} OR resource_type ILIKE $${paramIndex})`);
+      params.push(`%${search}%`);
+      paramIndex++;
     }
 
-    // Order and paginate
-    query = query
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    const { data: logs, error, count } = await query;
+    // Get total count
+    const { rows: countRows } = await query(
+      `SELECT COUNT(*) as count FROM audit_logs ${whereClause}`,
+      params
+    );
+    const count = parseInt(countRows[0].count);
 
-    if (error) {
-      log.error('Error fetching audit logs:', { error: error.message });
-      return res.status(500).json({
-        success: false,
-        message: 'خطأ في جلب سجل التدقيق'
-      });
-    }
+    // Get logs with user join
+    params.push(limit);
+    params.push(offset);
+    const { rows: logs } = await query(
+      `SELECT
+        al.*,
+        u.id as admin_user_id,
+        u.full_name as admin_full_name,
+        u.email as admin_email,
+        u.role as admin_role
+       FROM audit_logs al
+       LEFT JOIN users u ON al.admin_id = u.id
+       ${whereClause}
+       ORDER BY al.created_at DESC
+       LIMIT $${paramIndex++} OFFSET $${paramIndex++}`,
+      params
+    );
+
+    // Format logs with nested admin object
+    const formattedLogs = logs.map(logRow => ({
+      ...logRow,
+      admin: logRow.admin_user_id ? {
+        id: logRow.admin_user_id,
+        full_name: logRow.admin_full_name,
+        email: logRow.admin_email,
+        role: logRow.admin_role
+      } : null
+    }));
 
     res.json({
       success: true,
-      data: logs,
+      data: formattedLogs,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
@@ -137,30 +159,40 @@ export const getAuditLogById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const { data: log, error } = await supabase
-      .from('audit_logs')
-      .select(`
-        *,
-        admin:users!audit_logs_admin_id_fkey (
-          id,
-          full_name,
-          email,
-          role
-        )
-      `)
-      .eq('id', id)
-      .single();
+    const { rows: logRows } = await query(
+      `SELECT
+        al.*,
+        u.id as admin_user_id,
+        u.full_name as admin_full_name,
+        u.email as admin_email,
+        u.role as admin_role
+       FROM audit_logs al
+       LEFT JOIN users u ON al.admin_id = u.id
+       WHERE al.id = $1`,
+      [id]
+    );
 
-    if (error || !log) {
+    if (!logRows || logRows.length === 0) {
       return res.status(404).json({
         success: false,
         message: 'السجل غير موجود'
       });
     }
 
+    const logRow = logRows[0];
+    const formattedLog = {
+      ...logRow,
+      admin: logRow.admin_user_id ? {
+        id: logRow.admin_user_id,
+        full_name: logRow.admin_full_name,
+        email: logRow.admin_email,
+        role: logRow.admin_role
+      } : null
+    };
+
     res.json({
       success: true,
-      data: log
+      data: formattedLog
     });
 
   } catch (error) {
@@ -183,47 +215,48 @@ export const getAuditStats = async (req, res) => {
     startDate.setDate(startDate.getDate() - days);
 
     // Total logs count
-    const { count: totalLogs } = await supabase
-      .from('audit_logs')
-      .select('*', { count: 'exact', head: true })
-      .gte('created_at', startDate.toISOString());
+    const { rows: totalRows } = await query(
+      'SELECT COUNT(*) as count FROM audit_logs WHERE created_at >= $1',
+      [startDate.toISOString()]
+    );
+    const totalLogs = parseInt(totalRows[0].count);
 
     // Actions by type
-    const { data: actionStats } = await supabase
-      .from('audit_logs')
-      .select('action')
-      .gte('created_at', startDate.toISOString());
+    const { rows: actionStats } = await query(
+      'SELECT action FROM audit_logs WHERE created_at >= $1',
+      [startDate.toISOString()]
+    );
 
     const actionCounts = {};
-    actionStats?.forEach(log => {
-      actionCounts[log.action] = (actionCounts[log.action] || 0) + 1;
+    actionStats?.forEach(logRow => {
+      actionCounts[logRow.action] = (actionCounts[logRow.action] || 0) + 1;
     });
 
     // Resource types
-    const { data: resourceStats } = await supabase
-      .from('audit_logs')
-      .select('resource_type')
-      .gte('created_at', startDate.toISOString());
+    const { rows: resourceStats } = await query(
+      'SELECT resource_type FROM audit_logs WHERE created_at >= $1',
+      [startDate.toISOString()]
+    );
 
     const resourceCounts = {};
-    resourceStats?.forEach(log => {
-      resourceCounts[log.resource_type] = (resourceCounts[log.resource_type] || 0) + 1;
+    resourceStats?.forEach(logRow => {
+      resourceCounts[logRow.resource_type] = (resourceCounts[logRow.resource_type] || 0) + 1;
     });
 
     // Most active admins
-    const { data: adminStats } = await supabase
-      .from('audit_logs')
-      .select(`
-        admin_id,
-        admin:users!audit_logs_admin_id_fkey (
-          full_name
-        )
-      `)
-      .gte('created_at', startDate.toISOString());
+    const { rows: adminStats } = await query(
+      `SELECT
+        al.admin_id,
+        u.full_name
+       FROM audit_logs al
+       LEFT JOIN users u ON al.admin_id = u.id
+       WHERE al.created_at >= $1`,
+      [startDate.toISOString()]
+    );
 
     const adminCounts = {};
-    adminStats?.forEach(log => {
-      const name = log.admin?.full_name || 'Unknown';
+    adminStats?.forEach(logRow => {
+      const name = logRow.full_name || 'Unknown';
       adminCounts[name] = (adminCounts[name] || 0) + 1;
     });
 
@@ -259,16 +292,15 @@ export const getAuditStats = async (req, res) => {
  */
 export const getActionTypes = async (req, res) => {
   try {
-    const { data: actions } = await supabase
-      .from('audit_logs')
-      .select('action')
-      .limit(1000);
+    const { rows: actions } = await query(
+      'SELECT DISTINCT action FROM audit_logs LIMIT 1000'
+    );
 
-    const uniqueActions = [...new Set(actions?.map(a => a.action) || [])];
+    const uniqueActions = actions.map(a => a.action).sort();
 
     res.json({
       success: true,
-      data: uniqueActions.sort()
+      data: uniqueActions
     });
 
   } catch (error) {
@@ -288,47 +320,49 @@ export const exportAuditLogs = async (req, res) => {
   try {
     const { startDate, endDate, format = 'json' } = req.query;
 
-    let query = supabase
-      .from('audit_logs')
-      .select(`
-        *,
-        admin:users!audit_logs_admin_id_fkey (
-          full_name,
-          email
-        )
-      `)
-      .order('created_at', { ascending: false });
+    // Build query with filters
+    let conditions = [];
+    let params = [];
+    let paramIndex = 1;
 
     if (startDate) {
-      query = query.gte('created_at', startDate);
+      conditions.push(`al.created_at >= $${paramIndex++}`);
+      params.push(startDate);
     }
     if (endDate) {
-      query = query.lte('created_at', endDate);
+      conditions.push(`al.created_at <= $${paramIndex++}`);
+      params.push(endDate);
     }
 
-    const { data: logs, error } = await query.limit(10000);
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    if (error) {
-      return res.status(500).json({
-        success: false,
-        message: 'خطأ في تصدير البيانات'
-      });
-    }
+    const { rows: logs } = await query(
+      `SELECT
+        al.*,
+        u.full_name,
+        u.email
+       FROM audit_logs al
+       LEFT JOIN users u ON al.admin_id = u.id
+       ${whereClause}
+       ORDER BY al.created_at DESC
+       LIMIT 10000`,
+      params
+    );
 
     if (format === 'csv') {
       // Generate CSV
       const headers = ['التاريخ', 'المستخدم', 'الإجراء', 'نوع المورد', 'معرف المورد', 'IP'];
-      const rows = logs.map(log => [
-        new Date(log.created_at).toLocaleString('ar-SA'),
-        log.admin?.full_name || '-',
-        log.action,
-        log.resource_type,
-        log.resource_id || '-',
-        log.ip_address || '-'
+      const rows = logs.map(logRow => [
+        new Date(logRow.created_at).toLocaleString('ar-SA'),
+        logRow.full_name || '-',
+        logRow.action,
+        logRow.resource_type,
+        logRow.resource_id || '-',
+        logRow.ip_address || '-'
       ]);
 
       const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-      
+
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', 'attachment; filename=audit_logs.csv');
       return res.send('\ufeff' + csv); // BOM for Arabic support

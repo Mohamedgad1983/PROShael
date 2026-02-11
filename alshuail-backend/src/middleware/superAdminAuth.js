@@ -1,4 +1,4 @@
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
 
 /**
@@ -21,18 +21,16 @@ export const requireSuperAdmin = async (req, res, next) => {
     }
 
     // Check if user has super_admin role
-    const { data: user, error } = await supabase
-      .from('users')
-      .select('role, email')
-      .eq('id', userId)
-      .single();
+    const { rows } = await query('SELECT role, email FROM users WHERE id = $1', [userId]);
+    const user = rows[0];
 
-    if (error) {
-      log.error('[SuperAdmin] Error checking role:', { error, userId });
-      return res.status(500).json({
+    if (!user) {
+      log.warn('[SuperAdmin] User not found:', { userId });
+      return res.status(403).json({
         success: false,
-        error: 'DATABASE_ERROR',
-        message: 'خطأ في التحقق من الصلاحيات'
+        error: 'FORBIDDEN',
+        message: 'المستخدم غير موجود',
+        message_en: 'User not found'
       });
     }
 
@@ -83,14 +81,8 @@ export const requireSuperAdmin = async (req, res, next) => {
  */
 export const isSuperAdmin = async (email) => {
   try {
-    const { data, error } = await supabase
-      .from('users')
-      .select('role')
-      .eq('email', email)
-      .single();
-
-    if (error) return false;
-    return data?.role === 'super_admin';
+    const { rows } = await query('SELECT role FROM users WHERE email = $1', [email]);
+    return rows[0]?.role === 'super_admin';
   } catch (error) {
     log.error('[SuperAdmin] Check error:', error);
     return false;

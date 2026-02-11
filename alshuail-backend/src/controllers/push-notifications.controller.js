@@ -1,11 +1,11 @@
 /**
  * Push Notifications Controller
  * Handles FCM push notifications for Al-Shuail Mobile PWA
- * 
+ *
  * @module push-notifications.controller
  */
 
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
 import firebaseAdmin from '../utils/firebase-admin.js';
 
@@ -25,19 +25,10 @@ export const sendPushNotification = async (req, res) => {
     }
 
     // Get member's device tokens
-    const { data: tokens, error } = await supabase
-      .from('device_tokens')
-      .select('token')
-      .eq('member_id', memberId)
-      .eq('is_active', true);
-
-    if (error) {
-      log.error('Error fetching device tokens:', { error: error.message });
-      return res.status(500).json({
-        success: false,
-        message: 'خطأ في جلب بيانات الجهاز'
-      });
-    }
+    const { rows: tokens } = await query(
+      'SELECT token FROM device_tokens WHERE member_id = $1 AND is_active = true',
+      [memberId]
+    );
 
     if (!tokens || tokens.length === 0) {
       return res.status(404).json({
@@ -55,16 +46,11 @@ export const sendPushNotification = async (req, res) => {
     );
 
     // Log notification
-    await supabase.from('notification_logs').insert({
-      member_id: memberId,
-      title,
-      body,
-      data,
-      status: result.success ? 'sent' : 'failed',
-      success_count: result.successCount || 0,
-      failure_count: result.failureCount || 0,
-      sent_at: new Date().toISOString()
-    });
+    await query(
+      `INSERT INTO notification_logs (member_id, title, body, data, status, success_count, failure_count, sent_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [memberId, title, body, JSON.stringify(data), result.success ? 'sent' : 'failed', result.successCount || 0, result.failureCount || 0, new Date().toISOString()]
+    );
 
     res.json({
       success: true,
@@ -104,16 +90,11 @@ export const broadcastNotification = async (req, res) => {
     );
 
     // Log broadcast
-    await supabase.from('notification_logs').insert({
-      member_id: null,
-      title,
-      body,
-      data,
-      is_broadcast: true,
-      topic,
-      status: result.success ? 'sent' : 'failed',
-      sent_at: new Date().toISOString()
-    });
+    await query(
+      `INSERT INTO notification_logs (member_id, title, body, data, is_broadcast, topic, status, sent_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [null, title, body, JSON.stringify(data), true, topic, result.success ? 'sent' : 'failed', new Date().toISOString()]
+    );
 
     res.json({
       success: true,
@@ -147,32 +128,24 @@ export const registerDeviceToken = async (req, res) => {
     }
 
     // Check if token already exists
-    const { data: existing } = await supabase
-      .from('device_tokens')
-      .select('id')
-      .eq('token', token)
-      .single();
+    const { rows: existingRows } = await query(
+      'SELECT id FROM device_tokens WHERE token = $1',
+      [token]
+    );
 
-    if (existing) {
+    if (existingRows.length > 0) {
       // Update existing token
-      await supabase
-        .from('device_tokens')
-        .update({
-          member_id: memberId,
-          platform,
-          is_active: true,
-          updated_at: new Date().toISOString()
-        })
-        .eq('token', token);
+      await query(
+        `UPDATE device_tokens SET member_id = $1, platform = $2, is_active = true, updated_at = $3 WHERE token = $4`,
+        [memberId, platform, new Date().toISOString(), token]
+      );
     } else {
       // Insert new token
-      await supabase.from('device_tokens').insert({
-        token,
-        member_id: memberId,
-        platform,
-        is_active: true,
-        created_at: new Date().toISOString()
-      });
+      await query(
+        `INSERT INTO device_tokens (token, member_id, platform, is_active, created_at)
+         VALUES ($1, $2, $3, true, $4)`,
+        [token, memberId, platform, new Date().toISOString()]
+      );
     }
 
     // Subscribe to all_members topic
@@ -210,10 +183,10 @@ export const unregisterDeviceToken = async (req, res) => {
     }
 
     // Deactivate token
-    await supabase
-      .from('device_tokens')
-      .update({ is_active: false })
-      .eq('token', token);
+    await query(
+      'UPDATE device_tokens SET is_active = false WHERE token = $1',
+      [token]
+    );
 
     // Unsubscribe from topics
     await firebaseAdmin.unsubscribeFromTopic([token], 'all_members');
@@ -244,11 +217,10 @@ export const sendPaymentReminder = async (req, res) => {
     const body = `لديك اشتراك مستحق بقيمة ${amount} ريال. موعد السداد: ${dueDate}`;
 
     // Get member's tokens
-    const { data: tokens } = await supabase
-      .from('device_tokens')
-      .select('token')
-      .eq('member_id', memberId)
-      .eq('is_active', true);
+    const { rows: tokens } = await query(
+      'SELECT token FROM device_tokens WHERE member_id = $1 AND is_active = true',
+      [memberId]
+    );
 
     if (!tokens || tokens.length === 0) {
       return res.json({
@@ -260,8 +232,8 @@ export const sendPaymentReminder = async (req, res) => {
     const tokenList = tokens.map(t => t.token);
     const result = await firebaseAdmin.sendMulticastNotification(
       tokenList,
-      { 
-        title, 
+      {
+        title,
         body,
         icon: '/icons/payment-icon.png',
         click_action: '/payment.html'
@@ -297,8 +269,8 @@ export const sendEventNotification = async (req, res) => {
 
     const result = await firebaseAdmin.sendTopicNotification(
       'all_members',
-      { 
-        title, 
+      {
+        title,
         body,
         icon: '/icons/event-icon.png',
         click_action: '/events.html'

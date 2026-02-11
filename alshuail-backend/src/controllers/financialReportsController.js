@@ -4,7 +4,7 @@
  * Handles comprehensive financial reporting and deep analytics
  */
 
-import { supabase as _supabase } from '../config/database.js';
+import { query as _dbQuery } from '../services/database.js';
 import {
   hasFinancialAccess,
   logFinancialAccess,
@@ -922,66 +922,69 @@ export const getOnBehalfPaymentsReport = async (req, res) => {
     }
 
     const offset = (parseInt(page) - 1) * parseInt(limit);
+    const parsedLimit = parseInt(limit);
 
-    // Build query for on-behalf payments
-    let query = _supabase
-      .from('payments')
-      .select(`
-        id,
-        amount,
-        payment_date,
-        payment_method,
-        category,
-        status,
-        notes,
-        created_at,
-        payer_id,
-        beneficiary_id,
-        is_on_behalf,
-        payer:members!fk_payments_payer_id(id, full_name, membership_number, phone),
-        beneficiary:members!fk_payments_beneficiary_id(id, full_name, membership_number, phone)
-      `, { count: 'exact' })
-      .eq('is_on_behalf', true)
-      .order('created_at', { ascending: false });
+    // Build dynamic query for on-behalf payments
+    const conditions = ['p.is_on_behalf = true'];
+    const params = [];
+    let paramIndex = 1;
 
-    // Apply filters
     if (date_from) {
-      query = query.gte('payment_date', date_from);
+      conditions.push(`p.payment_date >= $${paramIndex++}`);
+      params.push(date_from);
     }
     if (date_to) {
-      query = query.lte('payment_date', date_to);
+      conditions.push(`p.payment_date <= $${paramIndex++}`);
+      params.push(date_to);
     }
     if (payer_id) {
-      query = query.eq('payer_id', payer_id);
+      conditions.push(`p.payer_id = $${paramIndex++}`);
+      params.push(payer_id);
     }
     if (beneficiary_id) {
-      query = query.eq('beneficiary_id', beneficiary_id);
+      conditions.push(`p.beneficiary_id = $${paramIndex++}`);
+      params.push(beneficiary_id);
     }
     if (purpose) {
-      query = query.eq('category', purpose);
+      conditions.push(`p.category = $${paramIndex++}`);
+      params.push(purpose);
     }
     if (status) {
-      query = query.eq('status', status);
+      conditions.push(`p.status = $${paramIndex++}`);
+      params.push(status);
     }
 
-    // Get paginated data
-    const { data: payments, error, count } = await query
-      .range(offset, offset + parseInt(limit) - 1);
+    const whereClause = conditions.join(' AND ');
 
-    if (error) {
-      log.error('Error fetching on-behalf payments:', error);
-      throw error;
-    }
+    // Get count first
+    const countParams = [...params];
+    const { rows: countRows } = await _dbQuery(
+      `SELECT COUNT(*) as total FROM payments p WHERE ${whereClause}`,
+      countParams
+    );
+    const count = parseInt(countRows[0]?.total || 0);
+
+    // Get paginated data with JOINs for payer/beneficiary info
+    params.push(parsedLimit, offset);
+    const { rows: payments } = await _dbQuery(
+      `SELECT
+        p.id, p.amount, p.payment_date, p.payment_method, p.category,
+        p.status, p.notes, p.created_at, p.payer_id, p.beneficiary_id, p.is_on_behalf,
+        json_build_object('id', payer.id, 'full_name', payer.full_name, 'membership_number', payer.membership_number, 'phone', payer.phone) as payer,
+        json_build_object('id', ben.id, 'full_name', ben.full_name, 'membership_number', ben.membership_number, 'phone', ben.phone) as beneficiary
+      FROM payments p
+      LEFT JOIN members payer ON p.payer_id = payer.id
+      LEFT JOIN members ben ON p.beneficiary_id = ben.id
+      WHERE ${whereClause}
+      ORDER BY p.created_at DESC
+      LIMIT $${paramIndex++} OFFSET $${paramIndex++}`,
+      params
+    );
 
     // Calculate summary statistics
-    const { data: summaryData, error: summaryError } = await _supabase
-      .from('payments')
-      .select('amount, category')
-      .eq('is_on_behalf', true);
-
-    if (summaryError) {
-      log.error('Error fetching on-behalf summary:', summaryError);
-    }
+    const { rows: summaryData } = await _dbQuery(
+      'SELECT amount, category FROM payments WHERE is_on_behalf = true'
+    );
 
     const summary = {
       total_count: count || 0,
@@ -1000,14 +1003,13 @@ export const getOnBehalfPaymentsReport = async (req, res) => {
     });
 
     // Get top payers (members who pay on behalf of others most frequently)
-    const { data: topPayersData } = await _supabase
-      .from('payments')
-      .select(`
-        payer_id,
-        amount,
-        payer:members!payments_payer_id_fkey(id, full_name, membership_number)
-      `)
-      .eq('is_on_behalf', true);
+    const { rows: topPayersData } = await _dbQuery(
+      `SELECT p.payer_id, p.amount,
+        json_build_object('id', m.id, 'full_name', m.full_name, 'membership_number', m.membership_number) as payer
+      FROM payments p
+      LEFT JOIN members m ON p.payer_id = m.id
+      WHERE p.is_on_behalf = true`
+    );
 
     const payerAggregation = {};
     (topPayersData || []).forEach(payment => {
@@ -1047,9 +1049,9 @@ export const getOnBehalfPaymentsReport = async (req, res) => {
         top_payers: topPayers,
         pagination: {
           page: parseInt(page),
-          limit: parseInt(limit),
+          limit: parsedLimit,
           total: count || 0,
-          pages: Math.ceil((count || 0) / parseInt(limit))
+          pages: Math.ceil((count || 0) / parsedLimit)
         }
       },
       message: 'تقرير الدفعات نيابة عن الآخرين'

@@ -4,7 +4,7 @@
  */
 
 import { log } from './logger.js';
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 
 /**
  * Check if user has financial access privileges
@@ -27,17 +27,11 @@ export const hasFinancialAccess = (userRole) => {
  */
 export const logFinancialAccess = async (userId, accessResult, operation, userRole, metadata = {}, ipAddress = 'unknown') => {
   try {
-    await supabase
-      .from('financial_access_logs')
-      .insert([{
-        user_id: userId,
-        access_result: accessResult,
-        operation: operation,
-        user_role: userRole,
-        metadata: metadata,
-        timestamp: new Date().toISOString(),
-        ip_address: ipAddress
-      }]);
+    await query(
+      `INSERT INTO financial_access_logs (user_id, access_result, operation, user_role, metadata, timestamp, ip_address)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [userId, accessResult, operation, userRole, JSON.stringify(metadata), new Date().toISOString(), ipAddress]
+    );
   } catch (error) {
     log.error('Failed to log financial access:', error);
     // Don't throw error to avoid disrupting main flow
@@ -54,13 +48,13 @@ export const logFinancialAccess = async (userId, accessResult, operation, userRo
 export const validateFinancialOperation = async (userId, operation, resourceId = null) => {
   try {
     // Get user details
-    const { data: user, error } = await supabase
-      .from('users')
-      .select('id, role, status, permissions, full_name')
-      .eq('id', userId)
-      .single();
+    const { rows } = await query(
+      'SELECT id, role, status, permissions, full_name FROM users WHERE id = $1',
+      [userId]
+    );
+    const user = rows[0];
 
-    if (error || !user) {
+    if (!user) {
       return {
         valid: false,
         reason: 'User not found',
@@ -144,13 +138,13 @@ const checkResourceAccess = async (userId, resourceId, operation) => {
   try {
     // For expense-related resources
     if (operation.startsWith('expense_')) {
-      const { data: expense, error } = await supabase
-        .from('expenses')
-        .select('id, created_by, approved_by, status')
-        .eq('id', resourceId)
-        .single();
+      const { rows: expenseRows } = await query(
+        'SELECT id, created_by, approved_by, status FROM expenses WHERE id = $1',
+        [resourceId]
+      );
+      const expense = expenseRows[0];
 
-      if (error || !expense) {
+      if (!expense) {
         return {
           valid: false,
           reason: 'Resource not found',
@@ -161,11 +155,11 @@ const checkResourceAccess = async (userId, resourceId, operation) => {
       // Check if user has permission to access this expense
       // Financial managers can access all expenses
       // Other users can only access expenses they created
-      const { data: user } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', userId)
-        .single();
+      const { rows: userRows } = await query(
+        'SELECT role FROM users WHERE id = $1',
+        [userId]
+      );
+      const user = userRows[0];
 
       if (user.role !== 'financial_manager' && expense.created_by !== userId) {
         return {
@@ -194,13 +188,13 @@ const checkResourceAccess = async (userId, resourceId, operation) => {
  */
 export const getUserFinancialPermissions = async (userId) => {
   try {
-    const { data: user, error } = await supabase
-      .from('users')
-      .select('role, permissions')
-      .eq('id', userId)
-      .single();
+    const { rows } = await query(
+      'SELECT role, permissions FROM users WHERE id = $1',
+      [userId]
+    );
+    const user = rows[0];
 
-    if (error || !user) {
+    if (!user) {
       return {
         canViewExpenses: false,
         canCreateExpenses: false,
@@ -258,19 +252,11 @@ export const createFinancialAuditTrail = async (auditData) => {
       ipAddress
     } = auditData;
 
-    await supabase
-      .from('financial_audit_trail')
-      .insert([{
-        user_id: userId,
-        operation: operation,
-        resource_type: resourceType,
-        resource_id: resourceId,
-        previous_value: previousValue,
-        new_value: newValue,
-        metadata: metadata,
-        ip_address: ipAddress,
-        created_at: new Date().toISOString()
-      }]);
+    await query(
+      `INSERT INTO financial_audit_trail (user_id, operation, resource_type, resource_id, previous_value, new_value, metadata, ip_address, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [userId, operation, resourceType, resourceId, JSON.stringify(previousValue), JSON.stringify(newValue), JSON.stringify(metadata), ipAddress, new Date().toISOString()]
+    );
   } catch (error) {
     log.error('Failed to create audit trail:', error);
   }
@@ -305,16 +291,12 @@ export const shouldLogOperation = (operation) => {
  */
 export const getRecentFinancialLogs = async (userId, limit = 10) => {
   try {
-    const { data: logs, error } = await supabase
-      .from('financial_access_logs')
-      .select('*')
-      .eq('user_id', userId)
-      .order('timestamp', { ascending: false })
-      .limit(limit);
+    const { rows } = await query(
+      'SELECT * FROM financial_access_logs WHERE user_id = $1 ORDER BY timestamp DESC LIMIT $2',
+      [userId, limit]
+    );
 
-    if (error) {throw error;}
-
-    return logs || [];
+    return rows || [];
   } catch (error) {
     log.error('Failed to get financial logs:', error);
     return [];
@@ -331,24 +313,16 @@ export const checkSuspiciousActivity = async (userId) => {
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
     // Check for excessive failed attempts
-    const { data: failedAttempts, error: _failedError } = await supabase
-      .from('financial_access_logs')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('access_result', 'DENIED')
-      .gte('timestamp', oneHourAgo);
-
-    if (_failedError) {throw _failedError;}
+    const { rows: failedAttempts } = await query(
+      'SELECT * FROM financial_access_logs WHERE user_id = $1 AND access_result = $2 AND timestamp >= $3',
+      [userId, 'DENIED', oneHourAgo]
+    );
 
     // Check for unusual patterns
-    const { data: recentActivity, error: _activityError } = await supabase
-      .from('financial_access_logs')
-      .select('*')
-      .eq('user_id', userId)
-      .gte('timestamp', oneHourAgo)
-      .order('timestamp', { ascending: false });
-
-    if (_activityError) {throw _activityError;}
+    const { rows: recentActivity } = await query(
+      'SELECT * FROM financial_access_logs WHERE user_id = $1 AND timestamp >= $2 ORDER BY timestamp DESC',
+      [userId, oneHourAgo]
+    );
 
     const isSuspicious = (failedAttempts?.length || 0) > 5 ||
                         (recentActivity?.length || 0) > 50;

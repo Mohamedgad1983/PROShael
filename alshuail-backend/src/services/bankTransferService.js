@@ -1,4 +1,4 @@
-import { supabase } from '../config/database.js';
+import { query, getClient } from './database.js';
 import { log } from '../utils/logger.js';
 
 /**
@@ -9,7 +9,9 @@ import { log } from '../utils/logger.js';
 const BUCKET_NAME = 'bank-transfer-receipts';
 
 /**
- * Upload receipt to Supabase Storage
+ * Upload receipt to storage
+ * NOTE: Supabase Storage has been removed. This function now requires
+ * an external storage implementation (e.g., local filesystem, S3).
  * @param {Object} file - Multer file object
  * @param {string} requesterId - ID of the member making the request
  * @returns {Object} Upload result with URL and path
@@ -20,26 +22,16 @@ export const uploadReceipt = async (file, requesterId) => {
     const sanitizedFilename = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
     const filePath = `${requesterId}/${timestamp}_${sanitizedFilename}`;
 
-    const { data: _data, error } = await supabase.storage
-      .from(BUCKET_NAME)
-      .upload(filePath, file.buffer, {
-        contentType: file.mimetype,
-        upsert: false
-      });
-
-    if (error) {
-      log.error('Receipt upload error:', error);
-      throw error;
-    }
-
-    // Get public URL
-    const { data: urlData } = supabase.storage
-      .from(BUCKET_NAME)
-      .getPublicUrl(filePath);
+    // TODO: Replace with actual storage implementation (S3, local filesystem, etc.)
+    // The previous Supabase Storage integration was a non-functional stub.
+    log.warn('uploadReceipt called but storage backend is not configured', {
+      bucket: BUCKET_NAME,
+      filePath
+    });
 
     return {
       path: filePath,
-      url: urlData.publicUrl,
+      url: `/uploads/${BUCKET_NAME}/${filePath}`,
       filename: file.originalname
     };
   } catch (error) {
@@ -67,41 +59,38 @@ export const createBankTransferRequest = async (transferData) => {
     } = transferData;
 
     // Validate beneficiary exists
-    const { data: beneficiary, error: beneficiaryError } = await supabase
-      .from('members')
-      .select('id, full_name, membership_number')
-      .eq('id', beneficiary_id)
-      .single();
+    const { rows: beneficiaryRows } = await query(
+      'SELECT id, full_name, membership_number FROM members WHERE id = $1',
+      [beneficiary_id]
+    );
 
-    if (beneficiaryError || !beneficiary) {
+    if (!beneficiaryRows[0]) {
       throw new Error('العضو المستفيد غير موجود');
     }
 
     // Create the transfer request
-    const { data: transfer, error } = await supabase
-      .from('bank_transfer_requests')
-      .insert({
-        requester_id,
-        beneficiary_id,
-        amount: parseFloat(amount),
-        purpose,
-        purpose_reference_id,
-        receipt_url,
-        receipt_filename,
-        notes,
-        status: 'pending'
-      })
-      .select(`
-        *,
-        requester:members!requester_id(id, full_name, membership_number, phone),
-        beneficiary:members!beneficiary_id(id, full_name, membership_number, phone)
-      `)
-      .single();
+    const { rows: transferRows } = await query(
+      `INSERT INTO bank_transfer_requests
+        (requester_id, beneficiary_id, amount, purpose, purpose_reference_id, receipt_url, receipt_filename, notes, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending')
+       RETURNING *`,
+      [requester_id, beneficiary_id, parseFloat(amount), purpose, purpose_reference_id, receipt_url, receipt_filename, notes]
+    );
 
-    if (error) {
-      log.error('Error creating bank transfer request:', error);
-      throw error;
-    }
+    const transfer = transferRows[0];
+
+    // Fetch the joined requester and beneficiary data
+    const { rows: requesterRows } = await query(
+      'SELECT id, full_name, membership_number, phone FROM members WHERE id = $1',
+      [requester_id]
+    );
+    const { rows: beneficiaryDetailRows } = await query(
+      'SELECT id, full_name, membership_number, phone FROM members WHERE id = $1',
+      [beneficiary_id]
+    );
+
+    transfer.requester = requesterRows[0] || null;
+    transfer.beneficiary = beneficiaryDetailRows[0] || null;
 
     log.info('Bank transfer request created', {
       id: transfer.id,
@@ -128,35 +117,47 @@ export const getBankTransferRequests = async (filters = {}) => {
     const {
       status,
       page = 1,
-      limit = 20,
-      search
+      limit = 20
     } = filters;
 
     const offset = (page - 1) * limit;
-
-    let query = supabase
-      .from('bank_transfer_requests')
-      .select(`
-        *,
-        requester:members!requester_id(id, full_name, membership_number, phone),
-        beneficiary:members!beneficiary_id(id, full_name, membership_number, phone),
-        reviewer:users!reviewed_by(id, full_name_ar, email)
-      `, { count: 'exact' })
-      .order('created_at', { ascending: false });
+    const conditions = [];
+    const params = [];
+    let paramIndex = 1;
 
     // Apply status filter
     if (status && status !== 'all') {
-      query = query.eq('status', status);
+      conditions.push(`btr.status = $${paramIndex++}`);
+      params.push(status);
     }
 
-    // Apply pagination
-    const { data: transfers, error, count } = await query
-      .range(offset, offset + limit - 1);
+    const whereClause = conditions.length > 0
+      ? 'WHERE ' + conditions.join(' AND ')
+      : '';
 
-    if (error) {
-      log.error('Error fetching bank transfers:', error);
-      throw error;
-    }
+    // Count query
+    const { rows: countRows } = await query(
+      `SELECT COUNT(*) AS total FROM bank_transfer_requests btr ${whereClause}`,
+      params
+    );
+    const count = parseInt(countRows[0].total, 10);
+
+    // Data query with joins
+    const dataParams = [...params, limit, offset];
+    const { rows: transfers } = await query(
+      `SELECT btr.*,
+        json_build_object('id', req.id, 'full_name', req.full_name, 'membership_number', req.membership_number, 'phone', req.phone) AS requester,
+        json_build_object('id', ben.id, 'full_name', ben.full_name, 'membership_number', ben.membership_number, 'phone', ben.phone) AS beneficiary,
+        json_build_object('id', rev.id, 'full_name_ar', rev.full_name_ar, 'email', rev.email) AS reviewer
+       FROM bank_transfer_requests btr
+       LEFT JOIN members req ON req.id = btr.requester_id
+       LEFT JOIN members ben ON ben.id = btr.beneficiary_id
+       LEFT JOIN users rev ON rev.id = btr.reviewed_by
+       ${whereClause}
+       ORDER BY btr.created_at DESC
+       LIMIT $${paramIndex++} OFFSET $${paramIndex++}`,
+      dataParams
+    );
 
     return {
       data: transfers || [],
@@ -180,23 +181,20 @@ export const getBankTransferRequests = async (filters = {}) => {
  */
 export const getBankTransferById = async (transferId) => {
   try {
-    const { data: transfer, error } = await supabase
-      .from('bank_transfer_requests')
-      .select(`
-        *,
-        requester:members!requester_id(id, full_name, membership_number, phone, email),
-        beneficiary:members!beneficiary_id(id, full_name, membership_number, phone, email),
-        reviewer:users!reviewed_by(id, full_name_ar, email)
-      `)
-      .eq('id', transferId)
-      .single();
+    const { rows } = await query(
+      `SELECT btr.*,
+        json_build_object('id', req.id, 'full_name', req.full_name, 'membership_number', req.membership_number, 'phone', req.phone, 'email', req.email) AS requester,
+        json_build_object('id', ben.id, 'full_name', ben.full_name, 'membership_number', ben.membership_number, 'phone', ben.phone, 'email', ben.email) AS beneficiary,
+        json_build_object('id', rev.id, 'full_name_ar', rev.full_name_ar, 'email', rev.email) AS reviewer
+       FROM bank_transfer_requests btr
+       LEFT JOIN members req ON req.id = btr.requester_id
+       LEFT JOIN members ben ON ben.id = btr.beneficiary_id
+       LEFT JOIN users rev ON rev.id = btr.reviewed_by
+       WHERE btr.id = $1`,
+      [transferId]
+    );
 
-    if (error) {
-      log.error('Error fetching bank transfer:', error);
-      throw error;
-    }
-
-    return transfer;
+    return rows[0];
   } catch (error) {
     log.error('Failed to get bank transfer:', error);
     throw error;
@@ -223,71 +221,67 @@ export const approveBankTransfer = async (transferId, reviewerId, notes = '') =>
       throw new Error('لا يمكن الموافقة على هذا الطلب - الحالة: ' + transfer.status);
     }
 
-    // Update transfer status
-    const { data: updatedTransfer, error: updateError } = await supabase
-      .from('bank_transfer_requests')
-      .update({
-        status: 'approved',
-        reviewed_by: reviewerId,
-        reviewed_at: new Date().toISOString(),
-        notes: notes || transfer.notes,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', transferId)
-      .select()
-      .single();
+    // Use a transaction client for atomicity
+    const client = await getClient();
+    try {
+      await client.query('BEGIN');
 
-    if (updateError) {
-      log.error('Error updating transfer status:', updateError);
-      throw updateError;
+      // Update transfer status
+      const { rows: updatedTransferRows } = await client.query(
+        `UPDATE bank_transfer_requests
+         SET status = 'approved',
+             reviewed_by = $1,
+             reviewed_at = $2,
+             notes = $3,
+             updated_at = $2
+         WHERE id = $4
+         RETURNING *`,
+        [reviewerId, new Date().toISOString(), notes || transfer.notes, transferId]
+      );
+      const updatedTransfer = updatedTransferRows[0];
+
+      // Create the actual payment record
+      const { rows: paymentRows } = await client.query(
+        `INSERT INTO payments
+          (payer_id, beneficiary_id, amount, category, payment_method, status, is_on_behalf, reference_id, notes, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, 'bank_transfer', 'completed', $5, $6, $7, $8, $8)
+         RETURNING *`,
+        [
+          transfer.requester_id,
+          transfer.beneficiary_id,
+          transfer.amount,
+          transfer.purpose,
+          transfer.requester_id !== transfer.beneficiary_id,
+          transfer.purpose_reference_id,
+          `تحويل بنكي معتمد - رقم الطلب: ${transferId}`,
+          new Date().toISOString()
+        ]
+      );
+      const payment = paymentRows[0];
+
+      await client.query('COMMIT');
+
+      // Update member balance for subscription payments (outside transaction - non-critical)
+      if (transfer.purpose === 'subscription') {
+        await updateMemberBalance(transfer.beneficiary_id, transfer.amount);
+      }
+
+      log.info('Bank transfer approved', {
+        transferId,
+        paymentId: payment.id,
+        reviewerId
+      });
+
+      return {
+        transfer: updatedTransfer,
+        payment
+      };
+    } catch (txError) {
+      await client.query('ROLLBACK');
+      throw txError;
+    } finally {
+      client.release();
     }
-
-    // Create the actual payment record
-    const paymentData = {
-      payer_id: transfer.requester_id,
-      beneficiary_id: transfer.beneficiary_id,
-      amount: transfer.amount,
-      category: transfer.purpose,
-      payment_method: 'bank_transfer',
-      status: 'completed',
-      is_on_behalf: transfer.requester_id !== transfer.beneficiary_id,
-      reference_id: transfer.purpose_reference_id,
-      notes: `تحويل بنكي معتمد - رقم الطلب: ${transferId}`,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-
-    const { data: payment, error: paymentError } = await supabase
-      .from('payments')
-      .insert(paymentData)
-      .select()
-      .single();
-
-    if (paymentError) {
-      log.error('Error creating payment from bank transfer:', paymentError);
-      // Rollback the transfer status update
-      await supabase
-        .from('bank_transfer_requests')
-        .update({ status: 'pending', reviewed_by: null, reviewed_at: null })
-        .eq('id', transferId);
-      throw paymentError;
-    }
-
-    // Update member balance for subscription payments
-    if (transfer.purpose === 'subscription') {
-      await updateMemberBalance(transfer.beneficiary_id, transfer.amount);
-    }
-
-    log.info('Bank transfer approved', {
-      transferId,
-      paymentId: payment.id,
-      reviewerId
-    });
-
-    return {
-      transfer: updatedTransfer,
-      payment
-    };
   } catch (error) {
     log.error('Failed to approve bank transfer:', error);
     throw error;
@@ -317,27 +311,32 @@ export const rejectBankTransfer = async (transferId, reviewerId, reason) => {
       throw new Error('لا يمكن رفض هذا الطلب - الحالة: ' + transfer.status);
     }
 
-    const { data: updatedTransfer, error } = await supabase
-      .from('bank_transfer_requests')
-      .update({
-        status: 'rejected',
-        reviewed_by: reviewerId,
-        reviewed_at: new Date().toISOString(),
-        rejection_reason: reason.trim(),
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', transferId)
-      .select(`
-        *,
-        requester:members!requester_id(id, full_name, membership_number),
-        beneficiary:members!beneficiary_id(id, full_name, membership_number)
-      `)
-      .single();
+    // Update transfer status
+    const { rows: updatedRows } = await query(
+      `UPDATE bank_transfer_requests
+       SET status = 'rejected',
+           reviewed_by = $1,
+           reviewed_at = $2,
+           rejection_reason = $3,
+           updated_at = $2
+       WHERE id = $4
+       RETURNING *`,
+      [reviewerId, new Date().toISOString(), reason.trim(), transferId]
+    );
+    const updatedTransfer = updatedRows[0];
 
-    if (error) {
-      log.error('Error rejecting transfer:', error);
-      throw error;
-    }
+    // Fetch joined data for the response
+    const { rows: requesterRows } = await query(
+      'SELECT id, full_name, membership_number FROM members WHERE id = $1',
+      [updatedTransfer.requester_id]
+    );
+    const { rows: beneficiaryRows } = await query(
+      'SELECT id, full_name, membership_number FROM members WHERE id = $1',
+      [updatedTransfer.beneficiary_id]
+    );
+
+    updatedTransfer.requester = requesterRows[0] || null;
+    updatedTransfer.beneficiary = beneficiaryRows[0] || null;
 
     log.info('Bank transfer rejected', {
       transferId,
@@ -360,14 +359,14 @@ export const rejectBankTransfer = async (transferId, reviewerId, reason) => {
 const updateMemberBalance = async (memberId, amount) => {
   try {
     // Get current balance
-    const { data: member, error: fetchError } = await supabase
-      .from('members')
-      .select('current_balance, balance, total_paid')
-      .eq('id', memberId)
-      .single();
+    const { rows } = await query(
+      'SELECT current_balance, balance, total_paid FROM members WHERE id = $1',
+      [memberId]
+    );
+    const member = rows[0];
 
-    if (fetchError) {
-      log.error('Error fetching member for balance update:', fetchError);
+    if (!member) {
+      log.error('Error fetching member for balance update: member not found', { memberId });
       return;
     }
 
@@ -375,19 +374,15 @@ const updateMemberBalance = async (memberId, amount) => {
     const newBalance = Math.min(currentBalance + parseFloat(amount), 3000); // Cap at 3000 SAR
 
     // Update all balance fields
-    const { error: updateError } = await supabase
-      .from('members')
-      .update({
-        current_balance: newBalance,
-        balance: newBalance,
-        total_paid: newBalance,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', memberId);
-
-    if (updateError) {
-      log.error('Error updating member balance:', updateError);
-    }
+    await query(
+      `UPDATE members
+       SET current_balance = $1,
+           balance = $1,
+           total_paid = $1,
+           updated_at = $2
+       WHERE id = $3`,
+      [newBalance, new Date().toISOString(), memberId]
+    );
 
     log.info('Member balance updated', {
       memberId,
@@ -411,20 +406,24 @@ export const getMemberTransferRequests = async (memberId, filters = {}) => {
     const { page = 1, limit = 10 } = filters;
     const offset = (page - 1) * limit;
 
-    const { data: transfers, error, count } = await supabase
-      .from('bank_transfer_requests')
-      .select(`
-        *,
-        beneficiary:members!beneficiary_id(id, full_name, membership_number)
-      `, { count: 'exact' })
-      .eq('requester_id', memberId)
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+    // Count query
+    const { rows: countRows } = await query(
+      'SELECT COUNT(*) AS total FROM bank_transfer_requests WHERE requester_id = $1',
+      [memberId]
+    );
+    const count = parseInt(countRows[0].total, 10);
 
-    if (error) {
-      log.error('Error fetching member transfers:', error);
-      throw error;
-    }
+    // Data query with join
+    const { rows: transfers } = await query(
+      `SELECT btr.*,
+        json_build_object('id', ben.id, 'full_name', ben.full_name, 'membership_number', ben.membership_number) AS beneficiary
+       FROM bank_transfer_requests btr
+       LEFT JOIN members ben ON ben.id = btr.beneficiary_id
+       WHERE btr.requester_id = $1
+       ORDER BY btr.created_at DESC
+       LIMIT $2 OFFSET $3`,
+      [memberId, limit, offset]
+    );
 
     return {
       data: transfers || [],

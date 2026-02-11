@@ -1,4 +1,4 @@
-import { supabase } from '../config/database.js';
+import { query } from './database.js';
 import { log } from '../utils/logger.js';
 
 /**
@@ -16,20 +16,25 @@ export class FinancialAnalyticsService {
     try {
       const { startDate, endDate } = this.validateDateRange(dateRange);
 
-      // Base query for the date range
-      let query = supabase
-        .from('payments')
-        .select('*');
+      // Build query dynamically based on provided date filters
+      const conditions = [];
+      const params = [];
 
       if (startDate) {
-        query = query.gte('created_at', startDate);
+        params.push(startDate);
+        conditions.push(`created_at >= $${params.length}`);
       }
       if (endDate) {
-        query = query.lte('created_at', endDate);
+        params.push(endDate);
+        conditions.push(`created_at <= $${params.length}`);
       }
 
-      const { data: payments, error } = await query;
-      if (error) {throw error;}
+      let sql = 'SELECT * FROM payments';
+      if (conditions.length) {
+        sql += ' WHERE ' + conditions.join(' AND ');
+      }
+
+      const { rows: payments } = await query(sql, params);
 
       // Calculate statistics
       const stats = {
@@ -100,7 +105,10 @@ export class FinancialAnalyticsService {
         }
 
         // Daily stats
-        const date = payment.created_at ? payment.created_at.split('T')[0] : 'unknown';
+        const date = payment.created_at ? payment.created_at.toISOString
+          ? payment.created_at.toISOString().split('T')[0]
+          : String(payment.created_at).split('T')[0]
+          : 'unknown';
         if (!stats.dailyStats[date]) {
           stats.dailyStats[date] = { count: 0, amount: 0 };
         }
@@ -137,14 +145,14 @@ export class FinancialAnalyticsService {
       const { startDate, endDate } = dateRange;
 
       // Get paid payments for the period
-      const { data: payments, error } = await supabase
-        .from('payments')
-        .select('amount, created_at, category')
-        .eq('status', 'paid')
-        .gte('created_at', startDate)
-        .lte('created_at', endDate);
-
-      if (error) {throw error;}
+      const { rows: payments } = await query(
+        `SELECT amount, created_at, category
+         FROM payments
+         WHERE status = 'paid'
+           AND created_at >= $1
+           AND created_at <= $2`,
+        [startDate, endDate]
+      );
 
       const revenue = {
         period,
@@ -166,7 +174,11 @@ export class FinancialAnalyticsService {
         revenue.categoryRevenue[category] = (revenue.categoryRevenue[category] || 0) + amount;
 
         // Daily breakdown
-        const date = payment.created_at.split('T')[0];
+        const date = payment.created_at
+          ? payment.created_at.toISOString
+            ? payment.created_at.toISOString().split('T')[0]
+            : String(payment.created_at).split('T')[0]
+          : 'unknown';
         revenue.dailyRevenue[date] = (revenue.dailyRevenue[date] || 0) + amount;
       });
 
@@ -175,14 +187,16 @@ export class FinancialAnalyticsService {
 
       // Get previous period for comparison
       const previousPeriodRange = this.getPreviousPeriodDateRange(period);
-      const { data: previousPayments } = await supabase
-        .from('payments')
-        .select('amount')
-        .eq('status', 'paid')
-        .gte('created_at', previousPeriodRange.startDate)
-        .lte('created_at', previousPeriodRange.endDate);
+      const { rows: previousPayments } = await query(
+        `SELECT amount
+         FROM payments
+         WHERE status = 'paid'
+           AND created_at >= $1
+           AND created_at <= $2`,
+        [previousPeriodRange.startDate, previousPeriodRange.endDate]
+      );
 
-      if (previousPayments) {
+      if (previousPayments && previousPayments.length > 0) {
         const previousRevenue = previousPayments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
         const changeAmount = revenue.totalRevenue - previousRevenue;
         const changePercentage = previousRevenue > 0 ? (changeAmount / previousRevenue) * 100 : 0;
@@ -214,11 +228,9 @@ export class FinancialAnalyticsService {
    */
   static async getPaymentsByCategory() {
     try {
-      const { data: payments, error } = await supabase
-        .from('payments')
-        .select('category, amount, status, created_at');
-
-      if (error) {throw error;}
+      const { rows: payments } = await query(
+        `SELECT category, amount, status, created_at FROM payments`
+      );
 
       const categories = {};
 
@@ -285,23 +297,22 @@ export class FinancialAnalyticsService {
    */
   static async getMemberContributions() {
     try {
-      const { data: payments, error } = await supabase
-        .from('payments')
-        .select(`
-          amount,
-          status,
-          category,
-          created_at,
-          payer:members(id, full_name, membership_number)
-        `)
-        .eq('status', 'paid');
-
-      if (error) {throw error;}
+      const { rows: payments } = await query(
+        `SELECT p.amount, p.status, p.category, p.created_at,
+                json_build_object(
+                  'id', m.id,
+                  'full_name', m.full_name,
+                  'membership_number', m.membership_number
+                ) AS payer
+         FROM payments p
+         LEFT JOIN members m ON m.id = p.payer_id
+         WHERE p.status = 'paid'`
+      );
 
       const memberStats = {};
 
       payments.forEach(payment => {
-        if (!payment.payer) {return;}
+        if (!payment.payer || !payment.payer.id) {return;}
 
         const memberId = payment.payer.id;
         if (!memberStats[memberId]) {
@@ -324,8 +335,13 @@ export class FinancialAnalyticsService {
         memberStats[memberId].categories[category] = (memberStats[memberId].categories[category] || 0) + amount;
 
         // Track last payment
-        if (!memberStats[memberId].lastPayment || payment.created_at > memberStats[memberId].lastPayment) {
-          memberStats[memberId].lastPayment = payment.created_at;
+        const createdAt = payment.created_at
+          ? payment.created_at.toISOString
+            ? payment.created_at.toISOString()
+            : String(payment.created_at)
+          : null;
+        if (createdAt && (!memberStats[memberId].lastPayment || createdAt > memberStats[memberId].lastPayment)) {
+          memberStats[memberId].lastPayment = createdAt;
         }
       });
 
@@ -369,16 +385,21 @@ export class FinancialAnalyticsService {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      const { data: overduePayments, error } = await supabase
-        .from('payments')
-        .select(`
-          *,
-          payer:members(id, full_name, phone, email, membership_number)
-        `)
-        .eq('status', 'pending')
-        .lt('created_at', thirtyDaysAgo.toISOString());
-
-      if (error) {throw error;}
+      const { rows: overduePayments } = await query(
+        `SELECT p.*,
+                json_build_object(
+                  'id', m.id,
+                  'full_name', m.full_name,
+                  'phone', m.phone,
+                  'email', m.email,
+                  'membership_number', m.membership_number
+                ) AS payer
+         FROM payments p
+         LEFT JOIN members m ON m.id = p.payer_id
+         WHERE p.status = 'pending'
+           AND p.created_at < $1`,
+        [thirtyDaysAgo.toISOString()]
+      );
 
       const overdueSummary = {
         count: overduePayments.length,
@@ -407,7 +428,7 @@ export class FinancialAnalyticsService {
         overdueSummary.categoryBreakdown[category].amount += amount;
 
         // Member breakdown
-        if (payment.payer) {
+        if (payment.payer && payment.payer.id) {
           const memberId = payment.payer.id;
           if (!overdueSummary.memberBreakdown[memberId]) {
             overdueSummary.memberBreakdown[memberId] = {

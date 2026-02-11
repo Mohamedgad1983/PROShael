@@ -1,7 +1,7 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import rateLimit from 'express-rate-limit';
-import { supabase } from '../config/database.js';
+import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
 import { authenticateToken } from '../middleware/authMiddleware.js';
 import { requireSuperAdmin } from '../middleware/superAdminAuth.js';
@@ -94,14 +94,17 @@ const validatePasswordStrength = (password) => {
 const findUser = async (identifier) => {
   const normalizedPhone = identifier.replace(/\s|-/g, '');
 
-  // Use OR condition for efficient single query
-  const result = await supabase
-    .from('users')
-    .select(USER_SELECT_FIELDS)
-    .or(`email.eq.${identifier},phone.eq.${normalizedPhone},id.eq.${identifier}`)
-    .maybeSingle();
+  try {
+    // Use OR condition for efficient single query
+    const result = await query(
+      `SELECT ${USER_SELECT_FIELDS} FROM users WHERE email = $1 OR phone = $2 OR id = $3 LIMIT 1`,
+      [identifier, normalizedPhone, identifier]
+    );
 
-  return result;
+    return { data: result.rows[0] || null, error: null };
+  } catch (error) {
+    return { data: null, error };
+  }
 };
 
 /**
@@ -154,15 +157,12 @@ router.post('/reset', authenticateToken, requireSuperAdmin, passwordManagementLi
     const hashedPassword = await bcrypt.hash(newPassword, salt);
 
     // Update password in database
-    const { error: updateError } = await supabase
-      .from('users')
-      .update({
-        password_hash: hashedPassword,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', user.id);
-
-    if (updateError) {
+    try {
+      await query(
+        'UPDATE users SET password_hash = $1, updated_at = $2 WHERE id = $3',
+        [hashedPassword, new Date().toISOString(), user.id]
+      );
+    } catch (updateError) {
       log.error('[PasswordReset] Failed to update password:', {
         userId: user.id,
         error: updateError
@@ -176,19 +176,20 @@ router.post('/reset', authenticateToken, requireSuperAdmin, passwordManagementLi
     }
 
     // Log audit trail
-    const { error: auditError } = await supabase.from('audit_logs').insert({
-      action: 'PASSWORD_RESET',
-      actor_id: req.superAdmin.id,
-      actor_email: req.superAdmin.email,
-      target_user_id: user.id,
-      target_user_email: user.email,
-      details: {
-        reset_by: 'superadmin',
-        timestamp: new Date().toISOString()
-      }
-    });
-
-    if (auditError) {
+    try {
+      await query(
+        `INSERT INTO audit_logs (action, actor_id, actor_email, target_user_id, target_user_email, details)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [
+          'PASSWORD_RESET',
+          req.superAdmin.id,
+          req.superAdmin.email,
+          user.id,
+          user.email,
+          JSON.stringify({ reset_by: 'superadmin', timestamp: new Date().toISOString() })
+        ]
+      );
+    } catch (auditError) {
       log.error('[PasswordReset] Failed to create audit log:', auditError);
       // Continue - audit failure shouldn't block password reset
     }
@@ -267,11 +268,12 @@ router.post('/create', authenticateToken, requireSuperAdmin, passwordManagementL
     }
 
     // Check if user already has password (unless forceOverwrite is true)
-    const { data: existingUser } = await supabase
-      .from('users')
-      .select('password_hash')
-      .eq('id', user.id)
-      .single();
+    const existingResult = await query(
+      'SELECT password_hash FROM users WHERE id = $1',
+      [user.id]
+    );
+
+    const existingUser = existingResult.rows[0];
 
     if (existingUser?.password_hash && !forceOverwrite) {
       return res.status(409).json({
@@ -288,16 +290,12 @@ router.post('/create', authenticateToken, requireSuperAdmin, passwordManagementL
     const hashedPassword = await bcrypt.hash(newPassword, salt);
 
     // Update password and activate account
-    const { error: updateError } = await supabase
-      .from('users')
-      .update({
-        password_hash: hashedPassword,
-        is_active: true,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', user.id);
-
-    if (updateError) {
+    try {
+      await query(
+        'UPDATE users SET password_hash = $1, is_active = $2, updated_at = $3 WHERE id = $4',
+        [hashedPassword, true, new Date().toISOString(), user.id]
+      );
+    } catch (updateError) {
       log.error('[PasswordCreate] Failed to create password:', {
         userId: user.id,
         error: updateError
@@ -311,20 +309,24 @@ router.post('/create', authenticateToken, requireSuperAdmin, passwordManagementL
     }
 
     // Log audit trail
-    const { error: auditError } = await supabase.from('audit_logs').insert({
-      action: 'PASSWORD_CREATED',
-      actor_id: req.superAdmin.id,
-      actor_email: req.superAdmin.email,
-      target_user_id: user.id,
-      target_user_email: user.email,
-      details: {
-        created_by: 'superadmin',
-        account_activated: true,
-        timestamp: new Date().toISOString()
-      }
-    });
-
-    if (auditError) {
+    try {
+      await query(
+        `INSERT INTO audit_logs (action, actor_id, actor_email, target_user_id, target_user_email, details)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [
+          'PASSWORD_CREATED',
+          req.superAdmin.id,
+          req.superAdmin.email,
+          user.id,
+          user.email,
+          JSON.stringify({
+            created_by: 'superadmin',
+            account_activated: true,
+            timestamp: new Date().toISOString()
+          })
+        ]
+      );
+    } catch (auditError) {
       log.error('[PasswordCreate] Failed to create audit log:', auditError);
       // Continue - audit failure shouldn't block password creation
     }
@@ -381,22 +383,20 @@ router.get('/search-users', authenticateToken, requireSuperAdmin, passwordManage
     // Search in both users and members tables using parameterized queries
     const searchPattern = `%${query}%`;
 
-    const { data: users, error: usersError } = await supabase
-      .from('users')
-      .select('id, email, phone, full_name_ar, full_name_en, role, is_active, password_hash')
-      .or(`email.ilike.${searchPattern},phone.ilike.${searchPattern},full_name_ar.ilike.${searchPattern},full_name_en.ilike.${searchPattern}`)
-      .order('created_at', { ascending: false })
-      .limit(SEARCH_RESULTS_LIMIT);
+    let users = [];
+    let members = [];
 
-    const { data: members, error: membersError } = await supabase
-      .from('members')
-      .select('id, email, phone, full_name, user_id, status')
-      .or(`email.ilike.${searchPattern},phone.ilike.${searchPattern},full_name.ilike.${searchPattern}`)
-      .is('user_id', null) // Only members without auth accounts
-      .order('created_at', { ascending: false })
-      .limit(SEARCH_RESULTS_LIMIT);
-
-    if (usersError) {
+    try {
+      const usersResult = await query(
+        `SELECT id, email, phone, full_name_ar, full_name_en, role, is_active, password_hash
+         FROM users
+         WHERE email ILIKE $1 OR phone ILIKE $1 OR full_name_ar ILIKE $1 OR full_name_en ILIKE $1
+         ORDER BY created_at DESC
+         LIMIT $2`,
+        [searchPattern, SEARCH_RESULTS_LIMIT]
+      );
+      users = usersResult.rows;
+    } catch (usersError) {
       log.error('[UserSearch] Users search failed:', usersError);
       return res.status(500).json({
         success: false,
@@ -406,7 +406,18 @@ router.get('/search-users', authenticateToken, requireSuperAdmin, passwordManage
       });
     }
 
-    if (membersError) {
+    try {
+      const membersResult = await query(
+        `SELECT id, email, phone, full_name, user_id, status
+         FROM members
+         WHERE (email ILIKE $1 OR phone ILIKE $1 OR full_name ILIKE $1)
+           AND user_id IS NULL
+         ORDER BY created_at DESC
+         LIMIT $2`,
+        [searchPattern, SEARCH_RESULTS_LIMIT]
+      );
+      members = membersResult.rows;
+    } catch (membersError) {
       log.error('[UserSearch] Members search failed:', membersError);
       // Continue with users results even if members search fails
     }
