@@ -548,10 +548,16 @@ router.post('/login', async (req, res) => {
       message: 'تم تسجيل الدخول بنجاح'
     });
   } catch (error) {
-    log.error('Login error', { error: error.message });
+    log.error('Login error - Full details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+      body: req.body
+    });
     return res.status(500).json({
       success: false,
-      error: 'خطأ في تسجيل الدخول'
+      error: 'خطأ في تسجيل الدخول',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
