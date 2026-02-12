@@ -60,12 +60,11 @@ import { validateCSRFToken } from './src/middleware/csrf.js';
 
 // Environment check with Winston logging
 log.info('Environment Check on Start:', {
-  SUPABASE_URL: config.supabase.url ? '✓ Loaded' : '✗ Missing',
-  SUPABASE_ANON_KEY: config.supabase.anonKey ? '✓ Loaded' : '✗ Missing',
-  SUPABASE_SERVICE_KEY: config.supabase.serviceKey ? '✓ Loaded' : '✗ Missing',
+  DATABASE_URL: config.database.url ? '✓ Loaded' : '✗ Missing',
   JWT_SECRET: config.jwt.secret ? '✓ Loaded' : '✗ Missing',
   NODE_ENV: config.env,
-  RENDER: config.platform.isRender
+  RENDER: config.platform.isRender,
+  UPLOAD_DIR: process.env.UPLOAD_DIR || 'default'
 });
 
 // JWT_SECRET validation is now handled in config/env.js
@@ -343,8 +342,7 @@ app.get('/api/health', async (req, res) => {
     checks: {
       database: false,
       jwt: !!config.jwt.secret,
-      supabase_url: !!config.supabase.url,
-      supabase_keys: !!config.supabase.anonKey && !!config.supabase.serviceKey
+      storage: process.env.UPLOAD_DIR ? 'configured' : 'default'
     }
   };
 
@@ -358,7 +356,7 @@ app.get('/api/health', async (req, res) => {
   }
 
   // Set overall status
-  if (!health.checks.database || !health.checks.jwt || !health.checks.supabase_url) {
+  if (!health.checks.database || !health.checks.jwt) {
     health.status = 'degraded';
   }
 
@@ -392,7 +390,8 @@ app.get('/api/debug/env', (req, res) => {
     render: config.platform.isRender,
     configs: {
       jwt_configured: !!config.jwt.secret,
-      supabase_configured: !!config.supabase.url,
+      database_configured: !!config.database.url,
+      storage_configured: !!process.env.UPLOAD_DIR,
       frontend_url: config.frontend.url,
       cors_origin: config.frontend.corsOrigin
     },
@@ -429,7 +428,8 @@ const startServer = async () => {
   log.info(`   NODE_ENV: ${config.env}`);
   log.info(`   Platform: ${config.platform.isRender ? 'Render.com' : 'Local'}`);
   log.info(`   JWT Secret: ${config.jwt.secret ? '✓ Configured' : '⚠️  Not configured'}`);
-  log.info(`   Supabase: ${config.supabase.url ? '✓ Configured' : '✗ Missing'}`);
+  log.info(`   Database: ${config.database.url ? '✓ PostgreSQL (VPS)' : '⚠️  Not configured'}`);
+  log.info(`   Storage: ${process.env.UPLOAD_DIR || 'default (/var/www/uploads/alshuail)'}`);
   log.info(`   Frontend URL: ${config.frontend.url}`);
 
   app.listen(PORT, '0.0.0.0', () => {
