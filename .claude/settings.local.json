@@ -110,7 +110,17 @@
       "Bash(sshpass -p 'OjOJ0422alshu' ssh root@213.199.62.185 \"cd /var/www/PROShael/alshuail-backend && git pull && pm2 restart alshuail-backend && pm2 logs alshuail-backend --lines 15 --nostream\")",
       "Bash(scp:*)",
       "mcp__playwright__browser_select_option",
-      "mcp__playwright__browser_file_upload"
+      "mcp__playwright__browser_file_upload",
+      "Bash(ls:*)",
+      "Bash(if [ -f \".specify/scripts/powershell/update-agent-context.ps1\" ])",
+      "Bash(then powershell -ExecutionPolicy Bypass -File \".specify/scripts/powershell/update-agent-context.ps1\" -AgentType claude)",
+      "Bash(else echo \"Agent context script not found, skipping\")",
+      "Bash(fi)",
+      "mcp__serena__get_symbols_overview",
+      "mcp__chrome-devtools__navigate_page",
+      "Bash(python3:*)",
+      "mcp__serena__find_symbol",
+      "Bash(wc:*)"
     ],
     "deny": [],
     "ask": []

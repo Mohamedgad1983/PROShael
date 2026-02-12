@@ -7,7 +7,8 @@
  */
 
 import http from 'http';
-import { createClient } from '@supabase/supabase-js';
+import pg from 'pg';
+const { Pool } = pg;
 
 const HEALTH_CHECK_PORT = process.env.PORT || 3001;
 const HEALTH_CHECK_HOST = process.env.HOST || 'localhost';
@@ -54,30 +55,38 @@ async function performHttpHealthCheck() {
  * Checks database connectivity
  */
 async function checkDatabaseConnection() {
+    let pool;
     try {
-        const supabaseUrl = process.env.SUPABASE_URL;
-        const supabaseKey = process.env.SUPABASE_KEY;
+        const dbConfig = {
+            host: process.env.DB_HOST || 'localhost',
+            port: process.env.DB_PORT || 5432,
+            database: process.env.DB_NAME,
+            user: process.env.DB_USER,
+            password: process.env.DB_PASSWORD,
+            max: 1,
+            connectionTimeoutMillis: 5000
+        };
 
-        if (!supabaseUrl || !supabaseKey) {
-            throw new Error('Database configuration missing');
+        if (!dbConfig.database || !dbConfig.user || !dbConfig.password) {
+            throw new Error('Database configuration missing (DB_NAME, DB_USER, DB_PASSWORD required)');
         }
 
-        const supabase = createClient(supabaseUrl, supabaseKey);
+        pool = new Pool(dbConfig);
 
         // Simple query to test connection
-        const { data, error } = await supabase
-            .from('members')
-            .select('count', { count: 'exact', head: true });
+        const result = await pool.query('SELECT COUNT(*) FROM members');
+        const recordCount = parseInt(result.rows[0].count, 10);
 
-        if (error) {
-            throw new Error(`Database query failed: ${error.message}`);
-        }
+        await pool.end();
 
         return {
             status: 'connected',
-            recordCount: data?.length || 0
+            recordCount
         };
     } catch (error) {
+        if (pool) {
+            await pool.end().catch(() => {});
+        }
         throw new Error(`Database connection failed: ${error.message}`);
     }
 }
@@ -87,8 +96,10 @@ async function checkDatabaseConnection() {
  */
 function validateEnvironmentVariables() {
     const requiredEnvVars = [
-        'SUPABASE_URL',
-        'SUPABASE_KEY',
+        'DB_HOST',
+        'DB_NAME',
+        'DB_USER',
+        'DB_PASSWORD',
         'JWT_SECRET'
     ];
 
@@ -164,7 +175,7 @@ async function runHealthCheck() {
     const healthStatus = {
         timestamp: new Date().toISOString(),
         service: 'alshuail-backend',
-        version: '1.0.0',
+        version: '2.0.0',
         status: 'unknown',
         checks: {}
     };
