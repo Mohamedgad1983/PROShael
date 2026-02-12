@@ -150,10 +150,11 @@ async function fetchPrimaryRole(userId) {
 }
 
 async function authenticateAdmin(identifier, password, requestedRole = null) {
+  let user; // Declare outside try block to avoid scoping error
+
   try {
     // Support both email and phone login for admins
     const isEmail = identifier && identifier.includes('@');
-    let user;
 
     if (isEmail) {
       const normalizedEmail = normalizeEmail(identifier);
