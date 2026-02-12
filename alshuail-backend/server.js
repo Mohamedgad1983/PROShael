@@ -440,8 +440,8 @@ const startServer = async () => {
     log.info(`🧪 Test Endpoint: http://localhost:${PORT}/api/test`);
     log.info(`📊 Dashboard: http://localhost:3002`);
     log.info('\n📌 Production URLs:');
-    log.info(`   API: https://proshael.onrender.com`);
-    log.info(`   Admin: https://alshuail-admin.pages.dev`);
+    log.info(`   API: https://api.alshailfund.com`);
+    log.info(`   Admin: https://alshailfund.com`);
     log.info('═══════════════════════════════════════\n');
   });
 
