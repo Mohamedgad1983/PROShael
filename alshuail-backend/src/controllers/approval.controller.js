@@ -1,6 +1,7 @@
 // Member Approval Controller
 import { query } from '../services/database.js';
 import { logAdminAction, ACTIONS, RESOURCE_TYPES } from '../utils/audit-logger.js';
+import { log } from '../utils/logger.js';
 
 
 /**
@@ -22,7 +23,7 @@ export const getPendingApprovals = async (req, res) => {
       data: members
     });
   } catch (error) {
-    console.error('Exception:', error);
+    log.error('Failed to fetch pending approvals', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       message: 'خطأ في الخادم'
@@ -55,7 +56,7 @@ export const getMemberForApproval = async (req, res) => {
       data: memberRows[0]
     });
   } catch (error) {
-    console.error('Exception:', error);
+    log.error('Failed to get member for approval', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       message: 'خطأ في الخادم'
@@ -96,7 +97,7 @@ export const approveMember = async (req, res) => {
     );
 
     if (!memberRows || memberRows.length === 0) {
-      console.error('Approval Error: No rows returned');
+      log.error('Member approval failed - no rows returned', { memberId });
       return res.status(500).json({
         success: false,
         message: 'خطأ في الموافقة على العضو'
@@ -127,7 +128,7 @@ export const approveMember = async (req, res) => {
       data: member
     });
   } catch (error) {
-    console.error('Exception:', error);
+    log.error('Failed to approve member', { error: error.message, stack: error.stack, memberId });
     res.status(500).json({
       success: false,
       message: 'خطأ في الخادم'
@@ -175,7 +176,7 @@ export const rejectMember = async (req, res) => {
     );
 
     if (!memberRows || memberRows.length === 0) {
-      console.error('Rejection Error: No rows returned');
+      log.error('Member rejection failed - no rows returned', { memberId });
       return res.status(500).json({
         success: false,
         message: 'خطأ في رفض العضو'
@@ -206,7 +207,7 @@ export const rejectMember = async (req, res) => {
       data: member
     });
   } catch (error) {
-    console.error('Exception:', error);
+    log.error('Failed to reject member', { error: error.message, stack: error.stack, memberId });
     res.status(500).json({
       success: false,
       message: 'خطأ في الخادم'
@@ -243,7 +244,7 @@ export const getApprovalStats = async (req, res) => {
       data: statusCounts
     });
   } catch (error) {
-    console.error('Exception:', error);
+    log.error('Failed to fetch approval stats', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       message: 'خطأ في الخادم'

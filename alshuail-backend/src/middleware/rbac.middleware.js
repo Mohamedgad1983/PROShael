@@ -1,5 +1,6 @@
 // Role-Based Access Control Middleware
 import { query } from '../services/database.js';
+import { log } from '../utils/logger.js';
 
 
 // Role hierarchy
@@ -65,7 +66,7 @@ export const requireRole = (...allowedRoles) => {
 
       next();
     } catch (error) {
-      console.error('RBAC Error:', error);
+      log.error('RBAC Error', { error: error.message, stack: error.stack });
       res.status(500).json({
         success: false,
         message: 'خطأ في التحقق من الصلاحيات'
@@ -101,7 +102,7 @@ export const requirePermission = (...requiredPermissions) => {
 
       next();
     } catch (error) {
-      console.error('Permission Check Error:', error);
+      log.error('Permission Check Error', { error: error.message, stack: error.stack });
       res.status(500).json({
         success: false,
         message: 'خطأ في التحقق من الصلاحيات'

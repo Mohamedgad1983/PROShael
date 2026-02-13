@@ -1,6 +1,7 @@
 // Admin Management Controller
 import { query } from '../services/database.js';
 import { logAdminAction, ACTIONS, RESOURCE_TYPES } from '../utils/audit-logger.js';
+import { log } from '../utils/logger.js';
 
 /**
  * Generate unique member ID
@@ -81,7 +82,7 @@ export const addMember = async (req, res) => {
     );
 
     if (!memberRows || memberRows.length === 0) {
-      console.error('Insert Error: No rows returned');
+      log.error('Add member failed - no rows returned', { full_name_ar, phone: phone.slice(-4) });
       return res.status(500).json({
         success: false,
         message: 'خطأ في إضافة العضو'
@@ -114,7 +115,7 @@ export const addMember = async (req, res) => {
       data: member
     });
   } catch (error) {
-    console.error('Exception:', error);
+    log.error('Failed to add member', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       message: 'خطأ في الخادم'
@@ -149,7 +150,7 @@ export const assignSubdivision = async (req, res) => {
     );
 
     if (!memberRows || memberRows.length === 0) {
-      console.error('Update Error: No rows returned');
+      log.error('Assign subdivision failed - no rows returned', { memberId, family_branch_id });
       return res.status(500).json({
         success: false,
         message: 'خطأ في تعيين الفخذ'
@@ -178,7 +179,7 @@ export const assignSubdivision = async (req, res) => {
       data: member
     });
   } catch (error) {
-    console.error('Exception:', error);
+    log.error('Failed to assign subdivision', { error: error.message, stack: error.stack, memberId });
     res.status(500).json({
       success: false,
       message: 'خطأ في الخادم'
@@ -202,7 +203,7 @@ export const getSubdivisions = async (req, res) => {
       data: subdivisions
     });
   } catch (error) {
-    console.error('Exception:', error);
+    log.error('Failed to fetch subdivisions', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       message: 'خطأ في الخادم'
@@ -248,7 +249,7 @@ export const getDashboardStats = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Exception:', error);
+    log.error('Failed to fetch dashboard stats', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       message: 'خطأ في الخادم'

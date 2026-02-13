@@ -6,6 +6,7 @@
 
 import { doubleCsrf } from 'csrf-csrf';
 import { config } from '../config/env.js';
+import { log } from '../utils/logger.js';
 
 // Configure CSRF protection options
 const csrfOptions = {
@@ -40,7 +41,7 @@ const generateCSRFToken = (req, res, next) => {
     req.csrfToken = () => token;
     next();
   } catch (error) {
-    console.error('CSRF token generation error:', error);
+    log.error('CSRF token generation error', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'Security token generation failed'
@@ -71,7 +72,7 @@ const validateCSRFToken = (req, res, next) => {
     validateRequest(req);
     next();
   } catch (error) {
-    console.error('CSRF validation failed:', error);
+    log.error('CSRF validation failed', { error: error.message });
     res.status(403).json({
       success: false,
       error: 'Invalid security token. Please refresh and try again.',

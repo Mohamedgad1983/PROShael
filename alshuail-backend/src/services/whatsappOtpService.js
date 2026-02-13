@@ -8,6 +8,7 @@
  */
 
 import axios from 'axios';
+import { log } from '../utils/logger.js';
 
 // Ultramsg Configuration
 const ULTRAMSG_INSTANCE = process.env.ULTRAMSG_INSTANCE_ID;
@@ -87,13 +88,13 @@ Valid for 5 minutes only.`;
 
         // Check response
         if (response.data && response.data.sent === 'true') {
-            console.log(`✅ OTP sent successfully to ${phone}`);
+            log.info('OTP sent successfully', { phone: phone.slice(0, -4) + '****' });
             return {
                 success: true,
                 message: 'تم إرسال رمز التحقق بنجاح'
             };
         } else {
-            console.error('❌ WhatsApp send failed:', response.data);
+            log.error('WhatsApp OTP send failed', { responseData: response.data });
             return {
                 success: false,
                 message: 'فشل إرسال الرسالة'
@@ -101,7 +102,7 @@ Valid for 5 minutes only.`;
         }
 
     } catch (error) {
-        console.error('❌ WhatsApp service error:', error.message);
+        log.error('WhatsApp OTP service error', { error: error.message });
 
         if (error.response) {
             return {
@@ -158,7 +159,7 @@ Al-Shuail Family Fund`;
         };
 
     } catch (error) {
-        console.error('WhatsApp notification error:', error.message);
+        log.error('WhatsApp password reset notification error', { error: error.message });
         return { success: false, message: 'فشل الإرسال' };
     }
 };
@@ -211,7 +212,7 @@ Welcome to the family!`;
         };
 
     } catch (error) {
-        console.error('WhatsApp welcome error:', error.message);
+        log.error('WhatsApp welcome message error', { error: error.message });
         return { success: false, message: 'فشل الإرسال' };
     }
 };

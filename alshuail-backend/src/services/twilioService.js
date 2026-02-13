@@ -15,6 +15,7 @@
 
 import twilio from 'twilio';
 import { config } from '../config/env.js';
+import { log } from '../utils/logger.js';
 
 // Initialize Twilio client
 let twilioClient = null;
@@ -29,16 +30,16 @@ function initializeTwilio() {
   }
 
   if (!config.twilio.enabled) {
-    console.warn('⚠️  Twilio not configured - WhatsApp notifications disabled');
+    log.warn('Twilio not configured - WhatsApp notifications disabled');
     return null;
   }
 
   try {
     twilioClient = twilio(config.twilio.accountSid, config.twilio.authToken);
-    console.log('✅ Twilio client initialized successfully');
+    log.info('Twilio client initialized successfully');
     return twilioClient;
   } catch (error) {
-    console.error('❌ Failed to initialize Twilio client:', error.message);
+    log.error('Failed to initialize Twilio client', { error: error.message });
     throw error;
   }
 }
@@ -94,9 +95,7 @@ export async function sendWhatsAppMessage(to, body, options = {}) {
       ...(options.statusCallback && { statusCallback: options.statusCallback })
     });
 
-    console.log('✅ WhatsApp message sent successfully:', message.sid);
-    console.log('   Status:', message.status);
-    console.log('   To:', to);
+    log.info('WhatsApp message sent successfully', { messageId: message.sid, status: message.status, to: to.slice(0, -4) + '****' });
 
     return {
       success: true,
@@ -106,13 +105,11 @@ export async function sendWhatsAppMessage(to, body, options = {}) {
     };
 
   } catch (error) {
-    console.error('❌ Error sending WhatsApp message:', error.message);
+    log.error('Error sending WhatsApp message', { error: error.message });
 
     // Handle Twilio-specific errors
     if (error instanceof twilio.RestException) {
-      console.error('   Twilio Error Code:', error.code);
-      console.error('   Twilio Status:', error.status);
-      console.error('   More Info:', error.moreInfo);
+      log.error('Twilio API error details', { code: error.code, status: error.status, moreInfo: error.moreInfo });
 
       return {
         success: false,
@@ -173,9 +170,7 @@ export async function sendWhatsAppMediaMessage(to, body, mediaUrl, options = {})
       ...(options.statusCallback && { statusCallback: options.statusCallback })
     });
 
-    console.log('✅ WhatsApp media message sent successfully:', message.sid);
-    console.log('   Status:', message.status);
-    console.log('   Media count:', mediaUrls.length);
+    log.info('WhatsApp media message sent successfully', { messageId: message.sid, status: message.status, mediaCount: mediaUrls.length });
 
     return {
       success: true,
@@ -186,7 +181,7 @@ export async function sendWhatsAppMediaMessage(to, body, mediaUrl, options = {})
     };
 
   } catch (error) {
-    console.error('❌ Error sending WhatsApp media message:', error.message);
+    log.error('Error sending WhatsApp media message', { error: error.message });
 
     if (error instanceof twilio.RestException) {
       return {
@@ -270,7 +265,7 @@ export async function sendBulkWhatsAppMessages(recipients, body, options = {}) {
     await new Promise(resolve => setTimeout(resolve, 100));
   }
 
-  console.log(`📊 Bulk WhatsApp results: ${successCount} successful, ${failureCount} failed`);
+  log.info('Bulk WhatsApp results', { successCount, failureCount });
 
   return {
     successCount,
@@ -314,7 +309,7 @@ export async function getMessageStatus(messageId) {
     };
 
   } catch (error) {
-    console.error('❌ Error fetching message status:', error.message);
+    log.error('Error fetching message status', { error: error.message });
 
     if (error instanceof twilio.RestException) {
       return {

@@ -1,5 +1,6 @@
 // Family Tree Controller
 import { query } from "../services/database.js";
+import { log } from '../utils/logger.js';
 import {
   buildTreeStructure,
   getDescendants,
@@ -66,7 +67,7 @@ export const getFullTree = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Exception:', error);
+    log.error('Failed to fetch full family tree', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       message: 'خطأ في الخادم'
@@ -171,7 +172,7 @@ export const getMemberRelationships = async (req, res) => {
       data: relationships
     });
   } catch (error) {
-    console.error('Exception:', error);
+    log.error('Failed to fetch member relationships', { error: error.message, stack: error.stack, memberId });
     res.status(500).json({
       success: false,
       message: 'خطأ في الخادم'
@@ -226,7 +227,7 @@ export const searchMembers = async (req, res) => {
       data: formattedMembers
     });
   } catch (error) {
-    console.error('Exception:', error);
+    log.error('Failed to search family tree members', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       message: 'خطأ في الخادم'
@@ -261,7 +262,7 @@ export const getTreeStats = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Exception:', error);
+    log.error('Failed to fetch tree stats', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       message: 'خطأ في الخادم'
@@ -392,7 +393,7 @@ export const getVisualization = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Visualization Error:', error);
+    log.error('Failed to generate tree visualization', { error: error.message, stack: error.stack, memberId });
     res.status(500).json({
       success: false,
       message: 'خطأ في الخادم'

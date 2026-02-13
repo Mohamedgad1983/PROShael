@@ -1,4 +1,5 @@
 import moment from 'moment-hijri';
+import { log } from './logger.js';
 
 /**
  * Hijri Calendar Conversion Utility
@@ -23,7 +24,7 @@ export function gregorianToHijri(gregorianDate) {
 
     return `${hijriYear}-${String(hijriMonth).padStart(2, '0')}-${String(hijriDay).padStart(2, '0')}`;
   } catch (error) {
-    console.error('Error converting Gregorian to Hijri:', error);
+    log.error('Error converting Gregorian to Hijri', { error: error.message });
     return null;
   }
 }
@@ -45,7 +46,7 @@ export function hijriToGregorian(hijriDate) {
 
     return m.toDate();
   } catch (error) {
-    console.error('Error converting Hijri to Gregorian:', error);
+    log.error('Error converting Hijri to Gregorian', { error: error.message });
     return null;
   }
 }

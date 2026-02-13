@@ -4,6 +4,7 @@
  */
 
 import { query } from "../services/database.js";
+import { log } from '../utils/logger.js';
 
 
 /**
@@ -41,7 +42,7 @@ export const getBranches = async (req, res) => {
       data: branchesWithCounts
     });
   } catch (error) {
-    console.error('Error fetching branches:', error);
+    log.error('Failed to fetch family branches', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch family branches'
@@ -129,7 +130,7 @@ export const getGenerations = async (req, res) => {
       data: generations
     });
   } catch (error) {
-    console.error('Error fetching generations:', error);
+    log.error('Failed to fetch generation data', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch generation data'
@@ -203,8 +204,7 @@ export const getMembers = async (req, res) => {
       count: mappedMembers.length
     });
   } catch (error) {
-    console.error('Error fetching members:', error);
-    console.error('Error details:', error.message);
+    log.error('Failed to fetch members', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch members',
@@ -286,7 +286,7 @@ export const getRelationships = async (req, res) => {
       data: familyTree
     });
   } catch (error) {
-    console.error('Error fetching relationships:', error);
+    log.error('Failed to fetch family relationships', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch family relationships'
@@ -318,7 +318,7 @@ export const approveMember = async (req, res) => {
       data
     });
   } catch (error) {
-    console.error('Error approving member:', error);
+    log.error('Failed to approve member', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: 'Failed to approve member'
@@ -351,7 +351,7 @@ export const rejectMember = async (req, res) => {
       data
     });
   } catch (error) {
-    console.error('Error rejecting member:', error);
+    log.error('Failed to reject member', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: 'Failed to reject member'
@@ -411,7 +411,7 @@ export const getUnassignedMembers = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching unassigned members:', error);
+    log.error('Failed to fetch unassigned members', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: 'Failed to fetch unassigned members'
@@ -474,7 +474,7 @@ export const assignMemberToBranch = async (req, res) => {
       data: member
     });
   } catch (error) {
-    console.error('Error assigning member to branch:', error);
+    log.error('Failed to assign member to branch', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: 'Failed to assign member to branch'
@@ -533,7 +533,7 @@ export const bulkAssignMembers = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error bulk assigning members:', error);
+    log.error('Failed to bulk assign members', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       error: 'Failed to bulk assign members'

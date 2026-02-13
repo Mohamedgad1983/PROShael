@@ -12,6 +12,7 @@ import jwt from 'jsonwebtoken';
 import { query } from '../services/database.js';
 import { sendWhatsAppOTP } from '../services/whatsappOtpService.js';
 import { generateSecureOTP } from '../utils/secureOtp.js';
+import { log } from '../utils/logger.js';
 
 // Constants
 const SALT_ROUNDS = 12;
@@ -143,13 +144,13 @@ const logSecurityAction = async (memberId, actionType, performedBy = null, detai
         details
     };
 
-    // Log to console in structured format for log aggregators
+    // Log in structured format for log aggregators
     if (level === 'error') {
-        console.error('[SECURITY]', JSON.stringify(logEntry));
+        log.error('Security action', { security: logEntry });
     } else if (level === 'warn') {
-        console.warn('[SECURITY]', JSON.stringify(logEntry));
+        log.warn('Security action', { security: logEntry });
     } else {
-        console.log('[SECURITY]', JSON.stringify(logEntry));
+        log.info('Security action', { security: logEntry });
     }
 
     try {
@@ -195,7 +196,7 @@ const logSecurityAction = async (memberId, actionType, performedBy = null, detai
             ]
         );
     } catch (error) {
-        console.error('[SECURITY] Error logging to database:', error.message);
+        log.error('Security audit log database write failed', { error: error.message });
     }
 };
 
@@ -325,7 +326,7 @@ export const loginWithPassword = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Login with password error:', error);
+        log.error('Login with password failed', { error: error.message, stack: error.stack });
         res.status(500).json({
             success: false,
             message: 'حدث خطأ في تسجيل الدخول'
@@ -370,7 +371,7 @@ export const checkPasswordStatus = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Check password status error:', error);
+        log.error('Check password status failed', { error: error.message, stack: error.stack });
         res.status(500).json({
             success: false,
             message: 'حدث خطأ في التحقق'
@@ -425,7 +426,7 @@ export const requestOTP = async (req, res) => {
 
         // OWASP: Log internally but don't reveal to user
         if (!member) {
-            console.log(`OTP request for unregistered phone: ${phone.substring(0, 4)}****`);
+            log.info('OTP request for unregistered phone', { phoneSuffix: phone.slice(-4) });
             // Return success response (but don't actually send OTP)
             return res.json({
                 success: true,
@@ -435,7 +436,7 @@ export const requestOTP = async (req, res) => {
         }
 
         if (!member.is_active) {
-            console.log(`OTP request for inactive account: ${member.id}`);
+            log.info('OTP request for inactive account', { memberId: member.id });
             // OWASP: Return same message even for inactive accounts
             return res.json({
                 success: true,
@@ -460,7 +461,7 @@ export const requestOTP = async (req, res) => {
         const whatsappResult = await sendWhatsAppOTP(phone, otp, member.full_name_ar);
 
         if (!whatsappResult.success) {
-            console.error('WhatsApp OTP send failed:', whatsappResult.error);
+            log.error('WhatsApp OTP send failed', { error: whatsappResult.error });
             // OWASP: Don't reveal WhatsApp failure to user
             return res.json({
                 success: true,
@@ -485,7 +486,7 @@ export const requestOTP = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Request OTP error:', error);
+        log.error('Request OTP failed', { error: error.message, stack: error.stack });
         res.status(500).json({
             success: false,
             message: 'حدث خطأ في إرسال رمز التحقق'
@@ -597,7 +598,7 @@ export const verifyOTP = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Verify OTP error:', error);
+        log.error('Verify OTP failed', { error: error.message, stack: error.stack });
         res.status(500).json({
             success: false,
             message: 'حدث خطأ في التحقق'
@@ -671,7 +672,7 @@ export const createPassword = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Create password error:', error);
+        log.error('Create password failed', { error: error.message, stack: error.stack });
         res.status(500).json({
             success: false,
             message: 'حدث خطأ في إنشاء كلمة المرور'
@@ -772,7 +773,7 @@ export const resetPassword = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Reset password error:', error);
+        log.error('Reset password failed', { error: error.message, stack: error.stack });
         res.status(500).json({
             success: false,
             message: 'حدث خطأ في إعادة تعيين كلمة المرور'
@@ -862,7 +863,7 @@ export const loginWithFaceId = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Face ID login error:', error);
+        log.error('Face ID login failed', { error: error.message, stack: error.stack });
         res.status(500).json({
             success: false,
             message: 'حدث خطأ في تسجيل الدخول'
@@ -901,7 +902,7 @@ export const enableFaceId = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Enable Face ID error:', error);
+        log.error('Enable Face ID failed', { error: error.message, stack: error.stack });
         res.status(500).json({
             success: false,
             message: 'حدث خطأ في تفعيل Face ID'
@@ -932,7 +933,7 @@ export const disableFaceId = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Disable Face ID error:', error);
+        log.error('Disable Face ID failed', { error: error.message, stack: error.stack });
         res.status(500).json({
             success: false,
             message: 'حدث خطأ في إلغاء Face ID'
@@ -992,7 +993,7 @@ export const adminDeletePassword = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Admin delete password error:', error);
+        log.error('Admin delete password failed', { error: error.message, stack: error.stack });
         res.status(500).json({
             success: false,
             message: 'حدث خطأ في حذف كلمة المرور'
@@ -1052,7 +1053,7 @@ export const adminDeleteFaceId = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Admin delete Face ID error:', error);
+        log.error('Admin delete Face ID failed', { error: error.message, stack: error.stack });
         res.status(500).json({
             success: false,
             message: 'حدث خطأ في حذف Face ID'
@@ -1122,7 +1123,7 @@ export const getMemberSecurityInfo = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Get security info error:', error);
+        log.error('Get security info failed', { error: error.message, stack: error.stack });
         res.status(500).json({
             success: false,
             message: 'حدث خطأ في جلب معلومات الأمان'
@@ -1231,7 +1232,7 @@ export const adminSetDefaultPassword = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Set default password error:', error);
+        log.error('Set default password failed', { error: error.message, stack: error.stack });
         res.status(500).json({
             success: false,
             message: 'حدث خطأ في تعيين كلمة المرور الافتراضية'

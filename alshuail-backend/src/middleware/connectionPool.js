@@ -2,6 +2,7 @@
 // alshuail-backend/src/middleware/connectionPool.js
 
 import { Pool } from 'pg';
+import { log } from '../utils/logger.js';
 
 const poolConfig = {
   max: 20, // Maximum pool size
@@ -22,25 +23,25 @@ const pool = new Pool({
 
 // Monitor pool events
 pool.on('connect', (client) => {
-  console.log('[Pool] New client connected');
+  log.debug('Pool: New client connected');
 });
 
 pool.on('acquire', (client) => {
-  console.log('[Pool] Client acquired from pool');
+  log.debug('Pool: Client acquired from pool');
 });
 
 pool.on('remove', (client) => {
-  console.log('[Pool] Client removed from pool');
+  log.debug('Pool: Client removed from pool');
 });
 
 pool.on('error', (err, client) => {
-  console.error('[Pool] Unexpected error:', err);
+  log.error('Pool: Unexpected error', { error: err.message, stack: err.stack });
 });
 
 // Graceful shutdown
 process.on('SIGINT', async () => {
   await pool.end();
-  console.log('[Pool] Pool has ended');
+  log.info('Pool: Pool has ended');
   process.exit(0);
 });
 

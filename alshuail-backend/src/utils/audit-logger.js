@@ -1,5 +1,6 @@
 // Audit Logger for tracking admin actions
 import { query } from "../services/database.js";
+import { log } from './logger.js';
 
 
 /**
@@ -40,7 +41,7 @@ export async function logAdminAction({
 
     return { success: true, data };
   } catch (error) {
-    console.error('Audit log exception:', error);
+    log.error('Audit log exception', { error: error.message, stack: error.stack });
     return { success: false, error: error.message };
   }
 }
@@ -112,7 +113,7 @@ export async function getAuditLogs({
       count: filteredData.length
     };
   } catch (error) {
-    console.error('Get audit logs exception:', error);
+    log.error('Get audit logs exception', { error: error.message, stack: error.stack });
     return { success: false, error: error.message };
   }
 }

@@ -5,6 +5,7 @@
 
 import express from 'express';
 import { generateCSRFToken } from '../middleware/csrf.js';
+import { log } from '../utils/logger.js';
 
 const router = express.Router();
 
@@ -24,7 +25,7 @@ router.get('/csrf-token', generateCSRFToken, (req, res) => {
       expiresIn: 3600 // 1 hour in seconds
     });
   } catch (error) {
-    console.error('CSRF token endpoint error:', error);
+    log.error('CSRF token endpoint error', { error: error.message });
     res.status(500).json({
       success: false,
       error: 'Failed to generate security token'

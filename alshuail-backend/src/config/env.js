@@ -12,6 +12,18 @@
  */
 
 import dotenv from 'dotenv';
+import winston from 'winston';
+
+// Minimal logger for config module (cannot import from logger.js due to circular dependency)
+const configLogger = winston.createLogger({
+  level: 'debug',
+  format: winston.format.combine(
+    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+    winston.format.colorize({ all: true }),
+    winston.format.printf((info) => `${info.timestamp} [${info.level}]: ${info.message}`)
+  ),
+  transports: [new winston.transports.Console()],
+});
 
 // Load environment variables from .env file
 dotenv.config();
@@ -48,12 +60,12 @@ function validateEnvironment(isProduction) {
     const errorMessage = `Missing required environment variables: ${missing.join(', ')}`;
 
     if (isProduction) {
-      console.error(`🚨 FATAL ERROR: ${errorMessage}`);
-      console.error('Application cannot start in production without these variables.');
+      configLogger.error(`FATAL ERROR: ${errorMessage}`);
+      configLogger.error('Application cannot start in production without these variables.');
       throw new Error(errorMessage);
     } else {
-      console.warn(`⚠️  WARNING: ${errorMessage}`);
-      console.warn('Some features may not work correctly in development mode.');
+      configLogger.warn(`WARNING: ${errorMessage}`);
+      configLogger.warn('Some features may not work correctly in development mode.');
     }
   }
 }
@@ -208,36 +220,23 @@ export const config = {
 
 // Log configuration on startup (non-sensitive info only)
 if (isDevelopment) {
-  console.log('Environment Configuration Loaded', {
-    env: config.env,
-    port: config.port,
-    database: config.database.url ? 'DATABASE_URL' : 'DB_* variables',
-    postgresHost: config.postgres.host,
-    jwtConfigured: !!config.jwt.secret,
-    redisEnabled: config.redis.enabled,
-    frontendUrl: config.frontend.url,
-    firebaseEnabled: config.firebase.enabled,
-    twilioEnabled: config.twilio.enabled,
-    ultramsgEnabled: config.ultramsg.enabled,
-    passwordAuthEnabled: config.featureFlags.passwordAuthEnabled,
-  });
+  configLogger.info(`Environment Configuration Loaded: env=${config.env} port=${config.port} db=${config.database.url ? 'DATABASE_URL' : 'DB_* variables'} postgresHost=${config.postgres.host} jwtConfigured=${!!config.jwt.secret} redisEnabled=${config.redis.enabled} frontendUrl=${config.frontend.url} firebaseEnabled=${config.firebase.enabled} twilioEnabled=${config.twilio.enabled} ultramsgEnabled=${config.ultramsg.enabled} passwordAuthEnabled=${config.featureFlags.passwordAuthEnabled}`);
 }
 
 // Warn about missing optional but recommended variables
 if (isProduction) {
   if (!config.redis.url) {
-    console.warn('⚠️  REDIS_URL not configured. Caching will be disabled.');
+    configLogger.warn('REDIS_URL not configured. Caching will be disabled.');
   }
   if (!config.frontend.corsOrigin) {
-    console.warn('⚠️  CORS_ORIGIN not configured. Using permissive CORS settings.');
+    configLogger.warn('CORS_ORIGIN not configured. Using permissive CORS settings.');
   }
   if (!config.firebase.enabled) {
-    console.warn('⚠️  Firebase credentials not configured. Push notifications will be disabled.');
+    configLogger.warn('Firebase credentials not configured. Push notifications will be disabled.');
   }
   if (!config.twilio.enabled && !config.ultramsg.enabled) {
-    console.warn('⚠️  No WhatsApp service configured. OTP and notifications will be disabled.');
-    console.warn('    Options: Set ULTRAMSG_INSTANCE_ID + ULTRAMSG_TOKEN (recommended)');
-    console.warn('         or: Set TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN + TWILIO_PHONE_NUMBER');
+    configLogger.warn('No WhatsApp service configured. OTP and notifications will be disabled.');
+    configLogger.warn('Options: Set ULTRAMSG_INSTANCE_ID + ULTRAMSG_TOKEN (recommended) or: Set TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN + TWILIO_PHONE_NUMBER');
   }
 }
 

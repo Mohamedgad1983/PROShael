@@ -16,6 +16,7 @@
 
 import admin from 'firebase-admin';
 import { config } from '../config/env.js';
+import { log } from '../utils/logger.js';
 
 // Initialize Firebase Admin SDK
 let firebaseInitialized = false;
@@ -30,7 +31,7 @@ function initializeFirebase() {
   }
 
   if (!config.firebase.enabled) {
-    console.warn('⚠️  Firebase not configured - push notifications disabled');
+    log.warn('Firebase not configured - push notifications disabled');
     return;
   }
 
@@ -44,9 +45,9 @@ function initializeFirebase() {
     });
 
     firebaseInitialized = true;
-    console.log('✅ Firebase Admin SDK initialized successfully');
+    log.info('Firebase Admin SDK initialized successfully');
   } catch (error) {
-    console.error('❌ Failed to initialize Firebase Admin SDK:', error.message);
+    log.error('Failed to initialize Firebase Admin SDK', { error: error.message });
     throw error;
   }
 }
@@ -122,7 +123,7 @@ export async function sendPushNotification(token, notification, data = {}, optio
 
     const response = await admin.messaging().send(message);
 
-    console.log('✅ Push notification sent successfully:', response);
+    log.info('Push notification sent successfully', { messageId: response });
 
     return {
       success: true,
@@ -130,7 +131,7 @@ export async function sendPushNotification(token, notification, data = {}, optio
     };
 
   } catch (error) {
-    console.error('❌ Error sending push notification:', error.message);
+    log.error('Error sending push notification', { error: error.message, code: error.code });
 
     // Handle specific Firebase errors
     const errorResponse = {
@@ -184,7 +185,7 @@ export async function sendMulticastNotification(tokens, notification, data = {},
 
   // Limit to 500 tokens per Firebase requirement
   if (tokens.length > 500) {
-    console.warn(`⚠️  Token count (${tokens.length}) exceeds Firebase limit (500). Truncating.`);
+    log.warn('Token count exceeds Firebase limit, truncating', { tokenCount: tokens.length, limit: 500 });
     tokens = tokens.slice(0, 500);
   }
 
@@ -232,7 +233,7 @@ export async function sendMulticastNotification(tokens, notification, data = {},
 
     const response = await admin.messaging().sendEachForMulticast(message);
 
-    console.log(`📊 Multicast results: ${response.successCount} successful, ${response.failureCount} failed`);
+    log.info('Multicast notification results', { successCount: response.successCount, failureCount: response.failureCount });
 
     // Process results to identify invalid tokens
     const results = response.responses.map((resp, idx) => {
@@ -242,7 +243,7 @@ export async function sendMulticastNotification(tokens, notification, data = {},
           resp.error.code === 'messaging/registration-token-not-registered';
 
         if (shouldRemove) {
-          console.log(`🗑️  Token should be removed: ${tokens[idx]}`);
+          log.debug('Invalid FCM token should be removed', { tokenSuffix: tokens[idx].slice(-8) });
         }
 
         return {
@@ -270,7 +271,7 @@ export async function sendMulticastNotification(tokens, notification, data = {},
     };
 
   } catch (error) {
-    console.error('❌ Error sending multicast notification:', error.message);
+    log.error('Error sending multicast notification', { error: error.message, code: error.code });
 
     return {
       successCount: 0,
@@ -317,7 +318,7 @@ export async function sendBatchNotifications(messages) {
 
   // Limit to 500 messages per Firebase requirement
   if (messages.length > 500) {
-    console.warn(`⚠️  Message count (${messages.length}) exceeds Firebase limit (500). Truncating.`);
+    log.warn('Message count exceeds Firebase limit, truncating', { messageCount: messages.length, limit: 500 });
     messages = messages.slice(0, 500);
   }
 
@@ -352,7 +353,7 @@ export async function sendBatchNotifications(messages) {
 
     const response = await admin.messaging().sendEach(firebaseMessages);
 
-    console.log(`📊 Batch results: ${response.successCount} successful, ${response.failureCount} failed`);
+    log.info('Batch notification results', { successCount: response.successCount, failureCount: response.failureCount });
 
     const results = response.responses.map((resp, idx) => {
       if (!resp.success) {
@@ -385,7 +386,7 @@ export async function sendBatchNotifications(messages) {
     };
 
   } catch (error) {
-    console.error('❌ Error sending batch notifications:', error.message);
+    log.error('Error sending batch notifications', { error: error.message, code: error.code });
 
     return {
       successCount: 0,
@@ -441,7 +442,7 @@ export async function sendDataMessage(token, data) {
 
     const response = await admin.messaging().send(message);
 
-    console.log('✅ Data message sent successfully:', response);
+    log.info('Data message sent successfully', { messageId: response });
 
     return {
       success: true,
@@ -449,7 +450,7 @@ export async function sendDataMessage(token, data) {
     };
 
   } catch (error) {
-    console.error('❌ Error sending data message:', error.message);
+    log.error('Error sending data message', { error: error.message, code: error.code });
 
     return {
       success: false,
