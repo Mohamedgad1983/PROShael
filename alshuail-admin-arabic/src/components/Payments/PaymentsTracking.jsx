@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { toHijri } from 'hijri-converter';
 import { logger } from '../../utils/logger';
-import api from '../../services/api';
+import { apiService } from '../../services/api';
 
 import {
   BanknotesIcon,
@@ -175,8 +175,7 @@ const PaymentsTracking = () => {
       if (filters.is_on_behalf) params.append('is_on_behalf', filters.is_on_behalf);
       params.append('limit', '100');
 
-      const response = await api.get(`/payments?${params.toString()}`);
-      const data = response.data;
+      const data = await apiService.request(`/api/payments?${params.toString()}`);
 
       // Transform API data to component format
       const paymentsData = (data?.data || data || []).map(payment => ({

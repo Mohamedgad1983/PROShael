@@ -1,6 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { apiService, Statistics } from '../../services/api';
+import { apiService } from '../../services/api';
 import { ARABIC_LABELS, CURRENCY } from '../../constants/arabic';
+
+interface Statistics {
+  overview: {
+    total_activities: number;
+    upcoming_activities: number;
+    completed_activities: number;
+    cancelled_activities: number;
+    total_participants: number;
+    total_revenue: number;
+  };
+  by_category: Array<{
+    category_name_ar: string;
+    category_name_en: string;
+    count: number;
+    percentage: number;
+  }>;
+  by_month: Array<{
+    month: string;
+    activities_count: number;
+    participants_count: number;
+  }>;
+}
 import ActivitiesManager from '../Activities/ActivitiesManager';
 import MembersManager from '../Members/MembersManager';
 
