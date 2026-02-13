@@ -39,7 +39,7 @@ import {
   validatePaymentInitiation,
   validatePaymentVerification,
   validateBankTransfer
-} from '../../middleware/payment-validator.js';
+} from '../middleware/payment-validator.js';
 
 // Configure multer for receipt uploads
 const upload = multer({
