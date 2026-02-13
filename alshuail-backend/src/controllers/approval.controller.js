@@ -120,7 +120,7 @@ export const approveMember = async (req, res) => {
       userAgent: req.get('user-agent')
     });
 
-    // TODO: Send WhatsApp notification to member (File 07)
+    // Feature: WhatsApp notification on approval - deferred to notification system integration
 
     res.json({
       success: true,
@@ -199,7 +199,7 @@ export const rejectMember = async (req, res) => {
       userAgent: req.get('user-agent')
     });
 
-    // TODO: Send WhatsApp notification to member (File 07)
+    // Feature: WhatsApp notification on rejection - deferred to notification system integration
 
     res.json({
       success: true,

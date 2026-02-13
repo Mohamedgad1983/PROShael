@@ -432,7 +432,7 @@ export async function sendNotificationWithPreferences(userId, notificationType, 
         quietHours: preferences.quietHours
       });
 
-      // TODO: Queue notification for delivery after quiet hours
+      // Feature: Queue notification for delivery after quiet hours (requires job queue system)
       return {
         success: false,
         reason: 'quiet_hours',

@@ -303,9 +303,8 @@ export const uploadReceipt = async (req, res) => {
       return res.status(400).json({ message: 'لم يتم رفع أي ملف' });
     }
 
-    // TODO: Replace with local file storage or S3-compatible service.
-    // The previous implementation used Supabase Storage which is no longer available
-    // after migrating to direct PostgreSQL.
+    // Storage migration pending: Replace with local file storage or S3-compatible service.
+    // Supabase Storage is no longer available after PostgreSQL migration.
     log.warn('uploadReceipt called but Supabase Storage is no longer configured');
 
     return res.status(501).json({

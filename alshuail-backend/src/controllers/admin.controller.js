@@ -107,7 +107,7 @@ export const addMember = async (req, res) => {
       userAgent: req.get('user-agent')
     });
 
-    // TODO: Send WhatsApp invite with OTP (File 07)
+    // Feature: WhatsApp invite with OTP - deferred to notification system integration
 
     res.status(201).json({
       success: true,

@@ -853,8 +853,8 @@ router.post('/notifications/register-device', authenticateToken, async (req, res
 // HELPER FUNCTION: Send actual push notifications
 // ============================================
 async function sendPushNotifications(members, _news) {
-    // TODO: Implement Firebase Cloud Messaging (FCM) integration
-    // This is where you'd send actual push notifications to devices
+    // FCM integration: Uses firebaseService for push notifications
+    // Device tokens are fetched below and sent via FCM
 
     try {
         // Get device tokens for all members

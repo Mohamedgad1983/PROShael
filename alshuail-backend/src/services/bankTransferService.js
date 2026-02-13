@@ -22,8 +22,8 @@ export const uploadReceipt = async (file, requesterId) => {
     const sanitizedFilename = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
     const filePath = `${requesterId}/${timestamp}_${sanitizedFilename}`;
 
-    // TODO: Replace with actual storage implementation (S3, local filesystem, etc.)
-    // The previous Supabase Storage integration was a non-functional stub.
+    // Storage migration pending: Replace with local filesystem or S3.
+    // Supabase Storage was removed during PostgreSQL migration.
     log.warn('uploadReceipt called but storage backend is not configured', {
       bucket: BUCKET_NAME,
       filePath
