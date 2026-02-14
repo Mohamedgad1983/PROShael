@@ -39,7 +39,7 @@ const SimpleDashboardBase: React.FC = () => {
   const loadStatistics = async () => {
     try {
       setLoading(true);
-      const response = await apiService.getStatistics();
+      const response = await (apiService as any).getStatistics();
       if (response.status === 'success' && response.data) {
         setStatistics(response.data);
       } else {
