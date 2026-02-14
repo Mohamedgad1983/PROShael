@@ -39,12 +39,12 @@ export async function sendWhatsAppMessage(to, body) {
 
   try {
     // Clean phone number - remove spaces, dashes, and ensure proper format
-    let cleanPhone = to.replace(/[\s\-\(\)]/g, '');
+    let cleanPhone = to.replace(/[\s\-()]/g, '');
     
     // Handle different phone formats
     if (cleanPhone.startsWith('0')) {
       // Local Saudi format: 05xxxxxxxx -> 9665xxxxxxxx
-      cleanPhone = '966' + cleanPhone.substring(1);
+      cleanPhone = `966${cleanPhone.substring(1)}`;
     } else if (cleanPhone.startsWith('+')) {
       // Remove + prefix
       cleanPhone = cleanPhone.substring(1);
@@ -113,7 +113,7 @@ export async function sendWhatsAppMessage(to, body) {
  * @param {string} otp - OTP code
  * @returns {Promise<{success: boolean, messageId?: string, error?: string}>}
  */
-export async function sendOTP(phone, otp) {
+export function sendOTP(phone, otp) {
   const message = `🔐 صندوق عائلة شعيل العنزي
 
 رمز التحقق الخاص بك هو:
@@ -137,7 +137,7 @@ Shuail Al-Anzi Family Fund`;
  * @param {string} month - Month name (Arabic)
  * @returns {Promise<{success: boolean, messageId?: string, error?: string}>}
  */
-export async function sendSubscriptionReminder(phone, memberName, amount, month) {
+export function sendSubscriptionReminder(phone, memberName, amount, month) {
   const message = `السلام عليكم ورحمة الله وبركاته 🌙
 
 أخي الكريم / ${memberName}
@@ -165,7 +165,7 @@ Shuail Al-Anzi Family Fund`;
  * @param {string} receiptNumber - Receipt number
  * @returns {Promise<{success: boolean, messageId?: string, error?: string}>}
  */
-export async function sendPaymentConfirmation(phone, memberName, amount, receiptNumber) {
+export function sendPaymentConfirmation(phone, memberName, amount, receiptNumber) {
   const message = `✅ تأكيد الدفع
 
 أخي الكريم / ${memberName}
@@ -193,7 +193,7 @@ export async function sendPaymentConfirmation(phone, memberName, amount, receipt
  * @param {string} eventLocation - Event location
  * @returns {Promise<{success: boolean, messageId?: string, error?: string}>}
  */
-export async function sendEventNotification(phone, eventTitle, eventDate, eventLocation) {
+export function sendEventNotification(phone, eventTitle, eventDate, eventLocation) {
   const message = `📢 إعلان هام
 
 ${eventTitle}

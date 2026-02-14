@@ -63,8 +63,8 @@ export const getAuditLogs = async (req, res) => {
     const offset = (page - 1) * limit;
 
     // Build query with filters
-    let conditions = [];
-    let params = [];
+    const conditions = [];
+    const params = [];
     let paramIndex = 1;
 
     if (action) {
@@ -321,8 +321,8 @@ export const exportAuditLogs = async (req, res) => {
     const { startDate, endDate, format = 'json' } = req.query;
 
     // Build query with filters
-    let conditions = [];
-    let params = [];
+    const conditions = [];
+    const params = [];
     let paramIndex = 1;
 
     if (startDate) {
@@ -365,7 +365,7 @@ export const exportAuditLogs = async (req, res) => {
 
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', 'attachment; filename=audit_logs.csv');
-      return res.send('\ufeff' + csv); // BOM for Arabic support
+      return res.send(`\ufeff${csv}`); // BOM for Arabic support
     }
 
     res.json({
@@ -385,7 +385,7 @@ export const exportAuditLogs = async (req, res) => {
 
 // Middleware to automatically log actions
 export const auditMiddleware = (action, resourceType) => {
-  return async (req, res, next) => {
+  return (req, res, next) => {
     // Store original json method
     const originalJson = res.json.bind(res);
 

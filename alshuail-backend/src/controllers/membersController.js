@@ -17,7 +17,7 @@ const SUBSCRIPTION_CONFIG = {
 // Calculate expected payment based on current date
 const calculateExpectedPayment = () => {
   const currentYear = new Date().getFullYear();
-  const currentMonth = new Date().getMonth() + 1; // 1-12
+  const _currentMonth = new Date().getMonth() + 1; // 1-12
 
   // Calculate completed years since 2021
   let yearsPassed = Math.min(5, Math.max(0, currentYear - SUBSCRIPTION_CONFIG.START_YEAR));
@@ -145,7 +145,7 @@ export const getAllMembers = async (req, res) => {
     const count = rows.length > 0 ? parseInt(rows[0].total_count) : 0;
 
     // Remove the total_count column from each row before transforming
-    const members = rows.map(({ total_count, ...member }) => member);
+    const members = rows.map(({ total_count: _total_count, ...member }) => member);
 
     // Transform all members to match frontend expected format
     const transformedMembers = members.map(transformMemberForFrontend);
@@ -595,7 +595,7 @@ export const getIncompleteProfiles = async (req, res) => {
     const count = rows.length > 0 ? parseInt(rows[0].total_count) : 0;
 
     // Remove total_count from each row
-    const members = rows.map(({ total_count, ...member }) => member);
+    const members = rows.map(({ total_count: _total_count, ...member }) => member);
 
     res.json({
       success: true,
@@ -849,7 +849,7 @@ export const getMemberTransactions = async (req, res) => {
     );
 
     const count = rows.length > 0 ? parseInt(rows[0].total_count) : 0;
-    const transactions = rows.map(({ total_count, ...row }) => row);
+    const transactions = rows.map(({ total_count: _total_count, ...row }) => row);
 
     res.json({
       success: true,
@@ -901,7 +901,7 @@ export const getMemberNotifications = async (req, res) => {
     );
 
     const count = rows.length > 0 ? parseInt(rows[0].total_count) : 0;
-    const notifications = rows.map(({ total_count, ...row }) => row);
+    const notifications = rows.map(({ total_count: _total_count, ...row }) => row);
 
     res.json({
       success: true,

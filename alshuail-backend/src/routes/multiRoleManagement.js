@@ -82,7 +82,7 @@ router.get('/search-members', authenticateToken, requireRole(['super_admin']), a
 
     // Group roles by user_id
     const rolesByUser = roleAssignments.reduce((acc, assignment) => {
-      if (!acc[assignment.user_id]) acc[assignment.user_id] = [];
+      if (!acc[assignment.user_id]) { acc[assignment.user_id] = []; }
       acc[assignment.user_id].push({
         role_id: assignment.role_id,
         role_name: assignment.role_name,
@@ -246,11 +246,11 @@ router.post('/assign', authenticateToken, requireRole(['super_admin']), async (r
         const newEnd = end_date_gregorian ? new Date(end_date_gregorian) : null;
 
         // If both are permanent (no dates), that's an overlap
-        if (!existingStart && !existingEnd && !newStart && !newEnd) return true;
+        if (!existingStart && !existingEnd && !newStart && !newEnd) { return true; }
 
         // Check for date range overlap
-        if (existingStart && newEnd && existingStart > newEnd) return false;
-        if (newStart && existingEnd && newStart > existingEnd) return false;
+        if (existingStart && newEnd && existingStart > newEnd) { return false; }
+        if (newStart && existingEnd && newStart > existingEnd) { return false; }
 
         return true; // Overlap detected
       });

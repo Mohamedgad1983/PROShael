@@ -3,7 +3,6 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
-import cookieParser from 'cookie-parser';
 import { setAuthCookie, clearAuthCookie } from '../middleware/cookie-auth.js';
 import { config } from '../config/env.js';
 
@@ -318,6 +317,7 @@ function resolveTestMember(phone, password) {
 }
 
 async function authenticateMember(phone, password) {
+  let member = null;
   try {
     const cleanPhone = normalizePhone(phone);
 
@@ -332,7 +332,6 @@ async function authenticateMember(phone, password) {
     }
 
     // Try to find member with any phone format
-    let member = null;
 
     for (const phoneVariant of phoneVariants) {
       const result = await query(

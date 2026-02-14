@@ -243,10 +243,10 @@ router.get('/visualization/:memberId', authenticateToken, async (req, res) => {
 
     // Build tree structure using parent_member_id from members table
     const buildMemberTree = (targetMemberId, currentDepth = 0, maxDepth = parseInt(depth)) => {
-      if (currentDepth > maxDepth) return null;
+      if (currentDepth > maxDepth) { return null; }
 
       const member = allMembers.find(m => m.id === targetMemberId);
-      if (!member) return null;
+      if (!member) { return null; }
 
       // Get children of this member (members whose parent_member_id is this member)
       const children = allMembers

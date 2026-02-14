@@ -22,19 +22,19 @@ const pool = new Pool({
 });
 
 // Monitor pool events
-pool.on('connect', (client) => {
+pool.on('connect', (_client) => {
   log.debug('Pool: New client connected');
 });
 
-pool.on('acquire', (client) => {
+pool.on('acquire', (_client) => {
   log.debug('Pool: Client acquired from pool');
 });
 
-pool.on('remove', (client) => {
+pool.on('remove', (_client) => {
   log.debug('Pool: Client removed from pool');
 });
 
-pool.on('error', (err, client) => {
+pool.on('error', (err, _client) => {
   log.error('Pool: Unexpected error', { error: err.message, stack: err.stack });
 });
 

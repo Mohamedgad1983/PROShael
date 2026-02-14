@@ -13,7 +13,6 @@
  */
 
 import { log } from '../utils/logger.js';
-import { config } from '../config/env.js';
 import * as firebaseService from './firebaseService.js';
 import * as twilioService from './twilioService.js';
 import { query } from './database.js';
@@ -104,7 +103,7 @@ export async function sendWhatsAppNotification(phoneNumber, message, options = {
  * @param {string} message - SMS message text (Arabic or English)
  * @returns {Promise<Object>} - Delivery status
  */
-export async function sendSMSNotification(phoneNumber, message) {
+export function sendSMSNotification(phoneNumber, _message) {
   log.info('SMS notification skipped - feature not enabled (WhatsApp + Push only)', {
     phone: phoneNumber
   });

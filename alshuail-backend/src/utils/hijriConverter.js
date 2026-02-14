@@ -12,11 +12,11 @@ import { log } from './logger.js';
  * @returns {string} Hijri date in format YYYY-MM-DD
  */
 export function gregorianToHijri(gregorianDate) {
-  if (!gregorianDate) return null;
+  if (!gregorianDate) { return null; }
 
   try {
     const m = moment(gregorianDate);
-    if (!m.isValid()) return null;
+    if (!m.isValid()) { return null; }
 
     const hijriYear = m.iYear();
     const hijriMonth = m.iMonth() + 1; // moment-hijri months are 0-indexed
@@ -35,14 +35,14 @@ export function gregorianToHijri(gregorianDate) {
  * @returns {Date} Gregorian date
  */
 export function hijriToGregorian(hijriDate) {
-  if (!hijriDate) return null;
+  if (!hijriDate) { return null; }
 
   try {
     const [year, month, day] = hijriDate.split('-').map(Number);
-    if (!year || !month || !day) return null;
+    if (!year || !month || !day) { return null; }
 
     const m = moment(`${year}/${month}/${day}`, 'iYYYY/iM/iD');
-    if (!m.isValid()) return null;
+    if (!m.isValid()) { return null; }
 
     return m.toDate();
   } catch (error) {
@@ -69,7 +69,7 @@ export function getCurrentDates() {
  * @returns {string} Formatted Hijri date in Arabic
  */
 export function formatHijriDateArabic(hijriDate) {
-  if (!hijriDate) return '';
+  if (!hijriDate) { return ''; }
 
   try {
     const [year, month, day] = hijriDate.split('-').map(Number);
@@ -94,16 +94,16 @@ export function formatHijriDateArabic(hijriDate) {
  * @returns {boolean} true if valid
  */
 export function isValidHijriDate(hijriDate) {
-  if (!hijriDate || typeof hijriDate !== 'string') return false;
+  if (!hijriDate || typeof hijriDate !== 'string') { return false; }
 
   const pattern = /^\d{4}-\d{2}-\d{2}$/;
-  if (!pattern.test(hijriDate)) return false;
+  if (!pattern.test(hijriDate)) { return false; }
 
   const [year, month, day] = hijriDate.split('-').map(Number);
 
-  if (year < 1300 || year > 1500) return false; // Reasonable range
-  if (month < 1 || month > 12) return false;
-  if (day < 1 || day > 30) return false; // Hijri months are 29-30 days
+  if (year < 1300 || year > 1500) { return false; } // Reasonable range
+  if (month < 1 || month > 12) { return false; }
+  if (day < 1 || day > 30) { return false; } // Hijri months are 29-30 days
 
   return true;
 }

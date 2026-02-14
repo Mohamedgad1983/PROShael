@@ -118,7 +118,7 @@ router.post('/sync-diya-amounts', async (req, res) => {
 
     for (const item of syncMapping) {
       try {
-        const result = await query(
+        const _result = await query(
           `UPDATE diya_cases
            SET collected_amount = $1, status = $2
            WHERE case_number = $3

@@ -95,7 +95,7 @@ export async function sendWhatsAppMessage(to, body, options = {}) {
       ...(options.statusCallback && { statusCallback: options.statusCallback })
     });
 
-    log.info('WhatsApp message sent successfully', { messageId: message.sid, status: message.status, to: to.slice(0, -4) + '****' });
+    log.info('WhatsApp message sent successfully', { messageId: message.sid, status: message.status, to: `${to.slice(0, -4)}****` });
 
     return {
       success: true,

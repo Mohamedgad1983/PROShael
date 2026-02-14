@@ -11,7 +11,7 @@ import { ERROR_CODES, ERROR_MESSAGES, VALIDATION_LIMITS } from '../constants/mem
  * @returns {boolean} True if valid UUID, false otherwise
  */
 export const isValidUUID = (id) => {
-  if (!id || typeof id !== 'string') return false;
+  if (!id || typeof id !== 'string') { return false; }
 
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   return uuidRegex.test(id);
@@ -52,7 +52,7 @@ export const validateMemberId = (memberId) => {
  * @returns {string} Sanitized text
  */
 export const sanitizeText = (text) => {
-  if (!text || typeof text !== 'string') return '';
+  if (!text || typeof text !== 'string') { return ''; }
 
   // Remove HTML tags and trim whitespace
   return text

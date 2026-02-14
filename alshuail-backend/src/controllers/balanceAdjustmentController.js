@@ -19,7 +19,7 @@
  * - financial_manager: Can make balance adjustments
  */
 
-import { query, getClient } from '../services/database.js';
+import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
 
 // Business constants

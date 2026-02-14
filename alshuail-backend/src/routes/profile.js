@@ -6,7 +6,7 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
 import { authenticateToken } from '../middleware/auth.js';
-import { upload, uploadToSupabase, deleteFromSupabase, getSignedUrl } from '../config/documentStorage.js';
+import { upload, uploadToSupabase, deleteFromSupabase } from '../config/documentStorage.js';
 import { query } from '../services/database.js';
 import { validateProfileUpdates, isEmailUnique, isPhoneUnique } from '../utils/profileValidation.js';
 import { log } from '../utils/logger.js';
@@ -157,11 +157,11 @@ router.put('/notifications', authenticateToken, async (req, res) => {
 
     // Prepare notification preferences object
     const preferences = {};
-    if (email_notifications !== undefined) preferences.email_notifications = !!email_notifications;
-    if (push_notifications !== undefined) preferences.push_notifications = !!push_notifications;
-    if (member_updates !== undefined) preferences.member_updates = !!member_updates;
-    if (financial_alerts !== undefined) preferences.financial_alerts = !!financial_alerts;
-    if (system_updates !== undefined) preferences.system_updates = !!system_updates;
+    if (email_notifications !== undefined) { preferences.email_notifications = !!email_notifications; }
+    if (push_notifications !== undefined) { preferences.push_notifications = !!push_notifications; }
+    if (member_updates !== undefined) { preferences.member_updates = !!member_updates; }
+    if (financial_alerts !== undefined) { preferences.financial_alerts = !!financial_alerts; }
+    if (system_updates !== undefined) { preferences.system_updates = !!system_updates; }
 
     // Fetch current preferences first
     const { rows: currentRows } = await query(
@@ -421,9 +421,9 @@ router.put('/', authenticateToken, async (req, res) => {
 
     // Prepare update data
     const updateData = {};
-    if (full_name !== undefined) updateData.full_name = full_name;
-    if (email !== undefined) updateData.email = email;
-    if (phone !== undefined) updateData.phone = phone;
+    if (full_name !== undefined) { updateData.full_name = full_name; }
+    if (email !== undefined) { updateData.email = email; }
+    if (phone !== undefined) { updateData.phone = phone; }
 
     // Check if any updates provided
     if (Object.keys(updateData).length === 0) {
@@ -706,7 +706,7 @@ router.post('/change-password', authenticateToken, async (req, res) => {
  * DELETE /api/user/profile/reset-password-rate-limit
  * Reset password change rate limit for current user (development/testing only)
  */
-router.delete('/reset-password-rate-limit', authenticateToken, async (req, res) => {
+router.delete('/reset-password-rate-limit', authenticateToken, (req, res) => {
   try {
     const userId = req.user.id;
 
@@ -1067,7 +1067,7 @@ router.put('/notification-settings', authenticateToken, async (req, res) => {
  * Reset notification settings update rate limit for current user
  * Utility endpoint for testing and support
  */
-router.delete('/notification-settings/reset-rate-limit', authenticateToken, async (req, res) => {
+router.delete('/notification-settings/reset-rate-limit', authenticateToken, (req, res) => {
   try {
     const userId = req.user.id;
     notificationSettingsAttempts.delete(userId);
@@ -1337,7 +1337,7 @@ router.put('/appearance-settings', authenticateToken, async (req, res) => {
  * DELETE /api/user/profile/appearance-settings/reset-rate-limit
  * Reset rate limit for appearance settings updates (for testing)
  */
-router.delete('/appearance-settings/reset-rate-limit', authenticateToken, async (req, res) => {
+router.delete('/appearance-settings/reset-rate-limit', authenticateToken, (req, res) => {
   try {
     const userId = req.user.id;
     appearanceSettingsAttempts.delete(userId);
@@ -1736,7 +1736,7 @@ router.delete('/language-settings', authenticateToken, async (req, res) => {
  * DELETE /api/user/profile/language-settings/reset-rate-limit
  * Reset rate limit for language settings updates (for testing)
  */
-router.delete('/language-settings/reset-rate-limit', authenticateToken, async (req, res) => {
+router.delete('/language-settings/reset-rate-limit', authenticateToken, (req, res) => {
   try {
     const userId = req.user.id;
     languageSettingsAttempts.delete(userId);

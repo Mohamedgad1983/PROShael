@@ -10,13 +10,11 @@ import {
 import {
   validateMemberId,
   validateSuspensionReason,
-  validateReactivationNotes,
-  buildErrorResponse
+  validateReactivationNotes
 } from '../utils/memberValidation.js';
 import {
   findMemberById,
-  isMemberSuspended,
-  isMemberActive
+  isMemberSuspended
 } from '../utils/memberHelpers.js';
 
 /**

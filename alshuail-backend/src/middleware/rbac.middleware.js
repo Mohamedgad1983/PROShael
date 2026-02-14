@@ -79,7 +79,7 @@ export const requireRole = (...allowedRoles) => {
  * Check if user has specific permission
  */
 export const requirePermission = (...requiredPermissions) => {
-  return async (req, res, next) => {
+  return (req, res, next) => {
     try {
       const permissions = req.userPermissions || {};
 

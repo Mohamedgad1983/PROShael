@@ -5,7 +5,7 @@
 
 import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
-import { getCategoryFromType, getDefaultIcon, formatTimeAgo, organizeNotificationsByCategory } from '../utils/notificationHelpers.js';
+import { getCategoryFromType, getDefaultIcon, formatTimeAgo } from '../utils/notificationHelpers.js';
 
 /**
  * Get all notifications for a member

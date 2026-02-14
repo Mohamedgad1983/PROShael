@@ -23,11 +23,11 @@ const ULTRAMSG_BASE_URL = `https://api.ultramsg.com/${ULTRAMSG_INSTANCE}`;
  */
 export const formatPhoneNumber = (phone) => {
     // Remove any spaces or special characters
-    let cleaned = phone.replace(/[\s\-\(\)]/g, '');
+    let cleaned = phone.replace(/[\s\-()]/g, '');
 
     // If starts with 0, replace with 966 (Saudi Arabia)
     if (cleaned.startsWith('0')) {
-        cleaned = '966' + cleaned.substring(1);
+        cleaned = `966${cleaned.substring(1)}`;
     }
 
     // If starts with +, remove it
@@ -37,7 +37,7 @@ export const formatPhoneNumber = (phone) => {
 
     // If doesn't start with country code, add 966
     if (!cleaned.startsWith('966') && !cleaned.startsWith('965')) {
-        cleaned = '966' + cleaned;
+        cleaned = `966${cleaned}`;
     }
 
     return cleaned;
@@ -88,7 +88,7 @@ Valid for 5 minutes only.`;
 
         // Check response
         if (response.data && response.data.sent === 'true') {
-            log.info('OTP sent successfully', { phone: phone.slice(0, -4) + '****' });
+            log.info('OTP sent successfully', { phone: `${phone.slice(0, -4)}****` });
             return {
                 success: true,
                 message: 'تم إرسال رمز التحقق بنجاح'

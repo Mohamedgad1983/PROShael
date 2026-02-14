@@ -606,7 +606,6 @@ const AppleOccasionsManagement = () => {
       </div>
 
       {/* Add Occasion Modal */}
-      {logger.debug('Modal state:', { showAddModal });}
       {showAddModal && (
         <div style={{
           position: 'fixed',

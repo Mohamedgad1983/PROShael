@@ -261,8 +261,8 @@ export const getRelationships = async (req, res) => {
       const related = rel.r_id ? { id: rel.r_id, full_name_ar: rel.r_full_name_ar, full_name_en: rel.r_full_name_en, generation_level: rel.r_generation_level, relationship_type: rel.r_relationship_type } : null;
 
       if (rel.member_id === memberId) {
-        if (father) familyTree.parents.push({ ...father, type: 'father' });
-        if (mother) familyTree.parents.push({ ...mother, type: 'mother' });
+        if (father) { familyTree.parents.push({ ...father, type: 'father' }); }
+        if (mother) { familyTree.parents.push({ ...mother, type: 'mother' }); }
       }
 
       if (rel.relationship_type === 'child' && rel.member_id === memberId) {

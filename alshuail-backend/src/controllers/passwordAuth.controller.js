@@ -28,22 +28,22 @@ const LOCK_DURATION_MINUTES = 30;
  * @returns {string} Normalized phone (e.g., 96551234567 or 966501234567)
  */
 const normalizePhone = (phone) => {
-    if (!phone) return '';
+    if (!phone) { return ''; }
 
     // Remove all non-digit characters
-    let clean = phone.replace(/[\s\-\(\)\+]/g, '');
+    let clean = phone.replace(/[\s\-()+]/g, '');
 
     // Saudi Arabia: 05xxxxxxxx -> 966xxxxxxxx
     if (clean.startsWith('05') && clean.length === 10) {
-        clean = '966' + clean.substring(1);
+        clean = `966${clean.substring(1)}`;
     }
     // Saudi Arabia: 5xxxxxxxx -> 9665xxxxxxxx
     else if (clean.startsWith('5') && clean.length === 9) {
-        clean = '966' + clean;
+        clean = `966${clean}`;
     }
     // Kuwait: 5xxxxxxx or 6xxxxxxx or 9xxxxxxx (8 digits)
     else if (/^[569]\d{7}$/.test(clean)) {
-        clean = '965' + clean;
+        clean = `965${clean}`;
     }
     // Already has country code
     else if (clean.startsWith('966') || clean.startsWith('965')) {
@@ -81,7 +81,7 @@ const checkAccountLock = async (memberId) => {
     );
 
     const data = rows[0];
-    if (!data) return { locked: false };
+    if (!data) { return { locked: false }; }
 
     const { locked_until, failed_login_attempts } = data;
 
@@ -1160,7 +1160,7 @@ export const adminSetDefaultPassword = async (req, res) => {
 
         if (allMembers === true) {
             // Set default password for ALL members (except admin)
-            const result = await query(
+            const _result = await query(
                 `UPDATE members
                  SET password_hash = $1, has_password = true, must_change_password = true,
                      password_updated_at = $2

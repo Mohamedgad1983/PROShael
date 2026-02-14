@@ -16,7 +16,7 @@ const BUCKET_NAME = 'bank-transfer-receipts';
  * @param {string} requesterId - ID of the member making the request
  * @returns {Object} Upload result with URL and path
  */
-export const uploadReceipt = async (file, requesterId) => {
+export const uploadReceipt = (file, requesterId) => {
   try {
     const timestamp = Date.now();
     const sanitizedFilename = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
@@ -132,7 +132,7 @@ export const getBankTransferRequests = async (filters = {}) => {
     }
 
     const whereClause = conditions.length > 0
-      ? 'WHERE ' + conditions.join(' AND ')
+      ? `WHERE ${conditions.join(' AND ')}`
       : '';
 
     // Count query
@@ -218,7 +218,7 @@ export const approveBankTransfer = async (transferId, reviewerId, notes = '') =>
     }
 
     if (transfer.status !== 'pending') {
-      throw new Error('لا يمكن الموافقة على هذا الطلب - الحالة: ' + transfer.status);
+      throw new Error(`لا يمكن الموافقة على هذا الطلب - الحالة: ${transfer.status}`);
     }
 
     // Use a transaction client for atomicity
@@ -308,7 +308,7 @@ export const rejectBankTransfer = async (transferId, reviewerId, reason) => {
     }
 
     if (transfer.status !== 'pending') {
-      throw new Error('لا يمكن رفض هذا الطلب - الحالة: ' + transfer.status);
+      throw new Error(`لا يمكن رفض هذا الطلب - الحالة: ${transfer.status}`);
     }
 
     // Update transfer status

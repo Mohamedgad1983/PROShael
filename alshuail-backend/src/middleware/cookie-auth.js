@@ -172,7 +172,7 @@ function optionalAuth(req, res, next) {
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
  */
-async function refreshAuthCookie(req, res) {
+function refreshAuthCookie(req, res) {
   try {
     const token = extractToken(req);
 

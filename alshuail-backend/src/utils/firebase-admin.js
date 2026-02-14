@@ -97,7 +97,7 @@ const sendNotification = async (token, notification, data = {}) => {
     log.info('✅ Notification sent successfully:', { messageId: response });
     return { success: true, messageId: response };
   } catch (error) {
-    log.error('❌ Failed to send notification:', { error: error.message, token: token.substring(0, 20) + '...' });
+    log.error('❌ Failed to send notification:', { error: error.message, token: `${token.substring(0, 20)}...` });
     return { success: false, error: error.message };
   }
 };

@@ -509,7 +509,7 @@ export const getAuditLog = async (req, res) => {
     }
 
     const whereClause = conditions.length > 0
-      ? 'WHERE ' + conditions.join(' AND ')
+      ? `WHERE ${conditions.join(' AND ')}`
       : '';
 
     // Get total count

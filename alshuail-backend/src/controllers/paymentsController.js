@@ -53,7 +53,7 @@ export const getAllPayments = async (req, res) => {
       conditions.push(`(p.is_on_behalf IS NULL OR p.is_on_behalf = false)`);
     }
 
-    const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     // Determine sort order
     let orderClause;
@@ -246,7 +246,7 @@ export const getMemberPayments = async (req, res) => {
       params.push(category);
     }
 
-    const whereClause = 'WHERE ' + conditions.join(' AND ');
+    const whereClause = `WHERE ${conditions.join(' AND ')}`;
 
     const { rows: payments } = await query(
       `SELECT p.*,
@@ -583,7 +583,7 @@ export const getPaymentsGroupedByHijri = async (req, res) => {
       params.push(status);
     }
 
-    const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     const { rows: payments } = await query(
       `SELECT p.*,

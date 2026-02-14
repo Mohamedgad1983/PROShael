@@ -101,7 +101,7 @@ export const getAllMembersForMonitoring = async (req, res) => {
     while (hasMore) {
       const offset = page * batchSize;
 
-      const { rows: data, rowCount } = await query(
+      const { rows: data, rowCount: _rowCount } = await query(
         `SELECT id, membership_number, full_name, full_name_en, phone, email,
                 tribal_section, membership_status, status, balance_status,
                 current_balance, balance, total_balance, total_paid,

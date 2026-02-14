@@ -40,7 +40,7 @@ export const getMonthlyPaymentSummary = async (req, res) => {
     // Aggregate actual payments
     if (payments && payments.length > 0) {
       payments.forEach(payment => {
-        if (!payment.payment_date) return;
+        if (!payment.payment_date) { return; }
 
         const date = new Date(payment.payment_date);
         const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;

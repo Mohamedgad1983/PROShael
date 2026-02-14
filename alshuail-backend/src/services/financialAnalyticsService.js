@@ -31,7 +31,7 @@ export class FinancialAnalyticsService {
 
       let sql = 'SELECT * FROM payments';
       if (conditions.length) {
-        sql += ' WHERE ' + conditions.join(' AND ');
+        sql += ` WHERE ${conditions.join(' AND ')}`;
       }
 
       const { rows: payments } = await query(sql, params);

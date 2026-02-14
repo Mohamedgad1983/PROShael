@@ -1,4 +1,4 @@
-import { query, getClient } from '../services/database.js';
+import { query } from '../services/database.js';
 import bcrypt from 'bcryptjs';
 import { log } from '../utils/logger.js';
 

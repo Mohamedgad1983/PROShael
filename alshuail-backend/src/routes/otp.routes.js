@@ -27,7 +27,7 @@ const router = express.Router();
 const otpStore = new Map();
 
 // OTP Configuration
-const OTP_LENGTH = 6;
+const _OTP_LENGTH = 6;
 const OTP_EXPIRY_MINUTES = 5;
 const OTP_MAX_ATTEMPTS = 3;
 const OTP_RESEND_COOLDOWN_SECONDS = 60;
@@ -59,15 +59,15 @@ function generateOTP() {
  * @returns {string} Normalized phone (e.g., 966501234567)
  */
 function normalizePhone(phone) {
-  let clean = phone.replace(/[\s\-\(\)\+]/g, '');
+  let clean = phone.replace(/[\s\-()+]/g, '');
   
   // Handle Saudi numbers
   if (clean.startsWith('05') && clean.length === 10) {
-    clean = '966' + clean.substring(1);
+    clean = `966${clean.substring(1)}`;
   }
   // Handle Kuwait numbers
   else if (clean.startsWith('9') && clean.length === 8) {
-    clean = '965' + clean;
+    clean = `965${clean}`;
   }
   // Handle numbers starting with 00
   else if (clean.startsWith('00')) {
@@ -209,7 +209,7 @@ router.post('/send', async (req, res) => {
     // OWASP ASVS 2.5.2: Don't reveal if phone exists
     if (!member) {
       log.info('📱 OTP request for unregistered phone', {
-        phone: normalizedPhone.substring(0, 4) + '****'
+        phone: `${normalizedPhone.substring(0, 4)}****`
       });
       // Return success response but don't send OTP
       return res.json({
@@ -420,7 +420,7 @@ router.post('/resend', async (req, res) => {
     const member = await findMemberByPhone(normalizedPhone);
     if (!member) {
       log.info('📱 OTP resend for unregistered phone', {
-        phone: normalizedPhone.substring(0, 4) + '****'
+        phone: `${normalizedPhone.substring(0, 4)}****`
       });
       // OWASP: Return success but don't send
       return res.json({

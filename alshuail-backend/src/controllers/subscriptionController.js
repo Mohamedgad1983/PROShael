@@ -187,7 +187,7 @@ export const getAllSubscriptions = async (req, res) => {
       paramIndex++;
     }
 
-    const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     // Get total count
     const { rows: countRows } = await query(

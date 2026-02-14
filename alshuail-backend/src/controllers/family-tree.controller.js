@@ -6,7 +6,6 @@ import {
   getDescendants,
   getAncestors,
   getSiblings,
-  calculateRelationship,
   generateD3TreeData,
   getGenerationStats
 } from '../utils/tree-generator.js';
@@ -44,7 +43,7 @@ export const getFullTree = async (req, res) => {
       memberPhotos = photos || [];
     }
     const photoMap = {};
-    memberPhotos.forEach(p => { if (!photoMap[p.member_id]) photoMap[p.member_id] = p.photo_url; });
+    memberPhotos.forEach(p => { if (!photoMap[p.member_id]) { photoMap[p.member_id] = p.photo_url; } });
 
     // Add photo URL to member object
     const membersWithPhotos = members.map(member => ({
@@ -172,7 +171,7 @@ export const getMemberRelationships = async (req, res) => {
       data: relationships
     });
   } catch (error) {
-    log.error('Failed to fetch member relationships', { error: error.message, stack: error.stack, memberId });
+    log.error('Failed to fetch member relationships', { error: error.message, stack: error.stack, memberId: req.params.memberId });
     res.status(500).json({
       success: false,
       message: 'خطأ في الخادم'
@@ -307,10 +306,10 @@ export const getVisualization = async (req, res) => {
 
     // Build the tree structure
     const buildMemberTree = (targetMemberId, depth = 0, maxDepth = 4) => {
-      if (depth > maxDepth) return null;
+      if (depth > maxDepth) { return null; }
 
       const member = allMembers.find(m => m.id === targetMemberId);
-      if (!member) return null;
+      if (!member) { return null; }
 
       // Get children of this member
       const children = allMembers
@@ -393,7 +392,7 @@ export const getVisualization = async (req, res) => {
     });
 
   } catch (error) {
-    log.error('Failed to generate tree visualization', { error: error.message, stack: error.stack, memberId });
+    log.error('Failed to generate tree visualization', { error: error.message, stack: error.stack, memberId: req.params.memberId });
     res.status(500).json({
       success: false,
       message: 'خطأ في الخادم'

@@ -193,7 +193,7 @@ export const deleteFromSupabase = async (filePath) => {
  * @param {number} _expiresIn - Ignored for local storage (kept for API compatibility)
  * @returns {string} Public URL for the file
  */
-export const getSignedUrl = async (filePath, _expiresIn = 3600) => {
+export const getSignedUrl = (filePath, _expiresIn = 3600) => {
   try {
     // For local storage, just return the public URL
     // In production with nginx, you could implement token-based access if needed

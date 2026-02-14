@@ -95,8 +95,8 @@ class QueryBuilder {
 
     for (let i = 0; i < str.length; i++) {
       const char = str[i];
-      if (char === '(') depth++;
-      else if (char === ')') depth--;
+      if (char === '(') { depth++; }
+      else if (char === ')') { depth--; }
 
       if (char === ',' && depth === 0) {
         result.push(current.trim());
@@ -127,7 +127,7 @@ class QueryBuilder {
     for (let part of parts) {
       // Trim whitespace from each part
       part = part.trim();
-      if (!part) continue;
+      if (!part) { continue; }
 
       // Pattern 1: alias:table!fk(columns)
       let match = part.match(/^(\w+):(\w+)!(\w+)\((.+)\)$/);
@@ -149,7 +149,7 @@ class QueryBuilder {
       match = part.match(/^(\w+):(\w+)\((.+)\)$/);
       if (match) {
         const [, alias, table, cols] = match;
-        const inferredFk = table.replace(/s$/, '') + '_id';
+        const inferredFk = `${table.replace(/s$/, '')}_id`;
         this._addJoin(alias, table, inferredFk, cols);
         continue;
       }
@@ -158,7 +158,7 @@ class QueryBuilder {
       match = part.match(/^(\w+)\((.+)\)$/);
       if (match) {
         const [, table, cols] = match;
-        const inferredFk = table.replace(/s$/, '') + '_id';
+        const inferredFk = `${table.replace(/s$/, '')}_id`;
         this._addJoin(table, table, inferredFk, cols);
         continue;
       }
@@ -189,7 +189,7 @@ class QueryBuilder {
           joinSelectParts.push(`${join.alias}.${col} AS "${join.resultAlias}.${col}"`);
         }
       }
-      return baseColumns + ', ' + joinSelectParts.join(', ');
+      return `${baseColumns}, ${joinSelectParts.join(', ')}`;
     }
 
     return baseColumns;
@@ -344,7 +344,7 @@ class QueryBuilder {
   not(column, operator, value) {
     const qCol = column.includes('.') ? column : `${this.tableName}.${column}`;
     if (operator === 'in') {
-      if (!value || value.length === 0) return this;
+      if (!value || value.length === 0) { return this; }
       const placeholders = value.map(() => {
         const ph = `$${this.paramIndex}`;
         this.paramIndex++;
@@ -735,17 +735,17 @@ const supabase = {
   rpc: rpc,
 
   storage: {
-    from: (bucket) => ({
-      upload: async () => ({ data: null, error: { message: 'Storage not implemented' } }),
-      download: async () => ({ data: null, error: { message: 'Storage not implemented' } }),
+    from: (_bucket) => ({
+      upload: () => ({ data: null, error: { message: 'Storage not implemented' } }),
+      download: () => ({ data: null, error: { message: 'Storage not implemented' } }),
       getPublicUrl: () => ({ data: { publicUrl: '' } }),
-      remove: async () => ({ data: null, error: { message: 'Storage not implemented' } }),
+      remove: () => ({ data: null, error: { message: 'Storage not implemented' } }),
     })
   },
 
   auth: {
-    getUser: async () => ({ data: { user: null }, error: null }),
-    signOut: async () => ({ error: null }),
+    getUser: () => ({ data: { user: null }, error: null }),
+    signOut: () => ({ error: null }),
   }
 };
 

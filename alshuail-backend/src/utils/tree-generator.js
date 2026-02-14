@@ -17,7 +17,7 @@ export function calculateGenerationLevel(member, allMembers, maxDepth = 20) {
     visited.add(currentMember.id);
     const parent = allMembers.find(m => m.id === currentMember.parent_member_id);
 
-    if (!parent) break;
+    if (!parent) { break; }
 
     level++;
     currentMember = parent;
@@ -68,7 +68,7 @@ export function getDescendants(memberId, memberMap, includeSpouses = false) {
   const descendants = [];
   const member = memberMap.get(memberId);
 
-  if (!member) return descendants;
+  if (!member) { return descendants; }
 
   function traverse(node) {
     if (node.children && node.children.length > 0) {
@@ -101,11 +101,11 @@ export function getAncestors(memberId, memberMap) {
   const visited = new Set();
 
   while (currentId) {
-    if (visited.has(currentId)) break;
+    if (visited.has(currentId)) { break; }
     visited.add(currentId);
 
     const member = memberMap.get(currentId);
-    if (!member || !member.parent_member_id) break;
+    if (!member || !member.parent_member_id) { break; }
 
     const parent = memberMap.get(member.parent_member_id);
     if (parent) {
@@ -124,10 +124,10 @@ export function getAncestors(memberId, memberMap) {
  */
 export function getSiblings(memberId, memberMap) {
   const member = memberMap.get(memberId);
-  if (!member || !member.parent_member_id) return [];
+  if (!member || !member.parent_member_id) { return []; }
 
   const parent = memberMap.get(member.parent_member_id);
-  if (!parent || !parent.children) return [];
+  if (!parent || !parent.children) { return []; }
 
   return parent.children.filter(child => child.id !== memberId);
 }
@@ -139,12 +139,12 @@ export function calculateRelationship(member1Id, member2Id, memberMap) {
   const member1 = memberMap.get(member1Id);
   const member2 = memberMap.get(member2Id);
 
-  if (!member1 || !member2) return 'unknown';
+  if (!member1 || !member2) { return 'unknown'; }
 
   // Direct relationships
-  if (member1.parent_member_id === member2Id) return 'child_of';
-  if (member2.parent_member_id === member1Id) return 'parent_of';
-  if (member1.spouse_id === member2Id) return 'spouse';
+  if (member1.parent_member_id === member2Id) { return 'child_of'; }
+  if (member2.parent_member_id === member1Id) { return 'parent_of'; }
+  if (member1.spouse_id === member2Id) { return 'spouse'; }
 
   // Siblings
   if (member1.parent_member_id && member1.parent_member_id === member2.parent_member_id) {
@@ -181,7 +181,7 @@ export function calculateRelationship(member1Id, member2Id, memberMap) {
  * Generate D3.js compatible tree data
  */
 export function generateD3TreeData(members) {
-  const { roots, memberMap } = buildTreeStructure(members);
+  const { roots, memberMap: _memberMap } = buildTreeStructure(members);
 
   function convertToD3Format(member) {
     return {

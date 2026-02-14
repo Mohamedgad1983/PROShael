@@ -179,7 +179,7 @@ export const assignSubdivision = async (req, res) => {
       data: member
     });
   } catch (error) {
-    log.error('Failed to assign subdivision', { error: error.message, stack: error.stack, memberId });
+    log.error('Failed to assign subdivision', { error: error.message, stack: error.stack, memberId: req.params.memberId });
     res.status(500).json({
       success: false,
       message: 'خطأ في الخادم'

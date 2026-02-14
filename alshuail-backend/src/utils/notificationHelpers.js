@@ -80,10 +80,10 @@ export function formatTimeAgo(timestamp) {
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
 
-  if (diffMins < 1) return 'الآن';
-  if (diffMins < 60) return `منذ ${diffMins} دقيقة`;
-  if (diffHours < 24) return `منذ ${diffHours} ساعة`;
-  if (diffDays < 7) return `منذ ${diffDays} يوم`;
+  if (diffMins < 1) { return 'الآن'; }
+  if (diffMins < 60) { return `منذ ${diffMins} دقيقة`; }
+  if (diffHours < 24) { return `منذ ${diffHours} ساعة`; }
+  if (diffDays < 7) { return `منذ ${diffDays} يوم`; }
 
   // Format as date
   return notifDate.toLocaleDateString('ar-SA', {

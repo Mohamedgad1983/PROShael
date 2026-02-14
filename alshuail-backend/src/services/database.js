@@ -78,7 +78,7 @@ export async function query(text, params) {
  *     client.release();
  *   }
  */
-export async function getClient() {
+export function getClient() {
   return pool.connect();
 }
 

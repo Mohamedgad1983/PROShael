@@ -39,7 +39,7 @@ function calculateSummaryFast(expenses) {
       case 'rejected': rejectedCount++; break;
     }
     const cat = expense.expense_category || 'other';
-    if (!byCategory[cat]) byCategory[cat] = { count: 0, total: 0 };
+    if (!byCategory[cat]) { byCategory[cat] = { count: 0, total: 0 }; }
     byCategory[cat].count++;
     byCategory[cat].total += amount;
   }
@@ -220,9 +220,9 @@ export const createExpense = async (req, res) => {
     }
 
     const {
-      expense_category, title_ar, title_en, description_ar, description_en,
+      expense_category, title_ar, title_en, description_ar, description_en: _description_en,
       amount, currency = 'SAR', expense_date, paid_to, paid_by, payment_method,
-      receipt_number, invoice_number, notes, approval_required = false, tags, attachments
+      receipt_number, invoice_number: _invoice_number, notes, approval_required = false, tags: _tags, attachments: _attachments
     } = req.body;
 
     if (!expense_category || !title_ar || !amount || !expense_date || !paid_to) {
@@ -637,7 +637,7 @@ export const getExpenseStatistics = async (req, res) => {
         byStatus[e.status].amount += amount;
       }
       const method = e.payment_method || 'unspecified';
-      if (!paymentMethods[method]) paymentMethods[method] = { count: 0, amount: 0 };
+      if (!paymentMethods[method]) { paymentMethods[method] = { count: 0, amount: 0 }; }
       paymentMethods[method].count++;
       paymentMethods[method].amount += amount;
     }
@@ -716,16 +716,16 @@ const calculateDaysBetween = (startDate, endDate) => {
 
 const calculateAverageApprovalTime = (expenses) => {
   const approvedExpenses = (expenses || []).filter(e => e.status === 'approved' && e.approved_at);
-  if (approvedExpenses.length === 0) return 0;
+  if (approvedExpenses.length === 0) { return 0; }
   const totalDays = approvedExpenses.reduce((sum, e) => sum + calculateDaysBetween(e.created_at, e.approved_at), 0);
   return Math.round(totalDays / approvedExpenses.length);
 };
 
-const sendExpenseApprovalNotification = async (expense) => {
+const sendExpenseApprovalNotification = (expense) => {
   log.info('Sending approval notification for expense', { expense_id: expense.id });
 };
 
-const sendExpenseStatusNotification = async (expense, action) => {
+const sendExpenseStatusNotification = (expense, action) => {
   log.info('Sending expense status notification', { action, expense_id: expense.id });
 };
 

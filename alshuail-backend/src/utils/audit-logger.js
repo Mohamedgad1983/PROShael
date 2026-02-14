@@ -82,7 +82,7 @@ export async function getAuditLogs({
       params.push(endDate);
     }
 
-    const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     params.push(limit);
     const limitParam = paramIndex++;

@@ -7,6 +7,7 @@
  */
 
 import crypto from 'crypto';
+import log from '../utils/logger.js';
 
 // Payment configuration
 const PAYMENT_CONFIG = {
@@ -126,7 +127,7 @@ function validatePaymentMethod(method, res) {
 /**
  * Check for duplicate transaction
  */
-function checkDuplicateTransaction(transactionId, res) {
+function _checkDuplicateTransaction(transactionId, res) {
   if (transactionStore.has(transactionId)) {
     const existingTx = transactionStore.get(transactionId);
 
@@ -233,7 +234,7 @@ function registerTransaction(transactionId, userId, amount, method, metadata = {
  * Payment Initiation Validation Middleware
  * Validates payment requests before processing
  */
-async function validatePaymentInitiation(req, res, next) {
+function validatePaymentInitiation(req, res, next) {
   try {
     const { amount, method, userId, memberId } = req.body;
 
@@ -285,7 +286,7 @@ async function validatePaymentInitiation(req, res, next) {
     next();
 
   } catch (error) {
-    console.error('Payment validation error:', error);
+    log.error('Payment validation error:', error);
     return res.status(500).json({
       success: false,
       message: 'خطأ في التحقق من الدفع',
@@ -299,7 +300,7 @@ async function validatePaymentInitiation(req, res, next) {
  * Payment Verification Middleware
  * Verifies payment gateway responses
  */
-async function validatePaymentVerification(req, res, next) {
+function validatePaymentVerification(req, res, next) {
   try {
     const { transactionId, status, gatewayResponse } = req.body;
 
@@ -353,7 +354,7 @@ async function validatePaymentVerification(req, res, next) {
     next();
 
   } catch (error) {
-    console.error('Payment verification error:', error);
+    log.error('Payment verification error:', error);
     return res.status(500).json({
       success: false,
       message: 'خطأ في التحقق من الدفع',
@@ -367,7 +368,7 @@ async function validatePaymentVerification(req, res, next) {
  * Bank Transfer Validation
  * Additional validation for bank transfer receipts
  */
-async function validateBankTransfer(req, res, next) {
+function validateBankTransfer(req, res, next) {
   try {
     const { accountNumber, receiptImage, referenceNumber } = req.body;
 
@@ -404,7 +405,7 @@ async function validateBankTransfer(req, res, next) {
     next();
 
   } catch (error) {
-    console.error('Bank transfer validation error:', error);
+    log.error('Bank transfer validation error:', error);
     return res.status(500).json({
       success: false,
       message: 'خطأ في التحقق من التحويل البنكي',

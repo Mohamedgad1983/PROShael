@@ -1,4 +1,4 @@
-import { query, getClient } from '../services/database.js';
+import { query } from '../services/database.js';
 import ExcelJS from 'exceljs';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';

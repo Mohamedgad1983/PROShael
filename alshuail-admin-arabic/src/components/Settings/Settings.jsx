@@ -123,7 +123,7 @@ const Settings = () => {
   });
 
   // Debug available tabs
-  logger.debug('[Settings] Available tabs:'));
+  logger.debug('[Settings] Available tabs:');
   logger.debug('[Settings] Active tab:', { activeTab });
 
   // Set first available tab as default

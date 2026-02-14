@@ -172,7 +172,7 @@ export const sanitizePhone = (phone, country) => {
       }
     } else if (cleaned.length === 8) {
       // Just local number
-      return '965' + cleaned; // Add country code
+      return `965${cleaned}`; // Add country code
     }
 
     return null; // Invalid Kuwait format
@@ -191,11 +191,11 @@ export const sanitizePhone = (phone, country) => {
       // Format: 05XXXXXXXX
       const localNumber = cleaned.substring(1);
       if (localNumber.length === 9 && localNumber.startsWith('5')) {
-        return '966' + localNumber; // Convert to: 966XXXXXXXXX
+        return `966${localNumber}`; // Convert to: 966XXXXXXXXX
       }
     } else if (cleaned.startsWith('5') && cleaned.length === 9) {
       // Format: 5XXXXXXXX
-      return '966' + cleaned; // Convert to: 966XXXXXXXXX
+      return `966${cleaned}`; // Convert to: 966XXXXXXXXX
     }
 
     return null; // Invalid Saudi format

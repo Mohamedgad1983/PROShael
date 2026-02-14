@@ -297,7 +297,7 @@ export const markAllNotificationsAsRead = async (req, res) => {
 // NOTE: This function previously used Supabase Storage (supabase.storage.from('receipts')).
 // It needs to be migrated to a local file storage solution or an S3-compatible service.
 // For now, it returns an error indicating the feature needs reconfiguration.
-export const uploadReceipt = async (req, res) => {
+export const uploadReceipt = (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: 'لم يتم رفع أي ملف' });

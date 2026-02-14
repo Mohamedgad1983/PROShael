@@ -206,7 +206,7 @@ router.get('/users', authenticateToken, requireRole(['super_admin']), async (req
       usersParamIdx++;
     }
 
-    const usersWhere = usersConditions.length > 0 ? 'WHERE ' + usersConditions.join(' AND ') : '';
+    const usersWhere = usersConditions.length > 0 ? `WHERE ${usersConditions.join(' AND ')}` : '';
     const usersSql = `SELECT id, full_name_ar, full_name_en, email, phone, role, is_active, created_at, last_login FROM users ${usersWhere} ORDER BY created_at DESC`;
 
     // Build members query dynamically
@@ -238,7 +238,7 @@ router.get('/users', authenticateToken, requireRole(['super_admin']), async (req
       membersParamIdx++;
     }
 
-    const membersWhere = membersConditions.length > 0 ? 'WHERE ' + membersConditions.join(' AND ') : '';
+    const membersWhere = membersConditions.length > 0 ? `WHERE ${membersConditions.join(' AND ')}` : '';
     const membersSql = `SELECT id, full_name, email, phone, role, is_active, created_at, last_login FROM members ${membersWhere} ORDER BY created_at DESC`;
 
     // Execute both queries in parallel
@@ -476,7 +476,7 @@ router.get('/audit-logs', authenticateToken, requireRole(['super_admin']), async
       paramIdx++;
     }
 
-    const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     // Pagination
     const pageNum = parseInt(page);
@@ -492,7 +492,7 @@ router.get('/audit-logs', authenticateToken, requireRole(['super_admin']), async
     const totalCount = rows.length > 0 ? parseInt(rows[0].total_count) : 0;
 
     // Strip the total_count field from each row before returning
-    const logs = rows.map(({ total_count, ...rest }) => rest);
+    const logs = rows.map(({ total_count: _total_count, ...rest }) => rest);
 
     res.json({
       logs,

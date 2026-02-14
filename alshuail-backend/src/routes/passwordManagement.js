@@ -35,7 +35,7 @@ const passwordManagementLimiter = rateLimit({
  * Sanitize user input to prevent injection attacks
  */
 const sanitizeInput = (input) => {
-  if (typeof input !== 'string') return input;
+  if (typeof input !== 'string') { return input; }
   // Remove potentially dangerous characters
   return input.trim().replace(/[<>'"]/g, '');
 };
@@ -77,7 +77,7 @@ const validatePasswordStrength = (password) => {
     };
   }
 
-  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+  if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) {
     return {
       valid: false,
       message: 'كلمة المرور يجب أن تحتوي على رمز خاص واحد على الأقل',
@@ -113,7 +113,8 @@ const findUser = async (identifier) => {
  */
 router.post('/reset', authenticateToken, requireSuperAdmin, passwordManagementLimiter, async (req, res) => {
   try {
-    let { userIdentifier, newPassword } = req.body;
+    const { newPassword } = req.body;
+    let { userIdentifier } = req.body;
 
     // Sanitize inputs
     userIdentifier = sanitizeInput(userIdentifier);
@@ -228,7 +229,8 @@ router.post('/reset', authenticateToken, requireSuperAdmin, passwordManagementLi
  */
 router.post('/create', authenticateToken, requireSuperAdmin, passwordManagementLimiter, async (req, res) => {
   try {
-    let { userIdentifier, newPassword, forceOverwrite } = req.body;
+    const { newPassword, forceOverwrite } = req.body;
+    let { userIdentifier } = req.body;
 
     // Sanitize inputs
     userIdentifier = sanitizeInput(userIdentifier);
