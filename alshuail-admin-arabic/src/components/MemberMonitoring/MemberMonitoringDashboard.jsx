@@ -8,6 +8,7 @@ import MemberMonitoringTable from './MemberMonitoringTable';
 import MemberMonitoringPagination from './MemberMonitoringPagination';
 
 import { logger } from '../../utils/logger';
+import { API_BASE_URL as API_URL } from '../../utils/apiConfig';
 
 const MemberMonitoringDashboard = memo(() => {
   // State management
@@ -48,10 +49,8 @@ const MemberMonitoringDashboard = memo(() => {
     try {
       setLoading(true);
 
-      const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
-
-      // Use the new monitoring endpoint that fetches all members without pagination
-      const response = await fetch(`${API_BASE_URL}/api/members/monitoring/all`, {
+      // Use the monitoring endpoint that fetches all members without pagination
+      const response = await fetch(`${API_URL}/members/monitoring/all`, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`

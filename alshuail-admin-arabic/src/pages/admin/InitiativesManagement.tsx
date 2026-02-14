@@ -423,12 +423,12 @@ const InitiativesManagement = () => {
                             <div className="mb-4">
                                 <div className="flex justify-between text-sm text-gray-600 mb-1">
                                     <span>التقدم</span>
-                                    <span>{((init.current_amount / init.target_amount) * 100).toFixed(0)}%</span>
+                                    <span>{init.target_amount ? ((init.current_amount / init.target_amount) * 100).toFixed(0) : 0}%</span>
                                 </div>
                                 <div className="w-full bg-gray-200 rounded-full h-3">
                                     <div
                                         className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-500"
-                                        style={{ width: `${Math.min((init.current_amount / init.target_amount * 100), 100)}%` }}
+                                        style={{ width: `${init.target_amount ? Math.min((init.current_amount / init.target_amount * 100), 100) : 0}%` }}
                                     ></div>
                                 </div>
                                 <div className="flex justify-between text-sm mt-2">

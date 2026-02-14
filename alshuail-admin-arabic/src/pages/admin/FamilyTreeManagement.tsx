@@ -4,6 +4,7 @@ import {
   User, Phone, CreditCard, Calendar, Home, Eye, UserPlus, Settings,
   TreeDeciduous, Crown, Users2, TrendingUp, Filter, Download
 } from 'lucide-react';
+import { API_BASE_URL } from '../../utils/apiConfig';
 import './FamilyTreeManagement.css';
 
 interface Branch {
@@ -40,7 +41,7 @@ interface Stats {
   pendingApprovals: number;
 }
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com/api';
+// API_BASE_URL imported from utils/apiConfig
 
 const FamilyTreeManagement: React.FC = () => {
   const [branches, setBranches] = useState<Branch[]>([]);

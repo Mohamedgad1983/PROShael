@@ -5,6 +5,7 @@ import LoadingSpinner from '../Common/LoadingSpinner';
 import ExpenseVoucher from './ExpenseVoucher';
 import FundBalanceCard from '../FundBalanceCard';
 import { logger } from '../../utils/logger';
+import { API_BASE_URL } from '../../utils/apiConfig';
 
 import './ExpenseManagement.css';
 
@@ -83,7 +84,7 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
   // Fetch fund balance for expense validation
   const fetchFundBalance = useCallback(async () => {
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://api.alshailfund.com/api'}/fund/balance`, {
+      const response = await fetch(`${API_BASE_URL}/fund/balance`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -141,7 +142,7 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://api.alshailfund.com/api'}/expenses?${params}`, {
+      const response = await fetch(`${API_BASE_URL}/expenses?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -243,7 +244,7 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s for file upload
 
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://api.alshailfund.com/api'}/expenses`, {
+      const response = await fetch(`${API_BASE_URL}/expenses`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -331,7 +332,7 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://api.alshailfund.com/api'}/expenses/${expenseId}/approval`, {
+      const response = await fetch(`${API_BASE_URL}/expenses/${expenseId}/approval`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -403,7 +404,7 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://api.alshailfund.com/api'}/expenses/${expenseId}/approval`, {
+      const response = await fetch(`${API_BASE_URL}/expenses/${expenseId}/approval`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

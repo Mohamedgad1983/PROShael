@@ -4,6 +4,7 @@ import {
   User, Phone, CreditCard, ZoomIn, ZoomOut, Maximize2,
   TreeDeciduous, Crown, Download, Filter, X, Info
 } from 'lucide-react';
+import { API_BASE_URL } from '../../utils/apiConfig';
 import './FullFamilyTree.css';
 
 interface Member {
@@ -30,7 +31,7 @@ interface Branch {
   memberCount: number;
 }
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com/api';
+// API_BASE_URL imported from utils/apiConfig
 
 const FullFamilyTree: React.FC = () => {
   const [allMembers, setAllMembers] = useState<Member[]>([]);

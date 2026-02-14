@@ -20,8 +20,9 @@ import {
   ClockIcon,
   DocumentTextIcon
 } from '@heroicons/react/24/outline';
+import { API_BASE_URL } from '../utils/apiConfig';
 
-const API_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com/api';
+const API_URL = API_BASE_URL;
 
 interface Snapshot {
   id: string;

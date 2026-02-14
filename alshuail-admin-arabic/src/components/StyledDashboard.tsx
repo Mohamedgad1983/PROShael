@@ -44,8 +44,8 @@ import Settings from './Settings/SettingsPage';
 // @ts-ignore
 import MemberStatementSearch from './MemberStatement/MemberStatementSearch.jsx';
 
-// @ts-ignore
-import EnhancedMonitoringDashboard from './MemberMonitoring/EnhancedMonitoringDashboard.jsx';
+// @ts-ignore - Using React component instead of iframe for live API data
+import MemberMonitoringDashboard from './MemberMonitoring/MemberMonitoringDashboard.jsx';
 // @ts-ignore
 import DocumentManager from './Documents/DocumentManager.jsx';
 // import FamilyTree from './FamilyTree/FamilyTree'; // Old tree component
@@ -4319,7 +4319,7 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
                 {activeSection === 'statement' && <MemberStatementSearch />}
 
                 {/* Member Monitoring Dashboard */}
-                {activeSection === 'monitoring' && <EnhancedMonitoringDashboard />}
+                {activeSection === 'monitoring' && <MemberMonitoringDashboard />}
 
                 {/* Document Management */}
                 {activeSection === 'documents' && <DocumentManager />}

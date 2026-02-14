@@ -26,6 +26,7 @@ import {
   ArrowPathIcon
 } from '@heroicons/react/24/outline';
 import { logger } from '../../utils/logger';
+import { API_BASE_URL } from '../../utils/apiConfig';
 import './BalanceAdjustmentModal.css';
 
 const BalanceAdjustmentModal = ({ isOpen, onClose, member, onSuccess }) => {
@@ -47,7 +48,7 @@ const BalanceAdjustmentModal = ({ isOpen, onClose, member, onSuccess }) => {
     notes: ''
   });
 
-  const API_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com/api';
+  const API_URL = API_BASE_URL;
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 6 }, (_, i) => currentYear - 5 + i); // Past 5 years + current
   const months = [

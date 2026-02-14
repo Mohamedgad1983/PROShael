@@ -23,8 +23,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 
 import { logger } from '../utils/logger';
+import { API_BASE_URL } from '../utils/apiConfig';
 
-const API_URL = process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001/api' : 'https://api.alshailfund.com/api');
+const API_URL = API_BASE_URL;
 const DEFAULT_REFRESH_INTERVAL = 10000; // 10 seconds
 
 interface UseMemberCountReturn {

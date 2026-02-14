@@ -27,6 +27,7 @@ import { HijriDateDisplay } from '../Common/HijriDateDisplay';
 import { HijriDateInput } from '../Common/HijriDateInput';
 import { isOverdue, getDaysUntil } from '../../utils/hijriDateUtils';
 import { logger } from '../../utils/logger';
+import { API_BASE_URL } from '../../utils/apiConfig';
 
 import '../../styles/ultra-premium-islamic-design.css';
 
@@ -131,7 +132,7 @@ const HijriDiyasManagement: React.FC = () => {
   const fetchDiyas = async () => {
     setLoading(true);
     try {
-      const API_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com/api';
+      const API_URL = API_BASE_URL;
       const response = await fetch(`${API_URL}/diyas`, {
         headers: {
           'Content-Type': 'application/json',
@@ -197,7 +198,7 @@ const HijriDiyasManagement: React.FC = () => {
   const fetchContributors = useCallback(async (diyaId: number | string, page: number = 1, limit: number = contributorsPerPage) => {
     try {
       setContributorsLoading(true);
-      const API_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com/api';
+      const API_URL = API_BASE_URL;
       const response = await fetch(`${API_URL}/diya/${diyaId}/contributors?page=${page}&limit=${limit}`, {
         headers: {
           'Content-Type': 'application/json',
@@ -240,7 +241,7 @@ const HijriDiyasManagement: React.FC = () => {
   // Fetch ALL contributors for export
   const fetchAllContributorsForExport = async (diyaId: number | string) => {
     try {
-      const API_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com/api';
+      const API_URL = API_BASE_URL;
       const response = await fetch(`${API_URL}/diya/${diyaId}/contributors/all`, {
         headers: {
           'Content-Type': 'application/json',
