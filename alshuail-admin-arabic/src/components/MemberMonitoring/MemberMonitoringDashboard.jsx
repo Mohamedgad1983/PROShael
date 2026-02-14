@@ -136,7 +136,7 @@ const MemberMonitoringDashboard = () => {
         data = await response.json();
         logger.debug('✅ API Response received:', {
           hasData: !!data,
-          hasDataProp: !!(data && data.data);,
+          hasDataProp: !!(data && data.data),
           hasMembers: !!(data && data.members),
           isArray: Array.isArray(data)
         });
