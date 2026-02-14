@@ -17,7 +17,7 @@
  */
 
 import express from 'express';
-import { authenticateToken } from '../middleware/authMiddleware.js';
+import { authenticateToken } from '../middleware/auth.js';
 import { requireRole } from '../middleware/rbacMiddleware.js';
 import {
   adjustBalance,

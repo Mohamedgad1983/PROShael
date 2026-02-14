@@ -245,6 +245,30 @@ export const requireSuperAdmin = async (req, res, next) => {
   }
 };
 /**
- * Check if member is suspended and block login
- * Use this in mobile app login endpoints
+ * Role-based authorization middleware
+ * Checks if user has required role(s)
  */
+export const authorize = (roles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required',
+        message: 'You must be logged in to access this resource'
+      });
+    }
+    const requiredRoles = Array.isArray(roles) ? roles : [roles];
+    const userRole = req.user.role || 'member';
+    if (userRole === 'super_admin') { return next(); }
+    if (!requiredRoles.includes(userRole)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied',
+        message: `This action requires one of these roles: ${requiredRoles.join(', ')}`
+      });
+    }
+    next();
+  };
+};
+
+export const requireFinancialManager = authorize(['financial_manager', 'admin', 'super_admin']);

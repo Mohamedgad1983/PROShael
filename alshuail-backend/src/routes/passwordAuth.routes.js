@@ -23,7 +23,7 @@ import {
     getMemberSecurityInfo,
     adminSetDefaultPassword
 } from '../controllers/passwordAuth.controller.js';
-import { authenticateToken, authorize } from '../middleware/authMiddleware.js';
+import { authenticateToken, authorize } from '../middleware/auth.js';
 import { requirePasswordAuth } from '../middleware/featureFlags.js';
 
 const router = express.Router();

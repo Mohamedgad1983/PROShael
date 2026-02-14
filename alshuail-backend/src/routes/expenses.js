@@ -9,7 +9,7 @@ import {
   approveExpense,
   deleteExpense
 } from '../controllers/expensesController.js';
-import { authenticateToken } from '../middleware/authMiddleware.js';
+import { authenticateToken } from '../middleware/auth.js';
 import { log } from '../utils/logger.js';
 
 // Configure multer for receipt uploads

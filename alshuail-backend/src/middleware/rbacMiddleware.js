@@ -11,6 +11,25 @@ import { config } from '../config/env.js';
 
 const JWT_SECRET = config.jwt.secret;
 
+// Role constants for importing by routes
+export const ROLES = {
+  SUPER_ADMIN: 'super_admin',
+  ADMIN: 'admin',
+  FINANCIAL_MANAGER: 'financial_manager',
+  FAMILY_TREE_MANAGER: 'family_tree_manager',
+  VIEWER: 'viewer'
+};
+
+// Permission constants for importing by routes
+export const PERMISSIONS = {
+  MANAGE_MEMBERS: 'manage_members',
+  APPROVE_MEMBERS: 'approve_members',
+  MANAGE_FINANCES: 'manage_finances',
+  MANAGE_FAMILY_TREE: 'manage_family_tree',
+  VIEW_REPORTS: 'view_reports',
+  MANAGE_USERS: 'manage_users'
+};
+
 /**
  * Get Arabic role name
  */

@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import rateLimit from 'express-rate-limit';
 import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
-import { authenticateToken } from '../middleware/authMiddleware.js';
+import { authenticateToken } from '../middleware/auth.js';
 import { requireSuperAdmin } from '../middleware/superAdminAuth.js';
 
 const router = express.Router();

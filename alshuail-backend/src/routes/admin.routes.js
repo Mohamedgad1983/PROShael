@@ -1,7 +1,7 @@
 // Admin Management Routes
 import express from 'express';
 import * as adminController from '../controllers/admin.controller.js';
-import { requireRole, requirePermission, ROLES, PERMISSIONS } from '../middleware/rbac.middleware.js';
+import { requireRole, requirePermission, ROLES, PERMISSIONS } from '../middleware/rbacMiddleware.js';
 import { protect } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -9,14 +9,14 @@ const router = express.Router();
 // Admin endpoints
 router.post('/members',
   protect,
-  requireRole(ROLES.SUPER_ADMIN, ROLES.ADMIN),
+  requireRole([ROLES.SUPER_ADMIN, ROLES.ADMIN]),
   requirePermission(PERMISSIONS.MANAGE_MEMBERS),
   adminController.addMember
 );
 
 router.put('/members/:memberId/subdivision',
   protect,
-  requireRole(ROLES.SUPER_ADMIN, ROLES.ADMIN),
+  requireRole([ROLES.SUPER_ADMIN, ROLES.ADMIN]),
   requirePermission(PERMISSIONS.MANAGE_MEMBERS),
   adminController.assignSubdivision
 );
