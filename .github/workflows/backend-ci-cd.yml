@@ -294,7 +294,7 @@ jobs:
     if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
     environment:
       name: staging
-      url: https://proshael-staging.onrender.com
+      url: https://api.alshailfund.com
 
     steps:
       - name: Checkout Repository
@@ -325,7 +325,7 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment:
       name: production
-      url: https://proshael.onrender.com
+      url: https://api.alshailfund.com
 
     steps:
       - name: Checkout Repository

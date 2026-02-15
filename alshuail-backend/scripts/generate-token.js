@@ -40,4 +40,4 @@ const token = jwt.sign(tokenPayload, JWT_SECRET, { expiresIn: '7d' });
 console.log('Generated token for admin@alshuail.com:');
 console.log(token);
 console.log('\nTest the token with:');
-console.log(`curl -H "Authorization: Bearer ${token}" https://proshael.onrender.com/api/multi-role/all-assignments`);
+console.log(`curl -H "Authorization: Bearer ${token}" https://api.alshailfund.com/api/multi-role/all-assignments`);

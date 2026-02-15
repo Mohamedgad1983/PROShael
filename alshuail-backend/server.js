@@ -426,7 +426,7 @@ const startServer = async () => {
   // Verify environment
   log.info('\n📋 Environment Configuration:');
   log.info(`   NODE_ENV: ${config.env}`);
-  log.info(`   Platform: ${config.platform.isRender ? 'Render.com' : 'Local'}`);
+  log.info(`   Platform: VPS (api.alshailfund.com)`);
   log.info(`   JWT Secret: ${config.jwt.secret ? '✓ Configured' : '⚠️  Not configured'}`);
   log.info(`   Database: ${config.database.url ? '✓ PostgreSQL (VPS)' : '⚠️  Not configured'}`);
   log.info(`   Storage: ${process.env.UPLOAD_DIR || 'default (/var/www/uploads/alshuail)'}`);

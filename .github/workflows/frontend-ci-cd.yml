@@ -231,7 +231,7 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment:
       name: production
-      url: https://alshuail-admin.onrender.com
+      url: https://alshailfund.com
 
     steps:
       - name: Checkout Repository
