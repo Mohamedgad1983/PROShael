@@ -368,12 +368,12 @@ router.post('/create', authenticateToken, requireSuperAdmin, passwordManagementL
  */
 router.get('/search-users', authenticateToken, requireSuperAdmin, passwordManagementLimiter, async (req, res) => {
   try {
-    let { query } = req.query;
+    let { query: searchQuery } = req.query;
 
     // Sanitize search query
-    query = sanitizeInput(query);
+    searchQuery = sanitizeInput(searchQuery);
 
-    if (!query || query.length < MIN_SEARCH_QUERY_LENGTH) {
+    if (!searchQuery || searchQuery.length < MIN_SEARCH_QUERY_LENGTH) {
       return res.status(400).json({
         success: false,
         error: 'INVALID_QUERY',
@@ -383,7 +383,7 @@ router.get('/search-users', authenticateToken, requireSuperAdmin, passwordManage
     }
 
     // Search in both users and members tables using parameterized queries
-    const searchPattern = `%${query}%`;
+    const searchPattern = `%${searchQuery}%`;
 
     let users = [];
     let members = [];
