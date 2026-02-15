@@ -904,43 +904,67 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
     }
   }, []);
 
-  const menuItems = [
-    { id: 'dashboard', label: 'لوحة التحكم', icon: HomeIcon }, // Main Dashboard - FIRST
-
-    { id: 'monitoring', label: '📊 مراقبة الأعضاء', icon: ChartBarIcon }, // Member Monitoring - SECOND
-
-    { id: 'statement', label: '📋 البحث عن كشف', icon: DocumentTextIcon }, // Member statement search
-
-    { id: 'documents', label: '📁 المستندات', icon: FolderIcon }, // Document Management
-
-    { id: 'member-documents', label: '📄 مستندات الأعضاء', icon: DocumentTextIcon }, // Member Documents
-
-    { id: 'family-tree', label: '🌳 شجرة العائلة', icon: UserPlusIcon },
-
-    { id: 'full-tree', label: '👨‍👩‍👧‍👦 كل الأعضاء', icon: UsersIcon }, // Family Tree
-
+  // === القسم الإداري - Management Section ===
+  const managementItems = [
+    { id: 'dashboard', label: 'لوحة التحكم', icon: HomeIcon },
+    { id: 'monitoring', label: '📊 مراقبة الأعضاء', icon: ChartBarIcon },
+    { id: 'full-tree', label: '👨‍👩‍👧‍👦 كل الأعضاء', icon: UsersIcon },
     { id: 'members', label: 'الأعضاء', icon: UsersIcon },
-
-    { id: 'subscriptions', label: 'الاشتراكات', icon: CreditCardIcon },
-
-    { id: 'payments', label: 'المدفوعات', icon: BanknotesIcon },
-
-    { id: 'bank-transfers', label: '🏦 طلبات التحويل', icon: BanknotesIcon },
-
-    { id: 'expenses', label: '💰 المصروفات', icon: BanknotesIcon },
-
-    { id: 'initiatives', label: 'المبادرات', icon: LightBulbIcon },
-
+    { id: 'family-tree', label: '🌳 شجرة العائلة', icon: UserPlusIcon },
+    { id: 'documents', label: '📁 المستندات', icon: FolderIcon },
+    { id: 'member-documents', label: '📄 مستندات الأعضاء', icon: DocumentTextIcon },
     { id: 'news', label: '📰 الأخبار', icon: BellIcon },
-
-    { id: 'diyas', label: 'الديات', icon: ScaleIcon },
-
     { id: 'notifications', label: 'الإشعارات', icon: BellIcon },
-
-    { id: 'reports', label: 'التقارير', icon: DocumentTextIcon },
-
     { id: 'settings', label: 'الإعدادات', icon: CogIcon },
   ];
+
+  // === القسم المالي - Financial Section ===
+  const financialItems = [
+    { id: 'statement', label: '📋 البحث عن كشف', icon: DocumentTextIcon },
+    { id: 'subscriptions', label: 'الاشتراكات', icon: CreditCardIcon },
+    { id: 'payments', label: 'المدفوعات', icon: BanknotesIcon },
+    { id: 'bank-transfers', label: '🏦 طلبات التحويل', icon: BanknotesIcon },
+    { id: 'expenses', label: '💰 المصروفات', icon: BanknotesIcon },
+    { id: 'initiatives', label: 'المبادرات', icon: LightBulbIcon },
+    { id: 'diyas', label: 'الديات', icon: ScaleIcon },
+    { id: 'reports', label: 'التقارير', icon: DocumentTextIcon },
+  ];
+
+  const menuItems = [...managementItems, ...financialItems];
+
+  // Reusable menu item renderer for both desktop and mobile sidebars
+  const renderMenuItems = (items: typeof menuItems) => items.map((item) => {
+    const Icon = item.icon;
+    const isActive = activeSection === item.id;
+    return (
+      <button
+        key={item.id}
+        onClick={() => handleSectionChange(item.id)}
+        style={{
+          ...styles.menuItem,
+          ...(isActive ? styles.menuItemActive : {}),
+        }}
+        onMouseEnter={(e) => {
+          if (!isActive) {
+            e.currentTarget.style.background = styles.menuItemHover.background || '#dbeafe';
+            e.currentTarget.style.color = styles.menuItemHover.color || '#1e40af';
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!isActive) {
+            e.currentTarget.style.background = 'transparent';
+            e.currentTarget.style.color = styles.menuItem.color || '#334155';
+          }
+        }}
+        title={item.label}
+        aria-label={item.label}
+        aria-current={isActive ? 'page' : undefined}
+      >
+        <Icon style={styles.menuIcon} />
+        <span style={styles.menuItemLabel}>{item.label}</span>
+      </button>
+    );
+  });
 
   const stats = useMemo(() => {
     const members = dashboardData?.members ?? {
@@ -4006,42 +4030,20 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
             <div style={{ color: '#ffffff', fontSize: '13px', fontWeight: 500 }}>صندوق شعيل</div>
           </div>
 
-          {/* === قائمة الأقسام - Sections Menu === */}
-          {/* تصميم كلاسيكي ثابت بسيط مع الأسماء - Classic fixed simple design with names */}
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeSection === item.id;
+          {/* === القسم الإداري - Management Section === */}
+          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', padding: '8px 20px 4px', fontWeight: 600, letterSpacing: '0.5px' }}>
+            إدارية
+          </div>
+          {renderMenuItems(managementItems)}
 
-            return (
-              <button
-                key={item.id}
-                onClick={() => handleSectionChange(item.id)}
-                style={{
-                  ...styles.menuItem,
-                  ...(isActive ? styles.menuItemActive : {}),
-                }}
-                onMouseEnter={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.background = styles.menuItemHover.background || '#dbeafe';
-                    e.currentTarget.style.color = styles.menuItemHover.color || '#1e40af';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.background = 'transparent';
-                    e.currentTarget.style.color = styles.menuItem.color || '#334155';
-                  }
-                }}
-                aria-label={item.label}
-                aria-current={isActive ? 'page' : undefined}
-              >
-                {/* === الأيقونة - Icon === */}
-                <Icon style={styles.menuIcon} />
-                {/* === اسم القسم - Section Name === */}
-                <span style={styles.menuItemLabel}>{item.label}</span>
-              </button>
-            );
-          })}
+          {/* === فاصل بين الأقسام - Section Divider === */}
+          <div style={{ margin: '8px 20px', borderTop: '1px solid rgba(255,255,255,0.15)' }} />
+
+          {/* === القسم المالي - Financial Section === */}
+          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', padding: '8px 20px 4px', fontWeight: 600, letterSpacing: '0.5px' }}>
+            مالية
+          </div>
+          {renderMenuItems(financialItems)}
         </div>
 
         {/* === الشريط الجانبي للموبايل - Mobile Sidebar === */}
@@ -4107,43 +4109,20 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
             </p>
           </div>
 
-          {/* === قائمة الأقسام - Section Menu === */}
-          {/* تصميم كلاسيكي بسيط مع أسماء الأقسام - Classic simple design with section names */}
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeSection === item.id;
+          {/* === القسم الإداري - Management Section === */}
+          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', padding: '8px 20px 4px', fontWeight: 600, letterSpacing: '0.5px' }}>
+            إدارية
+          </div>
+          {renderMenuItems(managementItems)}
 
-            return (
-              <button
-                key={item.id}
-                onClick={() => handleSectionChange(item.id)}
-                style={{
-                  ...styles.menuItem,
-                  ...(isActive ? styles.menuItemActive : {}),
-                }}
-                onMouseEnter={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.background = styles.menuItemHover.background || '#dbeafe';
-                    e.currentTarget.style.color = styles.menuItemHover.color || '#1e40af';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.background = 'transparent';
-                    e.currentTarget.style.color = styles.menuItem.color || '#334155';
-                  }
-                }}
-                title={item.label} // تلميح أداة - Tooltip
-                aria-label={item.label}
-                aria-current={isActive ? 'page' : undefined}
-              >
-                {/* === الأيقونة - Icon === */}
-                <Icon style={styles.menuIcon} />
-                {/* === اسم القسم - Section Name === */}
-                <span style={styles.menuItemLabel}>{item.label}</span>
-              </button>
-            );
-          })}
+          {/* === فاصل بين الأقسام - Section Divider === */}
+          <div style={{ margin: '8px 20px', borderTop: '1px solid rgba(255,255,255,0.15)' }} />
+
+          {/* === القسم المالي - Financial Section === */}
+          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', padding: '8px 20px 4px', fontWeight: 600, letterSpacing: '0.5px' }}>
+            مالية
+          </div>
+          {renderMenuItems(financialItems)}
         </div>
 
         {/* Main Content */}
