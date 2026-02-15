@@ -176,7 +176,7 @@ app.use((req, res, next) => {
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 500, // Increased from 100 to 500 for admin dashboard usage
+  max: 2000, // High limit for admin dashboard with monitoring auto-refresh
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, error: 'Too many requests, please try again later' }
