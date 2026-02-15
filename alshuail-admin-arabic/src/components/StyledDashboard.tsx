@@ -4031,7 +4031,7 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
           </div>
 
           {/* === القسم الإداري - Management Section === */}
-          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', padding: '8px 20px 4px', fontWeight: 600, letterSpacing: '0.5px' }}>
+          <div style={{ fontSize: '15px', color: 'rgba(255,255,255,0.7)', padding: '12px 20px 6px', fontWeight: 700, letterSpacing: '0.5px' }}>
             إدارية
           </div>
           {renderMenuItems(managementItems)}
@@ -4040,7 +4040,7 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
           <div style={{ margin: '8px 20px', borderTop: '1px solid rgba(255,255,255,0.15)' }} />
 
           {/* === القسم المالي - Financial Section === */}
-          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', padding: '8px 20px 4px', fontWeight: 600, letterSpacing: '0.5px' }}>
+          <div style={{ fontSize: '15px', color: 'rgba(255,255,255,0.7)', padding: '12px 20px 6px', fontWeight: 700, letterSpacing: '0.5px' }}>
             مالية
           </div>
           {renderMenuItems(financialItems)}
@@ -4110,7 +4110,7 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
           </div>
 
           {/* === القسم الإداري - Management Section === */}
-          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', padding: '8px 20px 4px', fontWeight: 600, letterSpacing: '0.5px' }}>
+          <div style={{ fontSize: '15px', color: 'rgba(255,255,255,0.7)', padding: '12px 20px 6px', fontWeight: 700, letterSpacing: '0.5px' }}>
             إدارية
           </div>
           {renderMenuItems(managementItems)}
@@ -4119,7 +4119,7 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
           <div style={{ margin: '8px 20px', borderTop: '1px solid rgba(255,255,255,0.15)' }} />
 
           {/* === القسم المالي - Financial Section === */}
-          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', padding: '8px 20px 4px', fontWeight: 600, letterSpacing: '0.5px' }}>
+          <div style={{ fontSize: '15px', color: 'rgba(255,255,255,0.7)', padding: '12px 20px 6px', fontWeight: 700, letterSpacing: '0.5px' }}>
             مالية
           </div>
           {renderMenuItems(financialItems)}
