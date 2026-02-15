@@ -93,14 +93,18 @@ const validatePasswordStrength = (password) => {
  */
 const findUser = async (identifier) => {
   const normalizedPhone = identifier.replace(/\s|-/g, '');
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
 
   try {
-    // Use OR condition for efficient single query
-    const result = await query(
-      `SELECT ${USER_SELECT_FIELDS} FROM users WHERE email = $1 OR phone = $2 OR id = $3 LIMIT 1`,
-      [identifier, normalizedPhone, identifier]
-    );
+    // Only include id comparison when identifier is a valid UUID to avoid cast errors
+    const sql = isUUID
+      ? `SELECT ${USER_SELECT_FIELDS} FROM users WHERE email = $1 OR phone = $2 OR id = $3 LIMIT 1`
+      : `SELECT ${USER_SELECT_FIELDS} FROM users WHERE email = $1 OR phone = $2 LIMIT 1`;
+    const params = isUUID
+      ? [identifier, normalizedPhone, identifier]
+      : [identifier, normalizedPhone];
 
+    const result = await query(sql, params);
     return { data: result.rows[0] || null, error: null };
   } catch (error) {
     return { data: null, error };
