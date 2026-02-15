@@ -18,6 +18,7 @@ import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, commonStyles, getMessageSty
 import { SettingsButton, StatusBadge } from './shared';
 
 import { logger } from '../../utils/logger';
+import { showToast } from '../../utils/toast';
 
 // Remove /api suffix if present to avoid double /api in URL
 const API_URL = (process.env.REACT_APP_API_URL || 'https://api.alshailfund.com').replace(/\/api$/, '');
@@ -115,6 +116,7 @@ const AccessControl: React.FC = () => {
     // Validate passwords match
     if (newPassword !== confirmPassword) {
       setMessage({ type: 'error', text: 'كلمات المرور غير متطابقة' });
+      showToast({ message: 'كلمات المرور غير متطابقة', type: 'error' });
       return;
     }
 
@@ -122,6 +124,7 @@ const AccessControl: React.FC = () => {
     const { isValid } = validatePassword(newPassword);
     if (!isValid) {
       setMessage({ type: 'error', text: 'كلمة المرور لا تستوفي متطلبات الأمان' });
+      showToast({ message: 'كلمة المرور لا تستوفي متطلبات الأمان', type: 'error' });
       return;
     }
 
@@ -150,12 +153,11 @@ const AccessControl: React.FC = () => {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        setMessage({
-          type: 'success',
-          text: operation === 'create'
-            ? 'تم إنشاء كلمة المرور بنجاح'
-            : 'تم إعادة تعيين كلمة المرور بنجاح'
-        });
+        const successMsg = operation === 'create'
+          ? 'تم إنشاء كلمة المرور بنجاح ✓'
+          : 'تم إعادة تعيين كلمة المرور بنجاح ✓';
+        setMessage({ type: 'success', text: successMsg });
+        showToast({ message: successMsg, type: 'success', duration: 5000 });
 
         // Clear sensitive data from memory immediately
         setNewPassword('');
@@ -165,11 +167,14 @@ const AccessControl: React.FC = () => {
         // Refresh user info
         handleSearch();
       } else {
-        setMessage({ type: 'error', text: data.message || 'فشلت العملية' });
+        const errorMsg = data.message || 'فشلت العملية';
+        setMessage({ type: 'error', text: errorMsg });
+        showToast({ message: errorMsg, type: 'error' });
       }
     } catch (error) {
       logger.error('Password operation error:', { error });
       setMessage({ type: 'error', text: 'حدث خطأ أثناء العملية' });
+      showToast({ message: 'حدث خطأ أثناء العملية', type: 'error' });
     } finally {
       setLoading(false);
     }
