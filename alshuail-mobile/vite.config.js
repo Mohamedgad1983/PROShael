@@ -8,6 +8,9 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+      workbox: {
+        navigateFallbackDenylist: [/^\/support/, /^\/privacy/]
+      },
       manifest: {
         name: 'صندوق عائلة شعيل العنزي',
         short_name: 'آل شعيل',
