@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="الدعم الفني - صندوق عائلة شعيل العنزي | Support - Al-Shuail Family Fund">
+  <meta name="apple-itunes-app" content="app-id=6757306315">
+  <title>الدعم الفني | Support - صندوق عائلة شعيل العنزي</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Cairo', sans-serif;
+      background: #f5f7fa;
+      color: #1a1a2e;
+      line-height: 1.8;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff;
+      padding: 60px 20px 50px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 60%);
+      animation: pulse 8s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+
+    .hero-content { position: relative; z-index: 1; max-width: 700px; margin: 0 auto; }
+
+    .app-icon {
+      width: 100px;
+      height: 100px;
+      border-radius: 22px;
+      background: rgba(255,255,255,0.2);
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      border: 2px solid rgba(255,255,255,0.3);
+      overflow: hidden;
+    }
+
+    .app-icon img { width: 100%; height: 100%; object-fit: cover; border-radius: 20px; }
+
+    .hero h1 { font-size: 2rem; font-weight: 800; margin-bottom: 8px; }
+    .hero .subtitle { font-size: 1.1rem; opacity: 0.9; font-weight: 400; }
+    .hero .en-title { font-size: 0.95rem; opacity: 0.8; direction: ltr; margin-top: 4px; }
+
+    .container { max-width: 900px; margin: 0 auto; padding: 0 20px; }
+
+    .section { padding: 40px 0; }
+    .section-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #667eea;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-title .icon { font-size: 1.4rem; }
+
+    /* About Section */
+    .about-card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 30px;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.06);
+    }
+
+    .about-card p { color: #444; margin-bottom: 16px; font-size: 1.05rem; }
+    .about-card .en { direction: ltr; text-align: left; color: #666; font-size: 0.95rem; }
+
+    /* Features */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .feature-card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+      text-align: center;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 24px rgba(102,126,234,0.15);
+    }
+
+    .feature-icon { font-size: 2.2rem; margin-bottom: 12px; }
+    .feature-card h3 { font-size: 1rem; font-weight: 700; color: #1a1a2e; margin-bottom: 6px; }
+    .feature-card p { font-size: 0.85rem; color: #666; }
+
+    /* Contact */
+    .contact-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    .contact-card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 28px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+      text-align: center;
+      transition: transform 0.2s;
+    }
+
+    .contact-card:hover { transform: translateY(-2px); }
+    .contact-icon { font-size: 2.5rem; margin-bottom: 14px; }
+    .contact-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 8px; }
+    .contact-card p { color: #666; font-size: 0.9rem; margin-bottom: 14px; }
+
+    .contact-btn {
+      display: inline-block;
+      padding: 10px 28px;
+      border-radius: 50px;
+      text-decoration: none;
+      font-family: 'Cairo', sans-serif;
+      font-weight: 600;
+      font-size: 0.95rem;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .contact-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    }
+
+    .btn-email { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; }
+    .btn-whatsapp { background: #25D366; color: #fff; }
+
+    /* FAQ */
+    .faq-list { display: flex; flex-direction: column; gap: 12px; }
+
+    .faq-item {
+      background: #fff;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    }
+
+    .faq-question {
+      width: 100%;
+      background: none;
+      border: none;
+      padding: 20px 24px;
+      font-family: 'Cairo', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #1a1a2e;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      text-align: right;
+      transition: background 0.2s;
+    }
+
+    .faq-question:hover { background: #f8f9ff; }
+
+    .faq-arrow {
+      font-size: 1.2rem;
+      color: #667eea;
+      transition: transform 0.3s;
+      flex-shrink: 0;
+      margin-right: 12px;
+    }
+
+    .faq-item.open .faq-arrow { transform: rotate(180deg); }
+
+    .faq-answer {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease, padding 0.3s ease;
+    }
+
+    .faq-item.open .faq-answer { max-height: 300px; }
+
+    .faq-answer-inner {
+      padding: 0 24px 20px;
+      color: #555;
+      font-size: 0.95rem;
+      line-height: 1.9;
+    }
+
+    .faq-answer-inner .en { direction: ltr; text-align: left; color: #777; font-size: 0.85rem; margin-top: 8px; }
+
+    /* Download */
+    .download-section {
+      text-align: center;
+      padding: 50px 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 20px;
+      color: #fff;
+      margin: 20px 0 40px;
+    }
+
+    .download-section h2 { font-size: 1.5rem; font-weight: 800; margin-bottom: 10px; }
+    .download-section p { opacity: 0.9; margin-bottom: 24px; }
+
+    .store-badge {
+      display: inline-block;
+      height: 52px;
+      transition: transform 0.2s;
+    }
+
+    .store-badge:hover { transform: scale(1.05); }
+
+    .store-badges { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+    /* Footer */
+    footer {
+      background: #1a1a2e;
+      color: rgba(255,255,255,0.7);
+      padding: 30px 20px;
+      text-align: center;
+    }
+
+    footer a { color: #a5b4fc; text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+    footer .links { margin-bottom: 16px; display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; }
+    footer .copy { font-size: 0.85rem; opacity: 0.7; }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      .hero { padding: 40px 16px 36px; }
+      .hero h1 { font-size: 1.5rem; }
+      .section { padding: 30px 0; }
+      .section-title { font-size: 1.25rem; }
+      .about-card { padding: 20px; }
+      .features-grid { grid-template-columns: 1fr 1fr; }
+      .contact-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Hero -->
+  <header class="hero">
+    <div class="hero-content">
+      <div class="app-icon">
+        <img src="/logo.png" alt="صندوق عائلة شعيل العنزي">
+      </div>
+      <h1>صندوق عائلة شعيل العنزي</h1>
+      <div class="en-title">Al-Shuail Family Fund</div>
+      <div class="subtitle">الدعم الفني والمساعدة</div>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- About -->
+    <section class="section">
+      <h2 class="section-title"><span class="icon">📱</span> عن التطبيق</h2>
+      <div class="about-card">
+        <p>
+          تطبيق صندوق عائلة شعيل العنزي هو منصة متكاملة لإدارة الصندوق العائلي وتنظيم شؤون العائلة.
+          يخدم التطبيق أكثر من 347 عضواً موزعين على 10 فخوذ (فروع عائلية)، ويوفر أدوات لإدارة الاشتراكات،
+          تتبع المدفوعات، عرض شجرة العائلة، وتنظيم المبادرات والمناسبات العائلية.
+        </p>
+        <p class="en">
+          Al-Shuail Family Fund app is a comprehensive platform for managing the family fund and organizing family affairs.
+          The app serves over 347 members across 10 family branches, providing tools for subscription management,
+          payment tracking, family tree visualization, and organizing family initiatives and events.
+        </p>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section class="section">
+      <h2 class="section-title"><span class="icon">✨</span> مميزات التطبيق</h2>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">💰</div>
+          <h3>إدارة الاشتراكات</h3>
+          <p>تتبع الاشتراكات الشهرية والسنوية وسجل المدفوعات</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🌳</div>
+          <h3>شجرة العائلة</h3>
+          <p>عرض تفاعلي لشجرة العائلة مع تفاصيل الفخوذ العشرة</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🎯</div>
+          <h3>المبادرات</h3>
+          <p>حملات التمويل والمشاريع العائلية المشتركة</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔔</div>
+          <h3>الإشعارات</h3>
+          <p>تنبيهات فورية بأخبار العائلة والمستجدات</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📊</div>
+          <h3>التقارير المالية</h3>
+          <p>كشوف حساب وتقارير مالية مفصلة</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🎉</div>
+          <h3>المناسبات</h3>
+          <p>تنظيم ومتابعة مناسبات العائلة والفعاليات</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🆔</div>
+          <h3>بطاقة العضوية</h3>
+          <p>بطاقة عضوية رقمية لكل فرد من أفراد العائلة</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📰</div>
+          <h3>الأخبار</h3>
+          <p>آخر أخبار وإعلانات الصندوق العائلي</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Contact / Support -->
+    <section class="section">
+      <h2 class="section-title"><span class="icon">📞</span> تواصل معنا</h2>
+      <div class="contact-grid">
+        <div class="contact-card">
+          <div class="contact-icon">📧</div>
+          <h3>البريد الإلكتروني</h3>
+          <p>راسلنا وسنرد خلال 24 ساعة<br><span style="direction:ltr;display:inline-block;">Email us and we'll respond within 24 hours</span></p>
+          <a href="mailto:mohamedgad8092@gmail.com" class="contact-btn btn-email">mohamedgad8092@gmail.com</a>
+        </div>
+        <div class="contact-card">
+          <div class="contact-icon">💬</div>
+          <h3>واتساب</h3>
+          <p>تواصل معنا مباشرة عبر واتساب<br><span style="direction:ltr;display:inline-block;">Contact us directly via WhatsApp</span></p>
+          <a href="https://wa.me/96550000000" class="contact-btn btn-whatsapp">واتساب / WhatsApp</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="section">
+      <h2 class="section-title"><span class="icon">❓</span> الأسئلة الشائعة</h2>
+      <div class="faq-list">
+
+        <div class="faq-item">
+          <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+            كيف أسجل في التطبيق؟
+            <span class="faq-arrow">▼</span>
+          </button>
+          <div class="faq-answer"><div class="faq-answer-inner">
+            يتم التسجيل عن طريق رقم الهاتف المسجل لدى إدارة الصندوق. ستتلقى رمز تحقق عبر واتساب لتأكيد هويتك والدخول للتطبيق.
+            <div class="en">Registration is done via the phone number registered with the fund administration. You'll receive a verification code via WhatsApp to confirm your identity and access the app.</div>
+          </div></div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+            كيف أدفع الاشتراك؟
+            <span class="faq-arrow">▼</span>
+          </button>
+          <div class="faq-answer"><div class="faq-answer-inner">
+            يمكنك دفع الاشتراك عبر التطبيق من خلال الدفع الإلكتروني (KNET) أو التحويل البنكي. اختر طريقة الدفع المناسبة من قسم المدفوعات.
+            <div class="en">You can pay subscriptions through the app via electronic payment (KNET) or bank transfer. Choose your preferred payment method from the payments section.</div>
+          </div></div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+            لا أستطيع تسجيل الدخول، ماذا أفعل؟
+            <span class="faq-arrow">▼</span>
+          </button>
+          <div class="faq-answer"><div class="faq-answer-inner">
+            تأكد من إدخال رقم الهاتف المسجل بشكل صحيح مع رمز الدولة (+965 للكويت). إذا استمرت المشكلة، تواصل معنا عبر البريد الإلكتروني أو واتساب وسنساعدك في حل المشكلة.
+            <div class="en">Make sure you're entering the correct registered phone number with country code (+965 for Kuwait). If the issue persists, contact us via email or WhatsApp and we'll help resolve it.</div>
+          </div></div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+            كيف أعرض شجرة العائلة؟
+            <span class="faq-arrow">▼</span>
+          </button>
+          <div class="faq-answer"><div class="faq-answer-inner">
+            من الصفحة الرئيسية، اضغط على "شجرة العائلة" لعرض الفخوذ العشرة. يمكنك الضغط على أي فخذ لعرض أفراده وتفاصيلهم.
+            <div class="en">From the home page, tap "Family Tree" to view the 10 branches. You can tap on any branch to view its members and details.</div>
+          </div></div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+            كيف أحذف حسابي أو بياناتي؟
+            <span class="faq-arrow">▼</span>
+          </button>
+          <div class="faq-answer"><div class="faq-answer-inner">
+            يمكنك طلب حذف حسابك وبياناتك بالتواصل معنا عبر البريد الإلكتروني على mohamedgad8092@gmail.com. سيتم معالجة طلبك خلال 30 يوم عمل.
+            <div class="en">You can request account and data deletion by contacting us at mohamedgad8092@gmail.com. Your request will be processed within 30 business days.</div>
+          </div></div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question" onclick="this.parentElement.classList.toggle('open')">
+            هل التطبيق متاح لغير أفراد العائلة؟
+            <span class="faq-arrow">▼</span>
+          </button>
+          <div class="faq-answer"><div class="faq-answer-inner">
+            التطبيق مخصص حصرياً لأفراد عائلة شعيل العنزي المسجلين لدى إدارة الصندوق. لا يمكن لغير الأعضاء التسجيل أو الوصول للتطبيق.
+            <div class="en">The app is exclusively for registered members of the Al-Shuail family. Non-members cannot register or access the app.</div>
+          </div></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Download -->
+    <div class="download-section">
+      <h2>حمّل التطبيق الآن</h2>
+      <p>متوفر على متجر آبل ومتجر جوجل بلاي</p>
+      <div class="store-badges">
+        <a href="https://apps.apple.com/app/id6757306315" target="_blank" rel="noopener">
+          <img class="store-badge" src="https://tools.applemediaservices.com/api/badges/download-on-the-app-store/black/ar-sa?size=250x83" alt="حمّل من App Store">
+        </a>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <div class="links">
+      <a href="/privacy">سياسة الخصوصية | Privacy Policy</a>
+      <a href="/support">الدعم الفني | Support</a>
+      <a href="mailto:mohamedgad8092@gmail.com">تواصل معنا | Contact Us</a>
+    </div>
+    <div class="copy">
+      &copy; 2025 صندوق عائلة شعيل العنزي - Al-Shuail Family Fund. جميع الحقوق محفوظة.
+    </div>
+  </footer>
+
+</body>
+</html>
