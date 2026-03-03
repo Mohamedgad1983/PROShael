@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useState, useEffect, createContext, useContext } from 'react'
 import { DataCacheProvider } from './contexts/DataCacheContext'
 import Login from './pages/Login'
@@ -16,6 +16,7 @@ import ProfileWizard from './pages/ProfileWizard'
 import SubscriptionDetail from './pages/SubscriptionDetail'
 import Statement from './pages/Statement'
 import Events from './pages/Events'
+import ChangePassword from './pages/ChangePassword'
 
 // New Payment System Pages
 import PaymentCenter from './pages/PaymentCenter'
@@ -34,7 +35,8 @@ export const useAuth = () => useContext(AuthContext)
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth()
-  
+  const location = useLocation()
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center gradient-primary">
@@ -42,11 +44,16 @@ const ProtectedRoute = ({ children }) => {
       </div>
     )
   }
-  
+
   if (!user) {
     return <Navigate to="/login" replace />
   }
-  
+
+  // Force password change redirect (exclude the change-password route itself)
+  if (user.requiresPasswordChange && location.pathname !== '/change-password') {
+    return <Navigate to="/change-password" state={{ isFirstLogin: true }} replace />
+  }
+
   return children
 }
 
@@ -67,13 +74,20 @@ function App() {
     setLoading(false)
   }, [])
 
-  const login = (userData) => {
-    setUser(userData)
-    localStorage.setItem('alshuail_user', JSON.stringify(userData))
+  const login = (userData, requiresPasswordChange = false) => {
+    const userWithFlags = { ...userData, requiresPasswordChange }
+    setUser(userWithFlags)
+    localStorage.setItem('alshuail_user', JSON.stringify(userWithFlags))
   }
 
   const updateUser = (newData) => {
     const updatedUser = { ...user, ...newData }
+    setUser(updatedUser)
+    localStorage.setItem('alshuail_user', JSON.stringify(updatedUser))
+  }
+
+  const clearPasswordChangeFlag = () => {
+    const updatedUser = { ...user, requiresPasswordChange: false }
     setUser(updatedUser)
     localStorage.setItem('alshuail_user', JSON.stringify(updatedUser))
   }
@@ -85,7 +99,7 @@ function App() {
   }
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, updateUser, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser, clearPasswordChangeFlag, loading }}>
       <DataCacheProvider>
         <Router>
           <div className="min-h-screen bg-gray-50 font-cairo">
@@ -196,6 +210,11 @@ function App() {
               <Route path="/settings" element={
                 <ProtectedRoute>
                   <Settings />
+                </ProtectedRoute>
+              } />
+              <Route path="/change-password" element={
+                <ProtectedRoute>
+                  <ChangePassword />
                 </ProtectedRoute>
               } />
               <Route path="/profile-wizard" element={

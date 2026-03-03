@@ -9,7 +9,7 @@ import { requireSuperAdmin } from '../middleware/superAdminAuth.js';
 const router = express.Router();
 
 // Constants
-const BCRYPT_SALT_ROUNDS = 10;
+const BCRYPT_SALT_ROUNDS = 12;
 const SEARCH_RESULTS_LIMIT = 20;
 const MIN_SEARCH_QUERY_LENGTH = 2;
 const USER_SELECT_FIELDS = 'id, email, phone, full_name_ar, full_name_en, role, is_active';
@@ -218,6 +218,106 @@ router.post('/reset', authenticateToken, requireSuperAdmin, passwordManagementLi
     });
   } catch (error) {
     log.error('[PasswordReset] Unexpected error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'SERVER_ERROR',
+      message: 'خطأ في الخادم',
+      message_en: 'Internal server error'
+    });
+  }
+});
+
+/**
+ * POST /api/password-management/reset-to-default
+ * Reset a member's password back to temporary "123456" (superadmin only)
+ * Used when member forgets their personal password
+ */
+router.post('/reset-to-default', authenticateToken, requireSuperAdmin, passwordManagementLimiter, async (req, res) => {
+  try {
+    const { memberId } = req.body;
+
+    if (!memberId) {
+      return res.status(400).json({
+        success: false,
+        error: 'MISSING_FIELDS',
+        message: 'معرف العضو مطلوب',
+        message_en: 'Member ID is required'
+      });
+    }
+
+    // Find member in members table
+    const memberResult = await query(
+      'SELECT id, full_name, phone FROM members WHERE id = $1',
+      [memberId]
+    );
+
+    if (memberResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'MEMBER_NOT_FOUND',
+        message: 'العضو غير موجود',
+        message_en: 'Member not found'
+      });
+    }
+
+    const member = memberResult.rows[0];
+
+    // Pre-computed bcrypt hash of "123456" with 12 rounds
+    const defaultPasswordHash = '$2b$12$OJ5iRDohKqpP2Ne/6XBstO7qeikbJxltZ/vvfrCycWBPpGX5vws/O';
+
+    // Reset password and set forced change flags
+    await query(
+      `UPDATE members SET
+        password_hash = $1,
+        requires_password_change = true,
+        is_first_login = true,
+        has_password = false,
+        login_attempts = 0,
+        account_locked_until = NULL,
+        updated_at = NOW()
+      WHERE id = $2`,
+      [defaultPasswordHash, memberId]
+    );
+
+    // Log to audit_logs
+    try {
+      await query(
+        `INSERT INTO audit_logs (action, performed_by, target_user, details, created_at)
+         VALUES ($1, $2, $3, $4, NOW())`,
+        [
+          'PASSWORD_RESET_TO_DEFAULT',
+          req.superAdmin.id,
+          memberId,
+          JSON.stringify({
+            reset_by: 'superadmin',
+            admin_email: req.superAdmin.email,
+            member_name: member.full_name,
+            reason: 'Admin reset to temporary password'
+          })
+        ]
+      );
+    } catch (auditError) {
+      log.error('[ResetToDefault] Failed to create audit log:', auditError);
+    }
+
+    log.info('[ResetToDefault] Member password reset to default', {
+      adminId: req.superAdmin.id,
+      memberId: member.id,
+      memberName: member.full_name
+    });
+
+    res.json({
+      success: true,
+      message: 'تم إعادة تعيين كلمة المرور بنجاح',
+      message_en: 'Password reset to default successfully',
+      member: {
+        id: member.id,
+        name: member.full_name,
+        phone: member.phone
+      }
+    });
+  } catch (error) {
+    log.error('[ResetToDefault] Unexpected error:', error);
     res.status(500).json({
       success: false,
       error: 'SERVER_ERROR',

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, Bell, Moon, Globe, Phone, FileText, Info, ChevronLeft, LogOut, Check, X } from 'lucide-react'
+import { ArrowRight, Bell, Moon, Globe, Phone, FileText, Info, ChevronLeft, LogOut, Check, X, Lock } from 'lucide-react'
 import { useAuth } from '../App'
 import { pushNotificationService } from '../services'
 
@@ -100,6 +100,13 @@ const Settings = () => {
           label: 'اللغة',
           subtitle: 'العربية',
           type: 'link'
+        },
+        {
+          icon: Lock,
+          label: 'تغيير كلمة المرور',
+          subtitle: 'تحديث بيانات الأمان',
+          type: 'link',
+          onClick: () => navigate('/change-password')
         }
       ]
     },
@@ -145,11 +152,12 @@ const Settings = () => {
               {group.items.map((item, itemIndex) => {
                 const Icon = item.icon
                 return (
-                  <div 
+                  <div
                     key={itemIndex}
                     className={`flex items-center justify-between py-3 ${
                       itemIndex !== group.items.length - 1 ? 'border-b border-gray-100' : ''
-                    } ${item.disabled ? 'opacity-50' : ''}`}
+                    } ${item.disabled ? 'opacity-50' : ''} ${item.onClick ? 'cursor-pointer' : ''}`}
+                    onClick={item.onClick || undefined}
                   >
                     <div className="flex items-center gap-3">
                       <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
@@ -223,7 +231,7 @@ const Settings = () => {
         <p className="text-center text-gray-300 text-xs mt-6">
           صندوق عائلة شعيل العنزي
           <br />
-          الإصدار 2.0.0 - WhatsApp + Push
+          الإصدار 2.1.0
         </p>
       </div>
     </div>

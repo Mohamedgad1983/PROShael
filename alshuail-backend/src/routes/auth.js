@@ -613,7 +613,28 @@ router.post('/verify', async (req, res) => {
   }
 });
 
-// Add refresh endpoint
+// Password strength validation for members
+const validateMemberPasswordStrength = (password) => {
+  if (!password || password.length < 8) {
+    return { valid: false, message: 'كلمة المرور يجب أن تكون 8 أحرف على الأقل', message_en: 'Password must be at least 8 characters' };
+  }
+  if (!/[A-Z]/.test(password)) {
+    return { valid: false, message: 'كلمة المرور يجب أن تحتوي على حرف كبير واحد على الأقل', message_en: 'Password must contain at least one uppercase letter' };
+  }
+  if (!/[a-z]/.test(password)) {
+    return { valid: false, message: 'كلمة المرور يجب أن تحتوي على حرف صغير واحد على الأقل', message_en: 'Password must contain at least one lowercase letter' };
+  }
+  if (!/[0-9]/.test(password)) {
+    return { valid: false, message: 'كلمة المرور يجب أن تحتوي على رقم واحد على الأقل', message_en: 'Password must contain at least one number' };
+  }
+  return { valid: true };
+};
+
+// Rate limiter for change-password (5 attempts per hour)
+const changePasswordAttempts = new Map();
+const CHANGE_PASSWORD_MAX_ATTEMPTS = 5;
+const CHANGE_PASSWORD_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+
 router.post('/change-password', async (req, res) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
@@ -622,7 +643,7 @@ router.post('/change-password', async (req, res) => {
       return res.status(401).json({
         success: false,
         message: 'رمز المصادقة مطلوب',
-        message_ar: 'رمز المصادقة مطلوب'
+        message_en: 'Authentication token required'
       });
     }
 
@@ -634,47 +655,110 @@ router.post('/change-password', async (req, res) => {
       return res.status(401).json({
         success: false,
         message: 'رمز المصادقة غير صالح',
-        message_ar: 'رمز المصادقة غير صالح'
+        message_en: 'Invalid authentication token'
       });
     }
 
-    const { current_password: _current_password, new_password } = req.body;
+    // Rate limiting check
+    const rateLimitKey = decoded.id;
+    const now = Date.now();
+    const attempts = changePasswordAttempts.get(rateLimitKey);
+    if (attempts && attempts.count >= CHANGE_PASSWORD_MAX_ATTEMPTS && (now - attempts.firstAttempt) < CHANGE_PASSWORD_WINDOW_MS) {
+      return res.status(429).json({
+        success: false,
+        message: 'تم تجاوز الحد المسموح من المحاولات. يرجى المحاولة لاحقاً',
+        message_en: 'Too many attempts. Please try again later.'
+      });
+    }
+    // Track attempt
+    if (!attempts || (now - attempts.firstAttempt) >= CHANGE_PASSWORD_WINDOW_MS) {
+      changePasswordAttempts.set(rateLimitKey, { count: 1, firstAttempt: now });
+    } else {
+      attempts.count++;
+    }
 
-    if (!new_password) {
+    const { current_password, new_password } = req.body;
+
+    if (!current_password || !new_password) {
       return res.status(400).json({
         success: false,
-        message: 'كلمة المرور الجديدة مطلوبة',
-        message_ar: 'كلمة المرور الجديدة مطلوبة'
+        message: 'كلمة المرور الحالية والجديدة مطلوبة',
+        message_en: 'Current and new password are required'
       });
     }
 
-    // For test members, just accept the password change
-    const testPhones = ['0555555555', '0501234567', '0512345678'];
-    if (decoded.role === 'member' && testPhones.includes(decoded.phone)) {
-      // Update the member's password status in database
-      try {
-        await query(
-          'UPDATE members SET requires_password_change = $1, is_first_login = $2, updated_at = $3 WHERE id = $4',
-          [false, false, new Date().toISOString(), decoded.id]
-        );
-      } catch (_updateError) {
-        log.error('Error updating member', { error: _updateError.message });
+    // Reject "123456" as new password
+    if (new_password === '123456') {
+      return res.status(400).json({
+        success: false,
+        message: 'لا يمكن استخدام كلمة المرور المؤقتة ككلمة مرور جديدة',
+        message_en: 'Cannot use the temporary password as your new password'
+      });
+    }
+
+    // Validate password strength
+    const strengthCheck = validateMemberPasswordStrength(new_password);
+    if (!strengthCheck.valid) {
+      return res.status(400).json({
+        success: false,
+        message: strengthCheck.message,
+        message_en: strengthCheck.message_en
+      });
+    }
+
+    // Fetch member from database
+    const memberResult = await query(
+      'SELECT id, password_hash, is_first_login, requires_password_change FROM members WHERE id = $1',
+      [decoded.id]
+    );
+
+    if (memberResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'بيانات الاعتماد غير صحيحة',
+        message_en: 'Invalid credentials'
+      });
+    }
+
+    const member = memberResult.rows[0];
+
+    // Verify current password with bcrypt
+    if (member.password_hash) {
+      const isCurrentPasswordValid = await bcrypt.compare(current_password, member.password_hash);
+      if (!isCurrentPasswordValid) {
+        return res.status(400).json({
+          success: false,
+          message: 'كلمة المرور الحالية غير صحيحة',
+          message_en: 'Current password is incorrect'
+        });
       }
-
-      return res.json({
-        success: true,
-        message: 'تم تغيير كلمة المرور بنجاح',
-        message_ar: 'تم تغيير كلمة المرور بنجاح'
-      });
     }
 
-    // For real members, would need to verify current password and hash new password
-    // This is simplified for test implementation
+    // Hash new password with 12 rounds
+    const hashedPassword = await bcrypt.hash(new_password, 12);
+
+    // Update member password and flags
+    await query(
+      `UPDATE members SET
+        password_hash = $1,
+        requires_password_change = false,
+        is_first_login = false,
+        has_password = true,
+        password_changed_at = NOW(),
+        updated_at = NOW()
+      WHERE id = $2`,
+      [hashedPassword, decoded.id]
+    );
+
+    // Clear rate limit on success
+    changePasswordAttempts.delete(rateLimitKey);
+
+    log.info('Member password changed successfully', { memberId: decoded.id });
 
     return res.json({
       success: true,
       message: 'تم تغيير كلمة المرور بنجاح',
-      message_ar: 'تم تغيير كلمة المرور بنجاح'
+      message_en: 'Password changed successfully'
     });
 
   } catch (error) {
@@ -682,7 +766,7 @@ router.post('/change-password', async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'خطأ في تغيير كلمة المرور',
-      message_ar: 'خطأ في تغيير كلمة المرور'
+      message_en: 'Error changing password'
     });
   }
 });

@@ -19,7 +19,8 @@ import {
   TrashIcon,
   XMarkIcon,
   AdjustmentsHorizontalIcon,
-  ArrowLeftIcon
+  ArrowLeftIcon,
+  KeyIcon
 } from '@heroicons/react/24/outline';
 
 const TwoSectionMembers = () => {
@@ -418,6 +419,42 @@ const TwoSectionMembers = () => {
   const handleCloseEditModal = () => {
     setShowEditModal(false);
     setEditingMember(null);
+  };
+
+  const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
+
+  const handleResetPassword = async () => {
+    if (!editingMember) return;
+
+    const confirmed = window.confirm(
+      `هل أنت متأكد من إعادة تعيين كلمة المرور للعضو ${editingMember.full_name}؟ سيتم تعيين كلمة المرور إلى 123456`
+    );
+    if (!confirmed) return;
+
+    setResetPasswordLoading(true);
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('alshuail_token');
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/password-management/reset-to-default`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ memberId: editingMember.id })
+      });
+      const data = await response.json();
+
+      if (data.success) {
+        alert('تم إعادة تعيين كلمة المرور بنجاح');
+      } else {
+        alert(data.message || 'فشل إعادة تعيين كلمة المرور');
+      }
+    } catch (error) {
+      logger.error('Reset password error:', { error });
+      alert('حدث خطأ في إعادة تعيين كلمة المرور');
+    } finally {
+      setResetPasswordLoading(false);
+    }
   };
 
   const handleEditChange = (field, value) => {
@@ -1335,6 +1372,24 @@ const TwoSectionMembers = () => {
               <button className="btn-cancel" onClick={handleCloseEditModal}>
                 إلغاء
               </button>
+              {getUserRole() === 'super_admin' && (
+                <button
+                  className="btn-cancel"
+                  style={{
+                    backgroundColor: '#fffbeb',
+                    color: '#b45309',
+                    border: '1px solid #fcd34d',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                  onClick={handleResetPassword}
+                  disabled={resetPasswordLoading}
+                >
+                  <KeyIcon style={{ width: 18, height: 18 }} />
+                  {resetPasswordLoading ? 'جاري...' : 'إعادة تعيين كلمة المرور'}
+                </button>
+              )}
               <button className="btn-save" onClick={handleSaveEdit}>
                 <span>💾</span> حفظ التغييرات
               </button>

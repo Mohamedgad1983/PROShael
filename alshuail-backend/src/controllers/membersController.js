@@ -224,6 +224,9 @@ export const createMember = async (req, res) => {
       memberData.membership_number = `SH-${  Date.now().toString().slice(-8)}`;
     }
 
+    // Default password hash for "123456" (12-round bcrypt)
+    const defaultPasswordHash = '$2b$12$OJ5iRDohKqpP2Ne/6XBstO7qeikbJxltZ/vvfrCycWBPpGX5vws/O';
+
     // Ensure all fields are properly set
     const memberToCreate = {
       full_name: memberData.full_name,
@@ -246,15 +249,16 @@ export const createMember = async (req, res) => {
     log.debug('Preparing to create member', { membershipNumber: memberToCreate.membership_number });
 
     const { rows } = await query(
-      `INSERT INTO members (full_name, phone, email, national_id, tribal_section, city, district, address, occupation, employer, password, membership_number, membership_status, profile_completed, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+      `INSERT INTO members (full_name, phone, email, national_id, tribal_section, city, district, address, occupation, employer, password, membership_number, membership_status, profile_completed, created_at, password_hash, requires_password_change, is_first_login, has_password)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
        RETURNING *`,
       [
         memberToCreate.full_name, memberToCreate.phone, memberToCreate.email,
         memberToCreate.national_id, memberToCreate.tribal_section, memberToCreate.city,
         memberToCreate.district, memberToCreate.address, memberToCreate.occupation,
         memberToCreate.employer, memberToCreate.password, memberToCreate.membership_number,
-        memberToCreate.membership_status, memberToCreate.profile_completed, memberToCreate.created_at
+        memberToCreate.membership_status, memberToCreate.profile_completed, memberToCreate.created_at,
+        defaultPasswordHash, true, true, false
       ]
     );
 

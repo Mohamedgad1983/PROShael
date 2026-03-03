@@ -4,15 +4,14 @@
 -- ============================================
 -- Purpose: Set default password "123456" for all regular members
 -- Default Password: 123456
--- Generated Hash: $2b$10$Q6lwLnLhnFcjWbDijquFEO0YmkiZ3r6se8Y6etyjAs9o4wU2clU1K
+-- Generated Hash: $2b$12$OJ5iRDohKqpP2Ne/6XBstO7qeikbJxltZ/vvfrCycWBPpGX5vws/O
 -- Date: October 3, 2025
 -- ============================================
 -- INSTRUCTIONS:
--- 1. Open Supabase Dashboard → SQL Editor
--- 2. Copy and paste this ENTIRE script
--- 3. Click "Run" button
--- 4. Wait for completion message
--- 5. Verify the results in the output
+-- 1. SSH to VPS: ssh root@213.199.62.185
+-- 2. Run: psql -U alshuail -d alshuail_db -f /var/www/PROShael/alshuail-backend/scripts/setup-default-passwords.sql
+-- 3. Wait for completion message
+-- 4. Verify the results in the output
 -- ============================================
 
 -- ============================================
@@ -120,7 +119,7 @@ END $$;
 -- STEP 2: Set Default Password for All Members
 -- ============================================
 -- Password: 123456
--- Hash: $2b$10$Q6lwLnLhnFcjWbDijquFEO0YmkiZ3r6se8Y6etyjAs9o4wU2clU1K
+-- Hash: $2b$12$OJ5iRDohKqpP2Ne/6XBstO7qeikbJxltZ/vvfrCycWBPpGX5vws/O
 -- ============================================
 
 DO $$
@@ -132,7 +131,7 @@ BEGIN
 
     UPDATE members
     SET
-        password_hash = '$2b$10$Q6lwLnLhnFcjWbDijquFEO0YmkiZ3r6se8Y6etyjAs9o4wU2clU1K',
+        password_hash = '$2b$12$OJ5iRDohKqpP2Ne/6XBstO7qeikbJxltZ/vvfrCycWBPpGX5vws/O',
         is_first_login = true,
         requires_password_change = true,
         login_attempts = 0,
@@ -265,11 +264,11 @@ SELECT
     phone as "Phone",
     role as "Role",
     CASE
-        WHEN password_hash IS NOT NULL AND password_hash != '$2b$10$Q6lwLnLhnFcjWbDijquFEO0YmkiZ3r6se8Y6etyjAs9o4wU2clU1K'
+        WHEN password_hash IS NOT NULL AND password_hash != '$2b$12$OJ5iRDohKqpP2Ne/6XBstO7qeikbJxltZ/vvfrCycWBPpGX5vws/O'
             THEN '✅ Admin password intact'
         WHEN password_hash IS NULL
             THEN '⚠️  No password set'
-        WHEN password_hash = '$2b$10$Q6lwLnLhnFcjWbDijquFEO0YmkiZ3r6se8Y6etyjAs9o4wU2clU1K'
+        WHEN password_hash = '$2b$12$OJ5iRDohKqpP2Ne/6XBstO7qeikbJxltZ/vvfrCycWBPpGX5vws/O'
             THEN '⚠️  Has default password (unexpected!)'
         ELSE '✅ Has custom password'
     END as "Status"
