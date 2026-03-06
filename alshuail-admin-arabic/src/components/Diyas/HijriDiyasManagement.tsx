@@ -261,7 +261,7 @@ const HijriDiyasManagement: React.FC = () => {
   }, []);
 
   const handleBulkTransfer = useCallback(async () => {
-    const activeIds = diyas.filter(d => d.status !== 'transferred_to_expense' && d.status !== 'completed').map(d => d.id);
+    const activeIds = diyas.filter(d => (d.status as string) !== 'transferred_to_expense' && d.status !== 'completed').map(d => d.id);
     if (activeIds.length === 0) {
       alert('لا توجد ديات قابلة للنقل');
       return;
@@ -780,7 +780,7 @@ const HijriDiyasManagement: React.FC = () => {
             <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
               <DocumentArrowDownIcon className="w-5 h-5 text-gray-600" />
             </button>
-            {diya.status !== 'transferred_to_expense' && (
+            {(diya.status as string) !== 'transferred_to_expense' && (
               <button
                 onClick={() => handleTransferToExpense(diya)}
                 disabled={transferringId === diya.id}
@@ -790,7 +790,7 @@ const HijriDiyasManagement: React.FC = () => {
                 {transferringId === diya.id ? 'جاري النقل...' : '→ نقل للمصروفات'}
               </button>
             )}
-            {diya.status === 'transferred_to_expense' && (
+            {(diya.status as string) === 'transferred_to_expense' && (
               <span className="text-xs px-3 py-2 rounded-lg bg-green-100 text-green-700">
                 ✅ تم النقل
               </span>
