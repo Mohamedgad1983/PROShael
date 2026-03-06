@@ -2095,8 +2095,8 @@
                 <td>
                     <span class="badge ${paymentStatusClass}">${paymentStatusText}</span>
                 </td>
-                <td class="balance">${balance.toLocaleString('ar-SA')} ر.س</td>
-                <td class="required-balance">${requiredBalance.toLocaleString('ar-SA')} ر.س</td>
+                <td class="balance">${balance.toLocaleString('en-US')} ر.س</td>
+                <td class="required-balance">${requiredBalance.toLocaleString('en-US')} ر.س</td>
                 <td>
                     <div class="action-buttons">
                         <button class="btn-action btn-view" onclick="viewMember('${memberId}')" title="عرض التفاصيل">
@@ -2462,10 +2462,10 @@
             document.querySelector('.stat-card:nth-child(2) .stat-number').textContent = stats.active;
             // Card 3: Show total arrears amount (متأخرات مالية)
             document.querySelector('.stat-card:nth-child(3) .stat-number').textContent =
-                stats.totalArrears.toLocaleString('ar-SA') + ' ر.س';
+                stats.totalArrears.toLocaleString('en-US') + ' ر.س';
             document.querySelector('.stat-card:nth-child(4) .stat-number').textContent = stats.suspended;
             document.querySelector('.stat-card:nth-child(5) .stat-number').textContent =
-                stats.subscriptions.toLocaleString('ar-SA') + ' ر.س';
+                stats.subscriptions.toLocaleString('en-US') + ' ر.س';
             document.querySelector('.stat-card:nth-child(6) .stat-number').textContent = stats.expired;
 
             console.log('📊 Statistics updated:', stats);
