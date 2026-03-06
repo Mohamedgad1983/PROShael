@@ -69,6 +69,7 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
   const [categories] = useState([
     { value: 'operations', label_ar: 'تشغيلية', label_en: 'Operations' },
     { value: 'activities', label_ar: 'أنشطة', label_en: 'Activities' },
+    { value: 'diya', label_ar: 'دية داخلية', label_en: 'Internal Diya' },
     { value: 'maintenance', label_ar: 'صيانة', label_en: 'Maintenance' },
     { value: 'utilities', label_ar: 'مرافق', label_en: 'Utilities' },
     { value: 'supplies', label_ar: 'مستلزمات', label_en: 'Supplies' },

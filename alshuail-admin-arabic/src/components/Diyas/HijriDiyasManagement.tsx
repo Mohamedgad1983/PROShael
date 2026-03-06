@@ -40,7 +40,8 @@ const getStatusInfo = (status: string) => {
     active: { label: 'نشطة', color: '#007AFF', icon: CheckCircleIcon, bgColor: 'bg-blue-100' },
     completed: { label: 'مكتملة', color: '#30D158', icon: CheckCircleIcon, bgColor: 'bg-green-100' },
     urgent: { label: 'عاجلة', color: '#FF3B30', icon: ExclamationTriangleIcon, bgColor: 'bg-red-100' },
-    pending: { label: 'معلقة', color: '#FF9500', icon: ClockIcon, bgColor: 'bg-orange-100' }
+    pending: { label: 'معلقة', color: '#FF9500', icon: ClockIcon, bgColor: 'bg-orange-100' },
+    transferred_to_expense: { label: 'منقولة للمصروفات', color: '#8E8E93', icon: CheckCircleIcon, bgColor: 'bg-gray-100' }
   };
   return statuses[status] || statuses.active;
 };
@@ -226,6 +227,71 @@ const HijriDiyasManagement: React.FC = () => {
   }, [contributorsPerPage]);
 
   // Handle viewing contributors (memoized)
+  const [transferringId, setTransferringId] = useState<number | null>(null);
+
+  const handleTransferToExpense = useCallback(async (diya: Diya) => {
+    if (!window.confirm(`هل أنت متأكد من نقل الدية "${diya.title}" بمبلغ ${diya.totalAmount?.toLocaleString()} ريال إلى المصروفات؟\n\nسيتم خصم المبلغ من رصيد الصندوق.`)) {
+      return;
+    }
+    setTransferringId(diya.id);
+    try {
+      const API_URL = API_BASE_URL;
+      const response = await fetch(`${API_URL}/diyas/${diya.id}/transfer-to-expense`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ notes: 'تم النقل من واجهة إدارة الديات' })
+      });
+      const data = await response.json();
+      if (data.success) {
+        alert(`✅ ${data.message}`);
+        // Refresh diyas list
+        fetchDiyas();
+      } else {
+        alert(`❌ ${data.error || 'فشل في نقل الدية'}`);
+      }
+    } catch (error) {
+      logger.error('Error transferring diya:', { error });
+      alert('❌ حدث خطأ أثناء نقل الدية');
+    } finally {
+      setTransferringId(null);
+    }
+  }, []);
+
+  const handleBulkTransfer = useCallback(async () => {
+    const activeIds = diyas.filter(d => d.status !== 'transferred_to_expense' && d.status !== 'completed').map(d => d.id);
+    if (activeIds.length === 0) {
+      alert('لا توجد ديات قابلة للنقل');
+      return;
+    }
+    if (!window.confirm(`هل أنت متأكد من نقل جميع الديات الداخلية (${activeIds.length} دية) إلى المصروفات؟`)) {
+      return;
+    }
+    try {
+      const API_URL = API_BASE_URL;
+      const response = await fetch(`${API_URL}/diyas/bulk-transfer-to-expenses`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({ diya_ids: activeIds, notes: 'نقل جماعي من واجهة الإدارة' })
+      });
+      const data = await response.json();
+      if (data.success) {
+        alert(`✅ ${data.message}`);
+        fetchDiyas();
+      } else {
+        alert(`❌ ${data.error || 'فشل في النقل'}`);
+      }
+    } catch (error) {
+      logger.error('Error bulk transferring diyas:', { error });
+      alert('❌ حدث خطأ أثناء النقل الجماعي');
+    }
+  }, [diyas]);
+
   const handleViewContributors = useCallback((diya: Diya) => {
     setSelectedDiya(diya);
     fetchContributors(diya.id, 1);
@@ -714,6 +780,21 @@ const HijriDiyasManagement: React.FC = () => {
             <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
               <DocumentArrowDownIcon className="w-5 h-5 text-gray-600" />
             </button>
+            {diya.status !== 'transferred_to_expense' && (
+              <button
+                onClick={() => handleTransferToExpense(diya)}
+                disabled={transferringId === diya.id}
+                className="text-sm px-3 py-2 rounded-lg bg-orange-100 text-orange-700 hover:bg-orange-200 transition-colors disabled:opacity-50"
+                title="نقل إلى المصروفات (دية داخلية)"
+              >
+                {transferringId === diya.id ? 'جاري النقل...' : '→ نقل للمصروفات'}
+              </button>
+            )}
+            {diya.status === 'transferred_to_expense' && (
+              <span className="text-xs px-3 py-2 rounded-lg bg-green-100 text-green-700">
+                ✅ تم النقل
+              </span>
+            )}
             <button className="btn-gradient-premium text-sm px-4 py-2">
               <CurrencyDollarIcon className="w-4 h-4 inline ml-1" />
               المساهمة
@@ -789,13 +870,22 @@ const HijriDiyasManagement: React.FC = () => {
           <div>
             <h1 className="text-xl font-bold text-gray-900">إدارة الديات</h1>
           </div>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="btn-gradient-premium flex items-center gap-1.5 text-sm px-3 py-1.5"
-          >
-            <PlusIcon className="w-4 h-4" />
-            إضافة
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleBulkTransfer}
+              className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg bg-orange-100 text-orange-700 hover:bg-orange-200 transition-colors border border-orange-200"
+              title="نقل جميع الديات الداخلية إلى المصروفات"
+            >
+              → نقل الكل للمصروفات
+            </button>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="btn-gradient-premium flex items-center gap-1.5 text-sm px-3 py-1.5"
+            >
+              <PlusIcon className="w-4 h-4" />
+              إضافة
+            </button>
+          </div>
         </div>
 
         {/* Hijri Date Filter */}

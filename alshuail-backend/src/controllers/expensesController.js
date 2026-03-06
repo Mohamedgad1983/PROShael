@@ -703,6 +703,13 @@ const getExpenseCategoryArabic = (category) => {
     'emergency': 'طوارئ',
     'charity': 'خيرية',
     'educational': 'تعليمية',
+    'diya': 'دية داخلية',
+    'operations': 'تشغيلية',
+    'activities': 'أنشطة',
+    'supplies': 'مستلزمات',
+    'utilities': 'مرافق',
+    'travel': 'سفر',
+    'marketing': 'تسويق',
     'other': 'أخرى'
   };
   return categoryMap[category] || category;

@@ -7,7 +7,9 @@ import {
   updateDiya,
   deleteDiya,
   getDiyaStats,
-  getMemberDiyas
+  getMemberDiyas,
+  transferDiyaToExpense,
+  bulkTransferDiyasToExpenses
 } from '../controllers/diyasController.js';
 
 const router = express.Router();
@@ -27,5 +29,9 @@ router.delete('/:id', deleteDiya);
 
 // Status Management
 router.put('/:id/status', updateDiyaStatus);
+
+// Transfer to Expenses (Internal Diyas)
+router.post('/bulk-transfer-to-expenses', bulkTransferDiyasToExpenses);
+router.post('/:id/transfer-to-expense', transferDiyaToExpense);
 
 export default router;
