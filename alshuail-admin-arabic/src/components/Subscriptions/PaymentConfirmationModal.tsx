@@ -119,7 +119,7 @@ const PaymentConfirmationModal: React.FC<PaymentConfirmationModalProps> = ({
   };
 
   const formatArabicNumber = (num: number): string => {
-    return num.toLocaleString('ar-SA');
+    return num.toLocaleString('en-US');
   };
 
   const handleConfirm = async () => {

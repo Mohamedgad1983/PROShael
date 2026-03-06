@@ -38,7 +38,7 @@ const CrisisDashboard = () => {
 
     // Recent Activity
     recentPayments: 5,
-    lastUpdateTime: new Date().toLocaleString('ar-SA')
+    lastUpdateTime: new Date().toLocaleString('en-US')
   });
 
   // Pie chart data for compliance

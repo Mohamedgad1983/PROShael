@@ -165,7 +165,7 @@ class PaymentValidationService {
   static formatAmount(amount) {
     try {
       return {
-        arabic: amount.toLocaleString('ar-SA') + ' ريال سعودي',
+        arabic: amount.toLocaleString('en-US') + ' ريال سعودي',
         english: amount.toLocaleString('en-US') + ' SAR',
         raw: amount,
         currency: this.CURRENCY,

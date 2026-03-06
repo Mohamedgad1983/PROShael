@@ -701,7 +701,7 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
                 {fundBalance && (
                   <div style={{ marginTop: '8px', fontSize: '13px' }}>
                     <span style={{ color: '#6b7280' }}>
-                      الرصيد المتاح: {parseFloat(fundBalance.current_balance).toLocaleString('ar-SA')} ر.س
+                      الرصيد المتاح: {parseFloat(fundBalance.current_balance).toLocaleString('en-US')} ر.س
                     </span>
                     {balanceExceeded && (
                       <div style={{
@@ -715,7 +715,7 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
                         gap: '8px'
                       }}>
                         <span>⚠️</span>
-                        <span>رصيد الصندوق غير كافي! المبلغ يتجاوز الرصيد المتاح بـ {(parseFloat(newExpense.amount) - parseFloat(fundBalance.current_balance)).toLocaleString('ar-SA')} ر.س</span>
+                        <span>رصيد الصندوق غير كافي! المبلغ يتجاوز الرصيد المتاح بـ {(parseFloat(newExpense.amount) - parseFloat(fundBalance.current_balance)).toLocaleString('en-US')} ر.س</span>
                       </div>
                     )}
                   </div>
@@ -957,7 +957,7 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
                   <div className="expense-amount">
                     <span className="amount-label">المبلغ:</span>
                     <span className="amount-value">
-                      {parseFloat(expense.amount).toLocaleString('ar-SA')} ر.س
+                      {parseFloat(expense.amount).toLocaleString('en-US')} ر.س
                     </span>
                   </div>
 

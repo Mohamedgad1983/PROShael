@@ -481,7 +481,7 @@ const CrisisDashboard = () => {
       {/* Last Updated */}
       <div className="last-updated">
         آخر تحديث: {crisisData?.statistics?.lastUpdated
-          ? new Date(crisisData.statistics.lastUpdated).toLocaleString('ar-SA')
+          ? new Date(crisisData.statistics.lastUpdated).toLocaleString('en-US')
           : 'غير محدد'
         }
       </div>

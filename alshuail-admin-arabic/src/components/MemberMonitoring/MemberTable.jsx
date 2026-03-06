@@ -42,7 +42,7 @@ const MemberTable = ({ members, userRole, onSuspend, onNotify }) => {
   // Format balance display
   const formatBalance = (balance) => {
     const isCompliant = balance >= 3600;
-    const formattedBalance = balance.toLocaleString('ar-SA');
+    const formattedBalance = balance.toLocaleString('en-US');
 
     return (
       <div className="balance-display">
@@ -51,7 +51,7 @@ const MemberTable = ({ members, userRole, onSuspend, onNotify }) => {
         </span>
         {!isCompliant && (
           <span className="balance-deficit">
-            نقص: {(3600 - balance).toLocaleString('ar-SA')} ر.س
+            نقص: {(3600 - balance).toLocaleString('en-US')} ر.س
           </span>
         )}
       </div>
@@ -207,7 +207,7 @@ const MemberTable = ({ members, userRole, onSuspend, onNotify }) => {
         <div className="summary-item">
           <span className="summary-label">إجمالي الأرصدة:</span>
           <span className="summary-value">
-            {members.reduce((sum, m) => sum + m.balance, 0).toLocaleString('ar-SA')} ر.س
+            {members.reduce((sum, m) => sum + m.balance, 0).toLocaleString('en-US')} ر.س
           </span>
         </div>
       </div>

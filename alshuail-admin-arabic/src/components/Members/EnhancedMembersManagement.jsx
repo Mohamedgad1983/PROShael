@@ -374,7 +374,7 @@ const EnhancedMembersManagement = () => {
               }}>
                 <IconComponent className="stat-icon" />
               </div>
-              <div className="stat-number">{stat.value.toLocaleString('ar-SA')}</div>
+              <div className="stat-number">{stat.value.toLocaleString('en-US')}</div>
               <div className="stat-label">{stat.label}</div>
             </div>
           );

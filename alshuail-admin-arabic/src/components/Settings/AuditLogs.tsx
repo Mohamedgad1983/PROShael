@@ -504,7 +504,7 @@ const AuditLogs: React.FC = () => {
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: SPACING.xs }}>
                             <ClockIcon style={{ width: '14px', height: '14px' }} />
-                            {new Date(log.createdAt).toLocaleString('ar-SA')}
+                            {new Date(log.createdAt).toLocaleString('en-US')}
                           </div>
                           <div style={{ marginTop: SPACING.xs }}>{log.ipAddress}</div>
                         </div>

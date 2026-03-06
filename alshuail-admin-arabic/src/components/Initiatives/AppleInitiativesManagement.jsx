@@ -332,7 +332,7 @@ const AppleInitiativesManagement = () => {
               />
             </div>
             <p className="text-xs text-gray-700 mt-1">
-              {initiative.raised.toLocaleString('ar-SA')} / {initiative.budget.toLocaleString('ar-SA')} ر.س
+              {initiative.raised.toLocaleString('en-US')} / {initiative.budget.toLocaleString('en-US')} ر.س
             </p>
           </div>
           <div>
@@ -440,11 +440,11 @@ const AppleInitiativesManagement = () => {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <span className="text-gray-400">الميزانية الإجمالية</span>
-                    <span className="text-white font-bold">{totalBudget.toLocaleString('ar-SA')} ر.س</span>
+                    <span className="text-white font-bold">{totalBudget.toLocaleString('en-US')} ر.س</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-400">المبلغ المجمع</span>
-                    <span className="text-green-400 font-bold">{totalRaised.toLocaleString('ar-SA')} ر.س</span>
+                    <span className="text-green-400 font-bold">{totalRaised.toLocaleString('en-US')} ر.س</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-400">نسبة التحقق</span>

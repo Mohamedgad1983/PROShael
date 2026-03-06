@@ -20,6 +20,7 @@
 @layer base {
   * {
     box-sizing: border-box;
+    font-variant-numeric: lining-nums tabular-nums;
   }
 
   html {

@@ -746,7 +746,7 @@ const AlShuailPremiumDashboard: React.FC = () => {
                   <h4 className="text-lg font-semibold text-gray-900 border-b pb-2 mb-4">النشاط الأخير</h4>
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <div className={`text-sm ${getActivityStatus(selectedMember.last_activity).color}`}>
-                      آخر نشاط: {new Date(selectedMember.last_activity).toLocaleString('ar-SA')}
+                      آخر نشاط: {new Date(selectedMember.last_activity).toLocaleString('en-US')}
                     </div>
                   </div>
                 </div>

@@ -46,7 +46,7 @@ export const validatePaymentAmount = (amount: string | number): PaymentValidatio
  * Formats a number to Arabic locale for display
  */
 export const formatArabicNumber = (num: number): string => {
-  return num.toLocaleString('ar-SA');
+  return num.toLocaleString('en-US');
 };
 
 /**

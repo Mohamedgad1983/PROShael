@@ -700,7 +700,7 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
 
   const formatNumber = (value?: number | null) => {
     if (typeof value === 'number' && !Number.isNaN(value)) {
-      return value.toLocaleString('ar-SA');
+      return value.toLocaleString('en-US');
     }
 
     return '0';
@@ -708,7 +708,7 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
 
   const formatCurrency = (value?: number | null) => {
     if (typeof value === 'number' && !Number.isNaN(value)) {
-      return `${value.toLocaleString('ar-SA')} ر.س`;
+      return `${value.toLocaleString('en-US')} ر.س`;
     }
 
     return '0 ر.س';
@@ -1830,7 +1830,7 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
                     marginBottom: '8px',
                   }}
                 >
-                  {totalRevenue.toLocaleString('ar-SA')} ر.س
+                  {totalRevenue.toLocaleString('en-US')} ر.س
                 </div>
               </div>
             </div>
@@ -2291,7 +2291,7 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
                         marginBottom: '0.5rem',
                       }}
                     >
-                      {plan.price.toLocaleString('ar-SA')} ر.س
+                      {plan.price.toLocaleString('en-US')} ر.س
                     </div>
 
                     <div

@@ -106,7 +106,7 @@ const OverviewCharts: React.FC<OverviewChartsProps> = ({ revenueData, memberDist
                       const value = context.parsed || 0;
                       const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0);
                       const percentage = ((value / total) * 100).toFixed(1);
-                      const formattedValue = value.toLocaleString('ar-SA');
+                      const formattedValue = value.toLocaleString('en-US');
                       return [`${label}`, `الرصيد: ${formattedValue} ريال`, `النسبة: ${percentage}%`];
                     }
                   }

@@ -269,7 +269,7 @@ const FinancialReports = () => {
           <div className="card-icon">💰</div>
           <div className="card-content">
             <h3>إجمالي الإيرادات</h3>
-            <div className="amount">{financialSummary.totalRevenue?.toLocaleString('ar-SA')} ر.س</div>
+            <div className="amount">{financialSummary.totalRevenue?.toLocaleString('en-US')} ر.س</div>
             <div className={`growth ${financialSummary.monthlyGrowth >= 0 ? 'positive' : 'negative'}`}>
               {financialSummary.monthlyGrowth >= 0 ? '📈' : '📉'}
               {Math.abs(financialSummary.monthlyGrowth)}% هذا الشهر
@@ -281,7 +281,7 @@ const FinancialReports = () => {
           <div className="card-icon">💸</div>
           <div className="card-content">
             <h3>إجمالي المصروفات</h3>
-            <div className="amount">{financialSummary.totalExpenses?.toLocaleString('ar-SA')} ر.س</div>
+            <div className="amount">{financialSummary.totalExpenses?.toLocaleString('en-US')} ر.س</div>
             <div className="expenses-breakdown">
               <span className="pending-count">{financialSummary.pendingExpenses} في الانتظار</span>
             </div>
@@ -293,7 +293,7 @@ const FinancialReports = () => {
           <div className="card-content">
             <h3>صافي الدخل</h3>
             <div className={`amount ${financialSummary.netIncome >= 0 ? 'positive' : 'negative'}`}>
-              {financialSummary.netIncome?.toLocaleString('ar-SA')} ر.س
+              {financialSummary.netIncome?.toLocaleString('en-US')} ر.س
             </div>
             <div className="profit-margin">
               هامش الربح: {financialSummary.totalRevenue > 0 ?

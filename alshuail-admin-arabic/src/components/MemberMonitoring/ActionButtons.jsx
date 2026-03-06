@@ -149,8 +149,8 @@ const ActionButtons = ({ member, userRole, onSuspend, onNotify }) => {
               <p>هل أنت متأكد من إيقاف العضو؟</p>
               <div className="member-info">
                 <p><strong>الاسم:</strong> {member.name}</p>
-                <p><strong>الرصيد:</strong> {member.balance.toLocaleString('ar-SA')} ر.س</p>
-                <p><strong>النقص:</strong> {(3600 - member.balance).toLocaleString('ar-SA')} ر.س</p>
+                <p><strong>الرصيد:</strong> {member.balance.toLocaleString('en-US')} ر.س</p>
+                <p><strong>النقص:</strong> {(3600 - member.balance).toLocaleString('en-US')} ر.س</p>
               </div>
               <p className="warning-text">
                 سيتم إيقاف جميع الخدمات حتى يتم تسديد المبلغ المطلوب

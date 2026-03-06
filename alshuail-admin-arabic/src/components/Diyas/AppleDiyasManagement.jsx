@@ -390,7 +390,7 @@ const AppleDiyasManagement = () => {
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-gray-600">المبلغ الكلي:</span>
-            <span className="font-bold text-gray-900">{diya.amount.toLocaleString('ar-SA')} ر.س</span>
+            <span className="font-bold text-gray-900">{diya.amount.toLocaleString('en-US')} ر.س</span>
           </div>
 
           {/* Progress Bar */}
@@ -408,8 +408,8 @@ const AppleDiyasManagement = () => {
               </div>
             </div>
             <div className="flex justify-between text-xs text-gray-500 mt-1">
-              <span>محصل: {diya.paidAmount.toLocaleString('ar-SA')} ر.س</span>
-              <span>متبقي: {diya.remainingAmount.toLocaleString('ar-SA')} ر.س</span>
+              <span>محصل: {diya.paidAmount.toLocaleString('en-US')} ر.س</span>
+              <span>متبقي: {diya.remainingAmount.toLocaleString('en-US')} ر.س</span>
             </div>
           </div>
 
@@ -484,7 +484,7 @@ const AppleDiyasManagement = () => {
                   </div>
                   <h3 className="text-lg font-semibold text-white">المبلغ الإجمالي</h3>
                 </div>
-                <p className="text-3xl font-bold text-white">{totalAmount.toLocaleString('ar-SA')} ر.س</p>
+                <p className="text-3xl font-bold text-white">{totalAmount.toLocaleString('en-US')} ر.س</p>
                 <p className="text-sm text-gray-400 mt-2">مجموع جميع القضايا</p>
               </div>
 
@@ -495,7 +495,7 @@ const AppleDiyasManagement = () => {
                   </div>
                   <h3 className="text-lg font-semibold text-white">المبلغ المحصل</h3>
                 </div>
-                <p className="text-3xl font-bold text-green-400">{totalPaid.toLocaleString('ar-SA')} ر.س</p>
+                <p className="text-3xl font-bold text-green-400">{totalPaid.toLocaleString('en-US')} ر.س</p>
                 <p className="text-sm text-gray-400 mt-2">تم تحصيله حتى الآن</p>
               </div>
 
@@ -506,7 +506,7 @@ const AppleDiyasManagement = () => {
                   </div>
                   <h3 className="text-lg font-semibold text-white">المبلغ المتبقي</h3>
                 </div>
-                <p className="text-3xl font-bold text-orange-400">{totalRemaining.toLocaleString('ar-SA')} ر.س</p>
+                <p className="text-3xl font-bold text-orange-400">{totalRemaining.toLocaleString('en-US')} ر.س</p>
                 <p className="text-sm text-gray-400 mt-2">يحتاج إلى تحصيل</p>
               </div>
             </div>
@@ -1135,7 +1135,7 @@ const AppleDiyasManagement = () => {
                 </h2>
                 <div style={{ display: 'flex', gap: '24px', fontSize: '14px', color: '#6B7280' }}>
                   <span>إجمالي المساهمين: <strong>{contributors.length}</strong></span>
-                  <span>المبلغ الإجمالي: <strong>{selectedDiya.paidAmount.toLocaleString('ar-SA')} ر.س</strong></span>
+                  <span>المبلغ الإجمالي: <strong>{selectedDiya.paidAmount.toLocaleString('en-US')} ر.س</strong></span>
                   <span>متوسط المساهمة: <strong>{contributors.length > 0 ? (selectedDiya.paidAmount / contributors.length).toFixed(0) : 0} ر.س</strong></span>
                 </div>
               </div>
@@ -1168,7 +1168,7 @@ const AppleDiyasManagement = () => {
                         <td style={{ padding: '12px', textAlign: 'right' }}>{contributor.membership_number}</td>
                         <td style={{ padding: '12px', textAlign: 'right', fontWeight: '500' }}>{contributor.member_name}</td>
                         <td style={{ padding: '12px', textAlign: 'right' }}>{contributor.tribal_section || '-'}</td>
-                        <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold', color: '#10B981' }}>{contributor.amount.toLocaleString('ar-SA')} ر.س</td>
+                        <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold', color: '#10B981' }}>{contributor.amount.toLocaleString('en-US')} ر.س</td>
                         <td style={{ padding: '12px', textAlign: 'right' }}>{new Date(contributor.contribution_date).toLocaleDateString('ar-SA')}</td>
                       </tr>
                     ))

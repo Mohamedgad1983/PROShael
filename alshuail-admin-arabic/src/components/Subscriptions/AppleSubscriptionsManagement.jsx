@@ -332,7 +332,7 @@ const AppleSubscriptionsManagement = () => {
               />
               <AppleStatCard
                 title="إجمالي الإيرادات"
-                value={`${totalRevenue.toLocaleString('ar-SA')} ر.س`}
+                value={`${totalRevenue.toLocaleString('en-US')} ر.س`}
                 icon={BanknotesIcon}
                 gradient="linear-gradient(135deg, #FF9500, #FFCC02)"
                 trend="up"

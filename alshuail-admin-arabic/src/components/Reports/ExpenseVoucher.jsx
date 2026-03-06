@@ -263,7 +263,7 @@ const ExpenseVoucher = ({ expense, onClose }) => {
             <div className="amount-section">
               <div className="amount-label">المبلغ المصروف</div>
               <div className="amount-value">
-                {parseFloat(expense.amount || 0).toLocaleString('ar-SA')} ر.س
+                {parseFloat(expense.amount || 0).toLocaleString('en-US')} ر.س
               </div>
             </div>
 

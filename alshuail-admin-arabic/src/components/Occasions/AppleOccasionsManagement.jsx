@@ -409,7 +409,7 @@ const AppleOccasionsManagement = () => {
                 value={`${((totalSpent / totalBudget) * 100).toFixed(0)}%`}
                 icon={ChartBarIcon}
                 gradient="#FF3B30, #FF453A"
-                subtitle={`${totalSpent.toLocaleString('ar-SA')} من ${totalBudget.toLocaleString('ar-SA')} ر.س`}
+                subtitle={`${totalSpent.toLocaleString('en-US')} من ${totalBudget.toLocaleString('en-US')} ر.س`}
               />
             </div>
 

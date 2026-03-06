@@ -555,8 +555,8 @@ const MobileDashboard = () => {
           </div>
 
           <div className="balance-display">
-            <div className="balance-amount">{currentBalance.toLocaleString('ar-SA')} ريال</div>
-            <div className="balance-label">من أصل {requiredBalance.toLocaleString('ar-SA')} ریال مطلوب</div>
+            <div className="balance-amount">{currentBalance.toLocaleString('en-US')} ريال</div>
+            <div className="balance-label">من أصل {requiredBalance.toLocaleString('en-US')} ریال مطلوب</div>
             <div className={`status-indicator ${isCompliant ? 'good' : 'insufficient'}`}>
               {isCompliant ? '🟢 ملتزم بالاشتراك' : '🔴 رصيد غير كافٍ'}
             </div>
@@ -565,18 +565,18 @@ const MobileDashboard = () => {
           <div className="balance-breakdown">
             <div className="breakdown-row">
               <span className="breakdown-label">المدفوع 2025</span>
-              <span className="breakdown-value">{paid2025.toLocaleString('ar-SA')} ریال</span>
+              <span className="breakdown-value">{paid2025.toLocaleString('en-US')} ریال</span>
             </div>
             <div className="breakdown-row">
               <span className="breakdown-label">المدفوع السابق</span>
-              <span className="breakdown-value">{paidPrevious.toLocaleString('ar-SA')} ریال</span>
+              <span className="breakdown-value">{paidPrevious.toLocaleString('en-US')} ریال</span>
             </div>
             <div className="breakdown-row">
               <span className="breakdown-label">
                 {isCompliant ? 'الرصيد الإضافي' : 'المبلغ المتبقي'}
               </span>
               <span className={`breakdown-value ${isCompliant ? 'positive' : 'negative'}`}>
-                {isCompliant ? '+' : '-'}{Math.abs(extraBalance).toLocaleString('ar-SA')} ریال
+                {isCompliant ? '+' : '-'}{Math.abs(extraBalance).toLocaleString('en-US')} ریال
               </span>
             </div>
           </div>

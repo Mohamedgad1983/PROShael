@@ -53,11 +53,11 @@ const SimpleDashboardBase: React.FC = () => {
   };
 
   const formatCurrency = (amount: number): string => {
-    return `${amount.toLocaleString('ar-SA')} ${CURRENCY.symbol}`;
+    return `${amount.toLocaleString('en-US')} ${CURRENCY.symbol}`;
   };
 
   const formatNumber = (num: number): string => {
-    return num.toLocaleString('ar-SA');
+    return num.toLocaleString('en-US');
   };
 
   if (loading) {

@@ -109,13 +109,13 @@ const BRAND_HEX = {
 // Format number in Arabic locale with thousands separator
 const formatArabicNumber = (num) => {
   if (num === null || num === undefined || isNaN(num)) return '٠';
-  return Number(num).toLocaleString('ar-SA');
+  return Number(num).toLocaleString('en-US');
 };
 
 // Format currency in Arabic
 const formatArabicCurrency = (amount) => {
   if (amount === null || amount === undefined || isNaN(amount)) return '٠ ر.س';
-  return `${Number(amount).toLocaleString('ar-SA')} ر.س`;
+  return `${Number(amount).toLocaleString('en-US')} ر.س`;
 };
 
 // Get both Gregorian and Hijri dates

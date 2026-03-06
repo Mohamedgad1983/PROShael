@@ -49,7 +49,7 @@ const ReportsDashboard = ({ dateFilter, financialSummary, onRefresh }) => {
   };
 
   const formatCurrency = (amount) => {
-    return parseFloat(amount || 0).toLocaleString('ar-SA') + ' ر.س';
+    return parseFloat(amount || 0).toLocaleString('en-US') + ' ر.س';
   };
 
   const formatPercentage = (value) => {
