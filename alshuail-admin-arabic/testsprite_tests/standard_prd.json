@@ -1,0 +1,360 @@
+{
+  "meta": {
+    "project": "Al-Shuail Family Fund - Admin Panel",
+    "date": "2026-01-21",
+    "prepared_by": "Software Development Manager"
+  },
+  "product_overview": "The Al-Shuail Family Fund Admin Panel is a comprehensive web-based management system designed to administer the Al-Shuail family fund organization. It enables management of over 347 family members across 10 tribal branches, including subscription and payment tracking, Diya cases handling, charitable initiatives, family tree visualization, event management, and robust reporting, all in an Arabic RTL interface tailored for administrative roles with layered access control.",
+  "core_goals": [
+    "Maintain social cohesion and support among the Al-Shuail family members.",
+    "Efficiently manage member subscriptions, payments, and financial tracking.",
+    "Enable transparent management and reporting of charitable initiatives and Diya cases.",
+    "Provide interactive family tree visualization covering 4th grandfather to descendants across 10 branches.",
+    "Offer easy-to-use, role-based access control for administrators to manage users, roles, and system settings.",
+    "Support multi-lingual and mobile responsive interfaces including a PWA for member access."
+  ],
+  "key_features": [
+    "Multi-role authentication with JWT tokens, phone-based OTP login, and biometric authentication.",
+    "Comprehensive dashboard with real-time statistics, charts, and recent activity logs.",
+    "Full member management system with CRUD operations, bulk import/export, advanced filtering, and document handling.",
+    "Subscription and payment processing with multi-method support, receipt generation, and audit trails.",
+    "Interactive family tree visualization with relationship mapping, zoom/pan controls, and branch assignments.",
+    "Initiatives management module for fundraising and project tracking with disbursement records.",
+    "Event and occasion calendar with RSVP and media support.",
+    "Comprehensive reports generation including financial, member and subscription reports with export options.",
+    "Real-time push notifications via Firebase Cloud Messaging and WhatsApp integration.",
+    "System settings covering general info, subscriptions, financials, notifications, users, roles, branches, calendar, display, backup, integration, and security.",
+    "Audit logs capturing all critical system changes, views restricted to super admins.",
+    "Mobile responsive and PWA support for seamless access on all devices with offline capabilities."
+  ],
+  "user_flow_summary": [
+    "User logs in via email/password or phone OTP; session managed with JWT and forensic audit logging.",
+    "Admins navigate dashboard for quick statistics, recent activities, and quick action shortcuts (add member, record payment, create announcement).",
+    "Admins manage members through searchable paginated lists, adding/editing members with detailed profiles including family branch assignment and documents.",
+    "Financial managers handle subscriptions, record payments, view payment status, and upload receipts; they can record payments on behalf of members.",
+    "Family tree managers and admins visualize and edit the family tree nodes, relationships, and branches interactively.",
+    "Initiative managers create and track fundraising initiatives, manage beneficiary disbursements, and generate progress reports.",
+    "Events managers manage family events with calendar views and RSVP tracking.",
+    "Super admins and authorized roles configure system through a comprehensive settings interface segmented by categories (subscriptions, users, roles, notifications, security, etc).",
+    "Users receive real-time notifications filtered by role/branch via push, email, and SMS channels.",
+    "All users with access rights can generate and export various reports.",
+    "Audit logs provide super admins with detailed change history and security oversight."
+  ],
+  "validation_criteria": [
+    "All authentication flows must enforce multi-factor authentication and proper session handling with JWT tokens.",
+    "Dashboards must display accurate real-time statistics with no data discrepancies.",
+    "CRUD operations for members must validate all required fields, support bulk operations, and persist changes correctly.",
+    "Subscription and payment modules must handle partial payments, minimum payments, and reflect accurate payment statuses with receipt uploads.",
+    "Family tree visualization must allow smooth zoom/pan and editing constrained by user role permissions.",
+    "Initiative and events modules must support full lifecycle management and reporting exports.",
+    "Reports must be accurate, filterable by Hijri and Gregorian calendars, and support exports to PDF and Excel.",
+    "Push notifications must be delivered in real-time with correct targeting and device token management.",
+    "Settings must save correctly, validate inputs, enforce role-based permissions, and persist after refresh.",
+    "Audit logs must capture all critical data changes with accurate timestamping and secure access restricted to super admins.",
+    "UI must comply with Arabic RTL layout and branding guidelines ensuring responsiveness across desktop, tablet, and mobile devices.",
+    "APIs must respond within 500ms and all pages load within 3 seconds under normal conditions.",
+    "No console errors or warnings should appear during any user interaction or page load.",
+    "Automated tests must cover functional flows, UI correctness, API integrity, performance, and security aspects."
+  ],
+  "code_summary": {
+    "tech_stack": [
+      "React 19.1.1",
+      "TypeScript 4.9.5",
+      "JavaScript ES6+",
+      "Tailwind CSS 3.4.17",
+      "DaisyUI",
+      "Styled Components 6.1.19",
+      "React Router 7.9.1",
+      "Axios 1.12.2",
+      "Chart.js 4.5.0",
+      "Recharts 3.2.0",
+      "D3.js 7.4.3",
+      "react-d3-tree 3.6.6",
+      "hijri-converter 1.1.1",
+      "moment-hijri 3.0.0",
+      "jsPDF 3.0.3",
+      "XLSX 0.18.5",
+      "Framer Motion 12.23.22",
+      "Lucide React 0.562.0",
+      "Firebase Cloud Messaging",
+      "Workbox 7.3.0 (PWA)",
+      "Jest + React Testing Library",
+      "Playwright 1.55.0",
+      "PostgreSQL (Supabase)"
+    ],
+    "features": [
+      {
+        "name": "Authentication & Authorization",
+        "description": "Multi-role authentication system with JWT tokens, phone-based login with OTP verification (WhatsApp), and role-based access control for super_admin, admin, financial_manager, operational_manager, and member roles",
+        "files": [
+          "src/contexts/AuthContext.js",
+          "src/contexts/RoleContext.tsx",
+          "src/services/auth.ts",
+          "src/components/Auth/LoginPage.js",
+          "src/components/Auth/EmailLoginPage.js",
+          "src/components/Auth/ProtectedRoute.js",
+          "src/utils/authHelper.js",
+          "src/utils/RouteGuard.jsx",
+          "src/pages/mobile/Login.tsx",
+          "src/pages/mobile/ChangePassword.jsx",
+          "src/components/Settings/UserManagement.tsx",
+          "src/components/Settings/AccessControl.tsx",
+          "src/features/access-control/",
+          "src/utils/biometricAuth.jsx"
+        ]
+      },
+      {
+        "name": "Admin Dashboard & Analytics",
+        "description": "Comprehensive dashboard with real-time statistics, charts, recent activities, and overview metrics including member count, active subscriptions, total payments, fund balance, and monthly revenue trends",
+        "files": [
+          "src/components/StyledDashboard.tsx",
+          "src/components/CompleteDashboard.tsx",
+          "src/components/Dashboard/SimpleDashboard.tsx",
+          "src/components/Dashboard/UnifiedDashboard.tsx",
+          "src/components/Dashboard/AlShuailPremiumDashboard.tsx",
+          "src/components/Dashboard/IslamicPremiumDashboard.tsx",
+          "src/components/Dashboard/UltraPremiumDashboard.tsx",
+          "src/components/Dashboard/OverviewStats.tsx",
+          "src/components/Dashboard/OverviewCharts.tsx",
+          "src/components/Dashboard/RecentActivities.tsx",
+          "src/components/Dashboard/DashboardNavigation.tsx",
+          "src/components/Dashboard/CrisisDashboard.jsx",
+          "src/components/Dashboard/PerformanceMonitor.jsx"
+        ]
+      },
+      {
+        "name": "Member Management",
+        "description": "Complete member directory with CRUD operations, registration forms, bulk import/export (Excel), document management, profile photo upload, family branch assignment across 10 branches, and advanced search/filter capabilities",
+        "files": [
+          "src/components/Members/MembersManagement.jsx",
+          "src/components/Members/UnifiedMembersManagement.tsx",
+          "src/components/Members/HijriMembersManagement.tsx",
+          "src/components/Members/AppleMembersManagement.tsx",
+          "src/components/Members/MemberRegistration.jsx",
+          "src/components/Members/AppleRegistrationForm.tsx",
+          "src/components/Members/AddMemberModal.jsx",
+          "src/components/Members/AppleAddMemberModal.tsx",
+          "src/components/Members/MemberImport.jsx",
+          "src/components/Members/PremiumImportMembers.jsx",
+          "src/components/Members/PremiumExportMembers.jsx",
+          "src/components/Members/MemberDocuments.tsx",
+          "src/components/Members/HijriDateInput.jsx",
+          "src/components/Members/MemberStatementSearch.jsx",
+          "src/components/Members/MemberSecuritySection.jsx",
+          "src/services/memberService.js",
+          "src/utils/phoneValidator.js"
+        ]
+      },
+      {
+        "name": "Payment Processing",
+        "description": "Payment management with multiple payment methods (KNET, bank transfer), payment tracking, receipt generation (PDF), payment history, and bank transfer request workflows",
+        "files": [
+          "src/components/Payments/PaymentsManagement.tsx",
+          "src/components/Payments/ApplePaymentsManagement.tsx",
+          "src/components/Payments/PaymentsTable.tsx",
+          "src/components/Payments/PaymentsOverview.tsx",
+          "src/components/Payments/PaymentDetailsModal.tsx",
+          "src/components/Payments/CreatePaymentForm.tsx",
+          "src/components/Payments/BankTransferRequests.tsx",
+          "src/components/Payments/PaymentsTracking.jsx",
+          "src/components/Payments/HijriGroupedPayments.jsx",
+          "src/services/paymentService.js",
+          "src/services/paymentValidationService.js",
+          "src/pages/mobile/Payment.tsx",
+          "src/pages/mobile/PaymentHistory.tsx",
+          "src/pages/mobile/ReceiptUpload.jsx"
+        ]
+      },
+      {
+        "name": "Subscription Management",
+        "description": "Monthly and annual subscription tracking with flexible payment plans, installments, subscription renewal management, payment reminders, and subscription dashboard analytics",
+        "files": [
+          "src/components/Subscriptions/Subscriptions.tsx",
+          "src/components/Subscriptions/SubscriptionsManagement.jsx",
+          "src/components/Subscriptions/AppleSubscriptionsManagement.jsx",
+          "src/components/Subscriptions/FlexiblePayment.tsx",
+          "src/components/Subscriptions/FlexiblePaymentInput.tsx",
+          "src/components/Subscriptions/PaymentConfirmationModal.tsx",
+          "src/services/subscriptionService.js",
+          "src/services/subscriptionManager.js",
+          "src/pages/admin/SubscriptionDashboard.tsx",
+          "src/pages/mobile/MemberSubscriptionView.tsx"
+        ]
+      },
+      {
+        "name": "Family Tree Visualization",
+        "description": "Interactive hierarchical family tree using D3 with zoom/pan controls, member node selection, navigation across 10 family branches (فخوذ), relationship mapping, and tree export as image",
+        "files": [
+          "src/components/FamilyTree/FamilyTree.jsx",
+          "src/components/FamilyTree/FamilyTreeViewer.jsx",
+          "src/components/FamilyTree/FamilyTreePage.tsx",
+          "src/components/FamilyTree/useFamilyTreeData.ts",
+          "src/services/familytree.service.ts",
+          "src/pages/admin/FamilyTreeManagement.tsx",
+          "src/pages/admin/FullFamilyTree.tsx"
+        ]
+      },
+      {
+        "name": "Financial & Member Reports",
+        "description": "Comprehensive reporting system generating monthly/yearly financial statements, member statistics, payment collection reports, subscription status, expense reports with vouchers, and initiative progress reports with PDF and Excel export",
+        "files": [
+          "src/components/Reports/FinancialReports.jsx",
+          "src/components/Reports/FinancialReportsSimple.jsx",
+          "src/components/Reports/FinancialReportsSimple.tsx",
+          "src/components/Reports/AppleFinancialReports.tsx",
+          "src/components/Reports/ReportsDashboard.jsx",
+          "src/components/Reports/ExpenseManagement.jsx",
+          "src/components/Reports/ExpenseVoucher.jsx",
+          "src/pages/admin/InitiativeReport.tsx"
+        ]
+      },
+      {
+        "name": "Push Notifications & Alerts",
+        "description": "Real-time notification system with Firebase Cloud Messaging (FCM), broadcast messages to all members, targeted notifications by role/branch, email/SMS notifications via WhatsApp API, notification history, and device token management",
+        "files": [
+          "src/components/Notifications/NotificationsCenter.tsx",
+          "src/components/Notifications/AppleNotificationsCenter.jsx",
+          "src/components/Notifications/NotificationsList.tsx",
+          "src/components/Notifications/NotificationFilters.tsx",
+          "src/components/Notifications/CreateNotificationModal.tsx",
+          "src/components/Notifications/NotificationBadge.tsx",
+          "src/services/notificationService.js",
+          "src/pages/member/Notifications.tsx",
+          "src/pages/mobile/Notifications.tsx",
+          "src/utils/notificationTester.js",
+          "src/utils/websocket.js"
+        ]
+      },
+      {
+        "name": "System Settings & Configuration",
+        "description": "Comprehensive settings for profile management, appearance (light/dark theme), language (Arabic RTL/English LTR), system configuration, notification preferences, access control with role-based permissions, and audit log viewer",
+        "files": [
+          "src/components/Settings/SettingsPage.tsx",
+          "src/components/Settings/Settings.jsx",
+          "src/components/Settings/AppleSettingsManagement.jsx",
+          "src/components/Settings/ProfileSettings.tsx",
+          "src/components/Settings/ProfileSettings.modern.tsx",
+          "src/components/Settings/AppearanceSettings.tsx",
+          "src/components/Settings/AppearanceSettings.modern.tsx",
+          "src/components/Settings/LanguageSettings.tsx",
+          "src/components/Settings/LanguageSettings.modern.tsx",
+          "src/components/Settings/SystemSettings.tsx",
+          "src/components/Settings/SystemSettingsEnhanced.tsx",
+          "src/components/Settings/UserManagement.tsx",
+          "src/components/Settings/MultiRoleManagement.tsx",
+          "src/components/Settings/MultiRoleManagementEnhanced.tsx",
+          "src/components/Settings/AuditLogs.tsx",
+          "src/components/Settings/AccessControl.tsx",
+          "src/contexts/ThemeContext.tsx"
+        ]
+      },
+      {
+        "name": "Mobile Interface & PWA",
+        "description": "Mobile-responsive interface with touch-friendly design, Progressive Web App (PWA) support with service workers, offline functionality, bottom navigation, device permission management, biometric authentication, and mobile-first approach",
+        "files": [
+          "src/pages/mobile/Login.tsx",
+          "src/pages/mobile/Dashboard.tsx",
+          "src/pages/mobile/Profile.tsx",
+          "src/pages/mobile/Payment.tsx",
+          "src/pages/mobile/PaymentHistory.tsx",
+          "src/pages/mobile/Notifications.tsx",
+          "src/pages/mobile/ChangePassword.jsx",
+          "src/pages/mobile/MobileLoginWrapper.tsx",
+          "src/pages/mobile/MemberSubscriptionView.tsx",
+          "src/pages/mobile/ReceiptUpload.jsx",
+          "src/components/mobile/BottomNav.jsx",
+          "src/utils/mobileUtils.js",
+          "src/hooks/useMobile.js",
+          "src/utils/responsive.ts",
+          "src/serviceWorkerRegistration.js",
+          "src/utils/pwa.ts"
+        ]
+      },
+      {
+        "name": "Crisis Management",
+        "description": "Emergency fund request system with crisis case tracking, aid distribution management, and crisis-specific dashboard",
+        "files": [
+          "src/components/Crisis/CrisisDashboard.jsx",
+          "src/components/Dashboard/CrisisDashboard.jsx"
+        ]
+      },
+      {
+        "name": "Diyas (Blood Money) Management",
+        "description": "Blood money case creation and tracking system with collection status monitoring, beneficiary management, and payment collection tracking",
+        "files": [
+          "src/components/Diyas/",
+          "src/components/DiyaDashboard.jsx"
+        ]
+      },
+      {
+        "name": "Initiatives & Fundraising Campaigns",
+        "description": "Fundraising campaign management with contribution tracking, category-based organization, progress visualization, and initiative reporting",
+        "files": [
+          "src/components/Initiatives/",
+          "src/pages/admin/InitiativesManagement.tsx",
+          "src/pages/admin/InitiativeReport.tsx",
+          "src/pages/member/Initiatives.tsx"
+        ]
+      },
+      {
+        "name": "Occasions & Events Management",
+        "description": "Family event calendar with RSVP management, event categorization, and Islamic occasions support",
+        "files": [
+          "src/components/Occasions/"
+        ]
+      },
+      {
+        "name": "Member Monitoring & Analytics",
+        "description": "Member activity tracking with status monitoring, advanced filtering and search, and export functionality",
+        "files": [
+          "src/components/MemberMonitoring/"
+        ]
+      },
+      {
+        "name": "Member Statements",
+        "description": "Account statement generation with transaction history and PDF export capabilities",
+        "files": [
+          "src/components/Statements/",
+          "src/components/MemberStatement/"
+        ]
+      },
+      {
+        "name": "News & Announcements",
+        "description": "News feed management with article detail pages and announcement broadcasting",
+        "files": [
+          "src/pages/member/News.tsx",
+          "src/pages/member/NewsDetail.tsx",
+          "src/pages/admin/NewsManagement.tsx"
+        ]
+      },
+      {
+        "name": "Document Management",
+        "description": "Document attachment system for member IDs, certificates, and receipts with upload and storage capabilities",
+        "files": [
+          "src/components/Documents/",
+          "src/components/Members/MemberDocuments.tsx"
+        ]
+      },
+      {
+        "name": "Hijri Calendar Integration",
+        "description": "Islamic (Hijri) calendar support with date conversion utilities, Hijri date pickers, and Hijri-Gregorian dual display throughout the application",
+        "files": [
+          "src/utils/hijriDate.js",
+          "src/utils/hijriDateSystem.ts",
+          "src/utils/hijriDateUtils.ts",
+          "src/components/Members/HijriDateInput.jsx",
+          "src/components/Common/HijriDatePicker.jsx",
+          "src/components/Common/HijriDateFilter.jsx"
+        ]
+      },
+      {
+        "name": "Approval Workflows",
+        "description": "Multi-step approval system for payments, member registrations, and administrative actions",
+        "files": [
+          "src/components/Approvals/",
+          "src/services/approval.service.ts"
+        ]
+      }
+    ]
+  }
+}

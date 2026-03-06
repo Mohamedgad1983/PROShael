@@ -1,0 +1,718 @@
+[
+  {
+    "id": "TC001",
+    "title": "Successful login with email and password",
+    "description": "Verify that a user with valid email and password credentials can successfully login and receive a valid JWT token with session established and correct role-based access.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to login page"
+      },
+      {
+        "type": "action",
+        "description": "Enter valid email and corresponding password"
+      },
+      {
+        "type": "action",
+        "description": "Submit login form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify login is successful and JWT token is obtained"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify user is redirected to appropriate dashboard based on role"
+      }
+    ]
+  },
+  {
+    "id": "TC002",
+    "title": "Login failure with invalid credentials",
+    "description": "Verify login fails when incorrect email or password is provided, with appropriate error messages shown.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to login page"
+      },
+      {
+        "type": "action",
+        "description": "Enter invalid email or wrong password"
+      },
+      {
+        "type": "action",
+        "description": "Submit login form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify login is unsuccessful"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify appropriate error message is displayed"
+      }
+    ]
+  },
+  {
+    "id": "TC003",
+    "title": "JWT token expiration and renewal",
+    "description": "Check that JWT tokens expire after configured duration and user is either logged out or token is refreshed securely to maintain session validity.",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login with valid credentials"
+      },
+      {
+        "type": "action",
+        "description": "Simulate token expiration by advancing time beyond token expiry"
+      },
+      {
+        "type": "action",
+        "description": "Perform an authenticated API call"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify user is prompted to re-authenticate or token is silently refreshed"
+      }
+    ]
+  },
+  {
+    "id": "TC004",
+    "title": "Dashboard real-time statistics accuracy",
+    "description": "Verify that dashboard displays correct real-time statistics including member count, active subscriptions, total payments, fund balance, and monthly revenue trends with no data discrepancies.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as admin"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to dashboard page"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify all dashboard metrics are displayed accurately"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify charts correctly reflect real-time data"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify recent activity logs are current and accurate"
+      }
+    ]
+  },
+  {
+    "id": "TC005",
+    "title": "Create new member with valid data",
+    "description": "Test adding a new member using the member registration form with all required fields valid and assign to correct family branch.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to member management page"
+      },
+      {
+        "type": "action",
+        "description": "Open 'Add Member' modal or form"
+      },
+      {
+        "type": "action",
+        "description": "Input valid member details including branch assignment and upload profile photo and documents"
+      },
+      {
+        "type": "action",
+        "description": "Submit member creation form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify member is successfully added and visible in member list"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify entered details are correctly saved"
+      }
+    ]
+  },
+  {
+    "id": "TC006",
+    "title": "Add member with missing mandatory fields",
+    "description": "Ensure member creation fails when mandatory fields are missing and proper validation messages are shown.",
+    "category": "error handling",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to add member form"
+      },
+      {
+        "type": "action",
+        "description": "Leave required fields empty and try to submit"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify submission is blocked"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify appropriate validation error messages are displayed for each missing field"
+      }
+    ]
+  },
+  {
+    "id": "TC007",
+    "title": "Bulk import members from valid Excel file",
+    "description": "Test bulk import of multiple members via correctly formatted Excel file and verify data integrity and import success notifications.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to member import section"
+      },
+      {
+        "type": "action",
+        "description": "Upload a valid Excel file containing multiple member records"
+      },
+      {
+        "type": "action",
+        "description": "Submit the import process"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify bulk import is successful"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify all members are correctly added with accurate details"
+      }
+    ]
+  },
+  {
+    "id": "TC008",
+    "title": "Bulk import members from malformed Excel file",
+    "description": "Verify the system rejects bulk import where the Excel file is improperly formatted, with detailed error reporting.",
+    "category": "error handling",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Attempt to bulk import using a corrupted or incorrectly formatted Excel file"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify import is rejected"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify clear error details are provided to the user about file issues"
+      }
+    ]
+  },
+  {
+    "id": "TC009",
+    "title": "Process a payment with multiple methods",
+    "description": "Validate that a payment can be processed through supported methods (e.g., KNET, bank transfer) including partial payments, minimum payment rules, and receipt generation.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to payment management page"
+      },
+      {
+        "type": "action",
+        "description": "Initiate a payment for a member selecting KNET method"
+      },
+      {
+        "type": "action",
+        "description": "Enter payment amount respecting minimum and partial payment rules"
+      },
+      {
+        "type": "action",
+        "description": "Submit payment"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify payment is recorded correctly with updated payment status"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify receipt PDF is generated and available"
+      }
+    ]
+  },
+  {
+    "id": "TC010",
+    "title": "Record bank transfer payment with receipt upload",
+    "description": "Ensure payments recorded via bank transfer can upload and attach payment receipt documents correctly.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to bank transfer request page"
+      },
+      {
+        "type": "action",
+        "description": "Record payment selecting bank transfer method"
+      },
+      {
+        "type": "action",
+        "description": "Upload valid payment receipt document"
+      },
+      {
+        "type": "action",
+        "description": "Submit payment details"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify payment with attached receipt is saved and visible in payment history"
+      }
+    ]
+  },
+  {
+    "id": "TC011",
+    "title": "Subscription renewal workflow",
+    "description": "Verify that subscription renewal can be processed with flexible payment plans including installment support and renewal reminders are generated appropriately.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "View a member’s expiring subscription"
+      },
+      {
+        "type": "action",
+        "description": "Initiate subscription renewal with selected payment plan and installments"
+      },
+      {
+        "type": "action",
+        "description": "Confirm and save renewal details"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify subscription status is updated accurately"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify payment reminders are scheduled and triggered accordingly"
+      }
+    ]
+  },
+  {
+    "id": "TC012",
+    "title": "Interactive family tree navigation and node editing",
+    "description": "Test interactive family tree visualization with zoom/pan controls, node selection, branch assignments, and editing constrained by user role permissions.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as family tree manager"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to family tree visualization page"
+      },
+      {
+        "type": "action",
+        "description": "Use zoom and pan controls to navigate the tree"
+      },
+      {
+        "type": "action",
+        "description": "Select a member node to view details"
+      },
+      {
+        "type": "action",
+        "description": "Attempt to edit node relationships or branch assignments"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify editing is allowed only if user has appropriate permissions"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify changes are saved and reflected visually"
+      }
+    ]
+  },
+  {
+    "id": "TC013",
+    "title": "Family tree export as image",
+    "description": "Verify that the family tree can be exported as a static image preserving current view and zoom level.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Open family tree visualization"
+      },
+      {
+        "type": "action",
+        "description": "Set desired zoom and pan view"
+      },
+      {
+        "type": "action",
+        "description": "Trigger export image function"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify image is generated capturing the current view state"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify image is downloadable and matches the content displayed"
+      }
+    ]
+  },
+  {
+    "id": "TC014",
+    "title": "Create and track fundraising initiative",
+    "description": "Test creation of fundraising initiatives including contribution tracking, category assignment, progress updates, and generation of initiative reports with export capabilities.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to initiatives management page"
+      },
+      {
+        "type": "action",
+        "description": "Click to create new initiative with valid input data"
+      },
+      {
+        "type": "action",
+        "description": "Save initiative and add contribution records"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify initiative is listed with accurate progress"
+      },
+      {
+        "type": "action",
+        "description": "Generate report for the initiative"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify report export to PDF and Excel formats is correct"
+      }
+    ]
+  },
+  {
+    "id": "TC015",
+    "title": "Event creation and RSVP tracking",
+    "description": "Verify the creation of events with calendar integration, categorization, and RSVP management including guest responses tracking.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Go to occasions and events management section"
+      },
+      {
+        "type": "action",
+        "description": "Create a new event with all mandatory details and select Islamic occasion category"
+      },
+      {
+        "type": "action",
+        "description": "Publish event to calendar"
+      },
+      {
+        "type": "action",
+        "description": "Receive RSVPs from users and track responses"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify RSVP statuses update correctly and event details appear on calendar"
+      }
+    ]
+  },
+  {
+    "id": "TC016",
+    "title": "Generate financial and member reports with date filters",
+    "description": "Test generation of reports filtered by Hijri and Gregorian calendars, verifying data accuracy and export options to PDF and Excel.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to reports dashboard"
+      },
+      {
+        "type": "action",
+        "description": "Select financial report type and apply Gregorian date range filter"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify report data corresponds to selected range"
+      },
+      {
+        "type": "action",
+        "description": "Change filter to Hijri calendar dates and regenerate report"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify data accuracy with Hijri filter"
+      },
+      {
+        "type": "action",
+        "description": "Export reports to PDF and Excel"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify exported files are correctly formatted and complete"
+      }
+    ]
+  },
+  {
+    "id": "TC017",
+    "title": "Push notification delivery and filtering by role",
+    "description": "Verify real-time delivery of notifications via Firebase Cloud Messaging, targeted to specific roles or branches, including notification history and device token management.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as admin and create notification targeted at financial_manager role"
+      },
+      {
+        "type": "action",
+        "description": "Send notification and verify delivery on financial_manager user devices"
+      },
+      {
+        "type": "assertion",
+        "description": "Notification appears in real-time on correct users only"
+      },
+      {
+        "type": "action",
+        "description": "Check notification history on notification center"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify notification is logged and displayed correctly"
+      },
+      {
+        "type": "action",
+        "description": "Manage device tokens and test token invalidation and re-registration"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify push notifications respect updated token lists"
+      }
+    ]
+  },
+  {
+    "id": "TC018",
+    "title": "Update and validate system settings with role-based access",
+    "description": "Test updating system settings including profiles, appearance, language, notification preferences, and role-based permissions enforcing proper access control.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as super admin"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to system settings interface"
+      },
+      {
+        "type": "action",
+        "description": "Modify appearance settings (light/dark mode)"
+      },
+      {
+        "type": "action",
+        "description": "Change language settings between Arabic RTL and English LTR"
+      },
+      {
+        "type": "action",
+        "description": "Update notification preferences and role permissions"
+      },
+      {
+        "type": "action",
+        "description": "Save all changes and refresh page"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify all changes persist after refresh"
+      },
+      {
+        "type": "assertion",
+        "description": "Login as lower role user to verify restricted access on settings"
+      }
+    ]
+  },
+  {
+    "id": "TC019",
+    "title": "Audit log viewing and access restriction",
+    "description": "Verify audit logs capture all critical system changes with accurate timestamps and access is restricted to super admin users only.",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Perform a critical system change (e.g., user role update)"
+      },
+      {
+        "type": "action",
+        "description": "Login as super admin and navigate to audit logs"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify audit log entry is present with accurate details and timestamp"
+      },
+      {
+        "type": "action",
+        "description": "Attempt access to audit logs with non-super admin account"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify access to audit logs is denied"
+      }
+    ]
+  },
+  {
+    "id": "TC020",
+    "title": "Responsive UI layout and RTL compliance",
+    "description": "Verify application UI complies with Arabic RTL layout conventions and displays correctly on desktop, tablet, and mobile devices with dynamic resizing and orientation changes.",
+    "category": "ui",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Access application on desktop with Arabic RTL language selected"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify all UI components render RTL aligned properly"
+      },
+      {
+        "type": "action",
+        "description": "Resize window to tablet and mobile viewport sizes"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify responsive layout adapts with no overlap or missing elements"
+      },
+      {
+        "type": "action",
+        "description": "Change device orientation on mobile"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify UI rearrangement respects RTL and remains fully functional"
+      }
+    ]
+  },
+  {
+    "id": "TC021",
+    "title": "API response performance under normal conditions",
+    "description": "Ensure APIs respond within 500ms under normal load and pages load within 3 seconds.",
+    "category": "performance",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to multiple pages including dashboard, member management, and reports"
+      },
+      {
+        "type": "assertion",
+        "description": "Measure API response times and ensure each is under 500ms"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify page load times do not exceed 3 seconds"
+      }
+    ]
+  },
+  {
+    "id": "TC022",
+    "title": "No console errors or warnings during user interaction",
+    "description": "Verify no JavaScript console errors or warnings appear during any typical user interaction or page load.",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Open developer console"
+      },
+      {
+        "type": "action",
+        "description": "Navigate through all main functionalities: login, dashboard, member CRUD, payment processing, reports"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify no console errors or warnings are logged"
+      }
+    ]
+  },
+  {
+    "id": "TC023",
+    "title": "Member subscription status update after payment",
+    "description": "Validate that member subscription status updates correctly after full or partial payment is recorded.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Lookup member with active subscription"
+      },
+      {
+        "type": "action",
+        "description": "Record a partial payment on the subscription"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify subscription payment status updated to partial"
+      },
+      {
+        "type": "action",
+        "description": "Record remaining payment to complete subscription"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify subscription status is updated to paid/active"
+      }
+    ]
+  },
+  {
+    "id": "TC024",
+    "title": "Role-based access control enforcement",
+    "description": "Verify that users cannot access features or pages outside their role permissions and unauthorized navigation is prevented.",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as financial_manager"
+      },
+      {
+        "type": "action",
+        "description": "Attempt to access family tree editing module"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify access is denied and user is redirected or shown unauthorized message"
+      },
+      {
+        "type": "action",
+        "description": "Login as super_admin"
+      },
+      {
+        "type": "action",
+        "description": "Verify ability to view and edit all protected modules including audit logs and system settings"
+      }
+    ]
+  }
+]

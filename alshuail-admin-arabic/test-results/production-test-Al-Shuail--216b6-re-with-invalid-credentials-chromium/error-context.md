@@ -1,0 +1,43 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - main [ref=e5]:
+      - generic [ref=e6]:
+        - generic [ref=e7]:
+          - img "Shuail Al-Anzi Fund" [ref=e9]
+          - heading "صندوق شعيل العنزي" [level=1] [ref=e10]
+          - paragraph [ref=e11]: Shuail Al-Anzi Fund
+          - paragraph [ref=e12]: S.A.F Management System
+        - generic [ref=e13]:
+          - generic [ref=e14]:
+            - heading "مرحباً بك" [level=2] [ref=e15]
+            - paragraph [ref=e16]: سجّل دخولك للوصول إلى لوحة التحكم
+          - generic [ref=e17]:
+            - generic [ref=e18]:
+              - generic [ref=e19]: البريد الإلكتروني
+              - generic [ref=e20]:
+                - textbox "البريد الإلكتروني" [ref=e21]:
+                  - /placeholder: admin@alshuail.com
+                  - text: invalid@test.com
+                - img [ref=e22]
+            - generic [ref=e24]:
+              - generic [ref=e25]: كلمة المرور
+              - generic [ref=e26]:
+                - textbox "كلمة المرور" [ref=e27]:
+                  - /placeholder: ••••••••
+                  - text: wrongpassword
+                - img [ref=e28]
+            - button "تسجيل الدخول" [active] [ref=e30] [cursor=pointer]:
+              - generic [ref=e31]: تسجيل الدخول
+              - img [ref=e32]
+          - paragraph [ref=e35]:
+            - img [ref=e36]
+            - text: اتصال آمن ومشفر
+    - contentinfo [ref=e38]:
+      - paragraph [ref=e39]: © 2024 نظام الشعيل. جميع الحقوق محفوظة.
+  - generic [ref=e40]:
+    - generic [ref=e41]: ✕
+    - generic [ref=e42]: البريد الإلكتروني أو كلمة المرور غير صحيحة
+```
