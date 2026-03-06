@@ -230,7 +230,7 @@ const HijriDiyasManagement: React.FC = () => {
   const [transferringId, setTransferringId] = useState<number | null>(null);
 
   const handleTransferToExpense = useCallback(async (diya: Diya) => {
-    if (!window.confirm(`هل أنت متأكد من نقل الدية "${diya.title}" بمبلغ ${diya.totalAmount?.toLocaleString()} ريال إلى المصروفات؟\n\nسيتم خصم المبلغ من رصيد الصندوق.`)) {
+    if (!window.confirm(`هل أنت متأكد من نقل الدية "${diya.title}" بمبلغ ${diya.totalAmount?.toLocaleString('en-US')} ريال إلى المصروفات؟\n\nسيتم خصم المبلغ من رصيد الصندوق.`)) {
       return;
     }
     setTransferringId(diya.id);
@@ -340,7 +340,7 @@ const HijriDiyasManagement: React.FC = () => {
     doc.setFontSize(14);
     doc.text(selectedDiya.title, 105, 30, { align: 'center' });
     doc.setFontSize(10);
-    doc.text(`Total Contributors: ${allContribs.length} | Amount: ${selectedDiya.collectedAmount.toLocaleString()} SAR`, 105, 40, { align: 'center' });
+    doc.text(`Total Contributors: ${allContribs.length} | Amount: ${selectedDiya.collectedAmount.toLocaleString('en-US')} SAR`, 105, 40, { align: 'center' });
     doc.text(`Date: ${new Date().toLocaleDateString('en-GB')}`, 105, 48, { align: 'center' });
 
     // Add table
@@ -351,7 +351,7 @@ const HijriDiyasManagement: React.FC = () => {
         c.membership_number,
         c.member_name,
         c.tribal_section || '-',
-        c.amount.toLocaleString(),
+        c.amount.toLocaleString('en-US'),
         new Date(c.contribution_date).toLocaleDateString('en-GB')
       ]),
       styles: { fontSize: 8, font: 'Helvetica' },
@@ -370,7 +370,7 @@ const HijriDiyasManagement: React.FC = () => {
     const data = [
       ['صندوق شعيل العنزي'],
       [`قائمة مساهمي ${selectedDiya.title}`],
-      [`إجمالي المساهمين: ${allContribs.length} | المبلغ: ${selectedDiya.collectedAmount.toLocaleString()} ريال`],
+      [`إجمالي المساهمين: ${allContribs.length} | المبلغ: ${selectedDiya.collectedAmount.toLocaleString('en-US')} ريال`],
       [`التاريخ: ${new Date().toLocaleDateString('ar-SA')}`],
       [],
       ['المسلسل', 'الاسم', 'الفخذ', 'المبلغ', 'التاريخ'],
@@ -712,10 +712,10 @@ const HijriDiyasManagement: React.FC = () => {
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-600">
-              تم جمع: <span className="font-bold text-green-600">{diya.collectedAmount.toLocaleString()} ريال</span>
+              تم جمع: <span className="font-bold text-green-600">{diya.collectedAmount.toLocaleString('en-US')} ريال</span>
             </span>
             <span className="text-gray-600">
-              المتبقي: <span className="font-bold text-orange-600">{diya.remainingAmount.toLocaleString()} ريال</span>
+              المتبقي: <span className="font-bold text-orange-600">{diya.remainingAmount.toLocaleString('en-US')} ريال</span>
             </span>
           </div>
         </div>
@@ -755,7 +755,7 @@ const HijriDiyasManagement: React.FC = () => {
                       style={{ fontSize: '11px', color: '#6B7280' }}
                     />
                   </div>
-                  <span className="font-bold text-green-600">{payment.amount.toLocaleString()} ريال</span>
+                  <span className="font-bold text-green-600">{payment.amount.toLocaleString('en-US')} ريال</span>
                 </div>
               ))}
             </div>
@@ -987,14 +987,14 @@ const HijriDiyasManagement: React.FC = () => {
         />
         <StatCard
           title="المبلغ المطلوب"
-          value={`${statistics.totalAmountNeeded.toLocaleString()} ريال`}
+          value={`${statistics.totalAmountNeeded.toLocaleString('en-US')} ريال`}
           icon={BanknotesIcon}
           gradient="#5856D6, #AF52DE"
           subtitle="إجمالي الديات"
         />
         <StatCard
           title="المبلغ المحصل"
-          value={`${statistics.totalCollected.toLocaleString()} ريال`}
+          value={`${statistics.totalCollected.toLocaleString('en-US')} ريال`}
           icon={CheckCircleIcon}
           gradient="#30D158, #34C759"
           subtitle={`${((statistics.totalCollected / statistics.totalAmountNeeded) * 100).toFixed(1)}% من الهدف`}
@@ -1002,7 +1002,7 @@ const HijriDiyasManagement: React.FC = () => {
         />
         <StatCard
           title="المبلغ المتبقي"
-          value={`${statistics.totalRemaining.toLocaleString()} ريال`}
+          value={`${statistics.totalRemaining.toLocaleString('en-US')} ريال`}
           icon={CurrencyDollarIcon}
           gradient="#007AFF, #5AC8FA"
           subtitle="يحتاج إلى جمع"
@@ -1110,7 +1110,7 @@ const HijriDiyasManagement: React.FC = () => {
                 {/* Center: Statistics */}
                 <div className="flex gap-2 text-xs">
                   <span className="bg-blue-600 text-white px-2 py-1 rounded font-bold whitespace-nowrap">الإجمالي: {contributorsTotal}</span>
-                  <span className="bg-green-600 text-white px-2 py-1 rounded font-bold whitespace-nowrap">المبلغ: {selectedDiya.collectedAmount.toLocaleString()} ر.س</span>
+                  <span className="bg-green-600 text-white px-2 py-1 rounded font-bold whitespace-nowrap">المبلغ: {selectedDiya.collectedAmount.toLocaleString('en-US')} ر.س</span>
                   <span className="bg-purple-600 text-white px-2 py-1 rounded font-bold whitespace-nowrap">المتوسط: {contributorsTotal > 0 ? (selectedDiya.collectedAmount / contributorsTotal).toFixed(0) : 0} ر.س</span>
                 </div>
 
@@ -1212,7 +1212,7 @@ const HijriDiyasManagement: React.FC = () => {
                         <div className="text-right text-xs font-medium text-gray-700">{contributor.membership_number}</div>
                         <div className="text-right text-sm font-semibold text-gray-900">{contributor.member_name}</div>
                         <div className="text-right text-xs text-gray-600">{contributor.tribal_section || '-'}</div>
-                        <div className="text-right text-sm font-bold text-green-700">{contributor.amount.toLocaleString()}</div>
+                        <div className="text-right text-sm font-bold text-green-700">{contributor.amount.toLocaleString('en-US')}</div>
                         <div className="text-right text-xs text-gray-500">
                           {new Date(contributor.contribution_date).toLocaleDateString('ar-SA')}
                         </div>

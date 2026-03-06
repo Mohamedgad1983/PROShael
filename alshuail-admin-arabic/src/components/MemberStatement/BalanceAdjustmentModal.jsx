@@ -272,7 +272,7 @@ const BalanceAdjustmentModal = ({ isOpen, onClose, member, onSuccess }) => {
           <div className="current-balance-display">
             <div className="balance-label">الرصيد الحالي</div>
             <div className="balance-value">
-              {new Intl.NumberFormat('ar-SA').format(balanceSummary?.member?.current_balance || member?.balance || 0)} ريال
+              {new Intl.NumberFormat('en-US').format(balanceSummary?.member?.current_balance || member?.balance || 0)} ريال
             </div>
           </div>
 
@@ -553,20 +553,20 @@ const BalanceAdjustmentModal = ({ isOpen, onClose, member, onSuccess }) => {
                   <div className="summary-stat">
                     <div className="stat-label">إجمالي المدفوعات السنوية</div>
                     <div className="stat-value positive">
-                      {new Intl.NumberFormat('ar-SA').format(balanceSummary.total_from_yearly_payments || 0)} ريال
+                      {new Intl.NumberFormat('en-US').format(balanceSummary.total_from_yearly_payments || 0)} ريال
                     </div>
                   </div>
                   <div className="summary-stat">
                     <div className="stat-label">الرصيد الحالي</div>
                     <div className="stat-value">
-                      {new Intl.NumberFormat('ar-SA').format(balanceSummary.member?.current_balance || 0)} ريال
+                      {new Intl.NumberFormat('en-US').format(balanceSummary.member?.current_balance || 0)} ريال
                     </div>
                   </div>
                   {balanceSummary.balance_discrepancy !== 0 && (
                     <div className="summary-stat warning">
                       <div className="stat-label">فرق الرصيد</div>
                       <div className="stat-value">
-                        {new Intl.NumberFormat('ar-SA').format(balanceSummary.balance_discrepancy)} ريال
+                        {new Intl.NumberFormat('en-US').format(balanceSummary.balance_discrepancy)} ريال
                       </div>
                     </div>
                   )}

@@ -223,7 +223,7 @@ const StatementSearch = () => {
                             <span className="transaction-desc">{transaction.description}</span>
                           </div>
                           <span className="transaction-amount">
-                            {new Intl.NumberFormat('ar-SA').format(transaction.amount)} ريال
+                            {new Intl.NumberFormat('en-US').format(transaction.amount)} ريال
                           </span>
                         </div>
                       ))}

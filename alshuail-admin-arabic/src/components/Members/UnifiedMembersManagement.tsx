@@ -316,7 +316,7 @@ const UnifiedMembersManagement: React.FC<UnifiedMembersManagementProps> = ({
       {
         id: 'payments',
         label: 'إجمالي المدفوعات',
-        value: `${(statistics.total_payments || 0).toLocaleString()} ر.س`,
+        value: `${(statistics.total_payments || 0).toLocaleString('en-US')} ر.س`,
         icon: BanknotesIcon,
       },
     ];

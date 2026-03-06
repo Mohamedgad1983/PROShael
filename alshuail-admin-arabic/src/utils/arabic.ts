@@ -71,7 +71,7 @@ export const toWesternNumerals = (str: string): string => {
  * Format number with Arabic thousand separators
  */
 export const formatArabicNumber = (num: number): string => {
-  const formatted = new Intl.NumberFormat('ar-SA').format(num);
+  const formatted = new Intl.NumberFormat('en-US').format(num);
   return toArabicNumerals(formatted);
 };
 

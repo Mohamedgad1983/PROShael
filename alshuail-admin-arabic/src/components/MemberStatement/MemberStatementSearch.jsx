@@ -816,7 +816,7 @@ const MemberStatementSearch = () => {
                     <td className="member-phone">{member.phone || 'غير متوفر'}</td>
                     <td className="member-section">{member.tribal_section || 'غير محدد'}</td>
                     <td className={`member-balance ${member.balance >= MINIMUM_BALANCE ? 'balance-good' : 'balance-low'}`}>
-                      {new Intl.NumberFormat('ar-SA').format(member.balance || 0)} ر.س
+                      {new Intl.NumberFormat('en-US').format(member.balance || 0)} ر.س
                     </td>
                     <td className="member-status">
                       {member.balance >= MINIMUM_BALANCE ? (
@@ -882,7 +882,7 @@ const MemberStatementSearch = () => {
                   <div className="card-detail-item">
                     <CurrencyDollarIcon className="detail-icon" />
                     <span className={member.balance >= MINIMUM_BALANCE ? 'balance-good' : 'balance-low'}>
-                      {new Intl.NumberFormat('ar-SA').format(member.balance || 0)} ر.س
+                      {new Intl.NumberFormat('en-US').format(member.balance || 0)} ر.س
                     </span>
                   </div>
                 </div>

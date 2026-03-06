@@ -113,7 +113,7 @@ const DiyasTable: React.FC<DiyasTableProps> = ({
   };
 
   const formatAmount = (amount: number): string => {
-    return new Intl.NumberFormat('ar-SA', { notation: 'compact' }).format(amount);
+    return new Intl.NumberFormat('en-US', { notation: 'compact' }).format(amount);
   };
 
   const filteredDiyas = diyas.filter(diya => {

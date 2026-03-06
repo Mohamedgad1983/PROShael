@@ -202,7 +202,7 @@ const CrisisDashboard = () => {
           <div className="stat-icon">💰</div>
           <div className="stat-content">
             <h3>إجمالي النقص المطلوب</h3>
-            <p className="stat-value">{(crisisData?.statistics?.totalShortfall || 0).toLocaleString()} ريال</p>
+            <p className="stat-value">{(crisisData?.statistics?.totalShortfall || 0).toLocaleString('en-US')} ريال</p>
           </div>
         </div>
       </div>
@@ -269,7 +269,7 @@ const CrisisDashboard = () => {
 
                 <div className="col-balance">
                   <span className="balance-amount">
-                    {member.balance?.toLocaleString() || 0} ريال
+                    {member.balance?.toLocaleString('en-US') || 0} ريال
                   </span>
                 </div>
 
@@ -300,7 +300,7 @@ const CrisisDashboard = () => {
                 <div className="col-shortfall">
                   {member.shortfall > 0 ? (
                     <span className="shortfall-amount">
-                      {member.shortfall.toLocaleString()} ريال
+                      {member.shortfall.toLocaleString('en-US')} ريال
                     </span>
                   ) : (
                     <span className="no-shortfall">مكتمل</span>

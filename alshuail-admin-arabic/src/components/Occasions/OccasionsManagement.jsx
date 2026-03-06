@@ -381,7 +381,7 @@ const OccasionsManagement = () => {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-gray-600 mb-2">إجمالي الميزانية</p>
-            <p className="text-2xl font-bold text-purple-600">{statistics.total_budget.toLocaleString()} ريال</p>
+            <p className="text-2xl font-bold text-purple-600">{statistics.total_budget.toLocaleString('en-US')} ريال</p>
           </div>
           <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
             <CurrencyDollarIcon className="w-6 h-6 text-white" />
@@ -394,7 +394,7 @@ const OccasionsManagement = () => {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-gray-600 mb-2">إجمالي المصروف</p>
-            <p className="text-2xl font-bold text-red-600">{statistics.total_spent.toLocaleString()} ريال</p>
+            <p className="text-2xl font-bold text-red-600">{statistics.total_spent.toLocaleString('en-US')} ريال</p>
           </div>
           <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center">
             <CurrencyDollarIcon className="w-6 h-6 text-white" />
@@ -420,7 +420,7 @@ const OccasionsManagement = () => {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-gray-600 mb-2">إجمالي المساهمات</p>
-            <p className="text-2xl font-bold text-cyan-600">{statistics.total_contributions.toLocaleString()} ريال</p>
+            <p className="text-2xl font-bold text-cyan-600">{statistics.total_contributions.toLocaleString('en-US')} ريال</p>
           </div>
           <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl flex items-center justify-center">
             <GiftIcon className="w-6 h-6 text-white" />
@@ -556,8 +556,8 @@ const OccasionsManagement = () => {
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div className="text-center p-3 bg-gray-50 rounded-lg">
                   <p className="text-sm text-gray-600">الميزانية</p>
-                  <p className="text-lg font-bold text-purple-600">{occasion.budget.toLocaleString()}</p>
-                  <p className="text-xs text-gray-500">مصروف: {occasion.spent_amount.toLocaleString()}</p>
+                  <p className="text-lg font-bold text-purple-600">{occasion.budget.toLocaleString('en-US')}</p>
+                  <p className="text-xs text-gray-500">مصروف: {occasion.spent_amount.toLocaleString('en-US')}</p>
                 </div>
                 <div className="text-center p-3 bg-gray-50 rounded-lg">
                   <p className="text-sm text-gray-600">الحضور</p>
@@ -579,8 +579,8 @@ const OccasionsManagement = () => {
                   ></div>
                 </div>
                 <div className="flex justify-between text-xs text-gray-500 mt-1">
-                  <span>{occasion.contribution_collected.toLocaleString()} ريال</span>
-                  <span>الهدف: {occasion.contribution_target.toLocaleString()} ريال</span>
+                  <span>{occasion.contribution_collected.toLocaleString('en-US')} ريال</span>
+                  <span>الهدف: {occasion.contribution_target.toLocaleString('en-US')} ريال</span>
                 </div>
               </div>
 

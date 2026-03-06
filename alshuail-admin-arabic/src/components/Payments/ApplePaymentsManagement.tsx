@@ -265,7 +265,7 @@ const ApplePaymentsManagement: React.FC = () => {
   };
 
   const formatCurrency = (amount: number): string => {
-    return new Intl.NumberFormat('ar-SA', {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'SAR',
       minimumFractionDigits: 0,

@@ -414,7 +414,7 @@ const PaymentsTracking = () => {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-gray-600 mb-2">إجمالي المبلغ</p>
-            <p className="text-2xl font-bold text-purple-600">{statistics.total_amount.toLocaleString()} ريال</p>
+            <p className="text-2xl font-bold text-purple-600">{statistics.total_amount.toLocaleString('en-US')} ريال</p>
           </div>
           <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
             <CurrencyDollarIcon className="w-6 h-6 text-white" />
@@ -427,7 +427,7 @@ const PaymentsTracking = () => {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-gray-600 mb-2">المبلغ المعلق</p>
-            <p className="text-2xl font-bold text-orange-600">{statistics.pending_amount.toLocaleString()} ريال</p>
+            <p className="text-2xl font-bold text-orange-600">{statistics.pending_amount.toLocaleString('en-US')} ريال</p>
           </div>
           <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center">
             <WalletIcon className="w-6 h-6 text-white" />
@@ -440,7 +440,7 @@ const PaymentsTracking = () => {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-gray-600 mb-2">هذا الشهر</p>
-            <p className="text-2xl font-bold text-indigo-600">{statistics.this_month_total.toLocaleString()} ريال</p>
+            <p className="text-2xl font-bold text-indigo-600">{statistics.this_month_total.toLocaleString('en-US')} ريال</p>
           </div>
           <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center">
             <ArrowTrendingUpIcon className="w-6 h-6 text-white" />
@@ -454,7 +454,7 @@ const PaymentsTracking = () => {
           <div>
             <p className="text-sm font-medium text-gray-600 mb-2">دفعات نيابية</p>
             <p className="text-3xl font-bold text-purple-600">{statistics.on_behalf_payments}</p>
-            <p className="text-xs text-gray-500 mt-1">{statistics.on_behalf_amount.toLocaleString()} ريال</p>
+            <p className="text-xs text-gray-500 mt-1">{statistics.on_behalf_amount.toLocaleString('en-US')} ريال</p>
           </div>
           <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center">
             <UserGroupIcon className="w-6 h-6 text-white" />
@@ -636,7 +636,7 @@ const PaymentsTracking = () => {
                     )}
                   </td>
                   <td className="px-6 py-4">
-                    <div className="font-medium text-gray-900">{payment.amount.toLocaleString()} {payment.currency}</div>
+                    <div className="font-medium text-gray-900">{payment.amount.toLocaleString('en-US')} {payment.currency}</div>
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm text-gray-900">{getPaymentTypeText(payment.payment_type)}</div>

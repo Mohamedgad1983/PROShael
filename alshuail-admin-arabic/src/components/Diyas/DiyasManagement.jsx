@@ -600,7 +600,7 @@ const DiyasManagement = () => {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-gray-600 mb-2">إجمالي مبالغ الديات</p>
-            <p className="text-2xl font-bold text-indigo-600">{statistics.total_diya_amount.toLocaleString()} ريال</p>
+            <p className="text-2xl font-bold text-indigo-600">{statistics.total_diya_amount.toLocaleString('en-US')} ريال</p>
           </div>
           <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center">
             <BanknotesIcon className="w-6 h-6 text-white" />
@@ -613,7 +613,7 @@ const DiyasManagement = () => {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-gray-600 mb-2">إجمالي المدفوع</p>
-            <p className="text-2xl font-bold text-cyan-600">{statistics.total_paid_amount.toLocaleString()} ريال</p>
+            <p className="text-2xl font-bold text-cyan-600">{statistics.total_paid_amount.toLocaleString('en-US')} ريال</p>
           </div>
           <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-cyan-600 rounded-xl flex items-center justify-center">
             <CheckCircleIcon className="w-6 h-6 text-white" />
@@ -626,7 +626,7 @@ const DiyasManagement = () => {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-gray-600 mb-2">المبلغ المتبقي</p>
-            <p className="text-2xl font-bold text-orange-600">{statistics.total_remaining.toLocaleString()} ريال</p>
+            <p className="text-2xl font-bold text-orange-600">{statistics.total_remaining.toLocaleString('en-US')} ريال</p>
           </div>
           <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center">
             <ClockIcon className="w-6 h-6 text-white" />
@@ -788,12 +788,12 @@ const DiyasManagement = () => {
               <div className="grid grid-cols-2 gap-3 mb-4">
                 <div className="text-center p-3 bg-amber-50 rounded-lg">
                   <p className="text-sm text-gray-600">مبلغ الدية</p>
-                  <p className="text-lg font-bold text-amber-600">{diya.diya_amount.toLocaleString()}</p>
+                  <p className="text-lg font-bold text-amber-600">{diya.diya_amount.toLocaleString('en-US')}</p>
                   <p className="text-xs text-gray-500">ريال</p>
                 </div>
                 <div className="text-center p-3 bg-green-50 rounded-lg">
                   <p className="text-sm text-gray-600">المدفوع</p>
-                  <p className="text-lg font-bold text-green-600">{diya.paid_amount.toLocaleString()}</p>
+                  <p className="text-lg font-bold text-green-600">{diya.paid_amount.toLocaleString('en-US')}</p>
                   <p className="text-xs text-gray-500">ريال</p>
                 </div>
               </div>
@@ -811,7 +811,7 @@ const DiyasManagement = () => {
                   ></div>
                 </div>
                 <div className="flex justify-between text-xs text-gray-500 mt-1">
-                  <span>متبقي: {diya.remaining_amount.toLocaleString()} ريال</span>
+                  <span>متبقي: {diya.remaining_amount.toLocaleString('en-US')} ريال</span>
                   <span className={`px-1 py-0.5 rounded text-xs ${getPaymentStatusColor(diya.payment_status)}`}>
                     {getPaymentStatusText(diya.payment_status)}
                   </span>
@@ -835,7 +835,7 @@ const DiyasManagement = () => {
                 <div className="mb-4 p-3 bg-gray-50 rounded-lg">
                   <p className="text-xs text-gray-500 mb-1">المساهمون</p>
                   <p className="text-sm font-medium text-gray-900">{diya.contributors_count} مساهم</p>
-                  <p className="text-xs text-gray-600">مساهمة العائلة: {diya.total_family_contribution.toLocaleString()} ريال</p>
+                  <p className="text-xs text-gray-600">مساهمة العائلة: {diya.total_family_contribution.toLocaleString('en-US')} ريال</p>
                 </div>
               )}
 

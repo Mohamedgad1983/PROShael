@@ -25,7 +25,7 @@ export const toArabicNumerals = (num: number | string): string => {
 
 // Format currency in Arabic
 export const formatCurrency = (amount: number): string => {
-  const formattedAmount = new Intl.NumberFormat('ar-SA', {
+  const formattedAmount = new Intl.NumberFormat('en-US', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2
   }).format(amount);

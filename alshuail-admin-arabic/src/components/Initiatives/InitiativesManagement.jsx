@@ -470,7 +470,7 @@ const InitiativesManagement = () => {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-gray-600 mb-2">الهدف المالي</p>
-            <p className="text-2xl font-bold text-purple-600">{statistics.total_target_amount.toLocaleString()} ريال</p>
+            <p className="text-2xl font-bold text-purple-600">{statistics.total_target_amount.toLocaleString('en-US')} ريال</p>
           </div>
           <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
             <CurrencyDollarIcon className="w-6 h-6 text-white" />
@@ -483,7 +483,7 @@ const InitiativesManagement = () => {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-gray-600 mb-2">المبلغ المجمع</p>
-            <p className="text-2xl font-bold text-indigo-600">{statistics.total_collected_amount.toLocaleString()} ريال</p>
+            <p className="text-2xl font-bold text-indigo-600">{statistics.total_collected_amount.toLocaleString('en-US')} ريال</p>
           </div>
           <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center">
             <GiftIcon className="w-6 h-6 text-white" />
@@ -660,8 +660,8 @@ const InitiativesManagement = () => {
                   ></div>
                 </div>
                 <div className="flex justify-between text-xs text-gray-500 mt-1">
-                  <span>{initiative.collected_amount.toLocaleString()} ريال</span>
-                  <span>الهدف: {initiative.target_amount.toLocaleString()} ريال</span>
+                  <span>{initiative.collected_amount.toLocaleString('en-US')} ريال</span>
+                  <span>الهدف: {initiative.target_amount.toLocaleString('en-US')} ريال</span>
                 </div>
               </div>
 

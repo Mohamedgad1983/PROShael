@@ -22,7 +22,7 @@ const InitiativeProgress: React.FC<InitiativeProgressProps> = ({
   className = ''
 }) => {
   const formatAmount = (amount: number): string => {
-    return new Intl.NumberFormat('ar-SA').format(amount);
+    return new Intl.NumberFormat('en-US').format(amount);
   };
 
   const formatDate = (date: Date): string => {

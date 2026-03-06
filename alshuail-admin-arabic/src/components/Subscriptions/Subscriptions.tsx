@@ -233,7 +233,7 @@ const Subscriptions: React.FC = () => {
       },
       {
         title: 'الإيرادات الشهرية',
-        value: `${totalRevenue.toLocaleString()} ريال`,
+        value: `${totalRevenue.toLocaleString('en-US')} ريال`,
         icon: BanknotesIcon,
         color: '#3B82F6',
         bgColor: 'rgba(59, 130, 246, 0.1)'

@@ -75,7 +75,7 @@ const VisualAlertSystem = ({ balance, memberName, memberId }) => {
       {/* Balance Display */}
       <div className="balance-section">
         <div className="balance-amount" style={{ color: alertConfig.color }}>
-          <span className="amount">{new Intl.NumberFormat('ar-SA').format(balance)}</span>
+          <span className="amount">{new Intl.NumberFormat('en-US').format(balance)}</span>
           <span className="currency">ريال</span>
         </div>
         <div className="balance-status">

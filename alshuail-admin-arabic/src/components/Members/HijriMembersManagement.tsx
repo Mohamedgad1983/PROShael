@@ -350,7 +350,7 @@ const HijriMembersManagement: React.FC = () => {
           {/* Total Contributions */}
           <div className="text-right">
             <p className="text-xs text-gray-500">إجمالي المساهمات</p>
-            <p className="text-lg font-bold text-green-600">{member.totalContributions.toLocaleString()} ريال</p>
+            <p className="text-lg font-bold text-green-600">{member.totalContributions.toLocaleString('en-US')} ريال</p>
           </div>
         </div>
 
@@ -446,7 +446,7 @@ const HijriMembersManagement: React.FC = () => {
         />
         <StatCard
           title="إجمالي المساهمات"
-          value={`${totalContributions.toLocaleString()} ريال`}
+          value={`${totalContributions.toLocaleString('en-US')} ريال`}
           icon={BriefcaseIcon}
           gradient="#FF9500, #F59E0B"
           subtitle="هذا العام"

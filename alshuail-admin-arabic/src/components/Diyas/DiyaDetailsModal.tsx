@@ -50,7 +50,7 @@ const DiyaDetailsModal: React.FC<DiyaDetailsModalProps> = ({
   };
 
   const formatAmount = (amount: number): string => {
-    return new Intl.NumberFormat('ar-SA').format(amount);
+    return new Intl.NumberFormat('en-US').format(amount);
   };
 
   const getCaseTypeLabel = (type: string): string => {

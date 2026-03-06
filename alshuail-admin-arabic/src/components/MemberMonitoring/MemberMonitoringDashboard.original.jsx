@@ -1043,11 +1043,11 @@ const MemberMonitoringDashboard = () => {
                     <td className="member-phone">{member.phone}</td>
                     <td className="member-balance">
                       <span className={`balance ${member.status} ${member.balance < 1000 ? 'critical' : ''}`}>
-                        {member.balance >= 3000 ? '🟢' : '🔴'} {member.balance.toLocaleString()} ر.س
+                        {member.balance >= 3000 ? '🟢' : '🔴'} {member.balance.toLocaleString('en-US')} ر.س
                       </span>
                       {member.status === 'insufficient' && (
                         <span className="balance-warning">
-                          (نقص: {(3000 - member.balance).toLocaleString()} ر.س)
+                          (نقص: {(3000 - member.balance).toLocaleString('en-US')} ر.س)
                         </span>
                       )}
                     </td>
@@ -1094,13 +1094,13 @@ const MemberMonitoringDashboard = () => {
                     <div className={`member-card-balance ${member.balance < 1000 ? 'critical' : ''}`}>
                       <div className="member-card-balance-label">الرصيد</div>
                       <div className="member-card-balance-value">
-                        {member.balance >= 3000 ? '🟢' : '🔴'} {member.balance.toLocaleString()} ريال
+                        {member.balance >= 3000 ? '🟢' : '🔴'} {member.balance.toLocaleString('en-US')} ريال
                       </div>
                     </div>
 
                     {member.balance < 3000 && (
                       <div className="member-card-deficit">
-                        نقص: {(3000 - member.balance).toLocaleString()} ريال
+                        نقص: {(3000 - member.balance).toLocaleString('en-US')} ريال
                       </div>
                     )}
                   </div>

@@ -24,7 +24,7 @@ const MemberMonitoringTable = memo(({
   };
 
   const formatAmount = (amount) => {
-    return new Intl.NumberFormat('ar-SA', {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'SAR'
     }).format(amount || 0);

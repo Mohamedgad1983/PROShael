@@ -72,7 +72,7 @@ const ContributionModal: React.FC<ContributionModalProps> = ({
   };
 
   const formatAmount = (amount: number): string => {
-    return new Intl.NumberFormat('ar-SA').format(amount);
+    return new Intl.NumberFormat('en-US').format(amount);
   };
 
   const progressPercentage = Math.min((initiative.raisedAmount / initiative.targetAmount) * 100, 100);

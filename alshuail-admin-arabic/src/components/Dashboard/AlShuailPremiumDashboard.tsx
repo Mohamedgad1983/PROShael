@@ -380,7 +380,7 @@ const AlShuailPremiumDashboard: React.FC = () => {
             {/* Stats Row */}
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div className="text-center p-3 bg-gray-50 rounded-lg">
-                <div className="text-lg font-bold text-gray-900">{member.contributions?.toLocaleString()}</div>
+                <div className="text-lg font-bold text-gray-900">{member.contributions?.toLocaleString('en-US')}</div>
                 <div className="text-xs text-gray-600">المساهمات (ر.س)</div>
               </div>
               <div className="text-center p-3 bg-gray-50 rounded-lg">
@@ -498,7 +498,7 @@ const AlShuailPremiumDashboard: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-yellow-100 text-sm">إجمالي المساهمات</p>
-                  <p className="text-xl font-bold">{statistics.totalContributions.toLocaleString()}</p>
+                  <p className="text-xl font-bold">{statistics.totalContributions.toLocaleString('en-US')}</p>
                   <p className="text-xs text-yellow-200">ريال سعودي</p>
                 </div>
                 <CurrencyDollarIcon className="h-8 w-8 text-yellow-200" />
@@ -623,7 +623,7 @@ const AlShuailPremiumDashboard: React.FC = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-semibold text-gray-900">{member.contributions?.toLocaleString()} ر.س</div>
+                          <div className="text-sm font-semibold text-gray-900">{member.contributions?.toLocaleString('en-US')} ر.س</div>
                           <div className="flex items-center mt-1">
                             {[...Array(5)].map((_, i) => (
                               <StarIcon
@@ -719,7 +719,7 @@ const AlShuailPremiumDashboard: React.FC = () => {
                   <div className="space-y-4">
                     <h4 className="text-lg font-semibold text-gray-900 border-b pb-2">إحصائيات العضوية</h4>
                     <div className="bg-gray-50 p-4 rounded-lg">
-                      <div className="text-2xl font-bold text-gray-900">{selectedMember.contributions?.toLocaleString()}</div>
+                      <div className="text-2xl font-bold text-gray-900">{selectedMember.contributions?.toLocaleString('en-US')}</div>
                       <div className="text-sm text-gray-600">إجمالي المساهمات (ر.س)</div>
                     </div>
                     <div className="bg-gray-50 p-4 rounded-lg">

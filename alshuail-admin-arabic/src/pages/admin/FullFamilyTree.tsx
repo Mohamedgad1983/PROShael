@@ -205,7 +205,7 @@ const FullFamilyTree: React.FC = () => {
 
   // Format currency
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('ar-SA').format(amount || 0) + ' ر.س';
+    return new Intl.NumberFormat('en-US').format(amount || 0) + ' ر.س';
   };
 
   // Render tree node recursively

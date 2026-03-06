@@ -258,7 +258,7 @@ const HijriInitiativesManagement: React.FC = () => {
           <div>
             <div className="flex items-center justify-between mb-1">
               <span className="text-sm text-gray-600">
-                التمويل: {initiative.raised.toLocaleString()} / {initiative.budget.toLocaleString()} ريال
+                التمويل: {initiative.raised.toLocaleString('en-US')} / {initiative.budget.toLocaleString('en-US')} ريال
               </span>
               <span className="text-sm font-bold text-green-600">{fundingPercentage.toFixed(1)}%</span>
             </div>
@@ -417,14 +417,14 @@ const HijriInitiativesManagement: React.FC = () => {
         />
         <StatCard
           title="الميزانية الإجمالية"
-          value={`${totalBudget.toLocaleString()} ريال`}
+          value={`${totalBudget.toLocaleString('en-US')} ريال`}
           icon={BanknotesIcon}
           gradient="#FF9500, #F59E0B"
           subtitle="مخصص للمبادرات"
         />
         <StatCard
           title="المبلغ المحصل"
-          value={`${totalRaised.toLocaleString()} ريال`}
+          value={`${totalRaised.toLocaleString('en-US')} ريال`}
           icon={CurrencyDollarIcon}
           gradient="#00A86B, #06B6D4"
           subtitle={`${((totalRaised / totalBudget) * 100).toFixed(1)}% من الهدف`}

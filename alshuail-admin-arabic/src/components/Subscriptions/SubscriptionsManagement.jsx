@@ -312,7 +312,7 @@ const SubscriptionsManagement = () => {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-gray-600 mb-2">إجمالي الإيرادات</p>
-            <p className="text-3xl font-bold text-purple-600">{statistics.total_revenue.toLocaleString()} ريال</p>
+            <p className="text-3xl font-bold text-purple-600">{statistics.total_revenue.toLocaleString('en-US')} ريال</p>
           </div>
           <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
             <BanknotesIcon className="w-6 h-6 text-white" />
@@ -325,7 +325,7 @@ const SubscriptionsManagement = () => {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-gray-600 mb-2">الإيرادات الشهرية</p>
-            <p className="text-3xl font-bold text-indigo-600">{statistics.monthly_revenue.toLocaleString()} ريال</p>
+            <p className="text-3xl font-bold text-indigo-600">{statistics.monthly_revenue.toLocaleString('en-US')} ريال</p>
           </div>
           <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center">
             <ArrowTrendingUpIcon className="w-6 h-6 text-white" />

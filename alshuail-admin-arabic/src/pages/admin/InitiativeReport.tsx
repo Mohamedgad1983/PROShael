@@ -228,7 +228,7 @@ const InitiativeReport = () => {
             ? donations.map(d => [
                 d.donor.membership_number || '-',
                 d.donor.full_name || d.donor.full_name_en || '-',
-                d.amount.toLocaleString() + ' ر.س',
+                d.amount.toLocaleString('en-US') + ' ر.س',
                 d.payment_method,
                 new Date(d.payment_date).toLocaleDateString('ar-SA'),
                 d.approved_by ? 'نعم' : 'لا'
@@ -348,19 +348,19 @@ const InitiativeReport = () => {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
                 <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-xl shadow-lg">
                     <div className="text-sm opacity-90 mb-1">المبلغ المستهدف</div>
-                    <div className="text-3xl font-bold">{initiative.target_amount.toLocaleString()}</div>
+                    <div className="text-3xl font-bold">{initiative.target_amount.toLocaleString('en-US')}</div>
                     <div className="text-sm opacity-75">ريال سعودي</div>
                 </div>
 
                 <div className="bg-gradient-to-br from-green-500 to-green-600 text-white p-6 rounded-xl shadow-lg">
                     <div className="text-sm opacity-90 mb-1">المبلغ المحصل</div>
-                    <div className="text-3xl font-bold">{initiative.current_amount.toLocaleString()}</div>
+                    <div className="text-3xl font-bold">{initiative.current_amount.toLocaleString('en-US')}</div>
                     <div className="text-sm opacity-75">ريال سعودي</div>
                 </div>
 
                 <div className="bg-gradient-to-br from-orange-500 to-red-600 text-white p-6 rounded-xl shadow-lg">
                     <div className="text-sm opacity-90 mb-1">المبلغ المتبقي</div>
-                    <div className="text-3xl font-bold">{remaining.toLocaleString()}</div>
+                    <div className="text-3xl font-bold">{remaining.toLocaleString('en-US')}</div>
                     <div className="text-sm opacity-75">ريال سعودي</div>
                 </div>
 
@@ -469,7 +469,7 @@ const InitiativeReport = () => {
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <span className="font-bold text-green-600">
-                                                        {donation.amount.toLocaleString()} ر.س
+                                                        {donation.amount.toLocaleString('en-US')} ر.س
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-3">{donation.payment_method}</td>

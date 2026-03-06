@@ -297,7 +297,7 @@ const IslamicPremiumDashboard: React.FC = () => {
               {renderStatCard(
                 <BanknotesIcon className="w-6 h-6 text-white" />,
                 'المساهمات الشهرية',
-                `${stats.monthlyContributions.toLocaleString()} ريال`,
+                `${stats.monthlyContributions.toLocaleString('en-US')} ريال`,
                 '+12.3%',
                 true,
                 '--gradient-premium'

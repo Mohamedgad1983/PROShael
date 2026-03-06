@@ -201,15 +201,15 @@ const PaymentHistory: React.FC = () => {
       <div className="payment-statistics">
         <div className="stat-card total">
           <span className="stat-label">إجمالي المدفوعات</span>
-          <span className="stat-value">{totals.total.toLocaleString()} ريال</span>
+          <span className="stat-value">{totals.total.toLocaleString('en-US')} ريال</span>
         </div>
         <div className="stat-card approved">
           <span className="stat-label">معتمد</span>
-          <span className="stat-value">{totals.approved.toLocaleString()} ريال</span>
+          <span className="stat-value">{totals.approved.toLocaleString('en-US')} ريال</span>
         </div>
         <div className="stat-card pending">
           <span className="stat-label">قيد المراجعة</span>
-          <span className="stat-value">{totals.pending.toLocaleString()} ريال</span>
+          <span className="stat-value">{totals.pending.toLocaleString('en-US')} ريال</span>
         </div>
       </div>
 
@@ -299,7 +299,7 @@ const PaymentHistory: React.FC = () => {
               >
                 <div className="payment-main">
                   <div className="payment-amount">
-                    <span className="amount">{payment.amount.toLocaleString()}</span>
+                    <span className="amount">{payment.amount.toLocaleString('en-US')}</span>
                     <span className="currency">ريال</span>
                   </div>
                   <div
@@ -355,7 +355,7 @@ const PaymentHistory: React.FC = () => {
 
             <div className="modal-detail">
               <span className="label">المبلغ:</span>
-              <span className="value">{selectedPayment.amount.toLocaleString()} ريال</span>
+              <span className="value">{selectedPayment.amount.toLocaleString('en-US')} ريال</span>
             </div>
 
             <div className="modal-detail">

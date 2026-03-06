@@ -359,7 +359,7 @@ const CrisisDashboard = () => {
           <div className="stat-content">
             <h3>إجمالي النقص</h3>
             <p className="stat-value">
-              {new Intl.NumberFormat('ar-SA').format(crisisData?.statistics?.totalShortfall || 0)} ريال
+              {new Intl.NumberFormat('en-US').format(crisisData?.statistics?.totalShortfall || 0)} ريال
             </p>
           </div>
         </div>
@@ -422,12 +422,12 @@ const CrisisDashboard = () => {
                 <td className="member-name">{member.fullName}</td>
                 <td>{member.phone}</td>
                 <td className="balance">
-                  {new Intl.NumberFormat('ar-SA').format(member.balance)} ريال
+                  {new Intl.NumberFormat('en-US').format(member.balance)} ريال
                 </td>
                 <td className="target">3000 ريال</td>
                 <td className={`shortfall ${member.shortfall > 0 ? 'negative' : ''}`}>
                   {member.shortfall > 0
-                    ? `${new Intl.NumberFormat('ar-SA').format(member.shortfall)} ريال`
+                    ? `${new Intl.NumberFormat('en-US').format(member.shortfall)} ريال`
                     : '-'
                   }
                 </td>

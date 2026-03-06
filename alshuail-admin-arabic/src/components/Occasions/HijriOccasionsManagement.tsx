@@ -632,7 +632,7 @@ const HijriOccasionsManagement: React.FC = () => {
           <div>
             <div className="flex items-center justify-between mb-1">
               <span className="text-sm text-gray-600">
-                الميزانية: {occasion.spent.toLocaleString()} / {occasion.budget.toLocaleString()} ريال
+                الميزانية: {occasion.spent.toLocaleString('en-US')} / {occasion.budget.toLocaleString('en-US')} ريال
               </span>
               <span className="text-sm font-bold text-green-600">{budgetPercentage.toFixed(0)}%</span>
             </div>
@@ -764,14 +764,14 @@ const HijriOccasionsManagement: React.FC = () => {
         />
         <StatCard
           title="الميزانية الكلية"
-          value={`${totalBudget.toLocaleString()} ريال`}
+          value={`${totalBudget.toLocaleString('en-US')} ريال`}
           icon={GiftIcon}
           gradient="#FF9500, #F59E0B"
           subtitle="مخصص للمناسبات"
         />
         <StatCard
           title="المصروفات"
-          value={`${totalSpent.toLocaleString()} ريال`}
+          value={`${totalSpent.toLocaleString('en-US')} ريال`}
           icon={ChartBarIcon}
           gradient="#30D158, #34C759"
           subtitle={`${((totalSpent / totalBudget) * 100).toFixed(1)}% من الميزانية`}

@@ -103,7 +103,7 @@ const FundBalanceCard: React.FC<FundBalanceCardProps> = ({
   }, [fetchBalance]);
 
   const formatCurrency = (amount: number): string => {
-    return new Intl.NumberFormat('ar-SA', {
+    return new Intl.NumberFormat('en-US', {
       style: 'decimal',
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
@@ -290,7 +290,7 @@ const FundBalanceCard: React.FC<FundBalanceCardProps> = ({
         {/* Last Updated */}
         {lastRefresh && (
           <div className="text-center mt-4 text-xs text-gray-400">
-            آخر تحديث: {lastRefresh.toLocaleTimeString('ar-SA')}
+            آخر تحديث: {lastRefresh.toLocaleTimeString('en-US')}
           </div>
         )}
       </div>

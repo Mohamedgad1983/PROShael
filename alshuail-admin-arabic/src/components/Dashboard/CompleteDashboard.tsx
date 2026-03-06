@@ -226,7 +226,7 @@ const CompleteDashboard = () => {
               <CurrencyDollarIcon className="icon" />
             </div>
             <div className="stat-content">
-              <h3>{dashboardData.monthlyRevenue.toLocaleString()} ريال</h3>
+              <h3>{dashboardData.monthlyRevenue.toLocaleString('en-US')} ريال</h3>
               <p>الإيرادات الشهرية</p>
             </div>
           </div>

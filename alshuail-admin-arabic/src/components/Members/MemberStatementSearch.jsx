@@ -240,7 +240,7 @@ const MemberStatementSearch = () => {
                 <div className="result-balance">
                   <span className="balance-label">الرصيد:</span>
                   <span className="balance-amount" style={{ color: getStatusColor(member.status) }}>
-                    {member.balance.toLocaleString()} ريال
+                    {member.balance.toLocaleString('en-US')} ريال
                   </span>
                 </div>
               </div>
@@ -308,7 +308,7 @@ const MemberStatementSearch = () => {
                 <div className="balance-item current">
                   <span className="balance-label">الرصيد الحالي:</span>
                   <span className="balance-value" style={{ color: getStatusColor(selectedMember.status) }}>
-                    {selectedMember.balance.toLocaleString()} ريال
+                    {selectedMember.balance.toLocaleString('en-US')} ريال
                   </span>
                 </div>
                 <div className="balance-item target">
@@ -319,7 +319,7 @@ const MemberStatementSearch = () => {
                   <div className="balance-item shortfall">
                     <span className="balance-label">المبلغ المتبقي:</span>
                     <span className="balance-value" style={{ color: '#ff3b30' }}>
-                      {selectedMember.shortfall.toLocaleString()} ريال
+                      {selectedMember.shortfall.toLocaleString('en-US')} ريال
                     </span>
                   </div>
                 )}
@@ -357,7 +357,7 @@ const MemberStatementSearch = () => {
                   {selectedMember.payments.map((payment) => (
                     <tr key={payment.year}>
                       <td>{payment.year}</td>
-                      <td>{payment.amount.toLocaleString()} ريال</td>
+                      <td>{payment.amount.toLocaleString('en-US')} ريال</td>
                       <td>
                         <span className={`payment-status ${payment.status}`}>
                           {payment.status === 'paid' ? 'مدفوع' : 'معلق'}
@@ -370,7 +370,7 @@ const MemberStatementSearch = () => {
                   <tr>
                     <td><strong>الإجمالي</strong></td>
                     <td colSpan="2">
-                      <strong>{selectedMember.totalContributions.toLocaleString()} ريال</strong>
+                      <strong>{selectedMember.totalContributions.toLocaleString('en-US')} ريال</strong>
                     </td>
                   </tr>
                 </tfoot>

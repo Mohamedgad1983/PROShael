@@ -84,7 +84,7 @@ const HijriGroupedPayments = ({ payments = [], onPaymentClick }) => {
   };
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('ar-SA', {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'SAR',
       minimumFractionDigits: 0

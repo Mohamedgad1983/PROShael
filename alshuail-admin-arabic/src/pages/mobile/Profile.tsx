@@ -179,7 +179,7 @@ const Profile: React.FC = () => {
           </div>
           <div className="balance-info">
             <span className="balance-label">الرصيد الحالي</span>
-            <span className="balance-value">{profile.balance.toLocaleString()} ريال</span>
+            <span className="balance-value">{profile.balance.toLocaleString('en-US')} ريال</span>
           </div>
           <div className="compliance-status">
             {profile.is_compliant ? (

@@ -393,8 +393,8 @@ const AlShuailCorrectedDashboard: React.FC = () => {
                 <div>
                   <p className="font-medium text-gray-900">{initiative.title}</p>
                   <p className="text-sm text-gray-600">
-                    الهدف: {initiative.target_amount.toLocaleString()} ر.س |
-                    المحصل: {initiative.collected_amount.toLocaleString()} ر.س
+                    الهدف: {initiative.target_amount.toLocaleString('en-US')} ر.س |
+                    المحصل: {initiative.collected_amount.toLocaleString('en-US')} ر.س
                   </p>
                 </div>
                 <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
@@ -409,7 +409,7 @@ const AlShuailCorrectedDashboard: React.FC = () => {
                 <div>
                   <p className="font-medium text-gray-900">{diya.title}</p>
                   <p className="text-sm text-gray-600">
-                    المبلغ: {diya.amount.toLocaleString()} ر.س
+                    المبلغ: {diya.amount.toLocaleString('en-US')} ر.س
                   </p>
                 </div>
                 <span className={`px-2 py-1 text-xs rounded-full ${
@@ -520,11 +520,11 @@ const AlShuailCorrectedDashboard: React.FC = () => {
               <div className="grid grid-cols-2 gap-4 mt-2">
                 <div>
                   <p className="text-sm text-gray-600">الهدف المالي</p>
-                  <p className="font-medium">{initiative.target_amount.toLocaleString()} ر.س</p>
+                  <p className="font-medium">{initiative.target_amount.toLocaleString('en-US')} ر.س</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">المبلغ المحصل</p>
-                  <p className="font-medium text-green-600">{initiative.collected_amount.toLocaleString()} ر.س</p>
+                  <p className="font-medium text-green-600">{initiative.collected_amount.toLocaleString('en-US')} ر.س</p>
                 </div>
               </div>
               <div className="mt-3">
@@ -573,7 +573,7 @@ const AlShuailCorrectedDashboard: React.FC = () => {
               <div className="grid grid-cols-2 gap-4 mt-2">
                 <div>
                   <p className="text-sm text-gray-600">مبلغ الدية</p>
-                  <p className="font-medium text-red-600">{diya.amount.toLocaleString()} ر.س</p>
+                  <p className="font-medium text-red-600">{diya.amount.toLocaleString('en-US')} ر.س</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">تاريخ الحادث</p>

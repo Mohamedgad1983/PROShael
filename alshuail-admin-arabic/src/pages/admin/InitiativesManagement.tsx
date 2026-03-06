@@ -391,13 +391,13 @@ const InitiativesManagement = () => {
                 <div className="bg-white p-4 rounded-lg shadow">
                     <div className="text-gray-600 text-sm">المبلغ المستهدف الإجمالي</div>
                     <div className="text-2xl font-bold">
-                        {filteredInitiatives.reduce((sum, i) => sum + (i.target_amount || 0), 0).toLocaleString()} ر.س
+                        {filteredInitiatives.reduce((sum, i) => sum + (i.target_amount || 0), 0).toLocaleString('en-US')} ر.س
                     </div>
                 </div>
                 <div className="bg-white p-4 rounded-lg shadow">
                     <div className="text-gray-600 text-sm">المبلغ المحصل</div>
                     <div className="text-2xl font-bold text-blue-600">
-                        {filteredInitiatives.reduce((sum, i) => sum + (i.current_amount || 0), 0).toLocaleString()} ر.س
+                        {filteredInitiatives.reduce((sum, i) => sum + (i.current_amount || 0), 0).toLocaleString('en-US')} ر.س
                     </div>
                 </div>
             </div>
@@ -433,10 +433,10 @@ const InitiativesManagement = () => {
                                 </div>
                                 <div className="flex justify-between text-sm mt-2">
                                     <span className="text-gray-600">
-                                        {(init.current_amount || 0).toLocaleString()} ر.س
+                                        {(init.current_amount || 0).toLocaleString('en-US')} ر.س
                                     </span>
                                     <span className="font-bold">
-                                        {(init.target_amount || 0).toLocaleString()} ر.س
+                                        {(init.target_amount || 0).toLocaleString('en-US')} ر.س
                                     </span>
                                 </div>
                             </div>
@@ -792,7 +792,7 @@ const InitiativesManagement = () => {
                                 <p className="text-blue-800 text-sm mb-2">{previewInitiative.description_ar.substring(0, 150)}...</p>
                             )}
                             <p className="text-blue-700 text-sm">
-                                المبلغ المستهدف: {previewInitiative.target_amount.toLocaleString()} ر.س
+                                المبلغ المستهدف: {previewInitiative.target_amount.toLocaleString('en-US')} ر.س
                             </p>
                         </div>
 
