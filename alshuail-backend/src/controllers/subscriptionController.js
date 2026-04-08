@@ -56,33 +56,45 @@ export const getMemberSubscription = async (req, res) => {
       });
     }
 
-    // Get subscription from view (has all calculated fields)
-    const { rows } = await query(
-      'SELECT * FROM v_subscription_overview WHERE member_id = $1 LIMIT 1',
+    // Calculate balance from payments_yearly (source of truth)
+    const { rows: balanceRows } = await query(
+      'SELECT COALESCE(SUM(amount), 0) as total_paid, COUNT(*) as payment_count, MAX(payment_date) as last_payment_date FROM payments_yearly WHERE member_id = $1 AND amount > 0',
       [member_id]
     );
+    const totalPaid = parseFloat(balanceRows[0]?.total_paid || 0);
+    const lastPaymentDate = balanceRows[0]?.last_payment_date;
 
-    const subscription = rows[0];
-
-    if (!subscription) {
-      log.error('Subscription: Get member subscription error', { member_id });
-      return res.status(404).json({
-        success: false,
-        message: 'لم يتم العثور على اشتراك لهذا العضو'
-      });
+    // Also try v_subscription_overview for extra fields (plan_name etc)
+    let subscriptionExtra = null;
+    try {
+      const { rows } = await query(
+        'SELECT plan_name, next_payment_due FROM v_subscription_overview WHERE member_id = $1 LIMIT 1',
+        [member_id]
+      );
+      subscriptionExtra = rows[0];
+    } catch (e) {
+      // View might not exist or have issues, continue without it
+      log.warn('v_subscription_overview query failed, using payments_yearly only', { error: e.message });
     }
+
+    const TOTAL_REQUIRED = 3000; // 600 SAR/year × 5 years
+    const amountDue = Math.max(0, TOTAL_REQUIRED - totalPaid);
+    const status = totalPaid >= TOTAL_REQUIRED ? 'active' : 'overdue';
+    const monthsPaidAhead = Math.floor(totalPaid / 50);
 
     res.json({
       success: true,
       subscription: {
-        member_id: subscription.member_id,
-        status: subscription.status,
-        current_balance: subscription.current_balance,
-        months_paid_ahead: subscription.months_paid_ahead,
-        next_payment_due: subscription.next_payment_due,
-        last_payment_date: subscription.last_payment_date,
-        amount_due: subscription.amount_due,
-        plan_name: subscription.plan_name
+        member_id: member_id,
+        status: status,
+        current_balance: String(totalPaid),
+        total_paid: String(totalPaid),
+        total_required: String(TOTAL_REQUIRED),
+        months_paid_ahead: monthsPaidAhead,
+        next_payment_due: subscriptionExtra?.next_payment_due || null,
+        last_payment_date: lastPaymentDate || null,
+        amount_due: String(amountDue),
+        plan_name: subscriptionExtra?.plan_name || 'اشتراك سنوي'
       }
     });
   } catch (error) {
@@ -112,40 +124,41 @@ export const getPaymentHistory = async (req, res) => {
       });
     }
 
-    // Get subscription_id first
-    const { rows: subRows } = await query(
-      'SELECT id FROM subscriptions WHERE member_id = $1 LIMIT 1',
-      [member_id]
-    );
-
-    const subscription = subRows[0];
-
-    if (!subscription) {
-      return res.json({
-        success: true,
-        payments: [],
-        total: 0,
-        page,
-        limit
-      });
-    }
-
-    // Get total count
+    // Get total count from payments_yearly
     const { rows: countRows } = await query(
-      'SELECT COUNT(*) AS count FROM payments WHERE subscription_id = $1',
-      [subscription.id]
+      'SELECT COUNT(*) AS count FROM payments_yearly WHERE member_id = $1 AND amount > 0',
+      [member_id]
     );
     const total = parseInt(countRows[0].count) || 0;
 
-    // Get payments with pagination
-    const { rows: payments } = await query(
-      'SELECT * FROM payments WHERE subscription_id = $1 ORDER BY payment_date DESC LIMIT $2 OFFSET $3',
-      [subscription.id, limit, offset]
+    // Get payments from payments_yearly (source of truth)
+    const { rows: yearlyPayments } = await query(
+      `SELECT id, member_id, year, amount, payment_date, payment_method, receipt_number, notes
+       FROM payments_yearly
+       WHERE member_id = $1 AND amount > 0
+       ORDER BY year DESC
+       LIMIT $2 OFFSET $3`,
+      [member_id, limit, offset]
     );
+
+    // Format to match iOS Payment model expectations
+    const payments = yearlyPayments.map(p => ({
+      id: p.id,
+      amount: parseFloat(p.amount),
+      paymentDate: p.payment_date,
+      payment_date: p.payment_date,
+      status: 'approved',
+      year: p.year,
+      receiptUrl: null,
+      receipt_url: null,
+      receipt_number: p.receipt_number || `RCP-${p.year}-${member_id.substring(0, 5)}`,
+      notes: p.notes || `دفعة سنة ${p.year}`,
+      payment_method: p.payment_method
+    }));
 
     res.json({
       success: true,
-      payments: payments || [],
+      payments: payments,
       total,
       page,
       limit
