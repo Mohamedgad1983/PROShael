@@ -547,10 +547,10 @@ router.get('/', authenticateToken, async (req, res) => {
 
         const result = await query(sqlQuery, params);
 
-        res.json({ news: result.rows });
+        res.json({ success: true, news: result.rows });
     } catch (error) {
         log.error('GET / error', { error: error.message });
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 

@@ -47,7 +47,9 @@ export const getSubscriptionPlans = async (req, res) => {
 // ========================================
 export const getMemberSubscription = async (req, res) => {
   try {
-    const member_id = req.user.member_id || req.user.id;
+    const member_id = req.user?.member_id || req.user?.id;
+
+    log.info('getMemberSubscription called', { member_id, user: JSON.stringify(req.user) });
 
     if (!member_id) {
       return res.status(401).json({
@@ -57,12 +59,25 @@ export const getMemberSubscription = async (req, res) => {
     }
 
     // Calculate balance from payments_yearly (source of truth)
-    const { rows: balanceRows } = await query(
-      'SELECT COALESCE(SUM(amount), 0) as total_paid, COUNT(*) as payment_count, MAX(payment_date) as last_payment_date FROM payments_yearly WHERE member_id = $1 AND amount > 0',
-      [member_id]
-    );
-    const totalPaid = parseFloat(balanceRows[0]?.total_paid || 0);
-    const lastPaymentDate = balanceRows[0]?.last_payment_date;
+    let totalPaid = 0;
+    let lastPaymentDate = null;
+    try {
+      const { rows: balanceRows } = await query(
+        'SELECT COALESCE(SUM(amount), 0) as total_paid, COUNT(*) as payment_count, MAX(payment_date) as last_payment_date FROM payments_yearly WHERE member_id = $1 AND amount > 0',
+        [member_id]
+      );
+      totalPaid = parseFloat(balanceRows[0]?.total_paid || 0);
+      lastPaymentDate = balanceRows[0]?.last_payment_date;
+    } catch (e) {
+      log.error('getMemberSubscription: payments_yearly query failed', { error: e.message, stack: e.stack, member_id });
+      // Fallback: try members.current_balance
+      try {
+        const { rows } = await query('SELECT current_balance FROM members WHERE id = $1', [member_id]);
+        totalPaid = parseFloat(rows[0]?.current_balance || 0);
+      } catch (e2) {
+        log.error('getMemberSubscription: members fallback also failed', { error: e2.message });
+      }
+    }
 
     // Also try v_subscription_overview for extra fields (plan_name etc)
     let subscriptionExtra = null;
@@ -73,15 +88,11 @@ export const getMemberSubscription = async (req, res) => {
       );
       subscriptionExtra = rows[0];
     } catch (e) {
-      // View might not exist or have issues, continue without it
       log.warn('v_subscription_overview query failed, using payments_yearly only', { error: e.message });
     }
 
-    // payments_yearly SUM is the source of truth (same as statement page)
-    // members.current_balance is often NULL/0, so we use totalPaid from payments_yearly
     const actualBalance = totalPaid;
-
-    const TOTAL_REQUIRED = 3000; // 600 SAR/year × 5 years
+    const TOTAL_REQUIRED = 3000;
     const amountDue = Math.max(0, TOTAL_REQUIRED - actualBalance);
     const status = actualBalance >= TOTAL_REQUIRED ? 'active' : 'overdue';
     const monthsPaidAhead = Math.floor(actualBalance / 50);
@@ -89,20 +100,21 @@ export const getMemberSubscription = async (req, res) => {
     res.json({
       success: true,
       subscription: {
-        member_id: member_id,
+        id: String(member_id),
+        member_id: String(member_id),
         status: status,
         current_balance: String(actualBalance),
         total_paid: String(totalPaid),
         total_required: String(TOTAL_REQUIRED),
         months_paid_ahead: monthsPaidAhead,
         next_payment_due: subscriptionExtra?.next_payment_due || null,
-        last_payment_date: lastPaymentDate || null,
+        last_payment_date: lastPaymentDate ? String(lastPaymentDate) : null,
         amount_due: String(amountDue),
         plan_name: subscriptionExtra?.plan_name || 'اشتراك سنوي'
       }
     });
   } catch (error) {
-    log.error('Subscription: Get member subscription error', { error: error.message });
+    log.error('Subscription: Get member subscription error', { error: error.message, stack: error.stack, user: JSON.stringify(req.user) });
     res.status(500).json({
       success: false,
       message: 'فشل في جلب بيانات الاشتراك',
@@ -147,7 +159,7 @@ export const getPaymentHistory = async (req, res) => {
 
     // Format to match iOS Payment model expectations
     const payments = yearlyPayments.map(p => ({
-      id: p.id,
+      id: String(p.id),
       amount: parseFloat(p.amount),
       paymentDate: p.payment_date,
       payment_date: p.payment_date,
