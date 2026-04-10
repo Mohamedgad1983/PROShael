@@ -527,7 +527,7 @@ router.get('/', authenticateToken, async (req, res) => {
 
         let sqlQuery = `
             SELECT * FROM news_announcements
-            WHERE is_published = true AND deleted_at IS NULL
+            WHERE is_published = true
         `;
         const params = [];
         let paramIndex = 1;
@@ -538,7 +538,7 @@ router.get('/', authenticateToken, async (req, res) => {
             paramIndex++;
         }
 
-        sqlQuery += ' ORDER BY published_at DESC';
+        sqlQuery += ' ORDER BY publish_date DESC NULLS LAST, created_at DESC';
 
         if (limit) {
             sqlQuery += ` LIMIT $${paramIndex}`;

@@ -44,7 +44,7 @@ export const getAllInitiatives = async (req, res) => {
     }
 
     if (organizer_id) {
-      conditions.push(`organizer_id = $${paramIndex++}`);
+      conditions.push(`created_by = $${paramIndex++}`);
       params.push(organizer_id);
     }
 
@@ -84,10 +84,12 @@ export const getAllInitiatives = async (req, res) => {
         ...initiative,
         id: String(initiative.id),
         // Map DB columns to iOS Activity model keys
-        title_ar: initiative.title_ar || initiative.title || null,
-        title_en: initiative.title_en || initiative.title || null,
-        description_ar: initiative.description_ar || initiative.description || null,
-        description_en: initiative.description_en || initiative.description || null,
+        title_ar: initiative.name_ar || initiative.title_ar || initiative.name_en || null,
+        title_en: initiative.name_en || initiative.title_en || initiative.name_ar || null,
+        description_ar: initiative.description_ar || initiative.description || initiative.reason_ar || null,
+        description_en: initiative.description_en || initiative.description || initiative.reason_en || null,
+        min_contribution: initiative.min_contribution || null,
+        max_contribution: initiative.max_contribution || null,
         collection_start_date: startDate,
         collection_end_date: endDate,
         total_contributed: totalContributed,

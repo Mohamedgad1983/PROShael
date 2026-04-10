@@ -32,8 +32,8 @@ export const getAllDiyas = async (req, res) => {
     } = req.query;
 
     // Build dynamic query for activities filtered for diya-related activities
-    // Check title, title_ar, title_en columns (table may have any combination)
-    const conditions = ["(title ILIKE '%دية%' OR title ILIKE '%diya%' OR COALESCE(title_ar,'') ILIKE '%دية%' OR COALESCE(title_en,'') ILIKE '%diya%' OR category = 'diya')"];
+    // DB has both name_ar/name_en AND title_ar/title_en columns
+    const conditions = ["(COALESCE(name_ar,'') ILIKE '%دية%' OR COALESCE(name_en,'') ILIKE '%diya%' OR COALESCE(title_ar,'') ILIKE '%دية%' OR COALESCE(title_en,'') ILIKE '%diya%' OR activity_type = 'diya' OR category = 'diya' OR beneficiary_type = 'diya')"];
     const params = [];
     let paramIndex = 1;
 
@@ -44,7 +44,7 @@ export const getAllDiyas = async (req, res) => {
     }
 
     if (payment_status) {
-      conditions.push(`payment_status = $${paramIndex++}`);
+      conditions.push(`status = $${paramIndex++}`);
       params.push(payment_status);
     }
 
@@ -97,10 +97,10 @@ export const getAllDiyas = async (req, res) => {
     const diyas = (activities || []).map(activity => ({
       ...activity,
       id: String(activity.id),
-      // Map DB columns to iOS DiyaCase model keys
-      title_ar: activity.title_ar || activity.title || null,
-      title_en: activity.title_en || activity.title || null,
-      payment_status: activity.payment_status || activity.status || null,
+      // Map DB columns (name_ar/name_en) to iOS DiyaCase model keys (title_ar/title_en)
+      title_ar: activity.name_ar || activity.title_ar || null,
+      title_en: activity.name_en || activity.title_en || null,
+      payment_status: activity.status || null,
       financial_contributions: contributions.filter(c => c.activity_id === activity.id)
     }));
 
