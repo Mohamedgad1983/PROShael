@@ -222,7 +222,8 @@ export const loginWithPassword = async (req, res) => {
         // Find member by phone
         const { rows: memberRows } = await query(
             `SELECT id, phone, full_name_ar, full_name_en, role, password_hash, has_password,
-                    is_active, failed_login_attempts, locked_until, must_change_password
+                    is_active, failed_login_attempts, locked_until, must_change_password,
+                    current_balance, membership_number, photo_url, email, family_branch_id
              FROM members WHERE phone = $1`,
             [normalizedPhone]
         );
@@ -320,7 +321,12 @@ export const loginWithPassword = async (req, res) => {
                 phone: member.phone,
                 fullNameAr: member.full_name_ar,
                 fullNameEn: member.full_name_en,
-                role: member.role
+                name: member.full_name_ar,
+                role: member.role,
+                balance: member.current_balance ? String(member.current_balance) : "0",
+                membershipId: member.membership_number || null,
+                avatar: member.photo_url || null,
+                email: member.email || null
             },
             mustChangePassword: !!member.must_change_password
         });
@@ -419,7 +425,7 @@ export const requestOTP = async (req, res) => {
 
         // Find member (but don't reveal if not found)
         const { rows: memberRows } = await query(
-            'SELECT id, phone, full_name_ar, is_active, has_password FROM members WHERE phone = $1',
+            'SELECT id, phone, full_name_ar, full_name_en, role, is_active, has_password, current_balance, membership_number, photo_url FROM members WHERE phone = $1',
             [phone]
         );
         const member = memberRows[0];
@@ -592,7 +598,11 @@ export const verifyOTP = async (req, res) => {
                 phone: member.phone,
                 fullNameAr: member.full_name_ar,
                 fullNameEn: member.full_name_en,
-                role: member.role
+                name: member.full_name_ar,
+                role: member.role,
+                balance: member.current_balance ? String(member.current_balance) : "0",
+                membershipId: member.membership_number || null,
+                avatar: member.photo_url || null
             },
             requiresPasswordSetup: !member.has_password
         });
@@ -798,7 +808,8 @@ export const loginWithFaceId = async (req, res) => {
 
         // Get member
         const { rows: memberRows } = await query(
-            `SELECT id, phone, full_name_ar, full_name_en, role, face_id_token, has_face_id, is_active
+            `SELECT id, phone, full_name_ar, full_name_en, role, face_id_token, has_face_id, is_active,
+                    current_balance, membership_number, photo_url
              FROM members WHERE id = $1`,
             [memberId]
         );
@@ -858,7 +869,11 @@ export const loginWithFaceId = async (req, res) => {
                 phone: member.phone,
                 fullNameAr: member.full_name_ar,
                 fullNameEn: member.full_name_en,
-                role: member.role
+                name: member.full_name_ar,
+                role: member.role,
+                balance: member.current_balance ? String(member.current_balance) : "0",
+                membershipId: member.membership_number || null,
+                avatar: member.photo_url || null
             }
         });
 
