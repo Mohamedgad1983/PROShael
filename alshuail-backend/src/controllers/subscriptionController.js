@@ -48,8 +48,9 @@ export const getSubscriptionPlans = async (req, res) => {
 export const getMemberSubscription = async (req, res) => {
   try {
     const member_id = req.user?.member_id || req.user?.id;
+    const member_phone = req.user?.phone;
 
-    log.info('getMemberSubscription called', { member_id, user: JSON.stringify(req.user) });
+    log.info('getMemberSubscription called', { member_id, member_phone, user: JSON.stringify(req.user) });
 
     if (!member_id) {
       return res.status(401).json({
@@ -58,10 +59,25 @@ export const getMemberSubscription = async (req, res) => {
       });
     }
 
-    // Calculate balance from payments table (real table)
-    // payments uses beneficiary_id (who payment is for) and payer_id (who paid)
+    // STEP 1: Get member info including current_balance from members table (source of truth)
+    let memberBalance = 0;
+    let memberInfo = null;
+    try {
+      const { rows } = await query('SELECT id, phone, current_balance, full_name_ar FROM members WHERE id = $1', [member_id]);
+      memberInfo = rows[0];
+      memberBalance = parseFloat(memberInfo?.current_balance || 0);
+      log.info('getMemberSubscription: member info', { id: memberInfo?.id, phone: memberInfo?.phone, current_balance: memberInfo?.current_balance });
+    } catch (e) {
+      log.error('getMemberSubscription: member query failed', { error: e.message });
+    }
+
+    // STEP 2: Calculate balance from payments table
+    // Try multiple strategies to match payments to this member
     let totalPaid = 0;
     let lastPaymentDate = null;
+    let paymentCount = 0;
+
+    // Strategy 1: match by beneficiary_id = member.id
     try {
       const { rows: balanceRows } = await query(
         `SELECT COALESCE(SUM(amount), 0) as total_paid, COUNT(*) as payment_count, MAX(payment_date) as last_payment_date
@@ -70,17 +86,61 @@ export const getMemberSubscription = async (req, res) => {
         [member_id]
       );
       totalPaid = parseFloat(balanceRows[0]?.total_paid || 0);
+      paymentCount = parseInt(balanceRows[0]?.payment_count || 0);
       lastPaymentDate = balanceRows[0]?.last_payment_date;
-      log.info('getMemberSubscription: payments query result', { totalPaid, lastPaymentDate, member_id });
+      log.info('getMemberSubscription: Strategy 1 (beneficiary_id=member_id)', { totalPaid, paymentCount, member_id });
     } catch (e) {
-      log.error('getMemberSubscription: payments query failed', { error: e.message, stack: e.stack, member_id });
-      // Fallback: try members.current_balance
+      log.error('getMemberSubscription: Strategy 1 failed', { error: e.message });
+    }
+
+    // Strategy 2: if no payments found by ID, try by payer_id
+    if (paymentCount === 0) {
       try {
-        const { rows } = await query('SELECT current_balance FROM members WHERE id = $1', [member_id]);
-        totalPaid = parseFloat(rows[0]?.current_balance || 0);
-      } catch (e2) {
-        log.error('getMemberSubscription: members fallback also failed', { error: e2.message });
+        const { rows: balanceRows } = await query(
+          `SELECT COALESCE(SUM(amount), 0) as total_paid, COUNT(*) as payment_count, MAX(payment_date) as last_payment_date
+           FROM payments
+           WHERE payer_id = $1 AND amount > 0 AND status IN ('approved', 'completed')`,
+          [member_id]
+        );
+        const paidAsPayer = parseFloat(balanceRows[0]?.total_paid || 0);
+        const payerCount = parseInt(balanceRows[0]?.payment_count || 0);
+        log.info('getMemberSubscription: Strategy 2 (payer_id=member_id)', { paidAsPayer, payerCount, member_id });
+        if (payerCount > 0) {
+          totalPaid = paidAsPayer;
+          paymentCount = payerCount;
+          lastPaymentDate = balanceRows[0]?.last_payment_date;
+        }
+      } catch (e) {
+        log.error('getMemberSubscription: Strategy 2 failed', { error: e.message });
       }
+    }
+
+    // Strategy 3: if still no payments, try matching by member_id column in payments
+    if (paymentCount === 0) {
+      try {
+        const { rows: balanceRows } = await query(
+          `SELECT COALESCE(SUM(amount), 0) as total_paid, COUNT(*) as payment_count, MAX(payment_date) as last_payment_date
+           FROM payments
+           WHERE member_id = $1 AND amount > 0 AND status IN ('approved', 'completed')`,
+          [member_id]
+        );
+        const paidByMemberId = parseFloat(balanceRows[0]?.total_paid || 0);
+        const memberIdCount = parseInt(balanceRows[0]?.payment_count || 0);
+        log.info('getMemberSubscription: Strategy 3 (member_id column)', { paidByMemberId, memberIdCount, member_id });
+        if (memberIdCount > 0) {
+          totalPaid = paidByMemberId;
+          paymentCount = memberIdCount;
+          lastPaymentDate = balanceRows[0]?.last_payment_date;
+        }
+      } catch (e) {
+        log.warn('getMemberSubscription: Strategy 3 failed (member_id column may not exist)', { error: e.message });
+      }
+    }
+
+    // Strategy 4: Use members.current_balance as final fallback (source of truth)
+    if (paymentCount === 0 && memberBalance > 0) {
+      log.info('getMemberSubscription: Using members.current_balance as fallback', { memberBalance });
+      totalPaid = memberBalance;
     }
 
     // Also try v_subscription_overview for extra fields (plan_name etc)
@@ -95,7 +155,7 @@ export const getMemberSubscription = async (req, res) => {
       log.warn('v_subscription_overview query failed, using payments only', { error: e.message });
     }
 
-    const actualBalance = totalPaid;
+    const actualBalance = Math.max(totalPaid, memberBalance);
     const TOTAL_REQUIRED = 3000;
     const amountDue = Math.max(0, TOTAL_REQUIRED - actualBalance);
     const status = actualBalance >= TOTAL_REQUIRED ? 'active' : 'overdue';
@@ -148,24 +208,78 @@ export const getPaymentHistory = async (req, res) => {
 
     const memberId = String(member_id);
 
-    // Get total count from payments table (real table)
-    const { rows: countRows } = await query(
+    // Try multiple strategies to find payments for this member
+    let rawPayments = [];
+    let total = 0;
+    let matchStrategy = 'none';
+
+    // Strategy 1: beneficiary_id
+    const { rows: countRows1 } = await query(
       `SELECT COUNT(*) AS count FROM payments WHERE beneficiary_id = $1 AND amount > 0 AND status IN ('approved', 'completed')`,
       [memberId]
     );
-    const total = parseInt(countRows[0].count) || 0;
+    total = parseInt(countRows1[0].count) || 0;
 
-    log.info('getPaymentHistory total payments', { total, member_id: memberId });
+    if (total > 0) {
+      matchStrategy = 'beneficiary_id';
+      const { rows } = await query(
+        `SELECT id, beneficiary_id, payer_id, subscription_year, fiscal_year, amount, payment_date, payment_method, receipt_number, notes, notes_ar, status, category, created_at
+         FROM payments
+         WHERE beneficiary_id = $1 AND amount > 0 AND status IN ('approved', 'completed')
+         ORDER BY payment_date DESC NULLS LAST, created_at DESC
+         LIMIT $2 OFFSET $3`,
+        [memberId, limit, offset]
+      );
+      rawPayments = rows;
+    }
 
-    // Get payments from payments table (real table)
-    const { rows: rawPayments } = await query(
-      `SELECT id, beneficiary_id, payer_id, subscription_year, fiscal_year, amount, payment_date, payment_method, receipt_number, notes, notes_ar, status, category, created_at
-       FROM payments
-       WHERE beneficiary_id = $1 AND amount > 0 AND status IN ('approved', 'completed')
-       ORDER BY payment_date DESC NULLS LAST, created_at DESC
-       LIMIT $2 OFFSET $3`,
-      [memberId, limit, offset]
-    );
+    // Strategy 2: payer_id
+    if (total === 0) {
+      const { rows: countRows2 } = await query(
+        `SELECT COUNT(*) AS count FROM payments WHERE payer_id = $1 AND amount > 0 AND status IN ('approved', 'completed')`,
+        [memberId]
+      );
+      total = parseInt(countRows2[0].count) || 0;
+      if (total > 0) {
+        matchStrategy = 'payer_id';
+        const { rows } = await query(
+          `SELECT id, beneficiary_id, payer_id, subscription_year, fiscal_year, amount, payment_date, payment_method, receipt_number, notes, notes_ar, status, category, created_at
+           FROM payments
+           WHERE payer_id = $1 AND amount > 0 AND status IN ('approved', 'completed')
+           ORDER BY payment_date DESC NULLS LAST, created_at DESC
+           LIMIT $2 OFFSET $3`,
+          [memberId, limit, offset]
+        );
+        rawPayments = rows;
+      }
+    }
+
+    // Strategy 3: member_id column (if exists)
+    if (total === 0) {
+      try {
+        const { rows: countRows3 } = await query(
+          `SELECT COUNT(*) AS count FROM payments WHERE member_id = $1 AND amount > 0 AND status IN ('approved', 'completed')`,
+          [memberId]
+        );
+        total = parseInt(countRows3[0].count) || 0;
+        if (total > 0) {
+          matchStrategy = 'member_id';
+          const { rows } = await query(
+            `SELECT id, beneficiary_id, payer_id, subscription_year, fiscal_year, amount, payment_date, payment_method, receipt_number, notes, notes_ar, status, category, created_at
+             FROM payments
+             WHERE member_id = $1 AND amount > 0 AND status IN ('approved', 'completed')
+             ORDER BY payment_date DESC NULLS LAST, created_at DESC
+             LIMIT $2 OFFSET $3`,
+            [memberId, limit, offset]
+          );
+          rawPayments = rows;
+        }
+      } catch (e) {
+        log.warn('getPaymentHistory: member_id column strategy failed', { error: e.message });
+      }
+    }
+
+    log.info('getPaymentHistory result', { total, matchStrategy, member_id: memberId });
 
     // Format to match iOS Payment model expectations
     const payments = rawPayments.map(p => ({
@@ -194,6 +308,91 @@ export const getPaymentHistory = async (req, res) => {
       message: 'فشل في جلب سجل الدفعات',
       error: error.message
     });
+  }
+};
+
+// ========================================
+// 3b. Debug: Diagnose member balance (TEMP - for debugging)
+// ========================================
+export const diagnoseMemberBalance = async (req, res) => {
+  try {
+    const phone = req.query.phone || req.params.phone;
+    if (!phone) {
+      return res.status(400).json({ success: false, message: 'Phone number required' });
+    }
+
+    // Find member by phone
+    const { rows: memberRows } = await query(
+      'SELECT id, phone, full_name_ar, current_balance, membership_number FROM members WHERE phone = $1 OR phone = $2',
+      [phone, phone.replace(/^\+/, '')]
+    );
+    const member = memberRows[0];
+    if (!member) {
+      return res.json({ success: false, message: 'Member not found', phone });
+    }
+
+    // Check payments by beneficiary_id
+    const { rows: byBeneficiary } = await query(
+      `SELECT COUNT(*) as count, COALESCE(SUM(amount),0) as total FROM payments WHERE beneficiary_id = $1 AND status IN ('approved','completed')`,
+      [member.id]
+    );
+
+    // Check payments by payer_id
+    const { rows: byPayer } = await query(
+      `SELECT COUNT(*) as count, COALESCE(SUM(amount),0) as total FROM payments WHERE payer_id = $1 AND status IN ('approved','completed')`,
+      [member.id]
+    );
+
+    // Check payments by member_id column (if exists)
+    let byMemberId = { count: 0, total: 0 };
+    try {
+      const { rows } = await query(
+        `SELECT COUNT(*) as count, COALESCE(SUM(amount),0) as total FROM payments WHERE member_id = $1 AND status IN ('approved','completed')`,
+        [member.id]
+      );
+      byMemberId = rows[0];
+    } catch (e) {
+      byMemberId = { count: 'column_not_found', total: 0, error: e.message };
+    }
+
+    // Check all payments columns to see what ID patterns exist
+    const { rows: samplePayments } = await query(
+      'SELECT id, beneficiary_id, payer_id, amount, status, payment_date FROM payments LIMIT 5'
+    );
+
+    // Check if there are any payments where the phone appears
+    const { rows: phonePayments } = await query(
+      `SELECT COUNT(*) as count, COALESCE(SUM(amount),0) as total FROM payments WHERE beneficiary_id IN (SELECT id FROM members WHERE phone = $1 OR phone = $2)`,
+      [phone, phone.replace(/^\+/, '')]
+    );
+
+    res.json({
+      success: true,
+      diagnosis: {
+        member: {
+          id: member.id,
+          id_type: typeof member.id,
+          phone: member.phone,
+          full_name_ar: member.full_name_ar,
+          current_balance: member.current_balance,
+          membership_number: member.membership_number
+        },
+        payments_by_beneficiary_id: byBeneficiary[0],
+        payments_by_payer_id: byPayer[0],
+        payments_by_member_id: byMemberId,
+        payments_via_phone_lookup: phonePayments[0],
+        sample_payments: samplePayments.map(p => ({
+          id: p.id,
+          beneficiary_id: p.beneficiary_id,
+          beneficiary_id_type: typeof p.beneficiary_id,
+          payer_id: p.payer_id,
+          amount: p.amount,
+          status: p.status
+        }))
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message, stack: error.stack });
   }
 };
 
