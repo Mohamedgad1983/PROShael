@@ -77,19 +77,9 @@ export const getMemberSubscription = async (req, res) => {
       log.warn('v_subscription_overview query failed, using payments_yearly only', { error: e.message });
     }
 
-    // Also read the actual member balance from members table (source of truth)
-    let actualBalance = totalPaid;
-    try {
-      const { rows: memberRows } = await query(
-        'SELECT current_balance FROM members WHERE id = $1 LIMIT 1',
-        [member_id]
-      );
-      if (memberRows[0]?.current_balance != null) {
-        actualBalance = parseFloat(memberRows[0].current_balance) || totalPaid;
-      }
-    } catch (e) {
-      log.warn('Could not fetch member balance, using payments_yearly total', { error: e.message });
-    }
+    // payments_yearly SUM is the source of truth (same as statement page)
+    // members.current_balance is often NULL/0, so we use totalPaid from payments_yearly
+    const actualBalance = totalPaid;
 
     const TOTAL_REQUIRED = 3000; // 600 SAR/year × 5 years
     const amountDue = Math.max(0, TOTAL_REQUIRED - actualBalance);
@@ -231,18 +221,19 @@ export const getAllSubscriptions = async (req, res) => {
       [...params, limit, offset]
     );
 
-    // FIX: Override current_balance with members.current_balance (source of truth)
-    // The v_subscription_overview may have stale/capped balance from subscriptions table
+    // FIX: Override current_balance with SUM from payments_yearly (source of truth)
+    // This matches the statement page logic — payments_yearly is the correct data source
+    // members.current_balance is often NULL/0 because its trigger only fires on the old payments table
     if (subscriptions.length > 0) {
       const memberIds = subscriptions.map(s => s.member_id);
       try {
         const { rows: balances } = await query(
-          'SELECT id, COALESCE(current_balance, 0) as real_balance FROM members WHERE id = ANY($1)',
+          'SELECT member_id, COALESCE(SUM(amount), 0) as real_balance FROM payments_yearly WHERE member_id = ANY($1) AND amount > 0 GROUP BY member_id',
           [memberIds]
         );
         const balanceMap = {};
         for (const b of balances) {
-          balanceMap[b.id] = parseFloat(b.real_balance) || 0;
+          balanceMap[b.member_id] = parseFloat(b.real_balance) || 0;
         }
         for (const sub of subscriptions) {
           if (balanceMap[sub.member_id] !== undefined) {
@@ -250,7 +241,7 @@ export const getAllSubscriptions = async (req, res) => {
           }
         }
       } catch (e) {
-        log.warn('Could not fetch real balances from members table, using view balances', { error: e.message });
+        log.warn('Could not fetch real balances from payments_yearly, using view balances', { error: e.message });
       }
     }
 
