@@ -2,7 +2,7 @@
  * @fileoverview Subscription Management Controller
  * @description Handles all subscription-related operations including
  *              plans, member subscriptions, payments, and reminders
- * @version 3.0.0
+ * @version 3.1.0
  * @module controllers/subscriptionController
  *
  * @requires ../services/database.js - Direct PostgreSQL via pg.Pool
@@ -10,7 +10,7 @@
  *
  * @business-rules
  * - Monthly subscription: 50 SAR
- * - Maximum balance: 3000 SAR (60 months)
+ * - Balance source of truth: members.current_balance
  * - Overdue status: balance < 0
  * - Active status: balance >= 0
  */
@@ -78,7 +78,6 @@ export const getMemberSubscription = async (req, res) => {
     }
 
     // Also read the actual member balance from members table (source of truth)
-    // This accounts for balance adjustments that don't go through payments_yearly
     let actualBalance = totalPaid;
     try {
       const { rows: memberRows } = await query(
@@ -190,9 +189,9 @@ export const getPaymentHistory = async (req, res) => {
 
 // ========================================
 // 4. Get all subscriptions (ADMIN ONLY)
+// Uses v_subscription_overview view for compatibility,
+// then overrides current_balance with members.current_balance (source of truth)
 // ========================================
-// FIX: Use members table + payments_yearly as source of truth for balance
-// instead of v_subscription_overview which may have stale/capped data
 export const getAllSubscriptions = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -201,87 +200,69 @@ export const getAllSubscriptions = async (req, res) => {
     const statusFilter = req.query.status; // 'all', 'active', 'overdue'
     const searchTerm = req.query.search;
 
-    const TOTAL_REQUIRED = 3000; // 600 SAR/year × 5 years
-
-    // Build query from members table with payments_yearly totals
-    // This matches the statement page's data source (members.current_balance)
-    const conditions = ['m.membership_status != \'deleted\''];
+    // Build dynamic WHERE clauses
+    const conditions = [];
     const params = [];
     let paramIndex = 1;
 
+    if (statusFilter && statusFilter !== 'all') {
+      conditions.push(`status = $${paramIndex++}`);
+      params.push(statusFilter);
+    }
+
     if (searchTerm) {
-      conditions.push(`(m.full_name ILIKE $${paramIndex} OR m.phone ILIKE $${paramIndex})`);
+      conditions.push(`(member_name ILIKE $${paramIndex} OR phone ILIKE $${paramIndex})`);
       params.push(`%${searchTerm}%`);
       paramIndex++;
     }
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-    // Main query: join members with payments_yearly for real balance
-    const subscriptionQuery = `
-      SELECT
-        m.id as member_id,
-        m.full_name as member_name,
-        m.phone,
-        COALESCE(m.current_balance, 0) as current_balance,
-        COALESCE(py.total_paid, 0) as total_paid,
-        py.last_payment_date,
-        py.last_payment_amount,
-        py.payment_count,
-        CASE
-          WHEN COALESCE(m.current_balance, 0) >= ${TOTAL_REQUIRED} THEN 'active'
-          ELSE 'overdue'
-        END as status,
-        FLOOR(COALESCE(m.current_balance, 0) / 50) as months_paid_ahead,
-        GREATEST(0, ${TOTAL_REQUIRED} - COALESCE(m.current_balance, 0)) as amount_due
-      FROM members m
-      LEFT JOIN (
-        SELECT
-          member_id,
-          SUM(amount) as total_paid,
-          MAX(payment_date) as last_payment_date,
-          MAX(amount) as last_payment_amount,
-          COUNT(*) as payment_count
-        FROM payments_yearly
-        WHERE amount > 0
-        GROUP BY member_id
-      ) py ON py.member_id = m.id
-      ${whereClause}
-    `;
-
-    // Apply status filter after calculation
-    let fullQuery = subscriptionQuery;
-    if (statusFilter && statusFilter !== 'all') {
-      const statusCondition = statusFilter === 'active'
-        ? `COALESCE(m.current_balance, 0) >= ${TOTAL_REQUIRED}`
-        : `COALESCE(m.current_balance, 0) < ${TOTAL_REQUIRED}`;
-      fullQuery = `${subscriptionQuery} AND ${statusCondition}`;
-    }
-
     // Get total count
-    const countQuery = `SELECT COUNT(*) as count FROM (${fullQuery}) sub`;
-    const { rows: countRows } = await query(countQuery, params);
+    const { rows: countRows } = await query(
+      `SELECT COUNT(*) AS count FROM v_subscription_overview ${whereClause}`,
+      params
+    );
     const total = parseInt(countRows[0].count) || 0;
 
     // Get paginated data
-    const paginatedQuery = `${fullQuery} ORDER BY current_balance ASC LIMIT $${paramIndex++} OFFSET $${paramIndex}`;
-    const { rows: subscriptions } = await query(paginatedQuery, [...params, limit, offset]);
+    const { rows: subscriptions } = await query(
+      `SELECT * FROM v_subscription_overview ${whereClause} ORDER BY next_payment_due ASC LIMIT $${paramIndex++} OFFSET $${paramIndex}`,
+      [...params, limit, offset]
+    );
 
-    // Get quick stats from same source
-    const statsQuery = `
-      SELECT
-        COUNT(*) as total_members,
-        COUNT(CASE WHEN COALESCE(m.current_balance, 0) >= ${TOTAL_REQUIRED} THEN 1 END) as active,
-        COUNT(CASE WHEN COALESCE(m.current_balance, 0) < ${TOTAL_REQUIRED} THEN 1 END) as overdue
-      FROM members m
-      WHERE m.membership_status != 'deleted'
-    `;
-    const { rows: statsRows } = await query(statsQuery);
+    // FIX: Override current_balance with members.current_balance (source of truth)
+    // The v_subscription_overview may have stale/capped balance from subscriptions table
+    if (subscriptions.length > 0) {
+      const memberIds = subscriptions.map(s => s.member_id);
+      try {
+        const { rows: balances } = await query(
+          'SELECT id, COALESCE(current_balance, 0) as real_balance FROM members WHERE id = ANY($1)',
+          [memberIds]
+        );
+        const balanceMap = {};
+        for (const b of balances) {
+          balanceMap[b.id] = parseFloat(b.real_balance) || 0;
+        }
+        for (const sub of subscriptions) {
+          if (balanceMap[sub.member_id] !== undefined) {
+            sub.current_balance = balanceMap[sub.member_id];
+          }
+        }
+      } catch (e) {
+        log.warn('Could not fetch real balances from members table, using view balances', { error: e.message });
+      }
+    }
+
+    // Get quick stats
+    const { rows: stats } = await query(
+      'SELECT status FROM v_subscription_overview'
+    );
 
     const statsData = {
-      total_members: parseInt(statsRows[0]?.total_members) || 0,
-      active: parseInt(statsRows[0]?.active) || 0,
-      overdue: parseInt(statsRows[0]?.overdue) || 0
+      total_members: stats?.length || 0,
+      active: stats?.filter(s => s.status === 'active').length || 0,
+      overdue: stats?.filter(s => s.status === 'overdue').length || 0
     };
 
     res.json({
@@ -293,7 +274,7 @@ export const getAllSubscriptions = async (req, res) => {
       stats: statsData
     });
   } catch (error) {
-    log.error('Subscription: Get all subscriptions error', { error: error.message });
+    log.error('Subscription: Get all subscriptions error', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       message: 'فشل في جلب الاشتراكات',
@@ -305,30 +286,29 @@ export const getAllSubscriptions = async (req, res) => {
 // ========================================
 // 5. Get dashboard statistics (ADMIN ONLY)
 // ========================================
-// FIX: Use members table as source of truth (matches statement page)
 export const getSubscriptionStats = async (req, res) => {
   try {
-    const TOTAL_REQUIRED = 3000; // 600 SAR/year × 5 years
+    // Get all subscriptions from view
+    const { rows: subscriptions } = await query(
+      'SELECT * FROM v_subscription_overview'
+    );
 
-    // Calculate stats directly from members table (source of truth)
-    const { rows: statsRows } = await query(`
-      SELECT
-        COUNT(*) as total_members,
-        COUNT(CASE WHEN COALESCE(current_balance, 0) >= ${TOTAL_REQUIRED} THEN 1 END) as active,
-        COUNT(CASE WHEN COALESCE(current_balance, 0) < ${TOTAL_REQUIRED} THEN 1 END) as overdue,
-        SUM(GREATEST(0, ${TOTAL_REQUIRED} - COALESCE(current_balance, 0))) as overdue_amount,
-        AVG(FLOOR(COALESCE(current_balance, 0) / 50)) as avg_months_ahead
-      FROM members
-      WHERE membership_status != 'deleted'
-    `);
+    const total_members = subscriptions.length;
+    const active = subscriptions.filter(s => s.status === 'active').length;
+    const overdue = subscriptions.filter(s => s.status === 'overdue').length;
 
-    const stats = statsRows[0];
-    const total_members = parseInt(stats.total_members) || 0;
-    const active = parseInt(stats.active) || 0;
-    const overdue = parseInt(stats.overdue) || 0;
+    // Monthly revenue: 50 SAR per member
     const monthly_revenue = total_members * 50;
-    const overdue_amount = parseFloat(stats.overdue_amount) || 0;
-    const avg_months_ahead = parseFloat(stats.avg_months_ahead) || 0;
+
+    // Total overdue amount
+    const overdue_amount = subscriptions
+      .filter(s => s.status === 'overdue')
+      .reduce((sum, s) => sum + (s.amount_due || 50), 0);
+
+    // Average months paid ahead
+    const avg_months_ahead = total_members > 0
+      ? subscriptions.reduce((sum, s) => sum + (s.months_paid_ahead || 0), 0) / total_members
+      : 0;
 
     res.json({
       success: true,
@@ -352,28 +332,15 @@ export const getSubscriptionStats = async (req, res) => {
 // ========================================
 // 6. Get overdue members only (ADMIN ONLY)
 // ========================================
-// FIX: Use members table as source of truth (matches statement page)
 export const getOverdueMembers = async (req, res) => {
   try {
-    const TOTAL_REQUIRED = 3000;
-
-    const { rows: overdueMembers } = await query(`
-      SELECT
-        m.id as member_id,
-        m.full_name as member_name,
-        m.phone,
-        COALESCE(m.current_balance, 0) as current_balance,
-        FLOOR(COALESCE(m.current_balance, 0) / 50) as months_paid_ahead,
-        GREATEST(0, ${TOTAL_REQUIRED} - COALESCE(m.current_balance, 0)) as amount_due,
-        'overdue' as status
-      FROM members m
-      WHERE m.membership_status != 'deleted'
-        AND COALESCE(m.current_balance, 0) < ${TOTAL_REQUIRED}
-      ORDER BY m.current_balance ASC
-    `);
+    const { rows: overdueMembers } = await query(
+      'SELECT * FROM v_subscription_overview WHERE status = $1 ORDER BY next_payment_due ASC',
+      ['overdue']
+    );
 
     const total_due = overdueMembers.reduce((sum, member) =>
-      sum + parseFloat(member.amount_due || 0), 0);
+      sum + (member.amount_due || 50), 0);
 
     res.json({
       success: true,
@@ -394,6 +361,7 @@ export const getOverdueMembers = async (req, res) => {
 // 7. Record a payment (ADMIN ONLY)
 // Supports pay-on-behalf: payer_id pays, beneficiary_id receives credit
 // TRANSACTION: payment insert + subscription update + member balance update + notification
+// FIX: Removed 3000 SAR cap - members who pay more should see their real balance
 // ========================================
 export const recordPayment = async (req, res) => {
   try {
@@ -467,7 +435,6 @@ export const recordPayment = async (req, res) => {
     }
 
     // Calculate new values - no artificial cap, allow actual balance to grow
-    // Members who pay more than 3000 SAR should see their real balance
     const calculated_balance = (subscription.current_balance || 0) + amount;
     const new_balance = calculated_balance;
     const months_paid_ahead = Math.floor(new_balance / 50);
@@ -600,10 +567,10 @@ export const sendPaymentReminder = async (req, res) => {
     let targetMembers = [];
 
     if (send_to_all) {
-      // Get all overdue members (balance < 3000) from members table
+      // Get all overdue members
       const { rows: overdue } = await query(
-        'SELECT id as member_id FROM members WHERE membership_status != $1 AND COALESCE(current_balance, 0) < 3000',
-        ['deleted']
+        'SELECT member_id FROM v_subscription_overview WHERE status = $1',
+        ['overdue']
       );
 
       targetMembers = overdue?.map(m => m.member_id) || [];
