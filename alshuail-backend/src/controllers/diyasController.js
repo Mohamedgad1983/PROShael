@@ -32,7 +32,8 @@ export const getAllDiyas = async (req, res) => {
     } = req.query;
 
     // Build dynamic query for activities filtered for diya-related activities
-    const conditions = ["(title_ar ILIKE '%دية%' OR title_en ILIKE '%diya%')"];
+    // Check title, title_ar, title_en columns (table may have any combination)
+    const conditions = ["(title ILIKE '%دية%' OR title ILIKE '%diya%' OR COALESCE(title_ar,'') ILIKE '%دية%' OR COALESCE(title_en,'') ILIKE '%diya%' OR category = 'diya')"];
     const params = [];
     let paramIndex = 1;
 
@@ -92,9 +93,14 @@ export const getAllDiyas = async (req, res) => {
       contributions = contribData || [];
     }
 
-    // Step 3: Map contributions to their activities
+    // Step 3: Map contributions to their activities + map columns for iOS
     const diyas = (activities || []).map(activity => ({
       ...activity,
+      id: String(activity.id),
+      // Map DB columns to iOS DiyaCase model keys
+      title_ar: activity.title_ar || activity.title || null,
+      title_en: activity.title_en || activity.title || null,
+      payment_status: activity.payment_status || activity.status || null,
       financial_contributions: contributions.filter(c => c.activity_id === activity.id)
     }));
 

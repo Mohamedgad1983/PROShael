@@ -63,9 +63,16 @@ export const getAllOccasions = async (req, res) => {
 
     const { rows: occasions } = await query(dataQuery, params);
 
-    // Calculate additional metrics for each occasion
+    // Calculate additional metrics and map columns for iOS compatibility
     const enhancedOccasions = occasions.map(occasion => ({
       ...occasion,
+      id: String(occasion.id),
+      // Map DB columns to iOS Event model keys
+      event_name: occasion.title || occasion.event_name || null,
+      event_name_ar: occasion.title || occasion.event_name_ar || null,
+      event_date: occasion.start_date || occasion.event_date || null,
+      description_ar: occasion.description || occasion.description_ar || null,
+      attendees_count: occasion.current_attendees || occasion.attendees_count || 0,
       days_until_event: occasion.start_date ?
         Math.ceil((new Date(occasion.start_date) - new Date()) / (1000 * 60 * 60 * 24)) : null,
       attendance_rate: occasion.max_attendees && occasion.current_attendees ?

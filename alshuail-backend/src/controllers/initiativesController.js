@@ -65,7 +65,7 @@ export const getAllInitiatives = async (req, res) => {
 
     const { rows: initiatives } = await query(sql, params);
 
-    // Calculate totals and metrics for each initiative
+    // Calculate totals and metrics for each initiative + map columns for iOS
     const enhancedInitiatives = initiatives?.map(initiative => {
       const totalContributed = Number(initiative.current_amount) || 0;
       const contributorsCount = Number(initiative.contributor_count) || 0;
@@ -73,17 +73,29 @@ export const getAllInitiatives = async (req, res) => {
       const progressPercentage = initiative.target_amount ?
         Math.round((totalContributed / Number(initiative.target_amount)) * 100) : 0;
 
-      const daysRemaining = initiative.collection_end_date ?
-        Math.ceil((new Date(initiative.collection_end_date) - new Date()) / (1000 * 60 * 60 * 24)) : null;
+      // Use collection_end_date if exists, otherwise fall back to end_date
+      const endDate = initiative.collection_end_date || initiative.end_date;
+      const startDate = initiative.collection_start_date || initiative.start_date;
+
+      const daysRemaining = endDate ?
+        Math.ceil((new Date(endDate) - new Date()) / (1000 * 60 * 60 * 24)) : null;
 
       return {
         ...initiative,
+        id: String(initiative.id),
+        // Map DB columns to iOS Activity model keys
+        title_ar: initiative.title_ar || initiative.title || null,
+        title_en: initiative.title_en || initiative.title || null,
+        description_ar: initiative.description_ar || initiative.description || null,
+        description_en: initiative.description_en || initiative.description || null,
+        collection_start_date: startDate,
+        collection_end_date: endDate,
         total_contributed: totalContributed,
         contributors_count: contributorsCount,
         progress_percentage: progressPercentage,
         days_remaining: daysRemaining,
         is_target_reached: initiative.target_amount ? totalContributed >= Number(initiative.target_amount) : false,
-        is_expired: initiative.collection_end_date ? new Date(initiative.collection_end_date) < new Date() : false
+        is_expired: endDate ? new Date(endDate) < new Date() : false
       };
     }) || [];
 

@@ -58,18 +58,22 @@ export const getMemberSubscription = async (req, res) => {
       });
     }
 
-    // Calculate balance from payments_yearly (source of truth)
+    // Calculate balance from payments table (real table)
+    // payments uses beneficiary_id (who payment is for) and payer_id (who paid)
     let totalPaid = 0;
     let lastPaymentDate = null;
     try {
       const { rows: balanceRows } = await query(
-        'SELECT COALESCE(SUM(amount), 0) as total_paid, COUNT(*) as payment_count, MAX(payment_date) as last_payment_date FROM payments_yearly WHERE member_id = $1 AND amount > 0',
+        `SELECT COALESCE(SUM(amount), 0) as total_paid, COUNT(*) as payment_count, MAX(payment_date) as last_payment_date
+         FROM payments
+         WHERE beneficiary_id = $1 AND amount > 0 AND status IN ('approved', 'completed')`,
         [member_id]
       );
       totalPaid = parseFloat(balanceRows[0]?.total_paid || 0);
       lastPaymentDate = balanceRows[0]?.last_payment_date;
+      log.info('getMemberSubscription: payments query result', { totalPaid, lastPaymentDate, member_id });
     } catch (e) {
-      log.error('getMemberSubscription: payments_yearly query failed', { error: e.message, stack: e.stack, member_id });
+      log.error('getMemberSubscription: payments query failed', { error: e.message, stack: e.stack, member_id });
       // Fallback: try members.current_balance
       try {
         const { rows } = await query('SELECT current_balance FROM members WHERE id = $1', [member_id]);
@@ -88,7 +92,7 @@ export const getMemberSubscription = async (req, res) => {
       );
       subscriptionExtra = rows[0];
     } catch (e) {
-      log.warn('v_subscription_overview query failed, using payments_yearly only', { error: e.message });
+      log.warn('v_subscription_overview query failed, using payments only', { error: e.message });
     }
 
     const actualBalance = totalPaid;
@@ -128,10 +132,12 @@ export const getMemberSubscription = async (req, res) => {
 // ========================================
 export const getPaymentHistory = async (req, res) => {
   try {
-    const member_id = req.user.member_id || req.user.id;
+    const member_id = req.user?.member_id || req.user?.id;
     const page = parseInt(req.query.page) || 1;
     const limit = Math.min(parseInt(req.query.limit) || 20, 50);
     const offset = (page - 1) * limit;
+
+    log.info('getPaymentHistory called', { member_id });
 
     if (!member_id) {
       return res.status(401).json({
@@ -140,36 +146,38 @@ export const getPaymentHistory = async (req, res) => {
       });
     }
 
-    // Get total count from payments_yearly
+    const memberId = String(member_id);
+
+    // Get total count from payments table (real table)
     const { rows: countRows } = await query(
-      'SELECT COUNT(*) AS count FROM payments_yearly WHERE member_id = $1 AND amount > 0',
-      [member_id]
+      `SELECT COUNT(*) AS count FROM payments WHERE beneficiary_id = $1 AND amount > 0 AND status IN ('approved', 'completed')`,
+      [memberId]
     );
     const total = parseInt(countRows[0].count) || 0;
 
-    // Get payments from payments_yearly (source of truth)
-    const { rows: yearlyPayments } = await query(
-      `SELECT id, member_id, year, amount, payment_date, payment_method, receipt_number, notes
-       FROM payments_yearly
-       WHERE member_id = $1 AND amount > 0
-       ORDER BY year DESC
+    log.info('getPaymentHistory total payments', { total, member_id: memberId });
+
+    // Get payments from payments table (real table)
+    const { rows: rawPayments } = await query(
+      `SELECT id, beneficiary_id, payer_id, subscription_year, fiscal_year, amount, payment_date, payment_method, receipt_number, notes, notes_ar, status, category, created_at
+       FROM payments
+       WHERE beneficiary_id = $1 AND amount > 0 AND status IN ('approved', 'completed')
+       ORDER BY payment_date DESC NULLS LAST, created_at DESC
        LIMIT $2 OFFSET $3`,
-      [member_id, limit, offset]
+      [memberId, limit, offset]
     );
 
     // Format to match iOS Payment model expectations
-    const payments = yearlyPayments.map(p => ({
+    const payments = rawPayments.map(p => ({
       id: String(p.id),
-      amount: parseFloat(p.amount),
-      paymentDate: p.payment_date,
-      payment_date: p.payment_date,
-      status: 'approved',
-      year: p.year,
-      receiptUrl: null,
+      amount: parseFloat(p.amount) || 0,
+      payment_date: p.payment_date ? new Date(p.payment_date).toISOString().split('T')[0] : (p.created_at ? new Date(p.created_at).toISOString().split('T')[0] : null),
+      status: p.status || 'approved',
+      year: p.subscription_year || p.fiscal_year || (p.payment_date ? new Date(p.payment_date).getFullYear() : new Date(p.created_at).getFullYear()),
       receipt_url: null,
-      receipt_number: p.receipt_number || `RCP-${p.year}-${member_id.substring(0, 5)}`,
-      notes: p.notes || `دفعة سنة ${p.year}`,
-      payment_method: p.payment_method
+      receipt_number: p.receipt_number || `RCP-${memberId.substring(0, 8)}`,
+      notes: p.notes_ar || p.notes || (p.category ? `دفعة ${p.category}` : 'دفعة'),
+      payment_method: p.payment_method || 'cash'
     }));
 
     res.json({
@@ -180,7 +188,7 @@ export const getPaymentHistory = async (req, res) => {
       limit
     });
   } catch (error) {
-    log.error('Subscription: Get payment history error', { error: error.message });
+    log.error('Subscription: Get payment history error', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       message: 'فشل في جلب سجل الدفعات',
@@ -233,14 +241,15 @@ export const getAllSubscriptions = async (req, res) => {
       [...params, limit, offset]
     );
 
-    // FIX: Override current_balance with SUM from payments_yearly (source of truth)
-    // This matches the statement page logic — payments_yearly is the correct data source
-    // members.current_balance is often NULL/0 because its trigger only fires on the old payments table
+    // FIX: Override current_balance with SUM from payments table (source of truth)
     if (subscriptions.length > 0) {
       const memberIds = subscriptions.map(s => s.member_id);
       try {
         const { rows: balances } = await query(
-          'SELECT member_id, COALESCE(SUM(amount), 0) as real_balance FROM payments_yearly WHERE member_id = ANY($1) AND amount > 0 GROUP BY member_id',
+          `SELECT beneficiary_id as member_id, COALESCE(SUM(amount), 0) as real_balance
+           FROM payments
+           WHERE beneficiary_id = ANY($1) AND amount > 0 AND status IN ('approved', 'completed')
+           GROUP BY beneficiary_id`,
           [memberIds]
         );
         const balanceMap = {};
@@ -253,7 +262,7 @@ export const getAllSubscriptions = async (req, res) => {
           }
         }
       } catch (e) {
-        log.warn('Could not fetch real balances from payments_yearly, using view balances', { error: e.message });
+        log.warn('Could not fetch real balances from payments, using view balances', { error: e.message });
       }
     }
 
