@@ -1,49 +1,69 @@
-﻿# CLAUDE.md
+# CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
 
-**Al-Shuail Family Management System (صندوق عائلة شعيل العنزي)** - A bilingual (Arabic/English) family fund management platform for managing 347+ members across 10 family branches (فخوذ). Full-stack application with web admin, mobile PWA, and native Flutter app.
+**Al-Shuail Family Management System (صندوق عائلة شعيل العنزي)** — A bilingual (Arabic/English) family fund management platform for managing 347+ members across 10 family branches (فخوذ). Full-stack application with web admin, mobile PWA, Flutter native app, and iOS SwiftUI app.
 
 ### Key Features
-- Member management with family tree visualization
-- Subscription tracking (monthly/annual dues)
-- Payment processing (KNET, bank transfers)
-- Diya (blood money) collection system
-- Initiative/project funding campaigns
-- Crisis case management
-- Push notifications (Firebase)
-- WhatsApp OTP authentication
+- Member management with family tree visualization (marriage tracking, extended trees)
+- Subscription tracking (monthly/annual dues) with flexible payment system
+- Payment processing (KNET, bank transfers, pay-on-behalf)
+- Diya (blood money) collection system (internal/external classification)
+- Initiative/project funding campaigns with progress tracking
+- Crisis case management and alerts
+- Push notifications (Firebase Cloud Messaging)
+- Dual authentication: WhatsApp OTP + password-based login
+- Multi-role system with Hijri date-based role expiration
+- Approval workflows for administrative actions
+- Member monitoring and wellness checks
+- Fund balance tracking with reconciliation snapshots
+- Balance adjustments with audit trail
+- Expense category management and vouchers
 - Bilingual support (Arabic RTL + English)
-- Hijri calendar integration
+- Hijri calendar integration throughout
+- PWA offline support with service workers
+- Biometric authentication (Flutter/iOS)
 
 ## GitHub Repository
 
 - **Main Repository**: https://github.com/Mohamedgad1983/PROShael
 - **Branch**: main
-- **Flutter App**: Embedded in alshuail-flutter/ directory
+- **CI/CD**: GitHub Actions (backend, frontend, Cloudflare Pages)
 
 ## Architecture
 
 ```
-D:/PROShael/
-├── alshuail-backend/       # Express.js API (ES Modules) - Port 5001
-├── alshuail-admin-arabic/  # React 18 + TypeScript Admin Dashboard - Port 3002
-├── alshuail-mobile/        # React + Vite Mobile PWA - Port 5173
-├── alshuail-flutter/       # Flutter Native Mobile App (Android/iOS)
-├── claudedocs/             # Generated documentation/reports
-└── CLAUDE.md               # This file
+PROShael/
+├── alshuail-backend/         # Express.js API v2.0.0 (ES Modules) - Port 5001
+├── alshuail-admin-arabic/    # React 19 + TypeScript Admin Dashboard - Port 3002
+├── alshuail-mobile/          # React 18 + Vite 5 Mobile PWA - Port 5173
+├── alshuail-flutter/         # Flutter 3.x Native Mobile App (Android/iOS)
+├── AlShuailFund/             # Native iOS SwiftUI App (MVVM)
+├── docs/                     # Consolidated documentation hub
+│   ├── architecture/         # Architecture & API docs
+│   ├── specs/                # Feature specifications (6 specs)
+│   ├── reports/              # Verification & fix reports
+│   ├── ios/                  # App Store & iOS docs
+│   ├── analysis/             # Analysis & PRD docs
+│   └── migrations/           # Database migration docs
+├── database/                 # Root-level DB schemas & migrations
+├── scripts/                  # Utility scripts (scope of work generator)
+├── .github/workflows/        # CI/CD pipelines (4 workflows)
+├── archive/                  # Legacy/backup files (not active)
+└── CLAUDE.md                 # This file
 ```
 
 ### Infrastructure
 | Component | Technology | URL | Port |
 |-----------|------------|-----|------|
-| Backend API | Node.js 18+ Express.js | api.alshailfund.com | 5001 |
-| Admin Dashboard | React 18 + TypeScript | alshailfund.com | 3002 |
+| Backend API | Node.js 18+ Express.js v2.0.0 | api.alshailfund.com | 5001 |
+| Admin Dashboard | React 19 + TypeScript + CRACO | alshailfund.com | 3002 |
 | Mobile PWA | React 18 + Vite 5 | app.alshailfund.com | 5173 |
-| Flutter App | Flutter 3.x + Dart | Google Play / App Store | - |
-| Database | PostgreSQL 15 | Supabase Cloud | 5432 |
+| Flutter App | Flutter 3.x + Dart (Provider + Riverpod) | Google Play / App Store | - |
+| iOS App | SwiftUI (MVVM) | App Store | - |
+| Database | PostgreSQL 15 (self-hosted on VPS) | 213.199.62.185 | 5432 |
 
 ### Server Details (Production VPS)
 - **VPS IP**: 213.199.62.185
@@ -53,6 +73,7 @@ D:/PROShael/
 - **Admin Path**: Cloudflare Pages
 - **PM2 Process**: alshuail-backend
 - **Web Server**: Nginx (reverse proxy)
+- **Database**: PostgreSQL 15 (self-hosted, migrated from Supabase)
 
 ## Family Branches (فخوذ)
 
@@ -75,7 +96,8 @@ D:/PROShael/
 ```bash
 npm run dev          # Development with nodemon (port 5001)
 npm start            # Production mode
-npm test             # Run Jest tests
+npm test             # Run Jest tests (164 test files)
+npm test -- --coverage  # With coverage report
 npm run lint         # ESLint check
 ```
 
@@ -84,6 +106,15 @@ npm run lint         # ESLint check
 npm start            # Development server (CRACO on port 3002)
 npm run build        # Production build
 npm run build:fast   # Production build (no sourcemaps)
+npm run build:emergency  # Emergency build (unminified, no tree-shaking)
+npm run build:staging    # Staging build
+npm run build:production # Production optimized build
+npm run pwa:build    # PWA-specific build
+npm run pwa:validate # Validate PWA configuration
+npm run type-check   # TypeScript type checking
+npm run lint         # ESLint check
+npm run docker:build # Build Docker image
+npm run docker:run   # Run Docker container
 ```
 
 ### Mobile PWA (alshuail-mobile/)
@@ -91,6 +122,7 @@ npm run build:fast   # Production build (no sourcemaps)
 npm run dev          # Vite dev server (port 5173)
 npm run build        # Production build (outputs to dist/)
 npm run preview      # Preview production build
+npm run lint         # ESLint (0 warnings policy)
 ```
 
 ### Flutter App (alshuail-flutter/)
@@ -119,144 +151,364 @@ ssh root@213.199.62.185 "cd /var/www/PROShael/alshuail-backend && git pull && pm
 
 ### Directory Structure
 ```
-alshuail-backend/
-├── server.js                    # Main entry point
+alshuail-backend/ (v2.0.0)
+├── server.js                        # Main entry point (471 lines, 50+ route mounts)
+├── Dockerfile                       # Multi-stage Docker build
+├── healthcheck.js                   # Health check endpoint
 ├── src/
-│   ├── config/
-│   │   └── database.js          # Supabase client configuration
-│   ├── controllers/             # Request handlers
-│   │   ├── authController.js
-│   │   ├── membersController.js
-│   │   ├── paymentsController.js
-│   │   ├── subscriptionsController.js
-│   │   ├── initiativesController.js
+│   ├── config/                      # Configuration (4 files)
+│   │   ├── database.js              # PostgreSQL VPS connection
+│   │   ├── documentStorage.js       # Document/file storage config
+│   │   ├── env.js                   # Centralized env management
+│   │   └── pgQueryBuilder.js        # Query builder utilities
+│   ├── controllers/                 # Request handlers (33 files)
+│   │   ├── admin.controller.js
+│   │   ├── approval.controller.js
+│   │   ├── audit.controller.js
+│   │   ├── balanceAdjustmentController.js
+│   │   ├── bankTransfersController.js
+│   │   ├── crisisController.js
+│   │   ├── dashboardController.js
+│   │   ├── deviceTokenController.js
 │   │   ├── diyasController.js
+│   │   ├── expenseCategoriesController.js
 │   │   ├── expensesController.js
+│   │   ├── family-tree.controller.js
+│   │   ├── family-tree-extended.controller.js
+│   │   ├── financialReportsController.js
+│   │   ├── fundBalanceController.js
+│   │   ├── initiativesController.js
+│   │   ├── memberController.js
+│   │   ├── memberImportController.js
+│   │   ├── memberMonitoringController.js
+│   │   ├── memberRegistrationController.js
+│   │   ├── memberStatementController.js
+│   │   ├── memberSuspensionController.js
+│   │   ├── membersController.js
+│   │   ├── membersMonitoringController.js
+│   │   ├── notificationController.js
 │   │   ├── notificationsController.js
-│   │   ├── reportsController.js
-│   │   └── settingsController.js
-│   ├── middleware/
-│   │   └── authMiddleware.js    # JWT verification
-│   ├── routes/                  # API route definitions
-│   │   ├── auth.js
-│   │   ├── members.js
-│   │   ├── payments.js
-│   │   └── ...
-│   └── services/                # Business logic
-│       ├── firebaseService.js   # FCM push notifications
-│       ├── ultramsgService.js   # WhatsApp OTP
-│       ├── receiptService.js    # PDF generation
-│       └── notificationService.js
-├── __tests__/                   # Jest test suites
-│   ├── unit/
-│   ├── integration/
-│   ├── e2e/
-│   └── security/
+│   │   ├── occasionsController.js
+│   │   ├── passwordAuth.controller.js
+│   │   ├── paymentAnalyticsController.js
+│   │   ├── paymentsController.js
+│   │   ├── push-notifications.controller.js
+│   │   ├── statementController.js
+│   │   └── subscriptionController.js
+│   ├── middleware/                   # Request processing (13 files)
+│   │   ├── auth.js                  # JWT token validation
+│   │   ├── connectionPool.js        # Database connection pooling
+│   │   ├── cookie-auth.js           # Cookie-based authentication
+│   │   ├── csrf.js                  # CSRF token validation
+│   │   ├── featureFlags.js          # Feature flag checking
+│   │   ├── memberSuspensionCheck.js # Suspension status verification
+│   │   ├── payment-validator.js     # Payment validation rules
+│   │   ├── rateLimiter.js           # Rate limiting
+│   │   ├── rbacMiddleware.js        # Role-based access control
+│   │   ├── requireAdminOrSelf.js    # Admin or self-access restriction
+│   │   ├── roleExpiration.js        # Hijri date-based role expiration
+│   │   ├── securityHeaders.js       # Security header injection
+│   │   └── superAdminAuth.js        # Superadmin-only access
+│   ├── routes/                      # API route definitions (43 files)
+│   ├── services/                    # Business logic (19 files)
+│   │   ├── arabicPdfExporter.js     # Arabic PDF generation
+│   │   ├── bankTransferService.js   # Bank transfer processing
+│   │   ├── cacheService.js          # Redis caching
+│   │   ├── database.js              # Database service wrapper
+│   │   ├── databaseOptimizationService.js
+│   │   ├── financialAnalyticsService.js
+│   │   ├── firebaseService.js       # FCM push notifications
+│   │   ├── forensicAnalysis.js      # Data forensics
+│   │   ├── memberMonitoringQueryService.js
+│   │   ├── memberService.js
+│   │   ├── notificationService.js
+│   │   ├── notificationTemplates.js
+│   │   ├── optimizedReportQueries.js
+│   │   ├── paymentProcessingService.js
+│   │   ├── receiptService.js        # PDF receipt generation
+│   │   ├── reportExportService.js
+│   │   ├── twilioService.js         # Twilio SMS (legacy)
+│   │   ├── ultramsgService.js       # WhatsApp OTP
+│   │   └── whatsappOtpService.js
+│   ├── utils/                       # Utility functions (16 files)
+│   │   ├── accessControl.js
+│   │   ├── audit-logger.js
+│   │   ├── errorCodes.js
+│   │   ├── firebase-admin.js
+│   │   ├── hijriConverter.js
+│   │   ├── hijriDateUtils.js
+│   │   ├── inputSanitizer.js
+│   │   ├── jsonSanitizer.js
+│   │   ├── logger.js                # Winston logger
+│   │   ├── memberHelpers.js
+│   │   ├── memberValidation.js
+│   │   ├── notificationHelpers.js
+│   │   ├── profileValidation.js
+│   │   ├── secureOtp.js
+│   │   └── tree-generator.js
+│   ├── constants/                   # Application constants
+│   ├── validators/                  # Joi validation schemas
+│   ├── database/                    # RBAC SQL schemas
+│   └── scripts/                     # Utility scripts (8 active + archived)
+├── migrations/                      # Database migrations (33 files)
+├── __tests__/                       # Test suites (164 files)
+│   ├── unit/                        # Unit tests (51 files)
+│   ├── integration/                 # API integration tests
+│   ├── e2e/                         # End-to-end flows
+│   ├── security/                    # Security vulnerability tests
+│   ├── performance/                 # Performance benchmarks
+│   ├── __mocks__/                   # Test mocks and data
+│   └── helpers/                     # Test helper functions
 └── package.json
 ```
 
-### API Routes (/api)
+### API Routes (/api) — Full Listing
 | Route | Description |
 |-------|-------------|
 | /auth | Login, OTP verification, logout |
+| /auth/password | Password-based authentication (login, reset) |
+| /otp | WhatsApp OTP send/verify/resend |
 | /members | CRUD operations for members |
+| /member-monitoring | Member wellness checks and monitoring |
 | /payments | Payment processing and history |
 | /subscriptions | Subscription management |
-| /family-tree | Family hierarchy data |
-| /notifications | Push notification management |
-| /audit | Audit log queries |
-| /reports | Financial and member reports |
-| /initiatives | Project campaigns |
-| /expenses | Expense tracking |
-| /settings | System settings |
-| /profile | User profile management |
+| /expenses | Expense tracking and reporting |
+| /expense-categories | Dynamic expense category management |
 | /diyas | Blood money collections |
-| /crisis | Crisis case management |
-| /news | News/announcements |
+| /diya-dashboard | Diya dashboard views |
+| /initiatives | Project campaigns |
+| /initiatives (enhanced) | Enhanced initiative endpoints |
+| /family-tree | Family hierarchy data |
+| /tree | Enhanced tree generation |
+| /notifications | Notification management |
+| /notifications/push | Firebase push notifications |
+| /device-tokens | FCM device token registration |
+| /admin | Admin panel operations |
+| /approvals | Approval workflow management |
+| /audit | Audit log queries |
+| /multi-role | Multi-role assignment with Hijri dates |
+| /password-management | Superadmin password management |
+| /rbac | Role-based access control routes |
+| /dashboard | Dashboard metrics and summaries |
+| /reports | Financial and member reports |
+| /analytics | Payment analytics and insights |
+| /statements | Account statement generation |
+| /member-statement | Member payment statements |
+| /fund | Fund balance management |
+| /balance-adjustments | Manual member balance corrections |
+| /bank-transfers | Bank transfer / pay-on-behalf requests |
+| /documents | Document management |
+| /receipts | Receipt generation |
 | /occasions | Event management |
+| /news | News/announcements |
+| /crisis | Crisis alerts and management |
+| /settings | System settings |
+| /user/profile | User profile management |
+| /csrf-token | CSRF token endpoints |
+| /health | Health check |
 
 ### Services Layer
 | Service | Purpose |
 |---------|---------|
 | firebaseService.js | Push notifications via Firebase Cloud Messaging |
 | ultramsgService.js | WhatsApp OTP delivery via Ultramsg API |
+| whatsappOtpService.js | WhatsApp OTP orchestration |
 | receiptService.js | PDF receipt generation with PDFKit |
+| arabicPdfExporter.js | Arabic-specific PDF generation |
 | notificationService.js | Notification orchestration and delivery |
+| notificationTemplates.js | Notification message templates |
+| paymentProcessingService.js | Payment processing logic |
+| bankTransferService.js | Bank transfer processing |
+| financialAnalyticsService.js | Financial analysis algorithms |
+| memberService.js | Member business logic |
+| memberMonitoringQueryService.js | Member monitoring queries |
+| cacheService.js | Redis caching layer |
+| databaseOptimizationService.js | Query optimization utilities |
+| optimizedReportQueries.js | Performance-optimized report queries |
+| reportExportService.js | Report export (Excel, PDF) |
+| forensicAnalysis.js | Data forensics and analysis |
+| database.js | Database service wrapper |
+
+### Key Backend Dependencies
+- **Framework**: express ^4.18.2, helmet ^7.1.0, cors ^2.8.5
+- **Database**: pg ^8.16.3 (direct PostgreSQL, NOT Supabase client)
+- **Auth**: jsonwebtoken ^9.0.2, bcrypt ^6.0.0, csrf-csrf ^4.0.3
+- **PDF**: pdfkit ^0.17.2, canvas ^3.2.0
+- **Calendar**: moment-hijri ^3.0.0, hijri-converter ^1.1.1
+- **Communication**: firebase-admin ^13.5.0, twilio ^5.10.4
+- **Validation**: joi ^18.0.1
+- **Logging**: winston ^3.11.0
+- **Testing**: jest ^30.2.0, supertest ^7.1.4
 
 ## Admin Dashboard Architecture
 
-### Directory Structure (alshuail-admin-arabic/)
+### Directory Structure (alshuail-admin-arabic/ v2.0.0)
 ```
 src/
-├── components/          # Reusable UI components
-├── pages/              # Page components
-│   ├── Dashboard.jsx
-│   ├── Members.jsx
-│   ├── MemberDetails.jsx
-│   ├── Payments.jsx
-│   ├── Subscriptions.jsx
-│   ├── Initiatives.jsx
-│   ├── Diyas.jsx
-│   ├── Expenses.jsx
-│   ├── FamilyTree.jsx
-│   ├── Notifications.jsx
-│   ├── Reports.jsx
-│   ├── Settings.jsx
-│   ├── News.jsx
-│   └── Login.jsx
-├── contexts/           # React contexts
-├── hooks/              # Custom hooks
-├── services/           # API service functions
-├── utils/              # Helper functions
-└── App.jsx
+├── components/              # 200+ reusable UI components (32 categories)
+│   ├── Auth/                # LoginPage, EmailLoginPage, ProtectedRoute
+│   ├── Dashboard/           # 28 files - Multiple dashboard variants
+│   │   ├── UnifiedDashboard.tsx
+│   │   ├── IslamicPremiumDashboard.tsx
+│   │   ├── AppleDashboard.tsx
+│   │   └── ...
+│   ├── Members/             # 42 files - Member management
+│   │   ├── Registration forms (Apple, Premium, Standard)
+│   │   ├── Import/Export (Premium)
+│   │   └── Member documents, security sections
+│   ├── Payments/            # 16 files - Payment processing
+│   ├── Subscriptions/       # 10 files - Subscription management
+│   ├── Diyas/               # 12 files - Diya management
+│   ├── Initiatives/         # 13 files - Initiative tracking
+│   ├── Occasions/           # 12 files - Event management
+│   ├── MemberMonitoring/    # 18 files - Advanced member tracking
+│   ├── Reports/             # 13 files - Financial reporting
+│   ├── MemberStatement/     # Statement search, balance adjustments
+│   ├── Notifications/       # 10 files - Notification system
+│   ├── FamilyTree/          # 9 files - Family tree visualization
+│   ├── Settings/            # 22 files - Comprehensive settings
+│   │   ├── ProfileSettings, AppearanceSettings
+│   │   ├── LanguageSettings, SystemSettings
+│   │   ├── AccessControl, MultiRoleManagement
+│   │   ├── UserManagement, AuditLogs
+│   │   └── Modern design system components
+│   ├── Approvals/           # Approval workflows
+│   ├── Crisis/              # Crisis management dashboard
+│   ├── Common/              # 20 files - Shared components
+│   │   ├── HijriDatePicker, HijriDateInput, HijriDateDisplay
+│   │   ├── VirtualScrollList (performance)
+│   │   └── ErrorBoundary, SkeletonLoaders
+│   ├── Navigation/          # Role-based navigation
+│   ├── Documents/           # Document manager
+│   ├── Registration/        # Premium registration
+│   └── mobile/              # Mobile bottom nav
+├── pages/                   # 21 page files
+│   ├── admin/               # Admin pages (7 files)
+│   │   ├── FamilyTreeManagement.tsx
+│   │   ├── FullFamilyTree.tsx
+│   │   ├── InitiativesManagement.tsx
+│   │   ├── InitiativeReport.tsx
+│   │   ├── NewsManagement.tsx
+│   │   └── SubscriptionDashboard.tsx
+│   ├── mobile/              # Mobile pages (12 files)
+│   │   ├── Login, Dashboard, Profile, Payment
+│   │   ├── PaymentHistory, Notifications
+│   │   ├── MemberSubscriptionView, ChangePassword
+│   │   └── ReceiptUpload
+│   ├── member/              # Member pages (4 files)
+│   │   ├── News, NewsDetail, Initiatives, Notifications
+│   └── PrivacyPolicy.tsx
+├── contexts/                # State management (3 files)
+│   ├── AuthContext.js
+│   ├── RoleContext.tsx
+│   └── ThemeContext.tsx      # Dark/light mode
+├── hooks/                   # Custom hooks (4 files)
+│   ├── useApi.ts
+│   ├── useActiveMemberCount.ts
+│   ├── useMobile.js
+│   └── useNotifications.js
+├── services/                # API services (19 files)
+│   ├── admin.service.ts, auth.ts, approval.service.ts
+│   ├── familytree.service.ts, multiRoleService.ts
+│   ├── memberService.js, paymentService.js
+│   ├── subscriptionService.js, notificationService.js
+│   ├── websocketService.js, analyticsService.js
+│   └── api.js, mobileApi.js
+├── utils/                   # Helper functions (29 files)
+│   ├── hijriDate.js, hijriDateUtils.ts, hijriDateSystem.ts
+│   ├── validators.js, phoneValidator.js
+│   ├── performance.ts, memoryOptimization.js
+│   ├── apiConfig.ts, constants.js
+│   ├── pwa.ts, indexedDBManager.js
+│   └── arabic.ts
+├── types/                   # TypeScript types (3 files)
+│   ├── appearanceSettings.ts
+│   ├── languageSettings.ts
+│   └── notificationSettings.ts
+├── features/                # Feature packages
+│   └── access-control/      # Access control feature
+└── App.tsx                  # Main router
 ```
 
 ### Admin Routes
-| Page | Route | Required Role |
-|------|-------|---------------|
-| Dashboard | /admin/dashboard | All authenticated |
-| Members | /admin/members | admin+ |
-| Member Details | /admin/members/:id | admin+ |
-| Payments | /admin/payments | financial_manager+ |
-| Subscriptions | /admin/subscriptions | admin+ |
-| Initiatives | /admin/initiatives | admin+ |
-| Diyas | /admin/diyas | admin+ |
-| Expenses | /admin/expenses | financial_manager+ |
-| Family Tree | /admin/family-tree | All authenticated |
-| Notifications | /admin/notifications | admin+ |
-| Reports | /admin/reports | financial_manager+ |
-| Settings | /admin/settings | super_admin only |
-| News | /admin/news | admin+ |
+| Route | Description | Required Role |
+|-------|-------------|---------------|
+| /login | Admin login page | Public |
+| /admin/dashboard | Main admin dashboard | All authenticated |
+| /admin/* | All admin routes (via StyledDashboard) | admin+ |
+| /admin/initiatives/:id/report | Initiative detail reports | admin+ |
+| /mobile/login | Member mobile login | Public |
+| /mobile/dashboard | Member mobile dashboard | member+ |
+| /mobile/profile | Member profile | member+ |
+| /mobile/payment | Payment interface | member+ |
+| /mobile/payment-history | Payment history | member+ |
+| /mobile/notifications | Mobile notifications | member+ |
+| /mobile/subscription | Subscription details | member+ |
+| /mobile/news, /mobile/news/:id | News listing & detail | member+ |
+| /mobile/initiatives | Initiative listing | member+ |
+| /register/:token | Public member registration | Public |
+| /apple-register | Apple-style registration | Public |
+| /premium-register | Premium registration | Public |
+| /family-tree | Family tree admin view | All authenticated |
+
+### Admin Key Dependencies
+- **UI**: React 19.1.1, Tailwind CSS, Framer Motion, Heroicons, Lucide React, DaisyUI
+- **Charts**: Chart.js, React-ChartJS-2, Recharts
+- **PDF/Export**: jspdf, jspdf-autotable, html2canvas, xlsx, xlsx-populate
+- **Date**: hijri-converter, moment-hijri
+- **Build**: CRACO (custom webpack config with code splitting)
+- **PWA**: Workbox, Service Workers
 
 ## Mobile PWA Architecture
 
-### Directory Structure (alshuail-mobile/)
+### Directory Structure (alshuail-mobile/ v2.0.0)
 ```
 src/
-├── components/          # Reusable components
-├── pages/              # Page components
-│   ├── Dashboard.jsx
-│   ├── Login.jsx
+├── pages/                   # 24 page components
+│   ├── Login.jsx            # Phone + Password/OTP auth
+│   ├── Dashboard.jsx        # Main dashboard with caching
+│   ├── Profile.jsx
+│   ├── Settings.jsx         # Push notification toggle
 │   ├── FamilyTree.jsx
 │   ├── BranchDetail.jsx
-│   ├── Profile.jsx
-│   ├── Payments.jsx
-│   ├── PaymentCenter.jsx
-│   ├── PaymentHistory.jsx
-│   ├── Initiatives.jsx
-│   ├── MemberCard.jsx
 │   ├── Notifications.jsx
-│   ├── News.jsx
-│   ├── Settings.jsx
-│   ├── Statement.jsx
+│   ├── Initiatives.jsx
 │   ├── Events.jsx
-│   └── PrivacyPolicy.jsx
+│   ├── News.jsx
+│   ├── Payments.jsx
+│   ├── PaymentCenter.jsx    # Payment hub (self/on-behalf)
+│   ├── PaymentHistory.jsx
+│   ├── SubscriptionDetail.jsx
+│   ├── MemberCard.jsx
+│   ├── Statement.jsx
+│   ├── ChangePassword.jsx   # First-login forced password change
+│   ├── ProfileWizard.jsx
+│   ├── PrivacyPolicy.jsx
+│   └── Payment type pages (Subscription, Diya, Initiative, BankTransfer)
+├── components/              # 4 components
+│   ├── BottomNav.jsx
+│   ├── FundBalanceWidget.jsx  # Real-time fund balance display
+│   ├── MemberSearchField.jsx
+│   └── NotificationPrompt.jsx
 ├── contexts/
-│   └── AuthContext.jsx
-├── services/
-│   └── api.js
-├── firebase.js          # Firebase config
-└── App.jsx
+│   ├── DataCacheContext.jsx   # Data caching with TTL (5 min default)
+│   └── index.js
+├── services/                # 11 service files
+│   ├── authService.js       # WhatsApp OTP + password login
+│   ├── pushNotificationService.js  # Full Firebase FCM integration
+│   ├── memberService.js
+│   ├── familyTreeService.js
+│   ├── subscriptionService.js
+│   ├── paymentService.js
+│   ├── newsService.js
+│   ├── initiativeService.js
+│   ├── eventsService.js
+│   ├── notificationService.js
+│   └── index.js
+├── utils/
+│   └── api.js               # Axios with auth interceptors
+├── firebase-messaging-sw.js  # Service worker (background notifications)
+└── App.jsx                  # React Router v6 with AuthContext
 ```
 
 ### Mobile Routes
@@ -279,46 +531,152 @@ src/
 | Initiatives | /initiatives |
 | News | /news |
 | Settings | /settings |
+| Change Password | /change-password |
+| Subscription Detail | /subscriptions/:year |
 | Profile Wizard | /profile-wizard |
 | Statement | /statement |
 | Events | /events |
 | Privacy Policy | /privacy |
+
+### Mobile Key Dependencies
+- **UI**: React 18.2, Vite 5, Tailwind CSS 3, Lucide React
+- **PWA**: vite-plugin-pwa 0.17.0 (auto-update, standalone, RTL Arabic manifest)
+- **Notifications**: Firebase 12.6.0 (FCM + service worker)
+- **Calendar**: moment-hijri 2.1.2
+- **API**: Axios 1.6.0 with auth interceptors
 
 ## Flutter App Architecture
 
 ### Directory Structure (alshuail-flutter/)
 ```
 lib/
-├── main.dart            # App entry point
-├── models/              # Data models
-├── screens/             # Screen widgets
-├── widgets/             # Reusable widgets
-├── services/            # API and auth services
-├── providers/           # State management
-└── utils/               # Helpers and constants
+├── main.dart                        # App entry point
+├── config/
+│   ├── api_config.dart              # API endpoints
+│   ├── app_router.dart              # GoRouter navigation
+│   └── app_theme.dart               # Theme configuration
+├── providers/
+│   ├── auth_provider.dart           # Authentication state
+│   └── data_cache_provider.dart     # Data caching
+├── services/
+│   ├── api_service.dart             # REST API (Dio)
+│   ├── auth_service.dart            # Authentication logic
+│   ├── biometric_service.dart       # Biometric auth (fingerprint/face)
+│   ├── member_service.dart          # Member operations
+│   └── storage_service.dart         # Local storage (Hive + Secure Storage)
+├── screens/
+│   ├── auth/                        # Login, OTP, Create Password, Biometric
+│   │   ├── login_screen.dart
+│   │   ├── otp_verification_screen.dart
+│   │   ├── create_password_screen.dart
+│   │   ├── biometric_login_screen.dart
+│   │   ├── forgot_password_screen.dart
+│   │   ├── profile_completion_screen.dart
+│   │   └── splash_screen.dart
+│   ├── dashboard/                   # Dashboard + Main Navigation
+│   ├── payments/                    # Payments, Bank Transfer, Details
+│   ├── family/                      # Family tree visualization
+│   ├── profile/                     # User profile
+│   ├── settings/                    # App settings
+│   ├── notifications/               # Notification center
+│   ├── news/                        # News feed
+│   ├── events/                      # Event management
+│   ├── initiatives/                 # Initiative participation
+│   ├── member_card/                 # Digital member card
+│   ├── statement/                   # Account statements
+│   ├── add_children/                # Add children workflow
+│   └── common/                      # Success screens
+├── widgets/
+│   ├── balance_card.dart            # Balance display
+│   └── quick_action_button.dart     # Action buttons
+└── (37 Dart files total, ~16,756 LOC)
+```
+
+### Flutter Key Dependencies
+- **State**: Provider, Flutter Riverpod
+- **Navigation**: GoRouter
+- **Network**: Dio, connectivity_plus
+- **Storage**: Hive, flutter_secure_storage, shared_preferences
+- **Auth**: local_auth (biometrics)
+- **Notifications**: firebase_core, firebase_messaging, flutter_local_notifications
+- **PDF**: pdf, printing
+- **UI**: google_fonts, shimmer, cached_network_image, lottie, lucide_icons
+
+## iOS SwiftUI App Architecture
+
+### Directory Structure (AlShuailFund/)
+```
+AlShuailFund/
+├── AlShuailFundApp.swift            # App entry point
+├── App/
+│   └── AppState.swift               # Global app state
+├── Core/
+│   ├── Network/
+│   │   ├── APIEndpoint.swift        # API endpoint definitions
+│   │   ├── APIError.swift           # Error handling
+│   │   ├── NetworkManager.swift     # Network requests
+│   │   └── TokenManager.swift       # Token management
+│   └── Theme/
+│       ├── AppColors.swift          # Color palette
+│       ├── AppFonts.swift           # Typography
+│       └── DeviceHelper.swift       # Device utilities
+├── Features/
+│   ├── Auth/                        # AuthService, AuthViewModel, AuthViews
+│   ├── Dashboard/                   # Dashboard views
+│   ├── AboutAppView.swift
+│   ├── ContactInfoView.swift
+│   ├── DonationFlowView.swift
+│   ├── EditProfileView.swift
+│   ├── MemberCardView.swift
+│   ├── MyFamilyTreeView.swift
+│   ├── NotificationSettingsView.swift
+│   ├── PaymentDetailView.swift
+│   ├── PaymentFlowView.swift
+│   ├── ReportsView.swift
+│   └── PushNotificationManager.swift
+├── Models/
+│   └── Models.swift                 # Data models
+├── Navigation/
+│   └── MainTabView.swift            # Tab bar navigation
+└── (26 Swift files total, ~5,818 LOC)
 ```
 
 ## Authentication Flow
 
+### Dual Authentication System
+The system supports two authentication methods:
+
+**Method 1: WhatsApp OTP**
 1. User enters phone number (Kuwait +965 or Saudi +966)
 2. Backend sends OTP via WhatsApp (Ultramsg API)
 3. User enters 6-digit OTP code
 4. Backend verifies OTP and returns JWT token
-5. Token stored in localStorage (mobile) or memory (admin)
-6. All API requests include `Authorization: Bearer <token>` header
+
+**Method 2: Password-based Login**
+1. User enters phone number + password
+2. Backend validates credentials (bcrypt)
+3. First-login users must change temporary password
+4. Backend returns JWT token
+
+**Post-Authentication:**
+- Token stored in localStorage (mobile/admin) or Secure Storage (Flutter)
+- All API requests include `Authorization: Bearer <token>` header
+- CSRF token protection on state-changing requests
 
 ### Token Expiry
 - Admin Dashboard: 7 days
 - Mobile App: 30 days
 
-### User Roles
+### User Roles (with Hijri Date-Based Expiration)
 | Role | Permissions |
 |------|-------------|
-| super_admin | Full system access |
+| super_admin | Full system access, password management |
 | admin | Member and content management |
 | financial_manager | Payments, expenses, reports |
 | operational_manager | Operations and notifications |
 | member | View own data, make payments |
+
+Roles can be assigned with Hijri-date-based expiration via the multi-role management system.
 
 ## Database Schema
 
@@ -328,32 +686,61 @@ lib/
 | members | Family member profiles |
 | family_branches | 10 family branch definitions |
 | payments | All payment transactions |
+| payments_yearly | Yearly payment summaries |
 | subscriptions | Monthly/annual subscription records |
 | initiatives | Fundraising campaigns |
-| diyas | Blood money collection cases |
+| diyas | Blood money collection cases (internal/external) |
 | crisis_cases | Emergency assistance cases |
 | notifications | Push notification records |
+| notification_logs | Notification delivery logs |
+| notification_preferences | User notification preferences |
 | device_tokens | FCM token storage |
 | audit_logs | System audit trail |
 | occasions | Family events |
 | news | News/announcements |
-| expenses | Fund expenditures |
+| expenses | Fund expenditures with status tracking |
+| expense_categories | Dynamic expense categories |
 | settings | System configuration |
+| system_settings | System-wide settings |
+| fund_balance_snapshots | Fund balance reconciliation |
+| bank_transfer_requests | Bank transfer / pay-on-behalf tracking |
+| documents_metadata | Document storage metadata |
+
+### Database Migrations (33 files in backend/migrations/)
+Migrations cover: password auth system, member balance system, suspension/super admin system, multi-role time-based system, device tokens, notification preferences, crisis tables, audit logs, family tree columns, appearance/language/notification settings, fund balance schema, performance indexes, phone data integrity fixes, and more.
+
+## CI/CD Pipelines
+
+### GitHub Actions Workflows (.github/workflows/)
+| Workflow | Purpose |
+|----------|---------|
+| backend-ci-cd.yml | Quality gates → Build/Docker → Integration tests → Deploy to Railway |
+| cloudflare-pages-deploy.yml | Admin dashboard → Build → Deploy to Cloudflare Pages |
+| frontend-ci-cd.yml | Frontend build and deploy pipeline |
+| tests.yml | General testing workflow |
 
 ## Third-Party Services
 
 | Service | Purpose | Configuration |
 |---------|---------|---------------|
-| Supabase | PostgreSQL database hosting | SUPABASE_URL, SUPABASE_ANON_KEY |
+| PostgreSQL (VPS) | Primary database (self-hosted) | PG_HOST, PG_PORT, PG_DATABASE |
 | Ultramsg | WhatsApp OTP delivery | ULTRAMSG_INSTANCE_ID, ULTRAMSG_TOKEN |
 | Firebase | Push notifications (FCM) | Firebase service account JSON |
-| Cloudflare | Admin dashboard hosting | Wrangler CLI |
+| Cloudflare | Admin dashboard hosting + CDN | Wrangler CLI |
+| Railway | Backend hosting (alternative) | render.yaml / railway config |
 
 ## Environment Variables
 
 ### Backend (.env)
 ```env
-# Database
+# Database (PostgreSQL on VPS - NOT Supabase)
+PG_HOST=213.199.62.185
+PG_PORT=5432
+PG_DATABASE=alshuail
+PG_USER=...
+PG_PASSWORD=...
+
+# Legacy Supabase (some queries may still reference)
 SUPABASE_URL=https://xxx.supabase.co
 SUPABASE_ANON_KEY=eyJhbGc...
 SUPABASE_SERVICE_KEY=eyJhbGc...
@@ -373,11 +760,25 @@ FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n..."
 # Server
 PORT=5001
 NODE_ENV=production
+
+# Optional Redis caching
+REDIS_URL=redis://...
+
+# Feature Flags
+ENABLE_PASSWORD_AUTH=true
+ENABLE_OTP_AUTH=true
 ```
 
-### Admin Frontend (.env)
+### Admin Frontend (.env.production)
 ```env
-REACT_APP_API_URL=https://api.alshailfund.com
+REACT_APP_API_URL=https://api.alshailfund.com/api
+REACT_APP_NAME=Al-Shuail Admin Dashboard
+REACT_APP_VERSION=2.0.0
+REACT_APP_ENABLE_FAMILY_TREE=true
+REACT_APP_ENABLE_APPROVALS=true
+REACT_APP_ENABLE_AUDIT_LOGS=true
+REACT_APP_DEFAULT_LANGUAGE=ar
+REACT_APP_DEFAULT_COUNTRY_CODE=+966
 ```
 
 ### Mobile PWA (.env)
@@ -393,7 +794,7 @@ VITE_FIREBASE_VAPID_KEY=...
 
 ## Testing
 
-### Backend Tests
+### Backend Tests (164 files)
 ```bash
 cd alshuail-backend
 npm test                    # Run all tests
@@ -404,10 +805,13 @@ npm test -- auth.test.js    # Run specific test file
 ### Test Structure
 ```
 __tests__/
-├── unit/           # Unit tests for services/utils
-├── integration/    # API endpoint tests
+├── unit/           # Unit tests (51 files: middleware, controllers, utils)
+├── integration/    # API integration tests
 ├── e2e/            # End-to-end flows
-└── security/       # Security vulnerability tests
+├── security/       # Security vulnerability tests
+├── performance/    # Performance benchmarks
+├── __mocks__/      # Test data and mocking utilities
+└── helpers/        # Test helper functions
 ```
 
 ### Browser Testing URLs
@@ -448,19 +852,36 @@ ssh root@213.199.62.185 "pm2 status"
 ### Phone Number Format
 - Kuwait: +965XXXXXXXX (8 digits after +965)
 - Saudi Arabia: +966XXXXXXXXX (9 digits after +966)
+- Mobile login accepts local formats: 05xxxxxxxxx (Saudi), 9xxxxxxx (Kuwait)
 
 ### RTL Support
 - Admin dashboard is RTL by default (Arabic)
 - Use `dir="rtl"` and Tailwind RTL utilities
 - DaisyUI components support RTL
+- PWA manifest specifies `dir: "rtl"` and `lang: "ar"`
 
 ### Hijri Calendar
-- Uses `hijri-converter` library
+- Uses `hijri-converter` and `moment-hijri` libraries
 - Display Islamic dates alongside Gregorian
+- Role expiration uses Hijri dates
+- Custom HijriDatePicker, HijriDateInput, HijriDateDisplay components
 
 ### CORS Configuration
 - Backend allows requests from alshailfund.com and app.alshailfund.com
 - Credentials: true for cookie support
+- CSRF protection enabled on state-changing requests
+
+### Database Migration from Supabase
+- Primary database is now self-hosted PostgreSQL on VPS (213.199.62.185)
+- Uses `pg` driver directly (NOT @supabase/supabase-js client)
+- Some legacy Supabase references may exist in code — always use pg for new queries
+- 33 migration files in backend/migrations/ directory
+
+### Admin Build Configuration
+- Uses CRACO for custom webpack config
+- Code splitting: separate bundles for heroicons, chartjs, recharts, react, libs
+- Emergency build mode available: `BUILD_MODE=emergency` (unminified)
+- Access Control feature uses force-include shim to prevent tree-shaking
 
 ## UI Theme
 
@@ -473,17 +894,74 @@ ssh root@213.199.62.185 "pm2 status"
 - Error: #EF4444
 
 ### Design System
-- Admin: DaisyUI + Tailwind CSS
-- Mobile: Custom Tailwind + Lucide icons
-- Icons: Lucide React
+- Admin: DaisyUI + Tailwind CSS + Framer Motion
+- Mobile PWA: Custom Tailwind + Lucide icons + Glassmorphism effects
+- Flutter: Google Fonts + Material Design + Lucide Icons
+- iOS: SwiftUI native + custom color palette
+- Icons: Lucide React (web), Lucide Icons (Flutter), SF Symbols (iOS)
+- Multiple dashboard design variants: Apple, Islamic Premium, Ultra Premium, Simple
 
-## Recent Updates (January 2025)
+## Documentation Hub (docs/)
 
-- **Privacy Policy**: Added bilingual privacy page at /privacy (mobile PWA)
-- **Flutter App**: Native mobile app added in alshuail-flutter/
-- **Project Cleanup**: Removed legacy Mobile/ folder, consolidated structure
-- **CLAUDE.md**: Comprehensive documentation update
-- **GitHub**: All changes pushed to https://github.com/Mohamedgad1983/PROShael
+### Feature Specifications (docs/specs/)
+| Spec | Description |
+|------|-------------|
+| 001-fund-balance-system | Fund balance tracking and reconciliation |
+| 001-member-temp-password | Temporary password system for new members |
+| 001-vps-database-migration | Migration from Supabase to VPS PostgreSQL |
+| 002-sidebar-accessibility | Sidebar accessibility improvements |
+| 003-supabase-to-vps-migration | Complete Supabase to VPS migration plan |
+| password-auth-owasp-compliance | OWASP-compliant password authentication |
+
+Each spec includes: spec.md, plan.md, tasks.md, and optionally data-model.md, research.md, quickstart.md, API contracts, and requirement checklists.
+
+### Architecture & Analysis
+- docs/architecture/API.md — Complete API endpoint documentation
+- docs/architecture/ARCHITECTURE.md — System architecture overview
+- docs/analysis/ — Expenses module analysis, PRD v2, controller conversion summary
+
+## Project Statistics
+
+| Metric | Count |
+|--------|-------|
+| Backend Controllers | 33 |
+| Backend Route Files | 43 |
+| Backend Services | 19 |
+| Backend Middleware | 13 |
+| Backend Utils | 16 |
+| Backend Test Files | 164 |
+| Database Migrations | 33 |
+| Admin Components | 200+ (32 categories) |
+| Admin Pages | 21 |
+| Admin Services | 19 |
+| Mobile Pages | 24 |
+| Mobile Services | 11 |
+| Flutter Dart Files | 37 (~16,756 LOC) |
+| iOS Swift Files | 26 (~5,818 LOC) |
+| CI/CD Workflows | 4 |
+| Feature Specs | 6 |
+| Total API Endpoints | 50+ |
+
+## Recent Updates (April 2025)
+
+- **Database Migration**: Migrated from Supabase Cloud to self-hosted PostgreSQL on VPS
+- **Password Authentication**: OWASP-compliant password auth alongside WhatsApp OTP
+- **Multi-Role System**: Time-based role assignment with Hijri date expiration
+- **Fund Balance Management**: Real-time fund tracking with reconciliation snapshots
+- **Approval Workflows**: Admin approval queue for sensitive operations
+- **Member Monitoring**: Advanced wellness tracking and monitoring dashboards
+- **Bank Transfers**: Pay-on-behalf functionality with bank transfer requests
+- **Expense Categories**: Dynamic expense category management
+- **Balance Adjustments**: Manual corrections with full audit trail
+- **CSRF Protection**: Cross-site request forgery protection on all state-changing endpoints
+- **Admin Dashboard v2.0**: React 19, 200+ components, multiple dashboard design variants, PWA support
+- **Mobile PWA v2.0**: Data caching, fund balance widget, password change flow
+- **Flutter App**: 37 screens with biometric auth, GoRouter, Provider + Riverpod
+- **iOS SwiftUI App**: Full MVVM architecture with 26 feature screens
+- **CI/CD**: GitHub Actions pipelines for backend, frontend, and Cloudflare Pages
+- **Security**: Enhanced middleware (CSRF, rate limiting, security headers, role expiration)
+- **Performance**: Redis caching, database optimization service, materialized views, connection pooling
+- **Testing**: 164 test files covering unit, integration, security, performance, and e2e
 
 ## Support
 
