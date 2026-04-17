@@ -246,76 +246,107 @@ const MemberStatementSearch = () => {
     return () => clearInterval(timer);
   }, [searchResults]);
 
-  // Load member statement with payment details - memoized with useCallback
+  // Load member statement with payment details — now calls the real backend
+  // endpoint GET /api/statements/generate/:membershipNumber which returns a
+  // merged list of yearly-archive rows + admin-approved mobile payments from
+  // the `payments` table. No more fabricated mock data.
   const loadMemberStatement = useCallback(async (member) => {
     setLoading(true);
     setError('');
 
     try {
-      // Generate mock payment data based on member's balance
-      const memberBalance = member.balance || 0;
-      const payments = [];
+      const token = localStorage.getItem('token');
+      const membershipNumber = member.member_no || member.membership_number;
 
-      // Distribute balance across years
-      if (memberBalance > 0) {
-        const yearsWithPayment = Math.min(5, Math.floor(memberBalance / 600));
-        for (let i = 0; i < yearsWithPayment; i++) {
-          payments.push({
-            year: 2021 + i,
-            amount: 600,
-            payment_date: `${2021 + i}-06-15`,
-            receipt_number: `RCP-${2021 + i}-${member.member_no}`,
-            payment_method: 'بنك الراجحي'
-          });
-        }
-        // Add partial payment if balance is not divisible by 600
-        const remainder = memberBalance % 600;
-        if (remainder > 0 && yearsWithPayment < 5) {
-          payments.push({
-            year: 2021 + yearsWithPayment,
-            amount: remainder,
-            payment_date: `${2021 + yearsWithPayment}-06-15`,
-            receipt_number: `RCP-${2021 + yearsWithPayment}-${member.member_no}`,
-            payment_method: 'تحويل بنكي'
-          });
+      let payments = [];
+      let apiCurrentBalance = null;
+      let apiLastPaymentDate = null;
+
+      if (membershipNumber) {
+        try {
+          const response = await fetch(
+            `${API_BASE_URL}/statements/generate/${encodeURIComponent(membershipNumber)}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          if (response.ok) {
+            const body = await response.json();
+            const data = body.data || body;
+            apiCurrentBalance = data.currentBalance;
+            apiLastPaymentDate = data.statistics?.lastPaymentDate || null;
+
+            // Transform the merged transaction list back into the shape this
+            // component uses: {year, amount, payment_date, receipt_number, payment_method}
+            payments = (data.recentTransactions || []).map((t) => ({
+              year: t.year || (t.date ? new Date(t.date).getFullYear() : null),
+              amount: parseFloat(t.amount) || 0,
+              payment_date: t.date,
+              receipt_number: t.receipt_number,
+              payment_method:
+                t.payment_method ||
+                (t.description?.includes('التطبيق')
+                  ? 'دفعة من التطبيق'
+                  : 'تحويل بنكي')
+            }));
+          } else {
+            logger.warn('statements/generate returned non-200', { status: response.status });
+          }
+        } catch (e) {
+          logger.warn('statements/generate fetch failed — falling back', { error: e.message });
         }
       }
 
-      const paymentsError = null;
+      // Dynamic year range — include every year that has a payment, PLUS the
+      // five standard subscription years so missing years show as pending.
+      const paymentYears = Array.from(
+        new Set(payments.map((p) => p.year).filter((y) => Number.isFinite(y)))
+      );
+      const defaultYears = [2021, 2022, 2023, 2024, 2025];
+      const allYears = Array.from(new Set([...defaultYears, ...paymentYears])).sort();
 
-      if (paymentsError && paymentsError.code !== 'PGRST116') {
-        logger.error('Payments fetch error:', { paymentsError });
-      }
-
-      // Calculate statement data
-      const years = [2021, 2022, 2023, 2024, 2025];
-      const yearlyPayments = years.map(year => {
-        const payment = payments?.find(p => p.year === year);
+      // Aggregate by year (one member can have multiple payments in the same year)
+      const yearlyPayments = allYears.map((year) => {
+        const yearPayments = payments.filter((p) => p.year === year);
+        const paid = yearPayments.reduce((s, p) => s + (p.amount || 0), 0);
+        const first = yearPayments[0];
         return {
           year,
           required: YEARLY_AMOUNT,
-          paid: payment?.amount || 0,
-          status: payment?.amount >= YEARLY_AMOUNT ? 'paid' : payment?.amount > 0 ? 'partial' : 'pending',
-          paymentDate: payment?.payment_date,
-          receiptNumber: payment?.receipt_number,
-          paymentMethod: payment?.payment_method
+          paid,
+          status:
+            paid >= YEARLY_AMOUNT ? 'paid' : paid > 0 ? 'partial' : 'pending',
+          paymentDate: first?.payment_date,
+          receiptNumber: first?.receipt_number,
+          paymentMethod: first?.payment_method
         };
       });
 
-      const totalPaid = yearlyPayments.reduce((sum, p) => sum + p.paid, 0);
-      const totalRequired = years.length * YEARLY_AMOUNT;
+      // Total paid: prefer the backend's currentBalance (which is already the
+      // MAX of yearly + mobile + members.current_balance). Fall back to the
+      // sum of the yearlyPayments we just built, then to the stored balance
+      // from the members list.
+      const totalPaid =
+        apiCurrentBalance != null
+          ? parseFloat(apiCurrentBalance)
+          : Math.max(
+              yearlyPayments.reduce((s, p) => s + p.paid, 0),
+              parseFloat(member.balance) || 0
+            );
+      const totalRequired = allYears.length * YEARLY_AMOUNT;
       const outstandingBalance = Math.max(0, totalRequired - totalPaid);
-      const complianceStatus = totalPaid >= MINIMUM_BALANCE ? 'compliant' : 'non-compliant';
+      const complianceStatus =
+        totalPaid >= MINIMUM_BALANCE ? 'compliant' : 'non-compliant';
 
       setSelectedMember(member);
       setMemberStatement({
-        member: member,
+        member,
         yearlyPayments,
         totalPaid,
         totalRequired,
         outstandingBalance,
         complianceStatus,
-        lastPaymentDate: payments?.[0]?.payment_date
+        lastPaymentDate: apiLastPaymentDate || payments?.[0]?.payment_date,
+        // Keep the full list for detail rendering
+        allPayments: payments
       });
 
       setShowAutoComplete(false);
