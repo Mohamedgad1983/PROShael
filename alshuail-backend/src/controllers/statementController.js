@@ -19,6 +19,55 @@ const normalizeArabic = (text) => {
     .trim();
 };
 
+/**
+ * Fetches admin-approved mobile-app payments from the `payments` table for a
+ * member. These aren't recorded in payments_yearly (that table is the legacy
+ * per-year subscription archive) but they represent real money the member has
+ * paid, so the admin statement needs to include them.
+ *
+ * We filter by payment_method to avoid double-counting subscription rows that
+ * already exist in payments_yearly — the mobile app writes 'app_payment' or
+ * 'bank_transfer' into payment_method.
+ */
+async function fetchApprovedMobilePayments(memberId, membershipNumber) {
+  try {
+    const { rows } = await query(
+      `SELECT id, amount, payment_date, payment_method, reference_number,
+              receipt_number, notes, created_at
+         FROM payments
+        WHERE payer_id = $1
+          AND status = 'paid'
+          AND payment_method IN ('app_payment', 'bank_transfer')
+        ORDER BY COALESCE(payment_date, created_at) DESC`,
+      [memberId]
+    );
+    const total = rows.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
+    const transactions = rows.map((p) => ({
+      type: 'payment',
+      year: p.payment_date
+        ? new Date(p.payment_date).getFullYear()
+        : new Date(p.created_at).getFullYear(),
+      amount: parseFloat(p.amount) || 0,
+      date: p.payment_date || p.created_at,
+      description:
+        p.notes?.trim() ||
+        `دفعة ${p.payment_method === 'app_payment' ? 'من التطبيق' : 'تحويل بنكي'}`,
+      status: 'paid',
+      receipt_number:
+        p.receipt_number ||
+        p.reference_number ||
+        `MBL-${membershipNumber || ''}-${p.id.slice(0, 6)}`
+    }));
+    return { total, transactions };
+  } catch (e) {
+    log.warn('fetchApprovedMobilePayments failed (non-blocking)', {
+      memberId,
+      error: e.message
+    });
+    return { total: 0, transactions: [] };
+  }
+}
+
 // Search by phone - uses payments_yearly as source of truth
 export const searchByPhone = async (req, res) => {
   try {
@@ -52,13 +101,28 @@ export const searchByPhone = async (req, res) => {
       });
     }
 
-    // Calculate balance from payments_yearly (source of truth)
+    // Calculate legacy-yearly total (subscription archive)
     const { rows: balanceRows } = await query(
       'SELECT COALESCE(SUM(amount), 0) as total_paid, COUNT(*) as payment_count, MAX(payment_date) as last_payment_date FROM payments_yearly WHERE member_id = $1 AND amount > 0',
       [_data.id]
     );
-    const totalPaid = parseFloat(balanceRows[0]?.total_paid || 0);
-    const currentBalance = totalPaid > 0 ? totalPaid : (parseFloat(_data.current_balance) || parseFloat(_data.total_paid) || 0);
+    const yearlyTotal = parseFloat(balanceRows[0]?.total_paid || 0);
+
+    // Also pull admin-approved mobile payments that live in the `payments`
+    // table but aren't in payments_yearly. Otherwise the statement misses
+    // everything that came through the mobile app approval queue.
+    const mobile = await fetchApprovedMobilePayments(_data.id, _data.membership_number);
+
+    // Final total prefers the maximum of:
+    //   • yearly + mobile (what the member has actually paid)
+    //   • members.current_balance (what the trigger has tracked)
+    // Ensures neither source can accidentally under-count.
+    const computedTotal = yearlyTotal + mobile.total;
+    const storedBalance = parseFloat(_data.current_balance) || 0;
+    const totalPaid = Math.max(computedTotal, storedBalance);
+    const currentBalance = totalPaid > 0
+      ? totalPaid
+      : (parseFloat(_data.total_paid) || 0);
     const targetBalance = 3000;
     const shortfall = Math.max(0, targetBalance - currentBalance);
     const percentageComplete = targetBalance > 0 ? Math.min(100, (currentBalance / targetBalance) * 100) : 0;
@@ -69,13 +133,13 @@ export const searchByPhone = async (req, res) => {
     else if (currentBalance < 3000) alertLevel = 'WARNING';
     else alertLevel = 'SUFFICIENT';
 
-    // Get actual payment history
+    // Build transaction list from both sources
     const { rows: yearlyPayments } = await query(
       'SELECT id, year, amount, payment_date, receipt_number, notes FROM payments_yearly WHERE member_id = $1 AND amount > 0 ORDER BY year DESC',
       [_data.id]
     );
 
-    const recentTransactions = yearlyPayments.map(p => ({
+    const yearlyTxns = yearlyPayments.map(p => ({
       type: 'payment',
       year: p.year,
       amount: parseFloat(p.amount),
@@ -84,6 +148,10 @@ export const searchByPhone = async (req, res) => {
       status: 'paid',
       receipt_number: p.receipt_number || `RCP-${p.year}-${_data.membership_number}`
     }));
+
+    // Merge yearly + mobile-approved, newest first
+    const recentTransactions = [...yearlyTxns, ...mobile.transactions]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     const statement = {
       memberId: _data.membership_number,
@@ -106,11 +174,10 @@ export const searchByPhone = async (req, res) => {
       }
     };
 
-    // Sync members.current_balance if out of date (fire and forget)
-    if (totalPaid > 0 && totalPaid !== parseFloat(_data.current_balance)) {
-      query('UPDATE members SET current_balance = $1, total_paid = $1 WHERE id = $2', [totalPaid, _data.id])
-        .catch(e => log.warn('Auto-sync balance failed', { error: e.message }));
-    }
+    // NOTE: We no longer auto-sync members.current_balance from payments_yearly.
+    // The additive trigger (migration 20260417c) keeps current_balance
+    // accurate for approved mobile payments; overwriting it from the yearly
+    // archive would wipe out those contributions.
 
     res.json({
       success: true,
@@ -233,13 +300,28 @@ export const searchByMemberId = async (req, res) => {
       });
     }
 
-    // Calculate balance from payments_yearly (source of truth)
+    // Calculate legacy-yearly total (subscription archive)
     const { rows: balanceRows } = await query(
       'SELECT COALESCE(SUM(amount), 0) as total_paid, COUNT(*) as payment_count, MAX(payment_date) as last_payment_date FROM payments_yearly WHERE member_id = $1 AND amount > 0',
       [_data.id]
     );
-    const totalPaid = parseFloat(balanceRows[0]?.total_paid || 0);
-    const currentBalance = totalPaid > 0 ? totalPaid : (parseFloat(_data.current_balance) || parseFloat(_data.total_paid) || 0);
+    const yearlyTotal = parseFloat(balanceRows[0]?.total_paid || 0);
+
+    // Also pull admin-approved mobile payments that live in the `payments`
+    // table but aren't in payments_yearly. Otherwise the statement misses
+    // everything that came through the mobile app approval queue.
+    const mobile = await fetchApprovedMobilePayments(_data.id, _data.membership_number);
+
+    // Final total prefers the maximum of:
+    //   • yearly + mobile (what the member has actually paid)
+    //   • members.current_balance (what the trigger has tracked)
+    // Ensures neither source can accidentally under-count.
+    const computedTotal = yearlyTotal + mobile.total;
+    const storedBalance = parseFloat(_data.current_balance) || 0;
+    const totalPaid = Math.max(computedTotal, storedBalance);
+    const currentBalance = totalPaid > 0
+      ? totalPaid
+      : (parseFloat(_data.total_paid) || 0);
     const targetBalance = 3000;
     const shortfall = Math.max(0, targetBalance - currentBalance);
     const percentageComplete = targetBalance > 0 ? Math.min(100, (currentBalance / targetBalance) * 100) : 0;
@@ -250,13 +332,13 @@ export const searchByMemberId = async (req, res) => {
     else if (currentBalance < 3000) alertLevel = 'WARNING';
     else alertLevel = 'SUFFICIENT';
 
-    // Get actual payment history
+    // Build transaction list from both sources
     const { rows: yearlyPayments } = await query(
       'SELECT id, year, amount, payment_date, receipt_number, notes FROM payments_yearly WHERE member_id = $1 AND amount > 0 ORDER BY year DESC',
       [_data.id]
     );
 
-    const recentTransactions = yearlyPayments.map(p => ({
+    const yearlyTxns = yearlyPayments.map(p => ({
       type: 'payment',
       year: p.year,
       amount: parseFloat(p.amount),
@@ -265,6 +347,10 @@ export const searchByMemberId = async (req, res) => {
       status: 'paid',
       receipt_number: p.receipt_number || `RCP-${p.year}-${_data.membership_number}`
     }));
+
+    // Merge yearly + mobile-approved, newest first
+    const recentTransactions = [...yearlyTxns, ...mobile.transactions]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     const statement = {
       memberId: _data.membership_number,
@@ -286,11 +372,10 @@ export const searchByMemberId = async (req, res) => {
       }
     };
 
-    // Sync members.current_balance if out of date (fire and forget)
-    if (totalPaid > 0 && totalPaid !== parseFloat(_data.current_balance)) {
-      query('UPDATE members SET current_balance = $1, total_paid = $1 WHERE id = $2', [totalPaid, _data.id])
-        .catch(e => log.warn('Auto-sync balance failed', { error: e.message }));
-    }
+    // NOTE: We no longer auto-sync members.current_balance from payments_yearly.
+    // The additive trigger (migration 20260417c) keeps current_balance
+    // accurate for approved mobile payments; overwriting it from the yearly
+    // archive would wipe out those contributions.
 
     res.json({
       success: true,
@@ -405,18 +490,27 @@ export const generateStatement = async (req, res) => {
       });
     }
 
-    // === SOURCE OF TRUTH: Calculate balance from payments_yearly ===
+    // === BALANCE: merge yearly archive + mobile-approved payments ===
     const { rows: balanceRows } = await query(
       'SELECT COALESCE(SUM(amount), 0) as total_paid, COUNT(*) as payment_count, MAX(payment_date) as last_payment_date FROM payments_yearly WHERE member_id = $1 AND amount > 0',
       [memberData.id]
     );
-    const totalPaidFromPayments = parseFloat(balanceRows[0]?.total_paid || 0);
+    const yearlyTotalGS = parseFloat(balanceRows[0]?.total_paid || 0);
     const lastPaymentDateFromDB = balanceRows[0]?.last_payment_date;
 
-    // Fallback: if payments_yearly has nothing, try members.current_balance
+    const mobileGS = await fetchApprovedMobilePayments(
+      memberData.id,
+      memberData.membership_number
+    );
+
+    const computedTotalGS = yearlyTotalGS + mobileGS.total;
+    const storedBalanceGS = parseFloat(memberData.current_balance) || 0;
+    const totalPaidFromPayments = Math.max(computedTotalGS, storedBalanceGS);
+
+    // Fallback chain: merged total → members.total_paid → 0
     const currentBalance = totalPaidFromPayments > 0
       ? totalPaidFromPayments
-      : (parseFloat(memberData.current_balance) || parseFloat(memberData.total_paid) || 0);
+      : (parseFloat(memberData.total_paid) || 0);
 
     // Target balance is 3000 SAR (minimum requirement)
     const targetBalance = 3000;
@@ -445,9 +539,9 @@ export const generateStatement = async (req, res) => {
     );
 
     let recentTransactions;
-    if (yearlyPayments.length > 0) {
-      // Use ACTUAL payment records
-      recentTransactions = yearlyPayments.map(p => ({
+    if (yearlyPayments.length > 0 || mobileGS.transactions.length > 0) {
+      // Merge yearly archive + mobile-approved payments, newest first
+      const yearlyTxns = yearlyPayments.map(p => ({
         type: 'payment',
         year: p.year,
         amount: parseFloat(p.amount),
@@ -456,18 +550,16 @@ export const generateStatement = async (req, res) => {
         status: 'paid',
         receipt_number: p.receipt_number || `RCP-${p.year}-${memberData.membership_number}`
       }));
+      recentTransactions = [...yearlyTxns, ...mobileGS.transactions]
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     } else {
-      // Fallback: generate from balance if no payment records exist
+      // Fallback: synthesize a plausible history if nothing is recorded
       recentTransactions = generatePaymentHistoryFromBalance(currentBalance);
     }
 
-    // Sync members.current_balance if out of date (fire and forget)
-    if (totalPaidFromPayments > 0 && totalPaidFromPayments !== parseFloat(memberData.current_balance)) {
-      query(
-        'UPDATE members SET current_balance = $1, total_paid = $1 WHERE id = $2',
-        [totalPaidFromPayments, memberData.id]
-      ).catch(e => log.warn('Auto-sync balance failed', { error: e.message }));
-    }
+    // NOTE: We no longer auto-sync members.current_balance. The additive
+    // trigger keeps it correct for approved mobile payments; re-writing it
+    // from payments_yearly would wipe those contributions.
 
     // Format the response
     const statement = {
