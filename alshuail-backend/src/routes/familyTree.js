@@ -793,4 +793,224 @@ router.post('/add-child', authenticateToken, async (req, res) => {
   }
 });
 
+// POST /api/family-tree/add-ancestor
+// Add a new ancestor (father/grandfather/...) for an existing member.
+// Creates the ancestor member record AND the father→child relationship in
+// one call so the mobile client doesn't have to make two round-trips.
+//
+// Body: { full_name, child_id, phone? }
+//   - full_name : Arabic name of the ancestor being added
+//   - child_id  : the member whose parent we're adding. If it's the caller
+//                 themselves, pass their own id. If they've already added
+//                 ancestors, pass the id of the topmost one so the new
+//                 ancestor becomes the parent of THAT one.
+//   - phone     : optional, stored on the member record
+router.post('/add-ancestor', authenticateToken, async (req, res) => {
+  try {
+    const { full_name, child_id, phone } = req.body;
+
+    if (!full_name || !full_name.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'اسم الجد مطلوب'
+      });
+    }
+    if (!child_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'child_id is required'
+      });
+    }
+
+    // Verify the child member exists and fetch what we need to propagate
+    // (family_branch_id, generation_level) onto the new ancestor record.
+    const childResult = await query(
+      'SELECT id, family_branch_id, generation_level FROM members WHERE id = $1',
+      [child_id]
+    );
+    if (childResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'لم يتم العثور على بيانات العضو'
+      });
+    }
+    const child = childResult.rows[0];
+
+    // Safety: only allow the caller to add an ancestor to themselves or to
+    // a member they've already added as an ancestor of themselves. Without
+    // this, anyone could graft arbitrary parents onto arbitrary members.
+    if (child.id !== req.user.id) {
+      const ownershipCheck = await query(`
+        SELECT 1 FROM family_relationships
+         WHERE member_from = $1
+           AND relationship_type IN ('father', 'mother', 'parent')
+           AND is_active = true
+         LIMIT 1
+      `, [child.id]);
+      // member_from = ancestor, member_to = descendant in add-child. Here
+      // we just want to confirm the target isn't an unrelated member.
+      // Simpler guardrail: caller must be in the ancestor chain.
+      const chainCheck = await query(`
+        WITH RECURSIVE chain AS (
+          SELECT id, parent_member_id FROM members WHERE id = $1
+          UNION ALL
+          SELECT m.id, m.parent_member_id
+            FROM members m
+            JOIN chain c ON m.id = c.parent_member_id
+        )
+        SELECT 1 FROM chain WHERE id = $2 LIMIT 1
+      `, [req.user.id, child.id]);
+      if (chainCheck.rows.length === 0) {
+        return res.status(403).json({
+          success: false,
+          message: 'لا يمكنك إضافة جد لعضو ليس في سلسلتك'
+        });
+      }
+      // keep lint happy
+      void ownershipCheck;
+    }
+
+    // Generate membership number (SH-XXXX) — same scheme as /add-child.
+    const lastMemberResult = await query(`
+      SELECT membership_number
+        FROM members
+       WHERE membership_number LIKE 'SH-%'
+       ORDER BY membership_number DESC
+       LIMIT 1
+    `);
+    let newMembershipNumber = 1;
+    if (lastMemberResult.rows.length > 0 && lastMemberResult.rows[0].membership_number) {
+      const lastNumber = parseInt(
+        lastMemberResult.rows[0].membership_number.replace('SH-', ''),
+        10
+      );
+      if (!isNaN(lastNumber)) newMembershipNumber = lastNumber + 1;
+    }
+    const newMembershipId = `SH-${String(newMembershipNumber).padStart(4, '0')}`;
+
+    // Ancestor sits one generation above the child.
+    const ancestorGenerationLevel = Math.max(1, (child.generation_level || 2) - 1);
+
+    const placeholderEmail = `${newMembershipId.toLowerCase().replace('-', '')}@ancestor.alshuail.local`;
+
+    // Create the ancestor member record.
+    const insertResult = await query(`
+      INSERT INTO members (
+        membership_number,
+        full_name,
+        full_name_ar,
+        email,
+        phone,
+        gender,
+        family_branch_id,
+        generation_level,
+        status,
+        is_active,
+        membership_status,
+        current_balance,
+        created_at,
+        updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+      RETURNING *
+    `, [
+      newMembershipId,
+      full_name.trim(),
+      full_name.trim(),
+      placeholderEmail,
+      phone || null,
+      'male', // ancestors are fathers/grandfathers
+      child.family_branch_id,
+      ancestorGenerationLevel,
+      'active',
+      true,
+      'pending',
+      0,
+      new Date().toISOString(),
+      new Date().toISOString()
+    ]);
+    const newAncestor = insertResult.rows[0];
+
+    // Update the child's parent_member_id so the tree walks upward correctly.
+    await query(
+      'UPDATE members SET parent_member_id = $1, updated_at = NOW() WHERE id = $2',
+      [newAncestor.id, child.id]
+    );
+
+    // Create the father→child relationship row.
+    try {
+      await query(`
+        INSERT INTO family_relationships (
+          member_from,
+          member_to,
+          relationship_type,
+          relationship_name_ar,
+          relationship_name_en,
+          is_active,
+          created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `, [
+        newAncestor.id,
+        child.id,
+        'father',
+        'أب',
+        'father',
+        true,
+        new Date().toISOString()
+      ]);
+    } catch (relErr) {
+      log.warn('Error creating ancestor relationship (non-critical):', { error: relErr.message });
+    }
+
+    // Audit
+    try {
+      await query(`
+        INSERT INTO audit_logs (
+          user_id, action, entity_type, entity_id, details, ip_address, created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `, [
+        req.user.id,
+        'ADD_ANCESTOR',
+        'member',
+        newAncestor.id,
+        JSON.stringify({
+          child_id: child.id,
+          ancestor_name: full_name.trim(),
+          membership_number: newMembershipId
+        }),
+        req.ip || req.connection?.remoteAddress,
+        new Date().toISOString()
+      ]);
+    } catch (auditErr) {
+      log.warn('Failed to create audit log:', { error: auditErr.message });
+    }
+
+    log.info('Ancestor added successfully', {
+      childId: child.id,
+      ancestorId: newAncestor.id,
+      membershipId: newMembershipId
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'تمت إضافة الجد بنجاح',
+      data: {
+        id: newAncestor.id,
+        membership_number: newAncestor.membership_number,
+        full_name: newAncestor.full_name,
+        full_name_ar: newAncestor.full_name_ar,
+        gender: newAncestor.gender,
+        family_branch_id: newAncestor.family_branch_id,
+        generation_level: newAncestor.generation_level
+      }
+    });
+  } catch (error) {
+    log.error('Error adding ancestor:', { error: error.message, stack: error.stack });
+    res.status(500).json({
+      success: false,
+      message: 'حدث خطأ أثناء إضافة الجد',
+      error: error.message
+    });
+  }
+});
+
 export default router;
