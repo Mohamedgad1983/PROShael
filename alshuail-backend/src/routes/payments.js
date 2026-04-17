@@ -140,6 +140,16 @@ router.post('/mobile/initiative',  requireRole(['member']), defaultBankTransferM
 router.post('/mobile/diya',        requireRole(['member']), defaultBankTransferMethod, validateMinimumAmount('diya'),        validatePaymentInitiation, payForDiya);
 router.post('/mobile/subscription', requireRole(['member']), defaultBankTransferMethod, validateMinimumAmount('subscription'), validatePaymentInitiation, paySubscription);
 router.post('/mobile/for-member',  requireRole(['member']), defaultBankTransferMethod, validateMinimumAmount('for_member'), validatePaymentInitiation, payForMember);
-router.post('/mobile/upload-receipt/:paymentId', requireRole(['member']), upload.single('receipt'), validateBankTransfer, uploadPaymentReceipt);
+// Receipt upload — tolerant route for mobile clients.
+//   * accepts paymentId in the URL (/:paymentId) OR in the request body (as
+//     `paymentId`) OR falls back to the member's most recent pending payment
+//   * accepts the multipart file under ANY field name (iOS currently sends
+//     "file", older clients sent "receipt" — both work via upload.any())
+//   * validateBankTransfer was removed — it required an accountNumber in
+//     the body which mobile doesn't send, so every mobile upload was 400'd
+//     by that middleware before ever reaching the controller
+const uploadAny = upload.any();
+router.post('/mobile/upload-receipt/:paymentId', requireRole(['member']), uploadAny, uploadPaymentReceipt);
+router.post('/mobile/upload-receipt',             requireRole(['member']), uploadAny, uploadPaymentReceipt);
 
 export default router;

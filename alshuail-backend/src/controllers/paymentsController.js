@@ -239,12 +239,15 @@ export const getPendingPayments = async (req, res) => {
          p.notes,
          p.created_at,
          p.updated_at,
-         p.receipt_uploaded,
-         p.receipt_filename,
-         p.receipt_mimetype,
          p.receipt_document_id,
+         -- Receipt metadata comes from the joined documents_metadata row
+         -- (payments table never had receipt_uploaded/filename/mimetype
+         -- columns — they were referenced by old code that silently failed).
          doc.file_path       AS receipt_file_path,
          doc.original_name   AS receipt_original_name,
+         doc.file_size       AS receipt_file_size,
+         doc.file_type       AS receipt_mimetype,
+         (p.receipt_document_id IS NOT NULL) AS receipt_uploaded,
          payer.full_name     AS payer_name,
          payer.phone         AS payer_phone,
          payer.membership_number AS payer_membership_number,
@@ -1101,12 +1104,41 @@ export const uploadPaymentReceipt = async (req, res) => {
     const token = req.headers.authorization?.replace('Bearer ', '');
     const decoded = jwt.verify(token, config.jwt.secret);
     const memberId = decoded.id;
-    const { paymentId } = req.params;
 
-    if (!req.file) {
+    // Resolve the uploaded file — support both upload.single('receipt')
+    // (req.file) and upload.any() (req.files[0]) since mobile clients vary
+    // on the multipart field name.
+    const uploadedFile = req.file || (Array.isArray(req.files) && req.files[0]) || null;
+    if (!uploadedFile) {
       return res.status(400).json({
         success: false,
         error: 'ملف الإيصال مطلوب'
+      });
+    }
+
+    // Resolve paymentId from several possible sources:
+    //   1. URL param  /mobile/upload-receipt/:paymentId
+    //   2. body       { paymentId: '...' }
+    //   3. fallback   the member's most recent pending* payment
+    let paymentId = req.params.paymentId || req.body?.paymentId;
+
+    if (!paymentId) {
+      const { rows: latest } = await query(
+        `SELECT id FROM payments
+          WHERE payer_id = $1
+            AND status IN ('pending', 'pending_verification')
+            AND receipt_document_id IS NULL
+          ORDER BY created_at DESC
+          LIMIT 1`,
+        [memberId]
+      );
+      paymentId = latest[0]?.id;
+    }
+
+    if (!paymentId) {
+      return res.status(400).json({
+        success: false,
+        error: 'لم يتم تحديد الدفعة. أرسل paymentId أو ارفع الوصل فور إنشاء الدفعة.'
       });
     }
 
@@ -1126,7 +1158,7 @@ export const uploadPaymentReceipt = async (req, res) => {
 
     // 1. Persist the file under the member's receipts folder so it shows up
     //    in /admin/documents → {member_id}/receipts/{timestamp}_{filename}
-    const uploaded = await uploadDocumentFile(req.file, payment.payer_id, 'receipts');
+    const uploaded = await uploadDocumentFile(uploadedFile, payment.payer_id, 'receipts');
     savedFilePath = uploaded.path;
 
     // 2. Insert a documents_metadata row so the admin dashboard can list it
@@ -1146,29 +1178,26 @@ export const uploadPaymentReceipt = async (req, res) => {
         uploaded.path,
         uploaded.size,
         uploaded.type,
-        req.file.originalname
+        uploadedFile.originalname
       ]
     );
     const documentRow = docRows[0];
 
-    // 3. Update the payment: keep the legacy metadata columns for compatibility
-    //    AND set receipt_document_id so the approval queue can join the URL.
+    // 3. Update the payment: link to the new document row and move status
+    //    to pending_verification. All file metadata (filename, size, mimetype,
+    //    path) lives in documents_metadata — join on receipt_document_id to
+    //    read it. The receipt_uploaded / receipt_filename / receipt_size /
+    //    receipt_mimetype columns that the old code referenced never actually
+    //    existed on the payments table, so every historical upload silently
+    //    failed at this step.
     const { rows: updatedRows } = await query(
       `UPDATE payments SET
-         receipt_uploaded     = $1,
-         receipt_filename     = $2,
-         receipt_size         = $3,
-         receipt_mimetype     = $4,
-         receipt_document_id  = $5,
-         status               = $6,
-         updated_at           = $7
-       WHERE id = $8
+         receipt_document_id  = $1,
+         status               = $2,
+         updated_at           = $3
+       WHERE id = $4
        RETURNING *`,
       [
-        true,
-        req.file.originalname,
-        req.file.size,
-        req.file.mimetype,
         documentRow.id,
         'pending_verification',
         new Date().toISOString(),
