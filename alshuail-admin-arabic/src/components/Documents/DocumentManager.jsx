@@ -1,12 +1,16 @@
-import React, { memo,  useState, useEffect } from 'react';
+import React, { memo,  useState, useEffect, useMemo } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { FaUpload, FaFileAlt, FaFilePdf, FaImage, FaSearch, FaFilter, FaTrash, FaDownload, FaEye } from 'react-icons/fa';
+import {
+  FaUpload, FaFileAlt, FaFilePdf, FaImage, FaSearch, FaFilter,
+  FaTrash, FaDownload, FaEye, FaFolder, FaFolderOpen, FaUser,
+  FaChevronDown, FaChevronLeft
+} from 'react-icons/fa';
 import { logger } from '../../utils/logger';
 
 import './DocumentManager.css';
 
 const DOCUMENT_CATEGORIES = {
-  receipts: 'الوصولات',
+  receipts: 'إيصالات الدفع',
   national_id: 'الهوية الوطنية',
   marriage_certificate: 'عقد الزواج',
   property_deed: 'صك الملكية',
@@ -38,6 +42,30 @@ const DocumentManager = () => {
     by_category: []
   });
 
+  // Tree view state — which member folders and which (member, category)
+  // subfolders are expanded. Members collapse by default to keep the page
+  // short when there are hundreds of them.
+  const [expandedMembers, setExpandedMembers] = useState(() => new Set());
+  const [expandedCategories, setExpandedCategories] = useState(() => new Set());
+
+  const toggleMember = (memberId) => {
+    setExpandedMembers((prev) => {
+      const next = new Set(prev);
+      if (next.has(memberId)) next.delete(memberId);
+      else next.add(memberId);
+      return next;
+    });
+  };
+
+  const toggleCategory = (key) => {
+    setExpandedCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
   // Fetch documents
   const fetchDocuments = async () => {
     setLoading(true);
@@ -46,6 +74,8 @@ const DocumentManager = () => {
       const params = new URLSearchParams();
       if (selectedCategory) params.append('category', selectedCategory);
       if (searchTerm) params.append('search', searchTerm);
+      // Tree view groups by member so we want everything on one page, not 25.
+      params.append('limit', '2000');
 
       // Admin-facing page: use GET /api/documents (admin-scoped, returns all
       // members' documents with member info joined). The old /api/documents/member
@@ -213,6 +243,38 @@ const DocumentManager = () => {
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
+  // Group documents into a tree: { [memberId]: { member, categories: { [cat]: [docs] } } }
+  // Orphan docs with no linked member land under a synthetic "(بدون عضو)" node.
+  const groupedTree = useMemo(() => {
+    const groups = {};
+    for (const doc of documents) {
+      const mid = doc.member_id || '__unassigned__';
+      const memberLabel = doc.member?.full_name_ar
+        || doc.member?.full_name
+        || 'بدون عضو';
+      const membershipNumber = doc.member?.membership_number;
+
+      if (!groups[mid]) {
+        groups[mid] = {
+          memberId: mid,
+          memberLabel,
+          membershipNumber,
+          categories: {},
+          totalFiles: 0
+        };
+      }
+      const g = groups[mid];
+      const cat = doc.category || 'other';
+      if (!g.categories[cat]) g.categories[cat] = [];
+      g.categories[cat].push(doc);
+      g.totalFiles += 1;
+    }
+    // Stable sort by member label (Arabic-aware)
+    return Object.values(groups).sort((a, b) =>
+      a.memberLabel.localeCompare(b.memberLabel, 'ar')
+    );
+  }, [documents]);
+
   return (
     <div className="document-manager" dir="rtl">
       {/* Header */}
@@ -265,51 +327,169 @@ const DocumentManager = () => {
         <p className="upload-hint">PDF, JPG, PNG - الحد الأقصى 10MB</p>
       </div>
 
-      {/* Documents Grid */}
+      {/* Tree view — folder per member → subfolder per category → files */}
       {loading ? (
         <div className="loading-spinner">جاري التحميل...</div>
+      ) : groupedTree.length === 0 ? (
+        <div className="documents-empty" style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
+          لا توجد مستندات بعد.
+        </div>
       ) : (
-        <div className="documents-grid">
-          {documents.map((doc) => (
-            <div key={doc.id} className="document-card">
-              <div className="doc-icon">
-                {getFileIcon(doc.file_type)}
-              </div>
-              <div className="doc-info">
-                <h4 className="doc-title">{doc.title}</h4>
-                <p className="doc-category">{DOCUMENT_CATEGORIES[doc.category]}</p>
-                <p className="doc-size">{formatFileSize(doc.file_size)}</p>
-                <p className="doc-date">{new Date(doc.created_at).toLocaleDateString('ar-SA')}</p>
-                {doc.description && (
-                  <p className="doc-description">{doc.description}</p>
+        <div className="documents-tree" style={{ marginTop: 16 }}>
+          {groupedTree.map((group) => {
+            const isMemberOpen = expandedMembers.has(group.memberId);
+            return (
+              <div key={group.memberId} className="tree-member" style={{
+                background: '#fff',
+                border: '1px solid #e5e7eb',
+                borderRadius: 8,
+                marginBottom: 8,
+                overflow: 'hidden'
+              }}>
+                {/* Member folder header */}
+                <button
+                  onClick={() => toggleMember(group.memberId)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    width: '100%',
+                    padding: '12px 16px',
+                    background: isMemberOpen ? '#eef2ff' : '#f9fafb',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textAlign: 'right',
+                    fontSize: 15,
+                    fontWeight: 600,
+                    color: '#111827'
+                  }}
+                >
+                  {isMemberOpen ? <FaChevronDown /> : <FaChevronLeft />}
+                  {isMemberOpen ? <FaFolderOpen style={{ color: '#6366f1' }} /> : <FaFolder style={{ color: '#6366f1' }} />}
+                  <FaUser style={{ color: '#9ca3af', fontSize: 12 }} />
+                  <span style={{ flex: 1 }}>{group.memberLabel}</span>
+                  {group.membershipNumber && (
+                    <span style={{ fontSize: 12, color: '#6b7280', fontWeight: 400 }}>
+                      {group.membershipNumber}
+                    </span>
+                  )}
+                  <span style={{
+                    background: '#6366f1',
+                    color: '#fff',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    padding: '2px 8px',
+                    borderRadius: 10
+                  }}>
+                    {group.totalFiles}
+                  </span>
+                </button>
+
+                {/* Member's categories (subfolders) */}
+                {isMemberOpen && (
+                  <div style={{ padding: '8px 16px 16px' }}>
+                    {Object.entries(group.categories).map(([cat, docs]) => {
+                      const key = `${group.memberId}::${cat}`;
+                      const isCatOpen = expandedCategories.has(key);
+                      return (
+                        <div key={key} className="tree-category" style={{
+                          marginTop: 8,
+                          marginRight: 12,
+                          borderRight: '2px solid #e5e7eb',
+                          paddingRight: 12
+                        }}>
+                          <button
+                            onClick={() => toggleCategory(key)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 8,
+                              width: '100%',
+                              padding: '6px 8px',
+                              background: 'transparent',
+                              border: 'none',
+                              cursor: 'pointer',
+                              textAlign: 'right',
+                              fontSize: 14,
+                              color: '#374151'
+                            }}
+                          >
+                            {isCatOpen ? <FaChevronDown style={{ fontSize: 11 }} /> : <FaChevronLeft style={{ fontSize: 11 }} />}
+                            {isCatOpen ? <FaFolderOpen style={{ color: '#f59e0b' }} /> : <FaFolder style={{ color: '#f59e0b' }} />}
+                            <span style={{ flex: 1 }}>{DOCUMENT_CATEGORIES[cat] || cat}</span>
+                            <span style={{
+                              background: '#e5e7eb',
+                              color: '#374151',
+                              fontSize: 11,
+                              padding: '2px 8px',
+                              borderRadius: 8
+                            }}>
+                              {docs.length}
+                            </span>
+                          </button>
+
+                          {/* Files in the category */}
+                          {isCatOpen && (
+                            <div style={{ paddingRight: 20, marginTop: 4 }}>
+                              {docs.map((doc) => (
+                                <div
+                                  key={doc.id}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 10,
+                                    padding: '8px 6px',
+                                    borderBottom: '1px dashed #f3f4f6'
+                                  }}
+                                >
+                                  <span style={{ fontSize: 18 }}>{getFileIcon(doc.mime_type || doc.file_type)}</span>
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontSize: 13, fontWeight: 500, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                      {doc.title}
+                                    </div>
+                                    <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>
+                                      {formatFileSize(doc.file_size)} · {new Date(doc.uploaded_at || doc.created_at).toLocaleDateString('ar-SA')}
+                                    </div>
+                                  </div>
+                                  <div style={{ display: 'flex', gap: 4 }}>
+                                    <button
+                                      className="action-btn view"
+                                      onClick={() => window.open(doc.file_url || doc.signed_url, '_blank')}
+                                      title="عرض"
+                                      style={{ background: '#eff6ff', color: '#2563eb', border: 'none', padding: '6px 10px', borderRadius: 6, cursor: 'pointer' }}
+                                    >
+                                      <FaEye />
+                                    </button>
+                                    <a
+                                      href={doc.file_url || doc.signed_url}
+                                      download={doc.file_name || doc.original_name}
+                                      className="action-btn download"
+                                      title="تحميل"
+                                      style={{ background: '#f0fdf4', color: '#16a34a', border: 'none', padding: '6px 10px', borderRadius: 6, textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
+                                    >
+                                      <FaDownload />
+                                    </a>
+                                    <button
+                                      className="action-btn delete"
+                                      onClick={() => handleDelete(doc.id)}
+                                      title="حذف"
+                                      style={{ background: '#fef2f2', color: '#dc2626', border: 'none', padding: '6px 10px', borderRadius: 6, cursor: 'pointer' }}
+                                    >
+                                      <FaTrash />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
-              <div className="doc-actions">
-                <button
-                  className="action-btn view"
-                  onClick={() => window.open(doc.signed_url, '_blank')}
-                  title="عرض"
-                >
-                  <FaEye />
-                </button>
-                <a
-                  href={doc.signed_url}
-                  download={doc.original_name}
-                  className="action-btn download"
-                  title="تحميل"
-                >
-                  <FaDownload />
-                </a>
-                <button
-                  className="action-btn delete"
-                  onClick={() => handleDelete(doc.id)}
-                  title="حذف"
-                >
-                  <FaTrash />
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

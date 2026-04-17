@@ -62,6 +62,7 @@ export const upload = multer({
 
 // Document categories
 export const DOCUMENT_CATEGORIES = {
+  RECEIPTS: 'receipts',
   NATIONAL_ID: 'national_id',
   MARRIAGE_CERT: 'marriage_certificate',
   PROPERTY_DEED: 'property_deed',
@@ -76,6 +77,7 @@ export const DOCUMENT_CATEGORIES = {
 
 // Arabic translations for categories
 export const CATEGORY_TRANSLATIONS = {
+  [DOCUMENT_CATEGORIES.RECEIPTS]: 'إيصالات الدفع',
   [DOCUMENT_CATEGORIES.NATIONAL_ID]: 'الهوية الوطنية',
   [DOCUMENT_CATEGORIES.MARRIAGE_CERT]: 'عقد الزواج',
   [DOCUMENT_CATEGORIES.PROPERTY_DEED]: 'صك الملكية',
