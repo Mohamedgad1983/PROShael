@@ -1142,9 +1142,14 @@ export const uploadPaymentReceipt = async (req, res) => {
       });
     }
 
-    // Verify payment belongs to this member
+    // Verify payment belongs to this member — also pull the payer's name so
+    // the generated document title is human-readable in /admin/documents.
     const { rows: paymentRows } = await query(
-      'SELECT * FROM payments WHERE id = $1 AND payer_id = $2 LIMIT 1',
+      `SELECT p.*, m.full_name AS payer_full_name
+         FROM payments p
+         LEFT JOIN members m ON p.payer_id = m.id
+        WHERE p.id = $1 AND p.payer_id = $2
+        LIMIT 1`,
       [paymentId, memberId]
     );
     const payment = paymentRows[0];
@@ -1162,8 +1167,13 @@ export const uploadPaymentReceipt = async (req, res) => {
     savedFilePath = uploaded.path;
 
     // 2. Insert a documents_metadata row so the admin dashboard can list it
-    //    alongside the member's other documents.
-    const receiptTitle = `وصل دفعة ${payment.reference_number || paymentId}`;
+    //    alongside the member's other documents. Title includes the member's
+    //    name (primary) and the payment reference (secondary) for easy scan.
+    const payerName = payment.payer_full_name?.trim();
+    const ref = payment.reference_number || paymentId;
+    const receiptTitle = payerName
+      ? `وصل دفعة - ${payerName}`
+      : `وصل دفعة ${ref}`;
     const { rows: docRows } = await query(
       `INSERT INTO documents_metadata (
          member_id, uploaded_by, title, description, category,
