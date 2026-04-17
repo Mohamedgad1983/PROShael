@@ -27,6 +27,8 @@ import {
 import PaymentsTracking from './Payments/PaymentsTracking.jsx';
 // Bank Transfer Requests for on-behalf payments
 import { BankTransferRequests } from './Payments';
+// Payment approval queue — lists pending mobile-app payments awaiting admin action
+import PaymentApprovalQueue from './PaymentApprovals/PaymentApprovalQueue';
 
 // @ts-ignore
 import HijriDiyasManagement from './Diyas/HijriDiyasManagement';
@@ -923,6 +925,7 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
     { id: 'statement', label: '📋 البحث عن كشف', icon: DocumentTextIcon },
     { id: 'subscriptions', label: 'الاشتراكات', icon: CreditCardIcon },
     { id: 'payments', label: 'المدفوعات', icon: BanknotesIcon },
+    { id: 'payment-approvals', label: '✅ موافقات الدفعات', icon: BanknotesIcon },
     { id: 'bank-transfers', label: '🏦 طلبات التحويل', icon: BanknotesIcon },
     { id: 'expenses', label: '💰 المصروفات', icon: BanknotesIcon },
     { id: 'initiatives', label: 'المبادرات', icon: LightBulbIcon },
@@ -4270,6 +4273,9 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
                 {activeSection === 'subscriptions' && <SubscriptionDashboard />}
 
                 {activeSection === 'payments' && <PaymentsTracking />}
+
+                {/* Payment approval queue — pending payments awaiting admin action */}
+                {activeSection === 'payment-approvals' && <PaymentApprovalQueue />}
 
                 {/* Bank Transfer Requests - On-behalf payment management */}
                 {activeSection === 'bank-transfers' && <BankTransferRequests />}
