@@ -44,11 +44,6 @@ router.get(
 );
 
 // ========================================
-// DEBUG ROUTE (TEMP - for diagnosing balance issues)
-// ========================================
-router.get('/diagnose/:phone', subscriptionController.diagnoseMemberBalance);
-
-// ========================================
 // ADMIN ROUTES (Admin Authorization Required)
 // ========================================
 
