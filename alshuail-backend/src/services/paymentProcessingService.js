@@ -1,5 +1,6 @@
 import { query, getClient } from './database.js';
 import { log } from '../utils/logger.js';
+import { sendPushNotification } from './notificationService.js';
 
 /**
  * Payment Processing Service
@@ -186,6 +187,17 @@ export class PaymentProcessingService {
         throw new Error('حالة غير صالحة');
       }
 
+      // Fetch the current row so we can detect the status transition for
+      // downstream effects (push notification on pending → paid).
+      const { rows: currentRows } = await query(
+        'SELECT * FROM payments WHERE id = $1',
+        [paymentId]
+      );
+      if (!currentRows.length) {
+        throw new Error('المدفوع غير موجود');
+      }
+      const previousStatus = currentRows[0].status;
+
       const now = new Date().toISOString();
       const params = [status, now, paymentId];
       let sql;
@@ -219,6 +231,19 @@ export class PaymentProcessingService {
 
       payment.payer = payerRows[0] || null;
 
+      // Fire approval notification on pending* → paid transition.
+      // Non-blocking: failures are logged but never rolled back the status update.
+      const pendingStates = new Set(['pending', 'pending_verification']);
+      if (pendingStates.has(previousStatus) && status === 'paid') {
+        // Intentionally not awaited — fire-and-forget.
+        PaymentProcessingService.sendApprovalNotification(payment).catch((err) => {
+          log.warn('Approval notification failed (non-blocking)', {
+            paymentId,
+            error: err.message
+          });
+        });
+      }
+
       return {
         success: true,
         data: payment,
@@ -230,6 +255,65 @@ export class PaymentProcessingService {
         success: false,
         error: error.message || 'فشل في تحديث حالة المدفوع'
       };
+    }
+  }
+
+  /**
+   * Send a push notification to the payer that their payment was approved.
+   * Also logs an entry in notification_logs for auditability.
+   * Never throws — callers assume this is best-effort.
+   *
+   * @param {Object} payment - The payment row (must include payer_id and amount)
+   */
+  static async sendApprovalNotification(payment) {
+    if (!payment?.payer_id) return;
+
+    const amount = Number(payment.amount) || 0;
+    const title  = 'تم اعتماد دفعتك';
+    const body   = `تم اعتماد دفعتك بمبلغ ${amount} ر.س`;
+
+    let sendResult = { success: false, error: 'not_sent' };
+    try {
+      sendResult = await sendPushNotification(
+        payment.payer_id,
+        { title, body },
+        {
+          type: 'payment_approved',
+          paymentId: String(payment.id),
+          amount: String(amount),
+          category: String(payment.category || '')
+        }
+      );
+    } catch (err) {
+      sendResult = { success: false, error: err.message };
+    }
+
+    // Audit-log regardless of delivery success so we can see failures later.
+    try {
+      await query(
+        `INSERT INTO notification_logs
+           (member_id, title, body, data, status, success_count, failure_count,
+            error_message, sent_at)
+         VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7, $8, NOW())`,
+        [
+          payment.payer_id,
+          title,
+          body,
+          JSON.stringify({
+            type: 'payment_approved',
+            paymentId: payment.id,
+            amount,
+            category: payment.category || null
+          }),
+          sendResult.success ? 'sent' : 'failed',
+          sendResult.success ? (sendResult.devicesReached || 1) : 0,
+          sendResult.success ? 0 : 1,
+          sendResult.success ? null : (sendResult.error || 'unknown_error')
+        ]
+      );
+    } catch (err) {
+      // Audit log failure must not break the approval flow.
+      log.warn('Could not write notification_logs entry', { error: err.message });
     }
   }
 

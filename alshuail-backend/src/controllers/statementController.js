@@ -19,7 +19,7 @@ const normalizeArabic = (text) => {
     .trim();
 };
 
-// Search by phone using materialized view
+// Search by phone - uses payments_yearly as source of truth
 export const searchByPhone = async (req, res) => {
   try {
     const { phone } = req.query;
@@ -38,10 +38,12 @@ export const searchByPhone = async (req, res) => {
       });
     }
 
-    // Use materialized view for instant results
-    const selectQuery = 'SELECT * FROM member_statement_view WHERE phone = $1';
-    const { rows } = await query(selectQuery, [phone]);
-    const _data = rows[0];
+    // Get member by phone
+    const { rows: memberRows } = await query(
+      'SELECT id, full_name_ar, full_name, phone, email, membership_number, created_at, current_balance, total_paid FROM members WHERE phone = $1 LIMIT 1',
+      [phone]
+    );
+    const _data = memberRows[0];
 
     if (!_data) {
       return res.status(404).json({
@@ -50,27 +52,65 @@ export const searchByPhone = async (req, res) => {
       });
     }
 
-    // Format the response
+    // Calculate balance from payments_yearly (source of truth)
+    const { rows: balanceRows } = await query(
+      'SELECT COALESCE(SUM(amount), 0) as total_paid, COUNT(*) as payment_count, MAX(payment_date) as last_payment_date FROM payments_yearly WHERE member_id = $1 AND amount > 0',
+      [_data.id]
+    );
+    const totalPaid = parseFloat(balanceRows[0]?.total_paid || 0);
+    const currentBalance = totalPaid > 0 ? totalPaid : (parseFloat(_data.current_balance) || parseFloat(_data.total_paid) || 0);
+    const targetBalance = 3000;
+    const shortfall = Math.max(0, targetBalance - currentBalance);
+    const percentageComplete = targetBalance > 0 ? Math.min(100, (currentBalance / targetBalance) * 100) : 0;
+
+    let alertLevel;
+    if (currentBalance === 0) alertLevel = 'ZERO_BALANCE';
+    else if (currentBalance < 1000) alertLevel = 'CRITICAL';
+    else if (currentBalance < 3000) alertLevel = 'WARNING';
+    else alertLevel = 'SUFFICIENT';
+
+    // Get actual payment history
+    const { rows: yearlyPayments } = await query(
+      'SELECT id, year, amount, payment_date, receipt_number, notes FROM payments_yearly WHERE member_id = $1 AND amount > 0 ORDER BY year DESC',
+      [_data.id]
+    );
+
+    const recentTransactions = yearlyPayments.map(p => ({
+      type: 'payment',
+      year: p.year,
+      amount: parseFloat(p.amount),
+      date: p.payment_date,
+      description: p.notes || `اشتراك سنة ${p.year}`,
+      status: 'paid',
+      receipt_number: p.receipt_number || `RCP-${p.year}-${_data.membership_number}`
+    }));
+
     const statement = {
       memberId: _data.membership_number,
-      fullName: _data.full_name,
+      fullName: _data.full_name_ar || _data.full_name,
       phone: _data.phone,
       email: _data.email,
-      memberSince: _data.member_since,
-      currentBalance: _data.current_balance,
-      targetBalance: 3000,
-      shortfall: _data.shortfall,
-      percentageComplete: _data.percentage_complete,
-      alertLevel: _data.alert_level,
-      statusColor: _data.status_color,
-      alertMessage: getAlertMessage(_data.alert_level, _data.shortfall),
-      recentTransactions: _data.recent_transactions || [],
+      memberSince: _data.created_at,
+      currentBalance: currentBalance,
+      targetBalance: targetBalance,
+      shortfall: shortfall,
+      percentageComplete: Math.round(percentageComplete * 100) / 100,
+      alertLevel: alertLevel,
+      statusColor: getStatusColor(alertLevel),
+      alertMessage: getAlertMessage(alertLevel, shortfall),
+      recentTransactions: recentTransactions,
       statistics: {
-        totalPayments: _data.total_payments || 0,
-        lastPaymentDate: _data.last_payment_date,
+        totalPayments: currentBalance,
+        lastPaymentDate: balanceRows[0]?.last_payment_date || null,
         currentYear: new Date().getFullYear()
       }
     };
+
+    // Sync members.current_balance if out of date (fire and forget)
+    if (totalPaid > 0 && totalPaid !== parseFloat(_data.current_balance)) {
+      query('UPDATE members SET current_balance = $1, total_paid = $1 WHERE id = $2', [totalPaid, _data.id])
+        .catch(e => log.warn('Auto-sync balance failed', { error: e.message }));
+    }
 
     res.json({
       success: true,
@@ -86,7 +126,7 @@ export const searchByPhone = async (req, res) => {
   }
 };
 
-// Search by name using materialized view
+// Search by name - uses payments_yearly as source of truth
 export const searchByName = async (req, res) => {
   try {
     const { name } = req.query;
@@ -100,29 +140,58 @@ export const searchByName = async (req, res) => {
 
     const normalizedName = normalizeArabic(name);
 
-    // Use materialized view for fast search
-    const selectQuery = 'SELECT * FROM member_statement_view WHERE full_name ILIKE $1 LIMIT 10';
-    const { rows: _data } = await query(selectQuery, [`%${normalizedName}%`]);
+    // Search members directly
+    const { rows: members } = await query(
+      `SELECT id, full_name_ar, full_name, phone, membership_number, current_balance, total_paid
+       FROM members
+       WHERE full_name ILIKE $1 OR full_name_ar ILIKE $1
+       LIMIT 10`,
+      [`%${normalizedName}%`]
+    );
 
-    if (!_data || _data.length === 0) {
+    if (!members || members.length === 0) {
       return res.status(404).json({
         success: false,
         error: 'لم يتم العثور على أعضاء بهذا الاسم'
       });
     }
 
-    // Format statements
-    const statements = _data.map(member => ({
-      memberId: member.membership_number,
-      fullName: member.full_name,
-      phone: member.phone,
-      currentBalance: member.current_balance,
-      shortfall: member.shortfall,
-      alertLevel: member.alert_level,
-      statusColor: member.status_color,
-      percentageComplete: member.percentage_complete,
-      lastPaymentDate: member.last_payment_date
-    }));
+    // Get balances from payments_yearly for all found members
+    const memberIds = members.map(m => m.id);
+    const { rows: balanceData } = await query(
+      `SELECT member_id, COALESCE(SUM(amount), 0) as total_paid, MAX(payment_date) as last_payment_date
+       FROM payments_yearly
+       WHERE member_id = ANY($1) AND amount > 0
+       GROUP BY member_id`,
+      [memberIds]
+    );
+
+    const balanceMap = {};
+    balanceData.forEach(b => { balanceMap[b.member_id] = b; });
+
+    const TARGET = 3000;
+    const statements = members.map(member => {
+      const paid = parseFloat(balanceMap[member.id]?.total_paid || 0) || parseFloat(member.current_balance) || parseFloat(member.total_paid) || 0;
+      const shortfall = Math.max(0, TARGET - paid);
+      const pct = TARGET > 0 ? Math.min(100, (paid / TARGET) * 100) : 0;
+      let alertLevel;
+      if (paid === 0) alertLevel = 'ZERO_BALANCE';
+      else if (paid < 1000) alertLevel = 'CRITICAL';
+      else if (paid < 3000) alertLevel = 'WARNING';
+      else alertLevel = 'SUFFICIENT';
+
+      return {
+        memberId: member.membership_number,
+        fullName: member.full_name_ar || member.full_name,
+        phone: member.phone,
+        currentBalance: paid,
+        shortfall: shortfall,
+        alertLevel: alertLevel,
+        statusColor: getStatusColor(alertLevel),
+        percentageComplete: Math.round(pct * 100) / 100,
+        lastPaymentDate: balanceMap[member.id]?.last_payment_date || null
+      };
+    });
 
     res.json({
       success: true,
@@ -138,7 +207,7 @@ export const searchByName = async (req, res) => {
   }
 };
 
-// Search by member ID using materialized view
+// Search by member ID - uses payments_yearly as source of truth
 export const searchByMemberId = async (req, res) => {
   try {
     const { memberId } = req.query;
@@ -150,10 +219,12 @@ export const searchByMemberId = async (req, res) => {
       });
     }
 
-    // Use materialized view
-    const selectQuery = 'SELECT * FROM member_statement_view WHERE membership_number = $1';
-    const { rows } = await query(selectQuery, [memberId]);
-    const _data = rows[0];
+    // Get member directly
+    const { rows: memberRows } = await query(
+      'SELECT id, full_name_ar, full_name, phone, email, membership_number, created_at, current_balance, total_paid FROM members WHERE membership_number = $1 LIMIT 1',
+      [memberId]
+    );
+    const _data = memberRows[0];
 
     if (!_data) {
       return res.status(404).json({
@@ -162,26 +233,64 @@ export const searchByMemberId = async (req, res) => {
       });
     }
 
-    // Format the response
+    // Calculate balance from payments_yearly (source of truth)
+    const { rows: balanceRows } = await query(
+      'SELECT COALESCE(SUM(amount), 0) as total_paid, COUNT(*) as payment_count, MAX(payment_date) as last_payment_date FROM payments_yearly WHERE member_id = $1 AND amount > 0',
+      [_data.id]
+    );
+    const totalPaid = parseFloat(balanceRows[0]?.total_paid || 0);
+    const currentBalance = totalPaid > 0 ? totalPaid : (parseFloat(_data.current_balance) || parseFloat(_data.total_paid) || 0);
+    const targetBalance = 3000;
+    const shortfall = Math.max(0, targetBalance - currentBalance);
+    const percentageComplete = targetBalance > 0 ? Math.min(100, (currentBalance / targetBalance) * 100) : 0;
+
+    let alertLevel;
+    if (currentBalance === 0) alertLevel = 'ZERO_BALANCE';
+    else if (currentBalance < 1000) alertLevel = 'CRITICAL';
+    else if (currentBalance < 3000) alertLevel = 'WARNING';
+    else alertLevel = 'SUFFICIENT';
+
+    // Get actual payment history
+    const { rows: yearlyPayments } = await query(
+      'SELECT id, year, amount, payment_date, receipt_number, notes FROM payments_yearly WHERE member_id = $1 AND amount > 0 ORDER BY year DESC',
+      [_data.id]
+    );
+
+    const recentTransactions = yearlyPayments.map(p => ({
+      type: 'payment',
+      year: p.year,
+      amount: parseFloat(p.amount),
+      date: p.payment_date,
+      description: p.notes || `اشتراك سنة ${p.year}`,
+      status: 'paid',
+      receipt_number: p.receipt_number || `RCP-${p.year}-${_data.membership_number}`
+    }));
+
     const statement = {
       memberId: _data.membership_number,
-      fullName: _data.full_name,
+      fullName: _data.full_name_ar || _data.full_name,
       phone: _data.phone,
       email: _data.email,
-      memberSince: _data.member_since,
-      currentBalance: _data.current_balance,
-      targetBalance: 3000,
-      shortfall: _data.shortfall,
-      percentageComplete: _data.percentage_complete,
-      alertLevel: _data.alert_level,
-      statusColor: _data.status_color,
-      alertMessage: getAlertMessage(_data.alert_level, _data.shortfall),
-      recentTransactions: _data.recent_transactions || [],
+      memberSince: _data.created_at,
+      currentBalance: currentBalance,
+      targetBalance: targetBalance,
+      shortfall: shortfall,
+      percentageComplete: Math.round(percentageComplete * 100) / 100,
+      alertLevel: alertLevel,
+      statusColor: getStatusColor(alertLevel),
+      alertMessage: getAlertMessage(alertLevel, shortfall),
+      recentTransactions: recentTransactions,
       statistics: {
-        totalPayments: _data.total_payments || 0,
-        lastPaymentDate: _data.last_payment_date
+        totalPayments: currentBalance,
+        lastPaymentDate: balanceRows[0]?.last_payment_date || null
       }
     };
+
+    // Sync members.current_balance if out of date (fire and forget)
+    if (totalPaid > 0 && totalPaid !== parseFloat(_data.current_balance)) {
+      query('UPDATE members SET current_balance = $1, total_paid = $1 WHERE id = $2', [totalPaid, _data.id])
+        .catch(e => log.warn('Auto-sync balance failed', { error: e.message }));
+    }
 
     res.json({
       success: true,
@@ -264,7 +373,7 @@ export const refreshViews = async (req, res) => {
   }
 };
 
-// Generate statement for a specific member - uses subscriptions table for accurate data
+// Generate statement for a specific member - uses payments_yearly as source of truth
 export const generateStatement = async (req, res) => {
   try {
     const memberId = req.params.memberId;
@@ -276,7 +385,7 @@ export const generateStatement = async (req, res) => {
       });
     }
 
-    // Get member data - balance is stored in members.current_balance or members.total_paid
+    // Get member data
     const memberQuery = `
       SELECT
         id, full_name_ar, full_name, phone, email, membership_number,
@@ -296,14 +405,23 @@ export const generateStatement = async (req, res) => {
       });
     }
 
-    // Use members.current_balance or members.total_paid (this is the correct source)
-    // NOT subscriptions.current_balance which has wrong data
-    const currentBalance = parseFloat(memberData.current_balance) || parseFloat(memberData.total_paid) || 0;
+    // === SOURCE OF TRUTH: Calculate balance from payments_yearly ===
+    const { rows: balanceRows } = await query(
+      'SELECT COALESCE(SUM(amount), 0) as total_paid, COUNT(*) as payment_count, MAX(payment_date) as last_payment_date FROM payments_yearly WHERE member_id = $1 AND amount > 0',
+      [memberData.id]
+    );
+    const totalPaidFromPayments = parseFloat(balanceRows[0]?.total_paid || 0);
+    const lastPaymentDateFromDB = balanceRows[0]?.last_payment_date;
+
+    // Fallback: if payments_yearly has nothing, try members.current_balance
+    const currentBalance = totalPaidFromPayments > 0
+      ? totalPaidFromPayments
+      : (parseFloat(memberData.current_balance) || parseFloat(memberData.total_paid) || 0);
 
     // Target balance is 3000 SAR (minimum requirement)
     const targetBalance = 3000;
     const shortfall = Math.max(0, targetBalance - currentBalance);
-    const percentageComplete = Math.min(100, (currentBalance / targetBalance) * 100);
+    const percentageComplete = targetBalance > 0 ? Math.min(100, (currentBalance / targetBalance) * 100) : 0;
 
     // Determine alert level
     let alertLevel;
@@ -317,15 +435,39 @@ export const generateStatement = async (req, res) => {
       alertLevel = 'SUFFICIENT';
     }
 
-    // Generate payment history based on balance (600 SAR per year)
-    // This reconstructs yearly payments from the total_paid amount
-    const recentTransactions = generatePaymentHistoryFromBalance(currentBalance);
+    // === Get ACTUAL payment history from payments_yearly ===
+    const { rows: yearlyPayments } = await query(
+      `SELECT id, year, amount, payment_date, payment_method, receipt_number, notes
+       FROM payments_yearly
+       WHERE member_id = $1 AND amount > 0
+       ORDER BY year DESC`,
+      [memberData.id]
+    );
 
-    // Total payments equals current balance (what member has paid)
-    const totalPayments = currentBalance;
+    let recentTransactions;
+    if (yearlyPayments.length > 0) {
+      // Use ACTUAL payment records
+      recentTransactions = yearlyPayments.map(p => ({
+        type: 'payment',
+        year: p.year,
+        amount: parseFloat(p.amount),
+        date: p.payment_date,
+        description: p.notes || `اشتراك سنة ${p.year}`,
+        status: 'paid',
+        receipt_number: p.receipt_number || `RCP-${p.year}-${memberData.membership_number}`
+      }));
+    } else {
+      // Fallback: generate from balance if no payment records exist
+      recentTransactions = generatePaymentHistoryFromBalance(currentBalance);
+    }
 
-    // Calculate last payment date based on payment history
-    const lastPaymentDate = recentTransactions.length > 0 ? recentTransactions[0].date : null;
+    // Sync members.current_balance if out of date (fire and forget)
+    if (totalPaidFromPayments > 0 && totalPaidFromPayments !== parseFloat(memberData.current_balance)) {
+      query(
+        'UPDATE members SET current_balance = $1, total_paid = $1 WHERE id = $2',
+        [totalPaidFromPayments, memberData.id]
+      ).catch(e => log.warn('Auto-sync balance failed', { error: e.message }));
+    }
 
     // Format the response
     const statement = {
@@ -344,8 +486,8 @@ export const generateStatement = async (req, res) => {
       alertMessage: getAlertMessage(alertLevel, shortfall),
       recentTransactions: recentTransactions,
       statistics: {
-        totalPayments: totalPayments,
-        lastPaymentDate: lastPaymentDate,
+        totalPayments: currentBalance,
+        lastPaymentDate: lastPaymentDateFromDB || null,
         currentYear: new Date().getFullYear()
       }
     };
@@ -391,7 +533,7 @@ function generatePaymentHistoryFromBalance(balance) {
       amount: yearlyFee,
       date: `${paymentYear}-06-15`,
       description: `اشتراك سنة ${paymentYear}`,
-      status: 'completed'
+      status: 'paid'
     });
     remainingBalance -= yearlyFee;
   }
@@ -404,7 +546,7 @@ function generatePaymentHistoryFromBalance(balance) {
       amount: remainingBalance,
       date: `${currentYear}-01-01`,
       description: `دفعة جزئية ${currentYear}`,
-      status: 'completed'
+      status: 'paid'
     });
   }
 
@@ -439,7 +581,7 @@ function getAlertMessage(level, shortfall) {
   }
 }
 
-// Get member counts for statement page (optimized - single query for counts)
+// Get member counts for statement page (optimized - uses payments_yearly)
 export const getMemberStatementCounts = async (req, res) => {
   try {
     const MINIMUM_BALANCE = 3000;
@@ -454,12 +596,22 @@ export const getMemberStatementCounts = async (req, res) => {
         data: data[0] || { total: 0, compliant: 0, nonCompliant: 0 }
       });
     } catch (rpcError) {
-      // Fallback to direct query if RPC doesn't exist - use membership_status for consistency
-      const fallbackQuery = 'SELECT current_balance FROM members WHERE membership_status = $1';
-      const { rows: members } = await query(fallbackQuery, ['active']);
+      // Fallback: calculate from payments_yearly (source of truth)
+      const { rows: memberBalances } = await query(
+        `SELECT m.id, COALESCE(py.total_paid, 0) as balance
+         FROM members m
+         LEFT JOIN (
+           SELECT member_id, SUM(amount) as total_paid
+           FROM payments_yearly
+           WHERE amount > 0
+           GROUP BY member_id
+         ) py ON m.id = py.member_id
+         WHERE m.membership_status = $1`,
+        ['active']
+      );
 
-      const total = members.length;
-      const compliant = members.filter(m => (m.current_balance || 0) >= MINIMUM_BALANCE).length;
+      const total = memberBalances.length;
+      const compliant = memberBalances.filter(m => parseFloat(m.balance) >= MINIMUM_BALANCE).length;
       const nonCompliant = total - compliant;
 
       return res.json({
@@ -482,58 +634,68 @@ export const getMemberStatementCounts = async (req, res) => {
   }
 };
 
-// Get paginated members for statement page (optimized)
+// Get paginated members for statement page (optimized - uses payments_yearly)
 export const getPaginatedMembersForStatement = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = Math.min(parseInt(req.query.limit) || 20, 100); // Max 100 per page
-    const filter = req.query.filter || 'all'; // 'all', 'compliant', 'non-compliant'
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+    const filter = req.query.filter || 'all';
     const search = req.query.search || '';
     const MINIMUM_BALANCE = 3000;
 
     const offset = (page - 1) * limit;
 
-    // Build dynamic query
-    const conditions = ['membership_status = $1'];
+    // Build query to get balances from payments_yearly
+    let conditions = ['m.membership_status = $1'];
     const params = ['active'];
     let paramCount = 2;
 
-    // Apply filter
-    if (filter === 'compliant') {
-      conditions.push(`current_balance >= $${paramCount++}`);
-      params.push(MINIMUM_BALANCE);
-    } else if (filter === 'non-compliant') {
-      conditions.push(`current_balance < $${paramCount++}`);
-      params.push(MINIMUM_BALANCE);
-    }
-
     // Apply search
     if (search && search.length >= 2) {
-      conditions.push(`(full_name ILIKE $${paramCount} OR membership_number ILIKE $${paramCount} OR phone ILIKE $${paramCount})`);
+      conditions.push(`(m.full_name ILIKE $${paramCount} OR m.membership_number ILIKE $${paramCount} OR m.phone ILIKE $${paramCount})`);
       params.push(`%${search}%`);
       paramCount++;
+    }
+
+    // Apply filter on computed balance
+    let havingClause = '';
+    if (filter === 'compliant') {
+      havingClause = `HAVING COALESCE(SUM(py.amount), 0) >= ${MINIMUM_BALANCE}`;
+    } else if (filter === 'non-compliant') {
+      havingClause = `HAVING COALESCE(SUM(py.amount), 0) < ${MINIMUM_BALANCE}`;
     }
 
     const whereClause = conditions.join(' AND ');
 
     // Count query
-    const countQuery = `SELECT COUNT(*) as count FROM members WHERE ${whereClause}`;
+    const countQuery = `
+      SELECT COUNT(*) as count FROM (
+        SELECT m.id
+        FROM members m
+        LEFT JOIN payments_yearly py ON m.id = py.member_id AND py.amount > 0
+        WHERE ${whereClause}
+        GROUP BY m.id
+        ${havingClause}
+      ) sub
+    `;
     const { rows: countRows } = await query(countQuery, params);
     const count = parseInt(countRows[0].count);
 
     // Data query with pagination
-    params.push(limit);
-    params.push(offset);
-
+    const dataParams = [...params, limit, offset];
     const dataQuery = `
-      SELECT id, membership_number, full_name, phone, tribal_section, current_balance, membership_status
-      FROM members
+      SELECT m.id, m.membership_number, m.full_name, m.phone, m.tribal_section, m.membership_status,
+             COALESCE(SUM(py.amount), 0) as balance
+      FROM members m
+      LEFT JOIN payments_yearly py ON m.id = py.member_id AND py.amount > 0
       WHERE ${whereClause}
-      ORDER BY membership_number ASC
+      GROUP BY m.id, m.membership_number, m.full_name, m.phone, m.tribal_section, m.membership_status
+      ${havingClause}
+      ORDER BY m.membership_number ASC
       LIMIT $${paramCount++} OFFSET $${paramCount++}
     `;
 
-    const { rows: members } = await query(dataQuery, params);
+    const { rows: members } = await query(dataQuery, dataParams);
 
     // Transform data
     const results = members.map(m => ({
@@ -542,7 +704,7 @@ export const getPaginatedMembersForStatement = async (req, res) => {
       full_name: m.full_name,
       phone: m.phone,
       tribal_section: m.tribal_section,
-      balance: m.current_balance || 0
+      balance: parseFloat(m.balance) || 0
     }));
 
     const totalPages = Math.ceil(count / limit);

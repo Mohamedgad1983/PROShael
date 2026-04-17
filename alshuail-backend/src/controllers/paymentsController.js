@@ -7,6 +7,11 @@ import jwt from 'jsonwebtoken';
 import { log } from '../utils/logger.js';
 import { validatePayment } from '../validators/payment-validator.js';
 import { config } from '../config/env.js';
+import {
+  uploadToSupabase as uploadDocumentFile,
+  getSignedUrl as getDocumentUrl,
+  deleteFromSupabase as deleteDocumentFile
+} from '../config/documentStorage.js';
 
 export const getAllPayments = async (req, res) => {
   try {
@@ -192,6 +197,126 @@ export const getPaymentStats = async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message || 'فشل في جلب إحصائيات المدفوعات'
+    });
+  }
+};
+
+// ============================================================================
+// Approval queue — pending payments awaiting admin action
+// ============================================================================
+
+/**
+ * GET /api/payments/pending
+ * Returns all payments waiting on admin approval, joined with payer info.
+ * Intended for the admin "موافقات الدفعات" screen.
+ * Status values considered pending: 'pending', 'pending_verification'.
+ */
+export const getPendingPayments = async (req, res) => {
+  try {
+    const { category, limit = 100, offset = 0 } = req.query;
+
+    const filters = [`p.status IN ('pending', 'pending_verification')`];
+    const params = [];
+
+    if (category) {
+      params.push(category);
+      filters.push(`p.category = $${params.length}`);
+    }
+
+    params.push(Number(limit) || 100);
+    params.push(Number(offset) || 0);
+
+    const { rows } = await query(
+      `SELECT
+         p.id,
+         p.payer_id,
+         p.beneficiary_id,
+         p.amount,
+         p.category,
+         p.status,
+         p.payment_method,
+         p.reference_number,
+         p.notes,
+         p.created_at,
+         p.updated_at,
+         p.receipt_uploaded,
+         p.receipt_filename,
+         p.receipt_mimetype,
+         p.receipt_document_id,
+         doc.file_path       AS receipt_file_path,
+         doc.original_name   AS receipt_original_name,
+         payer.full_name     AS payer_name,
+         payer.phone         AS payer_phone,
+         payer.membership_number AS payer_membership_number,
+         ben.full_name       AS beneficiary_name
+       FROM payments p
+       LEFT JOIN members payer ON p.payer_id = payer.id
+       LEFT JOIN members ben   ON p.beneficiary_id = ben.id
+       LEFT JOIN documents_metadata doc
+              ON p.receipt_document_id = doc.id
+             AND doc.status = 'active'
+      WHERE ${filters.join(' AND ')}
+      ORDER BY p.created_at ASC
+      LIMIT $${params.length - 1} OFFSET $${params.length}`,
+      params
+    );
+
+    // Attach a ready-to-open URL for each receipt so the admin UI doesn't have
+    // to know about the storage backend.
+    const uploadBaseUrl = process.env.UPLOAD_URL || '/api/uploads';
+    const bucketName = 'member-documents';
+    const withReceiptUrl = rows.map((r) => ({
+      ...r,
+      receipt_url: r.receipt_file_path
+        ? `${uploadBaseUrl}/${bucketName}/${r.receipt_file_path}`
+        : null
+    }));
+
+    res.json({
+      success: true,
+      data: withReceiptUrl,
+      count: withReceiptUrl.length
+    });
+  } catch (error) {
+    log.error('Error fetching pending payments', { error: error.message });
+    res.status(500).json({
+      success: false,
+      message: 'فشل في جلب الدفعات المعلقة',
+      error_code: 'PENDING_FETCH_ERROR'
+    });
+  }
+};
+
+/**
+ * GET /api/payments/pending/stats
+ * Summary counters for the admin dashboard card.
+ */
+export const getPendingPaymentsStats = async (req, res) => {
+  try {
+    const { rows } = await query(
+      `SELECT
+         COUNT(*)::int                                              AS total_pending,
+         COALESCE(SUM(amount), 0)                                   AS total_amount,
+         COUNT(DISTINCT payer_id)::int                              AS unique_payers,
+         COUNT(*) FILTER (WHERE category = 'subscription')::int     AS subscription_count,
+         COUNT(*) FILTER (WHERE category = 'initiative')::int       AS initiative_count,
+         COUNT(*) FILTER (WHERE category = 'diya')::int             AS diya_count,
+         COUNT(*) FILTER (WHERE status = 'pending')::int            AS awaiting_action,
+         COUNT(*) FILTER (WHERE status = 'pending_verification')::int AS awaiting_verification
+       FROM payments
+      WHERE status IN ('pending', 'pending_verification')`
+    );
+
+    res.json({
+      success: true,
+      data: rows[0] || {}
+    });
+  } catch (error) {
+    log.error('Error fetching pending payment stats', { error: error.message });
+    res.status(500).json({
+      success: false,
+      message: 'فشل في جلب إحصائيات الدفعات المعلقة',
+      error_code: 'PENDING_STATS_ERROR'
     });
   }
 };
@@ -943,6 +1068,8 @@ export const payForMember = async (req, res) => {
 };
 
 export const uploadPaymentReceipt = async (req, res) => {
+  let savedFilePath = null; // track for rollback on DB failure
+
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
     const decoded = jwt.verify(token, config.jwt.secret);
@@ -970,18 +1097,52 @@ export const uploadPaymentReceipt = async (req, res) => {
       });
     }
 
-    // Update the payment with receipt info
+    // 1. Persist the file under the member's receipts folder so it shows up
+    //    in /admin/documents → {member_id}/receipts/{timestamp}_{filename}
+    const uploaded = await uploadDocumentFile(req.file, payment.payer_id, 'receipts');
+    savedFilePath = uploaded.path;
+
+    // 2. Insert a documents_metadata row so the admin dashboard can list it
+    //    alongside the member's other documents.
+    const receiptTitle = `وصل دفعة ${payment.reference_number || paymentId}`;
+    const { rows: docRows } = await query(
+      `INSERT INTO documents_metadata (
+         member_id, uploaded_by, title, description, category,
+         file_path, file_size, file_type, original_name, status
+       ) VALUES ($1, $2, $3, $4, 'receipts', $5, $6, $7, $8, 'active')
+       RETURNING id, file_path`,
+      [
+        payment.payer_id,
+        memberId, // same as payer_id for self-upload; different for admin uploads later
+        receiptTitle,
+        payment.notes || '',
+        uploaded.path,
+        uploaded.size,
+        uploaded.type,
+        req.file.originalname
+      ]
+    );
+    const documentRow = docRows[0];
+
+    // 3. Update the payment: keep the legacy metadata columns for compatibility
+    //    AND set receipt_document_id so the approval queue can join the URL.
     const { rows: updatedRows } = await query(
       `UPDATE payments SET
-        receipt_uploaded = $1, receipt_filename = $2, receipt_size = $3,
-        receipt_mimetype = $4, status = $5, updated_at = $6
-      WHERE id = $7
-      RETURNING *`,
+         receipt_uploaded     = $1,
+         receipt_filename     = $2,
+         receipt_size         = $3,
+         receipt_mimetype     = $4,
+         receipt_document_id  = $5,
+         status               = $6,
+         updated_at           = $7
+       WHERE id = $8
+       RETURNING *`,
       [
         true,
         req.file.originalname,
         req.file.size,
         req.file.mimetype,
+        documentRow.id,
         'pending_verification',
         new Date().toISOString(),
         paymentId
@@ -989,6 +1150,14 @@ export const uploadPaymentReceipt = async (req, res) => {
     );
 
     const updatedPayment = updatedRows[0];
+    updatedPayment.receipt_url = getDocumentUrl(uploaded.path);
+
+    log.info('Payment receipt uploaded and linked to documents', {
+      paymentId,
+      memberId: payment.payer_id,
+      documentId: documentRow.id,
+      filePath: uploaded.path
+    });
 
     res.json({
       success: true,
@@ -996,6 +1165,20 @@ export const uploadPaymentReceipt = async (req, res) => {
       message: 'تم رفع الإيصال بنجاح وهو قيد المراجعة'
     });
   } catch (error) {
+    // If the file was saved to disk but a subsequent DB step failed, roll the
+    // file back so we don't leave orphaned files in the upload directory.
+    if (savedFilePath) {
+      try {
+        await deleteDocumentFile(savedFilePath);
+      } catch (cleanupErr) {
+        log.warn('Failed to clean up orphaned receipt file after error', {
+          filePath: savedFilePath,
+          error: cleanupErr.message
+        });
+      }
+    }
+
+    log.error('uploadPaymentReceipt failed', { error: error.message });
     res.status(500).json({
       success: false,
       error: error.message || 'فشل في رفع الإيصال'

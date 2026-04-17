@@ -11,8 +11,11 @@ import log from '../utils/logger.js';
 
 // Payment configuration
 const PAYMENT_CONFIG = {
-  // Amount limits in SAR
-  MIN_AMOUNT: 100,      // Minimum 100 SAR
+  // Amount limits in SAR.
+  // The per-category minimum is now enforced by dynamicAmountValidator.js,
+  // which queries the smallest active subscription plan at request time.
+  // MIN_AMOUNT here is an absolute safety floor only — keep it very low.
+  MIN_AMOUNT: 1,        // Absolute safety floor; real floor comes from dynamic validator
   MAX_AMOUNT: 50000,    // Maximum 50,000 SAR
 
   // Allowed payment methods

@@ -32,7 +32,10 @@ import {
   payForDiya,
   paySubscription,
   payForMember,
-  uploadPaymentReceipt
+  uploadPaymentReceipt,
+  // Approval queue
+  getPendingPayments,
+  getPendingPaymentsStats
 } from '../controllers/paymentsController.js';
 import { requireRole } from '../middleware/rbacMiddleware.js';
 import {
@@ -40,6 +43,7 @@ import {
   validatePaymentVerification,
   validateBankTransfer
 } from '../middleware/payment-validator.js';
+import { validateMinimumAmount } from '../middleware/dynamicAmountValidator.js';
 
 // Configure multer for receipt uploads
 const upload = multer({
@@ -64,6 +68,11 @@ const upload = multer({
 });
 
 const router = express.Router();
+
+// Approval queue — must be registered BEFORE /:id so "/pending" doesn't get
+// swallowed by the dynamic :id route. Admin-only.
+router.get('/pending',       requireRole(['super_admin', 'financial_manager']), getPendingPayments);
+router.get('/pending/stats', requireRole(['super_admin', 'financial_manager']), getPendingPaymentsStats);
 
 // Basic CRUD Operations - require financial access
 router.get('/', cacheMiddleware(300), requireRole(['super_admin', 'financial_manager']), getAllPayments);
@@ -112,10 +121,12 @@ router.get('/grouped-hijri', cacheMiddleware(300), requireRole(['super_admin', '
 router.get('/hijri-stats', cacheMiddleware(300), requireRole(['super_admin', 'financial_manager']), getHijriFinancialStats);
 
 // Mobile Payment Endpoints (require member authentication + payment validation)
-router.post('/mobile/initiative', requireRole(['member']), validatePaymentInitiation, payForInitiative);
-router.post('/mobile/diya', requireRole(['member']), validatePaymentInitiation, payForDiya);
-router.post('/mobile/subscription', requireRole(['member']), validatePaymentInitiation, paySubscription);
-router.post('/mobile/for-member', requireRole(['member']), validatePaymentInitiation, payForMember);
+// The dynamic amount validator runs BEFORE the static payment-validator so the
+// per-category floor (pulled from active subscription plans) is applied first.
+router.post('/mobile/initiative',  requireRole(['member']), validateMinimumAmount('initiative'),  validatePaymentInitiation, payForInitiative);
+router.post('/mobile/diya',        requireRole(['member']), validateMinimumAmount('diya'),        validatePaymentInitiation, payForDiya);
+router.post('/mobile/subscription', requireRole(['member']), validateMinimumAmount('subscription'), validatePaymentInitiation, paySubscription);
+router.post('/mobile/for-member',  requireRole(['member']), validateMinimumAmount('for_member'), validatePaymentInitiation, payForMember);
 router.post('/mobile/upload-receipt/:paymentId', requireRole(['member']), upload.single('receipt'), validateBankTransfer, uploadPaymentReceipt);
 
 export default router;

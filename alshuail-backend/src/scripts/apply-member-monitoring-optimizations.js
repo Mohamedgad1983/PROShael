@@ -210,7 +210,7 @@ async function performanceTest() {
         if (members && members.length > 0) {
           await query(
             'SELECT amount FROM payments WHERE payer_id = $1 AND status = ANY($2)',
-            [members[0].id, ['completed', 'approved']]
+            [members[0].id, ['paid', 'approved']]
           );
         }
       }

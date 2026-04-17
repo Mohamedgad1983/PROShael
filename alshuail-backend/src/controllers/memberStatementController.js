@@ -45,7 +45,7 @@ export const searchMemberStatement = async (req, res) => {
         // Get all payments for this member
         const { rows: payments } = await query(
           `SELECT amount, payment_date FROM payments
-           WHERE payer_id = $1 AND status = 'completed'
+           WHERE payer_id = $1 AND status = 'paid'
            ORDER BY payment_date ASC`,
           [member.id]
         );
@@ -121,7 +121,7 @@ export const getMemberStatement = async (req, res) => {
     // Get payment history
     const { rows: payments } = await query(
       `SELECT * FROM payments
-       WHERE payer_id = $1 AND status = 'completed'
+       WHERE payer_id = $1 AND status = 'paid'
        ORDER BY payment_date DESC`,
       [memberId]
     );
@@ -192,7 +192,7 @@ export const getAllMembersWithBalances = async (req, res) => {
 
     // Get all payments
     const { rows: payments } = await query(
-      "SELECT payer_id, amount FROM payments WHERE status = 'completed'"
+      "SELECT payer_id, amount FROM payments WHERE status = 'paid'"
     );
 
     // Calculate balances

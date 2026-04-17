@@ -134,7 +134,7 @@ export const getBalanceBreakdown = async (req, res) => {
       query(
         `SELECT id, amount, status, created_at
          FROM payments
-         WHERE status = 'completed'
+         WHERE status = 'paid'
          ORDER BY created_at DESC
          LIMIT 10`
       ),

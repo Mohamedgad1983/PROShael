@@ -12,7 +12,7 @@ export const getMonthlyPaymentSummary = async (req, res) => {
 
     const { rows: payments } = await query(
       `SELECT amount, payment_date, status FROM payments
-       WHERE payment_date >= $1 AND status = 'completed'
+       WHERE payment_date >= $1 AND status = 'paid'
        ORDER BY payment_date ASC`,
       [twelveMonthsAgo]
     );

@@ -382,7 +382,7 @@ async function calculateMemberBalances(members) {
   const balances = await Promise.all(members.map(async (member) => {
     const result = await query(
       'SELECT amount FROM payments WHERE payer_id = $1 AND status = ANY($2)',
-      [member.id, ['completed', 'approved']]
+      [member.id, ['paid', 'approved']]
     );
 
     const totalPaid = result.rows.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
@@ -487,7 +487,7 @@ export async function getMemberDetails(memberId) {
 
     // Calculate totals
     const totalPaid = payments.reduce((sum, p) =>
-      sum + (['completed', 'approved'].includes(p.status) ? parseFloat(p.amount || 0) : 0), 0);
+      sum + (['paid', 'approved'].includes(p.status) ? parseFloat(p.amount || 0) : 0), 0);
 
     const pendingAmount = payments.reduce((sum, p) =>
       sum + (p.status === 'pending' ? parseFloat(p.amount || 0) : 0), 0);
@@ -511,11 +511,11 @@ export async function getMemberDetails(memberId) {
         statistics: {
           totalPayments: payments.length,
           completedPayments: payments.filter(p =>
-            ['completed', 'approved'].includes(p.status)).length,
+            ['paid', 'approved'].includes(p.status)).length,
           totalPaid: totalPaid,
           pendingAmount: pendingAmount,
           averagePayment: payments.length > 0 ?
-            totalPaid / payments.filter(p => ['completed', 'approved'].includes(p.status)).length : 0
+            totalPaid / payments.filter(p => ['paid', 'approved'].includes(p.status)).length : 0
         }
       }
     };

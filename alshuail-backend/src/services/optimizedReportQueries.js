@@ -149,7 +149,7 @@ const getFallbackAggregation = async (dateFilter) => {
 const getOptimizedRevenue = async (dateFilter) => {
   const { rows } = await query(
     'SELECT amount FROM payments WHERE payment_date >= $1 AND payment_date <= $2 AND status = $3',
-    [dateFilter.startDate, dateFilter.endDate, 'completed']
+    [dateFilter.startDate, dateFilter.endDate, 'paid']
   );
 
   return rows?.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0) || 0;

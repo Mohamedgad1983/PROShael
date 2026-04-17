@@ -94,7 +94,7 @@ const simpleImport = async () => {
                     yearData.amount,
                     'subscription',
                     'bank_transfer',
-                    'completed',
+                    'paid',
                     `اشتراك ${yearData.year}`,
                     `${memberData.membership_number}-${yearData.year}`
                   ]
@@ -127,7 +127,7 @@ const simpleImport = async () => {
 
     // Check compliance
     const { rows: allPayments } = await query(
-      "SELECT payer_id, amount FROM payments WHERE status = 'completed'"
+      "SELECT payer_id, amount FROM payments WHERE status = 'paid'"
     );
 
     const memberBalances = {};

@@ -788,7 +788,7 @@ export const getMemberBalance = async (req, res) => {
 
     // Get member balance from payments table using correct column names
     const { rows: payments } = await query(
-      "SELECT amount, category, status FROM payments WHERE payer_id = $1 AND status = 'completed'",
+      "SELECT amount, category, status FROM payments WHERE payer_id = $1 AND status = 'paid'",
       [memberId]
     );
 

@@ -111,7 +111,7 @@ const importMembers = async () => {
                   yearData.amount,
                   'subscription',
                   'bank_transfer',
-                  'completed',
+                  'paid',
                   `اشتراك سنة ${yearData.year}`,
                   `دفعة اشتراك للعام ${yearData.year}`,
                   `${memberData.membership_number}-${yearData.year}`,
@@ -174,7 +174,7 @@ const importMembers = async () => {
     const { rows: allMembers } = await query('SELECT id FROM members');
 
     const { rows: payments } = await query(
-      "SELECT payer_id, amount FROM payments WHERE status = 'completed'"
+      "SELECT payer_id, amount FROM payments WHERE status = 'paid'"
     );
 
     const memberBalances = {};

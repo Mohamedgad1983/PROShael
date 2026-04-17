@@ -40,7 +40,7 @@ interface PaymentRecord {
   memberName: string;
   amount: number;
   type: 'subscription' | 'donation' | 'event' | 'diya';
-  status: 'completed' | 'pending' | 'failed';
+  status: 'paid' | 'completed' | 'pending' | 'failed';
   date: string;
   description: string;
   paymentMethod: 'cash' | 'bank_transfer' | 'credit_card' | 'digital_wallet';
@@ -182,6 +182,7 @@ const AppleFinancialReports: React.FC = () => {
 
   const getPaymentStatusColor = (status: PaymentRecord['status']): string => {
     switch (status) {
+      case 'paid':
       case 'completed': return 'apple-badge-success';
       case 'pending': return 'apple-badge-warning';
       case 'failed': return 'apple-badge-danger';
@@ -191,6 +192,7 @@ const AppleFinancialReports: React.FC = () => {
 
   const getPaymentStatusText = (status: PaymentRecord['status']): string => {
     switch (status) {
+      case 'paid':
       case 'completed': return 'مكتمل';
       case 'pending': return 'في الانتظار';
       case 'failed': return 'فاشل';

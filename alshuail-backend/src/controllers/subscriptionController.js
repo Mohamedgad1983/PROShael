@@ -82,7 +82,7 @@ export const getMemberSubscription = async (req, res) => {
       const { rows: balanceRows } = await query(
         `SELECT COALESCE(SUM(amount), 0) as total_paid, COUNT(*) as payment_count, MAX(payment_date) as last_payment_date
          FROM payments
-         WHERE beneficiary_id = $1 AND amount > 0 AND status IN ('approved', 'completed')`,
+         WHERE beneficiary_id = $1 AND amount > 0 AND status IN ('approved', 'paid')`,
         [member_id]
       );
       totalPaid = parseFloat(balanceRows[0]?.total_paid || 0);
@@ -99,7 +99,7 @@ export const getMemberSubscription = async (req, res) => {
         const { rows: balanceRows } = await query(
           `SELECT COALESCE(SUM(amount), 0) as total_paid, COUNT(*) as payment_count, MAX(payment_date) as last_payment_date
            FROM payments
-           WHERE payer_id = $1 AND amount > 0 AND status IN ('approved', 'completed')`,
+           WHERE payer_id = $1 AND amount > 0 AND status IN ('approved', 'paid')`,
           [member_id]
         );
         const paidAsPayer = parseFloat(balanceRows[0]?.total_paid || 0);
@@ -121,7 +121,7 @@ export const getMemberSubscription = async (req, res) => {
         const { rows: balanceRows } = await query(
           `SELECT COALESCE(SUM(amount), 0) as total_paid, COUNT(*) as payment_count, MAX(payment_date) as last_payment_date
            FROM payments
-           WHERE member_id = $1 AND amount > 0 AND status IN ('approved', 'completed')`,
+           WHERE member_id = $1 AND amount > 0 AND status IN ('approved', 'paid')`,
           [member_id]
         );
         const paidByMemberId = parseFloat(balanceRows[0]?.total_paid || 0);
@@ -215,7 +215,7 @@ export const getPaymentHistory = async (req, res) => {
 
     // Strategy 1: beneficiary_id
     const { rows: countRows1 } = await query(
-      `SELECT COUNT(*) AS count FROM payments WHERE beneficiary_id = $1 AND amount > 0 AND status IN ('approved', 'completed')`,
+      `SELECT COUNT(*) AS count FROM payments WHERE beneficiary_id = $1 AND amount > 0 AND status IN ('approved', 'paid')`,
       [memberId]
     );
     total = parseInt(countRows1[0].count) || 0;
@@ -225,7 +225,7 @@ export const getPaymentHistory = async (req, res) => {
       const { rows } = await query(
         `SELECT id, beneficiary_id, payer_id, subscription_year, fiscal_year, amount, payment_date, payment_method, receipt_number, notes, notes_ar, status, category, created_at
          FROM payments
-         WHERE beneficiary_id = $1 AND amount > 0 AND status IN ('approved', 'completed')
+         WHERE beneficiary_id = $1 AND amount > 0 AND status IN ('approved', 'paid')
          ORDER BY payment_date DESC NULLS LAST, created_at DESC
          LIMIT $2 OFFSET $3`,
         [memberId, limit, offset]
@@ -236,7 +236,7 @@ export const getPaymentHistory = async (req, res) => {
     // Strategy 2: payer_id
     if (total === 0) {
       const { rows: countRows2 } = await query(
-        `SELECT COUNT(*) AS count FROM payments WHERE payer_id = $1 AND amount > 0 AND status IN ('approved', 'completed')`,
+        `SELECT COUNT(*) AS count FROM payments WHERE payer_id = $1 AND amount > 0 AND status IN ('approved', 'paid')`,
         [memberId]
       );
       total = parseInt(countRows2[0].count) || 0;
@@ -245,7 +245,7 @@ export const getPaymentHistory = async (req, res) => {
         const { rows } = await query(
           `SELECT id, beneficiary_id, payer_id, subscription_year, fiscal_year, amount, payment_date, payment_method, receipt_number, notes, notes_ar, status, category, created_at
            FROM payments
-           WHERE payer_id = $1 AND amount > 0 AND status IN ('approved', 'completed')
+           WHERE payer_id = $1 AND amount > 0 AND status IN ('approved', 'paid')
            ORDER BY payment_date DESC NULLS LAST, created_at DESC
            LIMIT $2 OFFSET $3`,
           [memberId, limit, offset]
@@ -258,7 +258,7 @@ export const getPaymentHistory = async (req, res) => {
     if (total === 0) {
       try {
         const { rows: countRows3 } = await query(
-          `SELECT COUNT(*) AS count FROM payments WHERE member_id = $1 AND amount > 0 AND status IN ('approved', 'completed')`,
+          `SELECT COUNT(*) AS count FROM payments WHERE member_id = $1 AND amount > 0 AND status IN ('approved', 'paid')`,
           [memberId]
         );
         total = parseInt(countRows3[0].count) || 0;
@@ -267,7 +267,7 @@ export const getPaymentHistory = async (req, res) => {
           const { rows } = await query(
             `SELECT id, beneficiary_id, payer_id, subscription_year, fiscal_year, amount, payment_date, payment_method, receipt_number, notes, notes_ar, status, category, created_at
              FROM payments
-             WHERE member_id = $1 AND amount > 0 AND status IN ('approved', 'completed')
+             WHERE member_id = $1 AND amount > 0 AND status IN ('approved', 'paid')
              ORDER BY payment_date DESC NULLS LAST, created_at DESC
              LIMIT $2 OFFSET $3`,
             [memberId, limit, offset]
@@ -333,13 +333,13 @@ export const diagnoseMemberBalance = async (req, res) => {
 
     // Check payments by beneficiary_id
     const { rows: byBeneficiary } = await query(
-      `SELECT COUNT(*) as count, COALESCE(SUM(amount),0) as total FROM payments WHERE beneficiary_id = $1 AND status IN ('approved','completed')`,
+      `SELECT COUNT(*) as count, COALESCE(SUM(amount),0) as total FROM payments WHERE beneficiary_id = $1 AND status IN ('approved','paid')`,
       [member.id]
     );
 
     // Check payments by payer_id
     const { rows: byPayer } = await query(
-      `SELECT COUNT(*) as count, COALESCE(SUM(amount),0) as total FROM payments WHERE payer_id = $1 AND status IN ('approved','completed')`,
+      `SELECT COUNT(*) as count, COALESCE(SUM(amount),0) as total FROM payments WHERE payer_id = $1 AND status IN ('approved','paid')`,
       [member.id]
     );
 
@@ -347,7 +347,7 @@ export const diagnoseMemberBalance = async (req, res) => {
     let byMemberId = { count: 0, total: 0 };
     try {
       const { rows } = await query(
-        `SELECT COUNT(*) as count, COALESCE(SUM(amount),0) as total FROM payments WHERE member_id = $1 AND status IN ('approved','completed')`,
+        `SELECT COUNT(*) as count, COALESCE(SUM(amount),0) as total FROM payments WHERE member_id = $1 AND status IN ('approved','paid')`,
         [member.id]
       );
       byMemberId = rows[0];
@@ -447,7 +447,7 @@ export const getAllSubscriptions = async (req, res) => {
         const { rows: balances } = await query(
           `SELECT beneficiary_id as member_id, COALESCE(SUM(amount), 0) as real_balance
            FROM payments
-           WHERE beneficiary_id = ANY($1) AND amount > 0 AND status IN ('approved', 'completed')
+           WHERE beneficiary_id = ANY($1) AND amount > 0 AND status IN ('approved', 'paid')
            GROUP BY beneficiary_id`,
           [memberIds]
         );
@@ -677,7 +677,7 @@ export const recordPayment = async (req, res) => {
           payment_method || 'cash',
           receipt_number || `REC-${Date.now()}`,
           `REF-${Date.now()}`,
-          'completed',
+          'paid',
           req.user.id || req.user.user_id,
           isOnBehalf
             ? `دفع نيابة عن العضو - ${notes || ''}`.trim()

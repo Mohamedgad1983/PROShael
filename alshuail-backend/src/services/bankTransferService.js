@@ -244,7 +244,7 @@ export const approveBankTransfer = async (transferId, reviewerId, notes = '') =>
       const { rows: paymentRows } = await client.query(
         `INSERT INTO payments
           (payer_id, beneficiary_id, amount, category, payment_method, status, is_on_behalf, reference_id, notes, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, 'bank_transfer', 'completed', $5, $6, $7, $8, $8)
+         VALUES ($1, $2, $3, $4, 'bank_transfer', 'paid', $5, $6, $7, $8, $8)
          RETURNING *`,
         [
           transfer.requester_id,

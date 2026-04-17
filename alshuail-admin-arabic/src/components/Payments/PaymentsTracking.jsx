@@ -67,7 +67,7 @@ const PaymentsTracking = () => {
       currency: 'ريال',
       payment_type: 'subscription',
       payment_method: 'bank_transfer',
-      status: 'completed',
+      status: 'paid',
       transaction_id: 'TXN123456789',
       description: 'اشتراك شهري - العضوية المميزة',
       payment_date: '2024-01-15',
@@ -87,7 +87,7 @@ const PaymentsTracking = () => {
       currency: 'ريال',
       payment_type: 'subscription',
       payment_method: 'credit_card',
-      status: 'completed',
+      status: 'paid',
       transaction_id: 'TXN123456790',
       description: 'اشتراك شهري - العضوية الأساسية',
       payment_date: '2024-01-20',
@@ -147,7 +147,7 @@ const PaymentsTracking = () => {
       currency: 'ريال',
       payment_type: 'occasion',
       payment_method: 'stc_pay',
-      status: 'completed',
+      status: 'paid',
       transaction_id: 'TXN123456792',
       description: 'مساهمة في حفل زفاف',
       payment_date: '2024-01-25',
@@ -188,7 +188,7 @@ const PaymentsTracking = () => {
         currency: payment.currency || 'ريال',
         payment_type: payment.category || 'subscription',
         payment_method: payment.payment_method || 'bank_transfer',
-        status: payment.status || 'completed',
+        status: payment.status || 'paid',
         transaction_id: payment.transaction_reference,
         description: payment.description || payment.notes || '',
         payment_date: payment.created_at?.split('T')[0],
@@ -245,20 +245,20 @@ const PaymentsTracking = () => {
   // Calculate statistics
   const statistics = {
     total_payments: payments.length,
-    completed_payments: payments.filter(p => p.status === 'completed').length,
+    completed_payments: payments.filter(p => p.status === 'paid').length,
     pending_payments: payments.filter(p => p.status === 'pending').length,
     failed_payments: payments.filter(p => p.status === 'failed').length,
-    total_amount: payments.filter(p => p.status === 'completed').reduce((sum, p) => sum + p.amount, 0),
+    total_amount: payments.filter(p => p.status === 'paid').reduce((sum, p) => sum + p.amount, 0),
     pending_amount: payments.filter(p => p.status === 'pending').reduce((sum, p) => sum + p.amount, 0),
     on_behalf_payments: payments.filter(p => p.is_on_behalf).length,
-    on_behalf_amount: payments.filter(p => p.is_on_behalf && p.status === 'completed').reduce((sum, p) => sum + p.amount, 0),
+    on_behalf_amount: payments.filter(p => p.is_on_behalf && p.status === 'paid').reduce((sum, p) => sum + p.amount, 0),
     this_month_total: payments.filter(p => {
       const paymentDate = new Date(p.payment_date || p.created_at);
       const currentMonth = new Date().getMonth();
       const paymentMonth = paymentDate.getMonth();
-      return paymentMonth === currentMonth && p.status === 'completed';
+      return paymentMonth === currentMonth && p.status === 'paid';
     }).reduce((sum, p) => sum + p.amount, 0),
-    success_rate: payments.length > 0 ? ((payments.filter(p => p.status === 'completed').length / payments.length) * 100).toFixed(1) : 0
+    success_rate: payments.length > 0 ? ((payments.filter(p => p.status === 'paid').length / payments.length) * 100).toFixed(1) : 0
   };
 
   // Filter payments
@@ -302,7 +302,8 @@ const PaymentsTracking = () => {
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case 'completed':
+      case 'paid':
+      case 'completed': // legacy alias
         return <CheckCircleIcon className="w-5 h-5 text-green-500" />;
       case 'pending':
         return <ClockIcon className="w-5 h-5 text-yellow-500" />;
@@ -315,6 +316,7 @@ const PaymentsTracking = () => {
 
   const getStatusText = (status) => {
     switch (status) {
+      case 'paid':
       case 'completed': return 'مكتمل';
       case 'pending': return 'معلق';
       case 'failed': return 'فشل';
@@ -324,6 +326,7 @@ const PaymentsTracking = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
+      case 'paid':
       case 'completed': return 'bg-green-100 text-green-800 border-green-200';
       case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'failed': return 'bg-red-100 text-red-800 border-red-200';

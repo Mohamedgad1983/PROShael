@@ -22,7 +22,7 @@ export const getCrisisDashboard = async (req, res) => {
     const memberBalances = await Promise.all(members.map(async (member) => {
       // Get total payments for this member
       const { rows: payments } = await query(
-        "SELECT amount FROM payments WHERE payer_id = $1 AND status = 'completed'",
+        "SELECT amount FROM payments WHERE payer_id = $1 AND status = 'paid'",
         [member.id]
       );
 
@@ -88,7 +88,7 @@ export const updateMemberBalance = async (req, res) => {
     // Record the payment
     const { rows: paymentRows } = await query(
       `INSERT INTO payments (payer_id, amount, category, status, payment_method, title, created_at)
-       VALUES ($1, $2, $3, 'completed', 'online', 'مساهمة في الصندوق', $4)
+       VALUES ($1, $2, $3, 'paid', 'online', 'مساهمة في الصندوق', $4)
        RETURNING *`,
       [memberId, amount, type || 'contribution', new Date().toISOString()]
     );
@@ -97,7 +97,7 @@ export const updateMemberBalance = async (req, res) => {
 
     // Get updated balance for this member
     const { rows: allPayments } = await query(
-      "SELECT amount FROM payments WHERE payer_id = $1 AND status = 'completed'",
+      "SELECT amount FROM payments WHERE payer_id = $1 AND status = 'paid'",
       [memberId]
     );
 
