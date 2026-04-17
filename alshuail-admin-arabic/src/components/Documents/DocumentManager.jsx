@@ -6,6 +6,7 @@ import { logger } from '../../utils/logger';
 import './DocumentManager.css';
 
 const DOCUMENT_CATEGORIES = {
+  receipts: 'الوصولات',
   national_id: 'الهوية الوطنية',
   marriage_certificate: 'عقد الزواج',
   property_deed: 'صك الملكية',
@@ -46,7 +47,11 @@ const DocumentManager = () => {
       if (selectedCategory) params.append('category', selectedCategory);
       if (searchTerm) params.append('search', searchTerm);
 
-      const response = await fetch(`${process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.alshailfund.com')}/api/documents/member?${params}`, {
+      // Admin-facing page: use GET /api/documents (admin-scoped, returns all
+      // members' documents with member info joined). The old /api/documents/member
+      // endpoint returned only the logged-in user's own docs, which for an admin
+      // was always empty — that's why the page appeared blank before.
+      const response = await fetch(`${process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.alshailfund.com')}/api/documents?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
