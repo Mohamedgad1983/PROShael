@@ -123,10 +123,23 @@ router.get('/hijri-stats', cacheMiddleware(300), requireRole(['super_admin', 'fi
 // Mobile Payment Endpoints (require member authentication + payment validation)
 // The dynamic amount validator runs BEFORE the static payment-validator so the
 // per-category floor (pulled from active subscription plans) is applied first.
-router.post('/mobile/initiative',  requireRole(['member']), validateMinimumAmount('initiative'),  validatePaymentInitiation, payForInitiative);
-router.post('/mobile/diya',        requireRole(['member']), validateMinimumAmount('diya'),        validatePaymentInitiation, payForDiya);
-router.post('/mobile/subscription', requireRole(['member']), validateMinimumAmount('subscription'), validatePaymentInitiation, paySubscription);
-router.post('/mobile/for-member',  requireRole(['member']), validateMinimumAmount('for_member'), validatePaymentInitiation, payForMember);
+//
+// The mobile flow doesn't expose a payment-method picker — members always upload
+// a bank transfer receipt image — so we default `method` to 'bank_transfer'
+// before the static validator runs. This way iOS/Flutter clients don't have to
+// send the field, and admins can still override via the dashboard flow.
+const defaultBankTransferMethod = (req, res, next) => {
+  if (!req.body || typeof req.body !== 'object') return next();
+  if (!req.body.method && !req.body.payment_method) {
+    req.body.method = 'bank_transfer';
+  }
+  next();
+};
+
+router.post('/mobile/initiative',  requireRole(['member']), defaultBankTransferMethod, validateMinimumAmount('initiative'),  validatePaymentInitiation, payForInitiative);
+router.post('/mobile/diya',        requireRole(['member']), defaultBankTransferMethod, validateMinimumAmount('diya'),        validatePaymentInitiation, payForDiya);
+router.post('/mobile/subscription', requireRole(['member']), defaultBankTransferMethod, validateMinimumAmount('subscription'), validatePaymentInitiation, paySubscription);
+router.post('/mobile/for-member',  requireRole(['member']), defaultBankTransferMethod, validateMinimumAmount('for_member'), validatePaymentInitiation, payForMember);
 router.post('/mobile/upload-receipt/:paymentId', requireRole(['member']), upload.single('receipt'), validateBankTransfer, uploadPaymentReceipt);
 
 export default router;
