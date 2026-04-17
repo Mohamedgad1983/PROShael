@@ -204,24 +204,24 @@ export class PaymentProcessingService {
       let sql;
       let params;
 
-      // Paid transition: fill processed_at, processed_by, AND approved_at/by
-      // (the DB has both sets of columns; semantically approval = paid).
+      // Paid transition: fill approved_at/by + processed_by.
+      // (Schema only has approved_at — no processed_at column — so we skip
+      // the latter. approved_at is the canonical "when" the payment was
+      // approved.)
       if (status === 'paid') {
         if (actorId) {
           sql = `UPDATE payments
                    SET status        = $1,
                        updated_at    = $2,
-                       processed_at  = $2,
-                       processed_by  = $3,
                        approved_at   = $2,
-                       approved_by   = $3
+                       approved_by   = $3,
+                       processed_by  = $3
                  WHERE id = $4
                  RETURNING *`;
           params = [status, now, actorId, paymentId];
         } else {
           sql = `UPDATE payments
-                   SET status = $1, updated_at = $2,
-                       processed_at = $2, approved_at = $2
+                   SET status = $1, updated_at = $2, approved_at = $2
                  WHERE id = $3
                  RETURNING *`;
           params = [status, now, paymentId];
