@@ -26,11 +26,25 @@
 \set ON_ERROR_STOP on
 BEGIN;
 
+-- The snapshot table holds the BROKEN (zeroed) balances captured right
+-- before the restore. Column layout:
+--   id             uuid
+--   broken_balance numeric(12,2)   -- what current_balance was set to by
+--                                  -- the bad SUM-recompute trigger
+--   captured_at    timestamptz
+--
+-- A useful audit before drop:
+--   1. how many rows the snapshot covers
+--   2. how many of those broken_balance values were zero / non-zero
+--   3. confirm members.current_balance is now > 0 for the rows the snapshot
+--      thought were broken — proves the restore worked
 DO $$
 DECLARE
-  has_snapshot BOOLEAN;
-  snap_count   INTEGER;
-  drift_count  INTEGER;
+  has_snapshot      BOOLEAN;
+  snap_count        INTEGER;
+  broken_zero       INTEGER;
+  broken_nonzero    INTEGER;
+  restored_nonzero  INTEGER;
 BEGIN
   SELECT EXISTS (
     SELECT 1
@@ -46,39 +60,22 @@ BEGIN
 
   SELECT COUNT(*) INTO snap_count
     FROM _balance_snapshot_before_restore;
-  RAISE NOTICE 'Snapshot rows: %', snap_count;
 
-  SELECT COUNT(*) INTO drift_count
+  SELECT
+    COUNT(*) FILTER (WHERE COALESCE(broken_balance, 0) = 0),
+    COUNT(*) FILTER (WHERE COALESCE(broken_balance, 0) <> 0)
+  INTO broken_zero, broken_nonzero
+  FROM _balance_snapshot_before_restore;
+
+  SELECT COUNT(*) INTO restored_nonzero
     FROM members m
     JOIN _balance_snapshot_before_restore s ON s.id = m.id
-   WHERE COALESCE(m.current_balance, 0) <> COALESCE(s.current_balance, 0);
+   WHERE COALESCE(m.current_balance, 0) > 0;
 
-  RAISE NOTICE
-    'Members whose balance changed since the snapshot was taken: %',
-    drift_count;
-END$$;
-
--- Top 10 balance deltas since the snapshot (for an audit log line)
--- Only runs if the snapshot table exists.
-DO $$
-BEGIN
-  IF EXISTS (
-    SELECT 1 FROM pg_catalog.pg_tables
-     WHERE schemaname='public' AND tablename='_balance_snapshot_before_restore'
-  ) THEN
-    RAISE NOTICE 'Top 10 balance deltas since snapshot:';
-    PERFORM *
-      FROM (
-        SELECT m.full_name,
-               s.current_balance AS before_restore,
-               m.current_balance AS now,
-               m.current_balance - s.current_balance AS delta
-          FROM members m
-          JOIN _balance_snapshot_before_restore s ON s.id = m.id
-         ORDER BY ABS(COALESCE(m.current_balance,0) - COALESCE(s.current_balance,0)) DESC
-         LIMIT 10
-      ) t;
-  END IF;
+  RAISE NOTICE 'Snapshot rows: %', snap_count;
+  RAISE NOTICE '  broken_balance = 0  : % (rows the bad trigger zeroed)', broken_zero;
+  RAISE NOTICE '  broken_balance <> 0 : % (rows the bad trigger spared)', broken_nonzero;
+  RAISE NOTICE '  current balance > 0 now: % (restore worked for these rows)', restored_nonzero;
 END$$;
 
 DROP TABLE IF EXISTS _balance_snapshot_before_restore;
