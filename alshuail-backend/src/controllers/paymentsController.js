@@ -939,32 +939,58 @@ export const paySubscription = async (req, res) => {
     const currentDate = new Date();
     const hijriData = HijriDateManager.convertToHijri(currentDate);
 
+    // Look up the member's subscription row — payments.subscription_id is an
+    // FK to subscriptions.id, so we must use a real one or leave it NULL.
+    // The old code hardcoded '00000000-0000-0000-0000-000000000001' which
+    // violated the FK for every member that didn't happen to have that id.
+    let subscriptionId = null;
+    try {
+      const { rows: subRows } = await query(
+        'SELECT id FROM subscriptions WHERE member_id = $1 ORDER BY created_at DESC LIMIT 1',
+        [memberId]
+      );
+      if (subRows.length) subscriptionId = subRows[0].id;
+    } catch (lookupErr) {
+      log.warn('paySubscription: subscription lookup failed — proceeding with NULL subscription_id', {
+        memberId,
+        error: lookupErr.message
+      });
+    }
+
+    // Build INSERT dynamically so we only include subscription_id when we have one.
+    const cols = [
+      'payer_id', 'beneficiary_id', 'amount', 'payment_date',
+      'payment_method', 'category', 'status', 'reference_number', 'notes',
+      'hijri_date_string', 'hijri_year', 'hijri_month', 'hijri_day',
+      'hijri_month_name', 'created_at'
+    ];
+    const vals = [
+      memberId,
+      memberId,
+      parseFloat(amount),
+      currentDate.toISOString().split('T')[0],
+      'app_payment',
+      'subscription',
+      'pending',
+      generateReferenceNumber(),
+      `Subscription Payment (${subscription_period || 'monthly'}). ${notes || ''}`.trim(),
+      hijriData.hijri_date_string,
+      hijriData.hijri_year,
+      hijriData.hijri_month,
+      hijriData.hijri_day,
+      hijriData.hijri_month_name,
+      currentDate.toISOString()
+    ];
+
+    if (subscriptionId) {
+      cols.push('subscription_id');
+      vals.push(subscriptionId);
+    }
+
+    const placeholders = vals.map((_, i) => `$${i + 1}`).join(', ');
     const { rows: paymentRows } = await query(
-      `INSERT INTO payments (
-        payer_id, beneficiary_id, subscription_id, amount, payment_date,
-        payment_method, category, status, reference_number, notes,
-        hijri_date_string, hijri_year, hijri_month, hijri_day, hijri_month_name,
-        created_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
-      RETURNING *`,
-      [
-        memberId,
-        memberId,
-        '00000000-0000-0000-0000-000000000001',
-        parseFloat(amount),
-        currentDate.toISOString().split('T')[0],
-        'app_payment',
-        'subscription',
-        'pending',
-        generateReferenceNumber(),
-        `Subscription Payment (${subscription_period || 'monthly'}). ${notes || ''}`.trim(),
-        hijriData.hijri_date_string,
-        hijriData.hijri_year,
-        hijriData.hijri_month,
-        hijriData.hijri_day,
-        hijriData.hijri_month_name,
-        currentDate.toISOString()
-      ]
+      `INSERT INTO payments (${cols.join(', ')}) VALUES (${placeholders}) RETURNING *`,
+      vals
     );
 
     const payment = paymentRows[0];
@@ -975,6 +1001,7 @@ export const paySubscription = async (req, res) => {
       message: 'تم إنشاء دفعة الاشتراك بنجاح'
     });
   } catch (error) {
+    log.error('paySubscription failed', { error: error.message });
     res.status(500).json({
       success: false,
       error: error.message || 'فشل في إنشاء دفعة الاشتراك'
