@@ -180,8 +180,10 @@ export class PaymentProcessingService {
    * @param {string} status - New status
    * @returns {Object} Update result
    */
-  static async updatePaymentStatus(paymentId, status) {
+  static async updatePaymentStatus(paymentId, status, options = {}) {
     try {
+      const { actorId = null, actorRole = null, reason = null } = options;
+
       const validStatuses = ['pending', 'paid', 'cancelled', 'failed', 'refunded'];
       if (!validStatuses.includes(status)) {
         throw new Error('حالة غير صالحة');
@@ -199,20 +201,37 @@ export class PaymentProcessingService {
       const previousStatus = currentRows[0].status;
 
       const now = new Date().toISOString();
-      const params = [status, now, paymentId];
       let sql;
+      let params;
 
-      // Add processed timestamp for paid status
+      // Paid transition: fill processed_at, processed_by, AND approved_at/by
+      // (the DB has both sets of columns; semantically approval = paid).
       if (status === 'paid') {
-        sql = `UPDATE payments
-               SET status = $1, updated_at = $2, processed_at = $2
-               WHERE id = $3
-               RETURNING *`;
+        if (actorId) {
+          sql = `UPDATE payments
+                   SET status        = $1,
+                       updated_at    = $2,
+                       processed_at  = $2,
+                       processed_by  = $3,
+                       approved_at   = $2,
+                       approved_by   = $3
+                 WHERE id = $4
+                 RETURNING *`;
+          params = [status, now, actorId, paymentId];
+        } else {
+          sql = `UPDATE payments
+                   SET status = $1, updated_at = $2,
+                       processed_at = $2, approved_at = $2
+                 WHERE id = $3
+                 RETURNING *`;
+          params = [status, now, paymentId];
+        }
       } else {
         sql = `UPDATE payments
-               SET status = $1, updated_at = $2
+                 SET status = $1, updated_at = $2
                WHERE id = $3
                RETURNING *`;
+        params = [status, now, paymentId];
       }
 
       const { rows } = await query(sql, params);
@@ -230,6 +249,36 @@ export class PaymentProcessingService {
       );
 
       payment.payer = payerRows[0] || null;
+
+      // Audit log entry — matches the installed audit_logs schema
+      // (user_id, user_role, action_type, details text). Non-blocking.
+      try {
+        const details = JSON.stringify({
+          payment_id: paymentId,
+          from: previousStatus,
+          to: status,
+          amount: payment.amount,
+          member_id: payment.payer_id,
+          member_name: payment.payer?.full_name || null,
+          reason: reason || null
+        });
+        await query(
+          `INSERT INTO audit_logs
+             (user_id, user_role, action_type, details, created_at)
+           VALUES ($1, $2, $3, $4, NOW())`,
+          [
+            actorId,
+            actorRole,
+            `payment.${previousStatus}_to_${status}`,
+            details
+          ]
+        );
+      } catch (auditErr) {
+        log.warn('audit_logs write failed (non-blocking)', {
+          paymentId,
+          error: auditErr.message
+        });
+      }
 
       // Fire approval notification on pending* → paid transition.
       // Non-blocking: failures are logged but never rolled back the status update.

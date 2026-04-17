@@ -166,9 +166,17 @@ export const createPayment = async (req, res) => {
 export const updatePaymentStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, reason } = req.body;
 
-    const result = await PaymentProcessingService.updatePaymentStatus(id, status);
+    // Capture who the admin is so we can write processed_by + audit trail.
+    const actorId = req.user?.id || req.user?.user_id || null;
+    const actorRole = req.user?.role || null;
+
+    const result = await PaymentProcessingService.updatePaymentStatus(
+      id,
+      status,
+      { actorId, actorRole, reason }
+    );
 
     if (result.success) {
       res.json(result);

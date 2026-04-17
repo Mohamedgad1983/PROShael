@@ -78,8 +78,15 @@ router.get('/pending/stats', requireRole(['super_admin', 'financial_manager']), 
 router.get('/', cacheMiddleware(300), requireRole(['super_admin', 'financial_manager']), getAllPayments);
 router.post('/', requireRole(['super_admin', 'financial_manager']), validatePaymentInitiation, createPayment);
 router.get('/:id', cacheMiddleware(300), requireRole(['super_admin', 'financial_manager', 'member']), getPaymentById);
-router.put('/:id/status', requireRole(['super_admin', 'financial_manager']), validatePaymentVerification, updatePaymentStatus);
-router.post('/:id/process', requireRole(['super_admin', 'financial_manager']), validatePaymentVerification, processPayment);
+// Admin approval / status change.
+// NOTE: validatePaymentVerification was removed because that middleware is
+// designed for payment-gateway verification callbacks (requires transactionId,
+// status ∈ {success, failed, pending, cancelled}). For admin approval the body
+// is just { status: 'paid' | 'cancelled' | ... } and the middleware would 400
+// the request before it hits the controller. The controller itself validates
+// the status enum in PaymentProcessingService.updatePaymentStatus().
+router.put('/:id/status',   requireRole(['super_admin', 'financial_manager']), updatePaymentStatus);
+router.post('/:id/process', requireRole(['super_admin', 'financial_manager']), processPayment);
 
 // Statistics and Analytics - require financial access
 router.get('/statistics', cacheMiddleware(300), requireRole(['super_admin', 'financial_manager']), getPaymentStatistics);

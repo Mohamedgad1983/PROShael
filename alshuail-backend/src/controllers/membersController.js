@@ -786,18 +786,16 @@ export const getMemberBalance = async (req, res) => {
     const decoded = jwt.verify(token, config.jwt.secret);
     const memberId = decoded.id;
 
-    // Get member balance from payments table using correct column names
-    const { rows: payments } = await query(
-      "SELECT amount, category, status FROM payments WHERE payer_id = $1 AND status = 'paid'",
-      [memberId]
-    );
-
-    // Calculate total payments
-    const totalPaid = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
-
-    // Get member details for minimum balance
+    // Source-of-truth for balance is `members.current_balance` which the
+    // additive balance trigger (migration 20260417c) keeps in sync with
+    // every paid-payment insert/update/delete. Most members' balances
+    // originate from legacy imports that aren't in the `payments` table,
+    // so recomputing from payments alone would under-count.
+    //
+    // We still pull the payments list for the "total_payments" count and
+    // as a fallback if current_balance is somehow NULL.
     const { rows: memberRows } = await query(
-      'SELECT membership_status, full_name FROM members WHERE id = $1',
+      'SELECT membership_status, full_name, current_balance FROM members WHERE id = $1',
       [memberId]
     );
     const member = memberRows[0];
@@ -809,9 +807,18 @@ export const getMemberBalance = async (req, res) => {
       });
     }
 
-    // Calculate minimum required balance (example: 1000 SAR)
+    const { rows: payments } = await query(
+      "SELECT amount FROM payments WHERE payer_id = $1 AND status = 'paid'",
+      [memberId]
+    );
+    const totalPaid = payments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+
+    // Prefer the column; fall back to SUM if the trigger never set it.
+    const currentBalance = member.current_balance != null
+      ? parseFloat(member.current_balance)
+      : totalPaid;
+
     const minimumBalance = 1000;
-    const currentBalance = totalPaid;
     const remainingBalance = Math.max(0, minimumBalance - currentBalance);
 
     res.json({
