@@ -264,9 +264,23 @@ export const getPendingPayments = async (req, res) => {
       params
     );
 
-    // Attach a ready-to-open URL for each receipt so the admin UI doesn't have
-    // to know about the storage backend.
-    const uploadBaseUrl = process.env.UPLOAD_URL || '/api/uploads';
+    // Attach a ready-to-open URL for each receipt so the admin UI doesn't
+    // have to know about the storage backend.
+    //
+    // We must return an ABSOLUTE URL pointing at the backend host. The admin
+    // dashboard runs on alshailfund.com (Cloudflare Pages) while the files
+    // are served by express on api.alshailfund.com. A relative `/uploads/...`
+    // URL would route to Cloudflare Pages, which doesn't serve these files
+    // and falls back to /login — that's what kicks the admin out when they
+    // click "عرض الوصل".
+    //
+    // Priority for the URL base:
+    //   1. UPLOAD_URL env var if explicitly set
+    //   2. Derive from the request itself (protocol + host) — works for
+    //      localhost dev AND prod behind the nginx reverse proxy.
+    const protocol = req.protocol;
+    const host = req.get('host') || 'api.alshailfund.com';
+    const uploadBaseUrl = process.env.UPLOAD_URL || `${protocol}://${host}/uploads`;
     const bucketName = 'member-documents';
     const withReceiptUrl = rows.map((r) => ({
       ...r,

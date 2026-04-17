@@ -95,8 +95,16 @@ if (!fs.existsSync(newsUploadsDir)) {
     log.info('📁 Created news uploads directory');
 }
 
-// Serve uploaded files as static
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Serve uploaded files as static.
+// Priority:
+//   1. UPLOAD_DIR env var (what documentStorage.js actually writes to)
+//   2. fallback to a local ./uploads dir relative to the backend
+// This must match the directory used by src/config/documentStorage.js,
+// otherwise receipt URLs built by the controllers will point at files
+// that don't exist here.
+const uploadStaticDir = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
+app.use('/uploads', express.static(uploadStaticDir));
+log.info('Static uploads served from: ' + uploadStaticDir);
 
 app.use(helmet({
   crossOriginResourcePolicy: false,
