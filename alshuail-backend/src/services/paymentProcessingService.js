@@ -293,6 +293,18 @@ export class PaymentProcessingService {
         });
       }
 
+      // Fire rejection notification on pending* → cancelled transition (admin
+      // rejected the payment). The member needs to know WHY so they can
+      // correct and resubmit. Reason is passed through from the PUT body.
+      if (pendingStates.has(previousStatus) && status === 'cancelled') {
+        PaymentProcessingService.sendRejectionNotification(payment, reason).catch((err) => {
+          log.warn('Rejection notification failed (non-blocking)', {
+            paymentId,
+            error: err.message
+          });
+        });
+      }
+
       return {
         success: true,
         data: payment,
@@ -362,6 +374,71 @@ export class PaymentProcessingService {
       );
     } catch (err) {
       // Audit log failure must not break the approval flow.
+      log.warn('Could not write notification_logs entry', { error: err.message });
+    }
+  }
+
+  /**
+   * Send a push notification to the payer that their payment was rejected,
+   * and include the admin's reason so the member can fix and resubmit.
+   * Also logs an entry in notification_logs for auditability.
+   * Never throws — callers assume this is best-effort.
+   *
+   * @param {Object} payment - The payment row (must include payer_id and amount)
+   * @param {string|null} reason - Admin-provided rejection reason
+   */
+  static async sendRejectionNotification(payment, reason = null) {
+    if (!payment?.payer_id) return;
+
+    const amount = Number(payment.amount) || 0;
+    const trimmedReason = (reason && String(reason).trim()) || null;
+    const title = 'تم رفض دفعتك';
+    const body  = trimmedReason
+      ? `تم رفض دفعتك بمبلغ ${amount} ر.س. السبب: ${trimmedReason}`
+      : `تم رفض دفعتك بمبلغ ${amount} ر.س. الرجاء التواصل مع الإدارة أو إعادة رفع إيصال صحيح.`;
+
+    let sendResult = { success: false, error: 'not_sent' };
+    try {
+      sendResult = await sendPushNotification(
+        payment.payer_id,
+        { title, body },
+        {
+          type: 'payment_rejected',
+          paymentId: String(payment.id),
+          amount: String(amount),
+          category: String(payment.category || ''),
+          reason: trimmedReason || ''
+        }
+      );
+    } catch (err) {
+      sendResult = { success: false, error: err.message };
+    }
+
+    // Audit-log regardless of delivery success so we can see failures later.
+    try {
+      await query(
+        `INSERT INTO notification_logs
+           (member_id, title, body, data, status, success_count, failure_count,
+            error_message, sent_at)
+         VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7, $8, NOW())`,
+        [
+          payment.payer_id,
+          title,
+          body,
+          JSON.stringify({
+            type: 'payment_rejected',
+            paymentId: payment.id,
+            amount,
+            category: payment.category || null,
+            reason: trimmedReason
+          }),
+          sendResult.success ? 'sent' : 'failed',
+          sendResult.success ? (sendResult.devicesReached || 1) : 0,
+          sendResult.success ? 0 : 1,
+          sendResult.success ? null : (sendResult.error || 'unknown_error')
+        ]
+      );
+    } catch (err) {
       log.warn('Could not write notification_logs entry', { error: err.message });
     }
   }
