@@ -28,42 +28,105 @@ export const getAllInitiatives = async (req, res) => {
       offset = 0
     } = req.query;
 
-    const conditions = [];
-    const params = [];
-    let paramIndex = 1;
+    // Build WHERE conditions and params separately for each table
+    // (column names differ slightly between `initiatives` and legacy `activities`)
+    const initiativesConditions = [];
+    const activitiesConditions = [];
+    const initiativesParams = [];
+    const activitiesParams = [];
+    let iIdx = 1;
+    let aIdx = 1;
 
-    // Apply filters
+    // status filter — applies to both tables
     if (status) {
-      conditions.push(`status = $${paramIndex++}`);
-      params.push(status);
+      initiativesConditions.push(`status = $${iIdx++}`);
+      initiativesParams.push(status);
+      activitiesConditions.push(`status = $${aIdx++}`);
+      activitiesParams.push(status);
     }
 
+    // category filter — only `activities` has main_category_id
     if (category) {
-      conditions.push(`main_category_id = $${paramIndex++}`);
-      params.push(category);
+      activitiesConditions.push(`main_category_id = $${aIdx++}`);
+      activitiesParams.push(category);
     }
 
+    // organizer_id → created_by in both tables
     if (organizer_id) {
-      conditions.push(`created_by = $${paramIndex++}`);
-      params.push(organizer_id);
+      initiativesConditions.push(`created_by = $${iIdx++}`);
+      initiativesParams.push(organizer_id);
+      activitiesConditions.push(`created_by = $${aIdx++}`);
+      activitiesParams.push(organizer_id);
     }
 
-    // Filter for active initiatives only
+    // active_only filter
     if (active_only === 'true') {
-      conditions.push(`status = $${paramIndex++}`);
-      params.push('active');
+      initiativesConditions.push(`status = $${iIdx++}`);
+      initiativesParams.push('active');
+      activitiesConditions.push(`status = $${aIdx++}`);
+      activitiesParams.push('active');
     }
 
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const initiativesWhere = initiativesConditions.length > 0 ? `WHERE ${initiativesConditions.join(' AND ')}` : '';
+    const activitiesWhere = activitiesConditions.length > 0 ? `WHERE ${activitiesConditions.join(' AND ')}` : '';
 
-    params.push(parseInt(limit));
-    const limitParam = paramIndex++;
-    params.push(parseInt(offset));
-    const offsetParam = paramIndex++;
+    // Query both tables in parallel:
+    // - `initiatives` is the source admins write to via /api/initiatives-enhanced
+    // - `activities` is the legacy table that may still hold older records
+    // Either query may fail if a table doesn't exist, so we tolerate failures and merge what's available.
+    const [initiativesResult, activitiesResult] = await Promise.all([
+      query(
+        `SELECT id::text AS id,
+                title_ar, title_en,
+                description_ar, description_en,
+                target_amount, current_amount,
+                min_contribution, max_contribution,
+                start_date AS collection_start_date,
+                end_date AS collection_end_date,
+                start_date, end_date,
+                status, created_by, created_at,
+                0 AS contributor_count,
+                NULL AS main_category_id,
+                NULL AS reason_ar,
+                NULL AS reason_en
+         FROM initiatives ${initiativesWhere}
+         ORDER BY created_at DESC`,
+        initiativesParams
+      ).catch(err => {
+        log.warn('initiatives table query failed', { error: err.message });
+        return { rows: [] };
+      }),
+      query(
+        `SELECT id::text AS id,
+                COALESCE(name_ar, title_ar) AS title_ar,
+                COALESCE(name_en, title_en) AS title_en,
+                description_ar, description_en,
+                target_amount, current_amount,
+                NULL AS min_contribution,
+                NULL AS max_contribution,
+                collection_start_date,
+                collection_end_date,
+                start_date, end_date,
+                status, created_by, created_at,
+                COALESCE(contributor_count, 0) AS contributor_count,
+                main_category_id,
+                reason_ar, reason_en
+         FROM activities ${activitiesWhere}
+         ORDER BY created_at DESC`,
+        activitiesParams
+      ).catch(err => {
+        log.warn('activities table query failed', { error: err.message });
+        return { rows: [] };
+      })
+    ]);
 
-    const sql = `SELECT * FROM activities ${whereClause} ORDER BY created_at DESC LIMIT $${limitParam} OFFSET $${offsetParam}`;
+    // Merge, sort by created_at DESC, then paginate in JS
+    const merged = [...initiativesResult.rows, ...activitiesResult.rows]
+      .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
 
-    const { rows: initiatives } = await query(sql, params);
+    const offsetInt = parseInt(offset) || 0;
+    const limitInt = parseInt(limit) || 50;
+    const initiatives = merged.slice(offsetInt, offsetInt + limitInt);
 
     // Calculate totals and metrics for each initiative + map columns for iOS
     const enhancedInitiatives = initiatives?.map(initiative => {
@@ -88,12 +151,16 @@ export const getAllInitiatives = async (req, res) => {
         title_en: initiative.name_en || initiative.title_en || initiative.name_ar || null,
         description_ar: initiative.description_ar || initiative.description || initiative.reason_ar || null,
         description_en: initiative.description_en || initiative.description || initiative.reason_en || null,
-        min_contribution: initiative.min_contribution || null,
-        max_contribution: initiative.max_contribution || null,
-        collection_start_date: startDate,
-        collection_end_date: endDate,
+        // Convert numeric fields from string to number (pg returns numeric as string)
+        target_amount: Number(initiative.target_amount) || null,
+        current_amount: Number(initiative.current_amount) || 0,
+        min_contribution: Number(initiative.min_contribution) || null,
+        max_contribution: Number(initiative.max_contribution) || null,
+        collection_start_date: startDate ? String(startDate) : null,
+        collection_end_date: endDate ? String(endDate) : null,
         total_contributed: totalContributed,
         contributors_count: contributorsCount,
+        contributor_count: contributorsCount,
         progress_percentage: progressPercentage,
         days_remaining: daysRemaining,
         is_target_reached: initiative.target_amount ? totalContributed >= Number(initiative.target_amount) : false,
@@ -107,7 +174,7 @@ export const getAllInitiatives = async (req, res) => {
       pagination: {
         limit: parseInt(limit),
         offset: parseInt(offset),
-        total: enhancedInitiatives.length
+        total: merged.length
       },
       message: 'تم جلب المبادرات بنجاح'
     });
@@ -129,19 +196,40 @@ export const getInitiativeById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Get the initiative
-    const { rows: initiativeRows } = await query(
-      'SELECT * FROM activities WHERE id = $1',
-      [id]
-    );
+    // Try the new `initiatives` table first (where admin creates new ones),
+    // then fall back to legacy `activities` table.
+    let initiative = null;
 
-    const initiative = initiativeRows[0];
+    try {
+      const { rows } = await query('SELECT * FROM initiatives WHERE id::text = $1', [String(id)]);
+      if (rows[0]) {
+        initiative = rows[0];
+      }
+    } catch (e) {
+      log.warn('initiatives lookup failed', { error: e.message });
+    }
+
+    if (!initiative) {
+      try {
+        const { rows } = await query('SELECT * FROM activities WHERE id::text = $1', [String(id)]);
+        if (rows[0]) {
+          initiative = rows[0];
+        }
+      } catch (e) {
+        log.warn('activities lookup failed', { error: e.message });
+      }
+    }
+
     if (!initiative) {
       return res.status(404).json({
         success: false,
         error: 'المبادرة غير موجودة'
       });
     }
+
+    // Normalize column aliases so downstream code sees consistent fields
+    initiative.title_ar = initiative.title_ar || initiative.name_ar || null;
+    initiative.title_en = initiative.title_en || initiative.name_en || null;
 
     // Get the organizer
     if (initiative.organizer_id) {

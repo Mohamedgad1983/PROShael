@@ -11,6 +11,7 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { testConnection } from './src/config/database.js';
 import membersRoutes from './src/routes/members.js';
+import socialSecurityRoutes from './src/routes/socialSecurity.js';
 import paymentsRoutes from './src/routes/payments.js';
 import subscriptionsRoutes from './src/routes/subscriptionRoutes.js';
 import dashboardRoutes from './src/routes/dashboard.js';
@@ -262,6 +263,10 @@ app.use('/api', (req, res, next) => {
 // Member Suspension APIs - MUST come before general membersRoutes
 // to match more specific suspend/activate routes first
 app.use('/api/members', memberSuspensionRoutes);
+
+// Social security onboarding (one-time prompt + national ID upload)
+// Mounted before general membersRoutes so /api/members/social-security/* matches first
+app.use('/api/members/social-security', socialSecurityRoutes);
 
 app.use('/api/members', membersRoutes);
 // Add member monitoring routes under /api/member-monitoring to avoid conflict

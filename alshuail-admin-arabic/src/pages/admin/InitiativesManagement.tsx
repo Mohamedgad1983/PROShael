@@ -77,7 +77,7 @@ const InitiativesManagement = () => {
         title_ar: '', title_en: '', description_ar: '', description_en: '',
         beneficiary_name_ar: '', beneficiary_name_en: '',
         target_amount: '', min_contribution: '', max_contribution: '',
-        start_date: '', end_date: '', status: 'draft'
+        start_date: '', end_date: '', status: 'active'
     });
 
     const API_URL = (process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.alshailfund.com')) + '/api';
@@ -203,7 +203,7 @@ const InitiativesManagement = () => {
             title_ar: '', title_en: '', description_ar: '', description_en: '',
             beneficiary_name_ar: '', beneficiary_name_en: '',
             target_amount: '', min_contribution: '', max_contribution: '',
-            start_date: '', end_date: '', status: 'draft'
+            start_date: '', end_date: '', status: 'active'
         });
     };
 

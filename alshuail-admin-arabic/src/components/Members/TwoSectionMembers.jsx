@@ -396,6 +396,10 @@ const TwoSectionMembers = () => {
       gender: member.gender || '',
       tribal_section: member.tribal_section || '',
       national_id: member.national_id || '',
+      // Read-only fields populated from the iOS social-security onboarding prompt.
+      // Stored on the members table (BOOLEAN + TIMESTAMP). NULL = the member hasn't been asked yet.
+      social_security_beneficiary: member.social_security_beneficiary,
+      social_security_answered_at: member.social_security_answered_at || null,
       date_of_birth: member.date_of_birth || '',
       city: member.city || '',
       address: member.address || '',
@@ -1145,6 +1149,77 @@ const TwoSectionMembers = () => {
                         className="form-input"
                         placeholder="10xxxxxxxxx"
                       />
+                    </div>
+
+                    {/*
+                      Social-security onboarding answer (read-only).
+                      Submitted by the member from the iOS app's first-launch prompt.
+                      Surfaced here so admins can see who is a beneficiary and the
+                      uploaded national ID is in the member's documents tab.
+                    */}
+                    <div className="form-group">
+                      <label>مستفيد من الضمان الاجتماعي</label>
+                      <div
+                        className="form-input"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          backgroundColor: '#f9fafb',
+                          color: '#1f2937'
+                        }}
+                      >
+                        {editingMember.social_security_beneficiary === true && (
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '4px 10px',
+                            borderRadius: '999px',
+                            backgroundColor: '#dcfce7',
+                            color: '#166534',
+                            fontWeight: 600,
+                            fontSize: '13px'
+                          }}>
+                            ✓ نعم — مستفيد
+                          </span>
+                        )}
+                        {editingMember.social_security_beneficiary === false && (
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '4px 10px',
+                            borderRadius: '999px',
+                            backgroundColor: '#fee2e2',
+                            color: '#991b1b',
+                            fontWeight: 600,
+                            fontSize: '13px'
+                          }}>
+                            ✕ لا — غير مستفيد
+                          </span>
+                        )}
+                        {(editingMember.social_security_beneficiary === null || editingMember.social_security_beneficiary === undefined) && (
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '4px 10px',
+                            borderRadius: '999px',
+                            backgroundColor: '#fef3c7',
+                            color: '#92400e',
+                            fontWeight: 600,
+                            fontSize: '13px'
+                          }}>
+                            … لم يتم السؤال بعد
+                          </span>
+                        )}
+                        {editingMember.social_security_answered_at && (
+                          <span style={{ fontSize: '11px', color: '#6b7280', direction: 'ltr' }}>
+                            {new Date(editingMember.social_security_answered_at).toLocaleDateString('ar-SA')}
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <div className="form-group">

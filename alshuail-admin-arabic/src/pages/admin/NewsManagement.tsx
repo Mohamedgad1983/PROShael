@@ -89,7 +89,7 @@ const NewsManagement = () => {
         content_ar: '',
         category: 'general',
         priority: 'normal',
-        is_published: false,
+        is_published: true,
         images: [],
         publish_date: ''
     });
@@ -260,7 +260,7 @@ const NewsManagement = () => {
             content_ar: '',
             category: 'general',
             priority: 'normal',
-            is_published: false,
+            is_published: true,
             images: [],
             publish_date: ''
         });
