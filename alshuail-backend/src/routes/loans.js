@@ -71,7 +71,8 @@ memberRouter.post(
 );
 
 // Cancel — only valid while still in early review.
-memberRouter.delete('/:id', authenticateToken, requireRole(['member', 'super_admin', 'admin', 'financial_manager']), cancelMyLoan);
+// Path mirrors the detail endpoint (/me/:id) so the iOS app uses one URL shape.
+memberRouter.delete('/me/:id', authenticateToken, requireRole(['member', 'super_admin', 'admin', 'financial_manager']), cancelMyLoan);
 
 // =============================================================================
 // FUND ADMIN ROUTER  (mounted at /api/admin/loans)
