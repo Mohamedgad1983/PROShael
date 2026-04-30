@@ -17,7 +17,10 @@ export const ROLES = {
   ADMIN: 'admin',
   FINANCIAL_MANAGER: 'financial_manager',
   FAMILY_TREE_MANAGER: 'family_tree_manager',
-  VIEWER: 'viewer'
+  VIEWER: 'viewer',
+  // External partner role used by the loan-request workflow.
+  // Sees only requests forwarded to Brouj Al-Riyadah Foundation.
+  BROUJ_PARTNER: 'brouj_partner'
 };
 
 // Permission constants for importing by routes
@@ -42,7 +45,8 @@ const getArabicRoleName = (role) => {
     'user_member': 'عضو عادي',
     'admin': 'مدير',
     'organizer': 'منظم',
-    'member': 'عضو'
+    'member': 'عضو',
+    'brouj_partner': 'مؤسسة بروز الريادة'
   };
   return roleNames[role] || role;
 };

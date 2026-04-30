@@ -12,6 +12,7 @@ import { dirname } from 'path';
 import { testConnection } from './src/config/database.js';
 import membersRoutes from './src/routes/members.js';
 import socialSecurityRoutes from './src/routes/socialSecurity.js';
+import { memberRouter as loansMemberRouter, adminRouter as loansAdminRouter, broujRouter as loansBroujRouter } from './src/routes/loans.js';
 import paymentsRoutes from './src/routes/payments.js';
 import subscriptionsRoutes from './src/routes/subscriptionRoutes.js';
 import dashboardRoutes from './src/routes/dashboard.js';
@@ -269,6 +270,14 @@ app.use('/api/members', memberSuspensionRoutes);
 app.use('/api/members/social-security', socialSecurityRoutes);
 
 app.use('/api/members', membersRoutes);
+
+// Refundable loan requests (طلب سلفة مستردة) — three URL trees:
+//   /api/loans         member-side
+//   /api/admin/loans   fund staff (super_admin / admin / financial_manager)
+//   /api/brouj/loans   brouj_partner (filtered to forwarded requests only)
+app.use('/api/loans', loansMemberRouter);
+app.use('/api/admin/loans', loansAdminRouter);
+app.use('/api/brouj/loans', loansBroujRouter);
 // Add member monitoring routes under /api/member-monitoring to avoid conflict
 app.use('/api/member-monitoring', memberMonitoringRoutes);
 app.use('/api/payments', paymentsRoutes);
