@@ -63,22 +63,26 @@ export const listLoans = async (req, res) => {
     const params = [];
     let p = 1;
 
+    // All column references must be qualified with `lr.` because the JOIN
+    // pulls in `members` which has overlapping column names (e.g. `status`).
+    // Without the prefix `?status=submitted` was matching members.status and
+    // returning zero rows.
     const broujStatuses = statusFilterForRole(req.user);
     if (broujStatuses) {
-      conditions.push(`status = ANY($${p++}::text[])`);
+      conditions.push(`lr.status = ANY($${p++}::text[])`);
       params.push(broujStatuses);
     }
 
     if (status) {
-      conditions.push(`status = $${p++}`);
+      conditions.push(`lr.status = $${p++}`);
       params.push(status);
     }
     if (year) {
-      conditions.push(`sequence_year = $${p++}`);
+      conditions.push(`lr.sequence_year = $${p++}`);
       params.push(Number(year));
     }
     if (q) {
-      conditions.push(`(applicant_name ILIKE $${p} OR sequence_number ILIKE $${p} OR national_id ILIKE $${p})`);
+      conditions.push(`(lr.applicant_name ILIKE $${p} OR lr.sequence_number ILIKE $${p} OR lr.national_id ILIKE $${p})`);
       params.push(`%${q}%`);
       p++;
     }
