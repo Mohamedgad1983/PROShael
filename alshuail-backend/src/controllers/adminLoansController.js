@@ -19,6 +19,7 @@ import { log } from '../utils/logger.js';
 import { uploadToSupabase } from '../config/documentStorage.js';
 import { LOAN_STATUS, transitionStatus } from '../services/loanService.js';
 import { getStatusHistory } from '../services/statusHistoryService.js';
+import { HijriDateManager } from '../utils/hijriDateUtils.js';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -52,6 +53,79 @@ async function fetchDocuments(loanId) {
     [loanId]
   );
   return rows;
+}
+
+/**
+ * Auto-create an `expenses` row when a loan disbursement is recorded. Mirrors
+ * the diya auto-transfer pattern (see diyasController.transferInternalDiyas).
+ *
+ * Returns the new expense.id, or null on failure. Failure is non-fatal — the
+ * loan still completes; an admin can reconcile manually using the warning
+ * logged here. The loan_requests.disbursement_expense_id column is left NULL
+ * in that case.
+ */
+async function createLoanDisbursementExpense({ loan, amount, userId, note }) {
+  try {
+    const expenseDate = new Date();
+    let hijriData;
+    try {
+      hijriData = HijriDateManager.convertToHijri(expenseDate);
+    } catch (_err) {
+      hijriData = {
+        hijri_date_string: '',
+        hijri_year: null,
+        hijri_month: null,
+        hijri_day: null,
+        hijri_month_name: '',
+      };
+    }
+
+    const titleAr      = `سلفة - ${loan.sequence_number}`;
+    const titleEn      = `Loan disbursement - ${loan.sequence_number}`;
+    const descriptionAr = note
+      ? `${note} (طلب ${loan.sequence_number})`
+      : `صرف مبلغ سلفة للعضو ${loan.applicant_name} (طلب ${loan.sequence_number})`;
+    const notesText    = `صرف تلقائي من نظام السلف. رقم الطلب: ${loan.sequence_number}`;
+
+    const { rows } = await query(
+      `INSERT INTO expenses (
+         expense_category, title_ar, title_en, description_ar, amount, currency,
+         expense_date, paid_to, payment_method, notes,
+         approval_required, status, created_by,
+         hijri_date_string, hijri_year, hijri_month, hijri_day, hijri_month_name,
+         approved_by, approved_at, approval_notes
+       ) VALUES (
+         'loan', $1, $2, $3, $4, 'SAR', $5, $6, 'bank_transfer', $7,
+         false, 'paid', $8,
+         $9, $10, $11, $12, $13,
+         $8, $14, 'صرف تلقائي بعد إكمال إجراءات السلفة'
+       ) RETURNING id`,
+      [
+        titleAr,
+        titleEn,
+        descriptionAr,
+        amount,
+        expenseDate.toISOString().split('T')[0],
+        loan.applicant_name || '',
+        notesText,
+        userId,
+        hijriData.hijri_date_string || '',
+        hijriData.hijri_year || null,
+        hijriData.hijri_month || null,
+        hijriData.hijri_day || null,
+        hijriData.hijri_month_name || '',
+        new Date().toISOString(),
+      ]
+    );
+    return rows[0]?.id || null;
+  } catch (err) {
+    log.warn('[adminLoansController] failed to create disbursement expense (non-fatal)', {
+      error: err.message,
+      loanId: loan.id,
+      sequence_number: loan.sequence_number,
+    });
+    return null;
+  }
 }
 
 // ─── list / detail ─────────────────────────────────────────────────────────────
@@ -236,9 +310,27 @@ export const recordDisbursement = async (req, res) => {
     if (!Number.isFinite(amount) || amount <= 0) {
       return res.status(400).json({ success: false, code: 'INVALID_AMOUNT', message: 'المبلغ غير صالح' });
     }
-    // TODO Phase 1B: also create an `expenses` row tying the disbursement to the
-    // fund's accounting. Left as a hook for the next pass to keep this PR
-    // focused on the workflow itself.
+
+    // Pull the current loan first — we need sequence_number + applicant_name
+    // for the expense row that's about to be auto-created.
+    const { rows: loanRows } = await query(
+      'SELECT id, sequence_number, applicant_name FROM loan_requests WHERE id = $1',
+      [req.params.id]
+    );
+    if (loanRows.length === 0) {
+      return res.status(404).json({ success: false, code: 'NOT_FOUND', message: 'الطلب غير موجود' });
+    }
+    const loan = loanRows[0];
+
+    // Auto-create the matching expenses row first. Best-effort — if it fails
+    // we still complete the loan and log a warning for manual reconciliation.
+    const expenseId = await createLoanDisbursementExpense({
+      loan,
+      amount,
+      userId: req.user.id,
+      note: req.body?.note,
+    });
+
     const updated = await transitionStatus({
       loanId: req.params.id,
       toStatus: LOAN_STATUS.COMPLETED,
@@ -247,9 +339,10 @@ export const recordDisbursement = async (req, res) => {
       extraUpdates: {
         disbursed_at: new Date(),
         disbursed_amount: amount,
+        ...(expenseId ? { disbursement_expense_id: expenseId } : {}),
       },
     });
-    return res.json({ success: true, data: updated });
+    return res.json({ success: true, data: updated, expense_id: expenseId });
   } catch (err) {
     return handleTransitionError(res, err);
   }
