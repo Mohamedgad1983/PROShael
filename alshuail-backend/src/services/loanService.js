@@ -27,6 +27,7 @@ import { query, getClient } from './database.js';
 import { log } from '../utils/logger.js';
 import { allocateSequence } from './sequenceGenerator.js';
 import { recordStatusChange } from './statusHistoryService.js';
+import { sendPushNotification } from './notificationService.js';
 import {
   checkSubscriptionsPaid,
   checkProfileComplete,
@@ -66,6 +67,87 @@ const ALLOWED_TRANSITIONS = {
   [LOAN_STATUS.REJECTED]:               [],
   [LOAN_STATUS.CANCELLED]:              [],
 };
+
+// ─── notifications ────────────────────────────────────────────────────────────
+
+/**
+ * Push-notification template per status. Statuses NOT in this map are silent —
+ * either back-office churn the member doesn't need to see (`brouj_processing`)
+ * or actions the member performed themselves (`cancelled`).
+ *
+ * Sent fire-and-forget AFTER the transition COMMIT — failures are logged but
+ * never roll back the status change.
+ */
+const STATUS_NOTIFICATIONS = {
+  [LOAN_STATUS.UNDER_FUND_REVIEW]: {
+    title: 'جاري مراجعة طلب السلفة',
+    body: (loan) => `تم استلام طلب السلفة رقم ${loan.sequence_number} وجاري مراجعته من الصندوق.`,
+  },
+  [LOAN_STATUS.APPROVED_BY_FUND]: {
+    title: 'تمت الموافقة المبدئية',
+    body: (loan) => `تمت الموافقة على طلب السلفة رقم ${loan.sequence_number}. سيتم تحويل الطلب لمؤسسة بروز الريادة.`,
+  },
+  [LOAN_STATUS.FORWARDED_TO_BROUJ]: {
+    title: 'تم التحويل لمؤسسة بروز',
+    body: (loan) => `تم تحويل طلب السلفة رقم ${loan.sequence_number} لمؤسسة بروز الريادة لاستكمال الإجراءات عبر منصة ناجز.`,
+  },
+  [LOAN_STATUS.NAJIZ_UPLOADED]: {
+    title: 'يلزم سداد الرسوم الإدارية',
+    body: (loan) => `تم رفع إقرار الدين من ناجز للطلب رقم ${loan.sequence_number}. الرجاء سداد الرسوم الإدارية (10%).`,
+  },
+  [LOAN_STATUS.FEE_COLLECTED]: {
+    title: 'تم تحصيل الرسوم',
+    body: (loan) => `تم تحصيل الرسوم الإدارية للطلب رقم ${loan.sequence_number}. سيتم صرف السلفة قريباً.`,
+  },
+  [LOAN_STATUS.READY_FOR_DISBURSEMENT]: {
+    title: 'جاهز للصرف',
+    body: (loan) => `طلب السلفة رقم ${loan.sequence_number} جاهز للصرف من الصندوق.`,
+  },
+  [LOAN_STATUS.COMPLETED]: {
+    title: 'تم صرف السلفة',
+    body: (loan) => `تم صرف مبلغ السلفة رقم ${loan.sequence_number} بنجاح.`,
+  },
+  [LOAN_STATUS.REJECTED]: {
+    title: 'تم رفض طلب السلفة',
+    body: (loan) => {
+      const reason = loan.rejection_reason ? ` السبب: ${loan.rejection_reason}.` : '';
+      return `تم رفض طلب السلفة رقم ${loan.sequence_number}.${reason} للاستفسار يرجى التواصل مع إدارة الصندوق.`;
+    },
+  },
+};
+
+/**
+ * Fire-and-forget push dispatch. Looks up the template for `toStatus` and
+ * sends a push to the loan's member. Internal try/catch — never throws.
+ *
+ * The `data` payload is what iOS / the Flutter app reads on tap to deep-link
+ * straight to the loan detail screen.
+ */
+async function dispatchStatusNotification(loan, toStatus) {
+  const template = STATUS_NOTIFICATIONS[toStatus];
+  if (!template) {return;}
+  try {
+    await sendPushNotification(
+      loan.member_id,
+      {
+        title: template.title,
+        body: typeof template.body === 'function' ? template.body(loan) : template.body,
+      },
+      {
+        type: 'loan_status_update',
+        loan_id: String(loan.id),
+        sequence_number: String(loan.sequence_number || ''),
+        status: String(toStatus),
+      }
+    );
+  } catch (err) {
+    log.warn('[loanService] status notification failed (non-fatal)', {
+      error: err.message,
+      loanId: loan.id,
+      toStatus,
+    });
+  }
+}
 
 // ─── settings ─────────────────────────────────────────────────────────────────
 
@@ -362,6 +444,12 @@ export async function transitionStatus({
     });
 
     await client.query('COMMIT');
+
+    // Push notification to the borrower — AFTER commit so we never notify on
+    // a transition that ended up rolling back. dispatchStatusNotification has
+    // its own try/catch so failures here never bubble up.
+    await dispatchStatusNotification(updated[0], toStatus);
+
     return updated[0];
   } catch (err) {
     await client.query('ROLLBACK');
