@@ -13,6 +13,7 @@ import { testConnection } from './src/config/database.js';
 import membersRoutes from './src/routes/members.js';
 import socialSecurityRoutes from './src/routes/socialSecurity.js';
 import { memberRouter as loansMemberRouter, adminRouter as loansAdminRouter, broujRouter as loansBroujRouter } from './src/routes/loans.js';
+import { memberRouter as marriageMemberRouter, adminRouter as marriageAdminRouter } from './src/routes/marriageSupport.js';
 import paymentsRoutes from './src/routes/payments.js';
 import subscriptionsRoutes from './src/routes/subscriptionRoutes.js';
 import dashboardRoutes from './src/routes/dashboard.js';
@@ -278,6 +279,12 @@ app.use('/api/members', membersRoutes);
 app.use('/api/loans', loansMemberRouter);
 app.use('/api/admin/loans', loansAdminRouter);
 app.use('/api/brouj/loans', loansBroujRouter);
+
+// Marriage support requests (دعم المقبلين على الزواج) — two URL trees:
+//   /api/marriage-support         member-side (submit, list, sign, cancel)
+//   /api/admin/marriage-support   committee chair + chairman workflow
+app.use('/api/marriage-support', marriageMemberRouter);
+app.use('/api/admin/marriage-support', marriageAdminRouter);
 // Add member monitoring routes under /api/member-monitoring to avoid conflict
 app.use('/api/member-monitoring', memberMonitoringRoutes);
 app.use('/api/payments', paymentsRoutes);

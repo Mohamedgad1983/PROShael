@@ -20,7 +20,12 @@ export const ROLES = {
   VIEWER: 'viewer',
   // External partner role used by the loan-request workflow.
   // Sees only requests forwarded to Brouj Al-Riyadah Foundation.
-  BROUJ_PARTNER: 'brouj_partner'
+  BROUJ_PARTNER: 'brouj_partner',
+  // Marriage support workflow roles. Both are member-tier roles that an
+  // existing family member is granted (typically time-limited via the
+  // multi-role system).
+  MARRIAGE_COMMITTEE_CHAIR: 'marriage_committee_chair',
+  COMMITTEE_WITNESS: 'committee_witness'
 };
 
 // Permission constants for importing by routes
@@ -46,7 +51,9 @@ const getArabicRoleName = (role) => {
     'admin': 'مدير',
     'organizer': 'منظم',
     'member': 'عضو',
-    'brouj_partner': 'مؤسسة بروز الريادة'
+    'brouj_partner': 'مؤسسة بروز الريادة',
+    'marriage_committee_chair': 'رئيس لجنة دعم الزواج',
+    'committee_witness': 'شاهد لجنة'
   };
   return roleNames[role] || role;
 };
