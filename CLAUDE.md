@@ -942,6 +942,170 @@ Each spec includes: spec.md, plan.md, tasks.md, and optionally data-model.md, re
 | Feature Specs | 6 |
 | Total API Endpoints | 50+ |
 
+## iOS App Real Data Integration (April 2026 — In Progress)
+
+### Summary
+Connecting iOS SwiftUI app to real production database. All screens must show live data from PostgreSQL via the Express backend API.
+
+### What's Working
+- **News (الأخبار)**: Fixed `news_announcements` query (removed `deleted_at`, changed `published_at` → `publish_date`)
+- **Events (الفعاليات)**: Fixed column mapping (`title` → `event_name`, `start_date` → `event_date`, etc.)
+- **Initiatives (المبادرات)**: Fixed `activities` table mapping (`name_ar` → `title_ar`), Number() conversion for PostgreSQL numeric strings
+- **Balance Card (home page)**: Fixed — uses `members.current_balance` as fallback when no payments exist for the member
+- **Subscriptions (اشتراكي)**: Fixed — uses `MemberSubscriptionResponse` with fallback
+- **Statement (كشف الحساب)**: Working — shows payment history
+- **Diyas (قضايا الدية)**: Fixed backend controller with Number() conversion + flexible iOS decoder
+
+### What's Pending / In Progress
+- **Profile page (حسابي)**: Login response was missing `balance`, `membershipId`, `avatar` fields. Fix written in `passwordAuth.controller.js` but **NOT YET DEPLOYED**. Needs: `git add/commit/push` + deploy + user must log out and log back in.
+- **Payment history**: Works if member has payments; most members' balance is in `members.current_balance` not in `payments` table
+- **Diyas**: Backend fixed, iOS decoder fixed, but needs end-to-end testing
+
+### Key Technical Fixes Applied
+
+#### Backend (alshuail-backend/)
+1. **`src/controllers/subscriptionController.js`** — Multi-strategy balance lookup:
+   - Strategy 1: `payments.beneficiary_id = member_id`
+   - Strategy 2: `payments.payer_id = member_id`
+   - Strategy 3: `payments.member_id` column (if exists)
+   - Strategy 4: `members.current_balance` as fallback (source of truth)
+   - Uses `Math.max(totalPaid, memberBalance)` for final balance
+   - Diagnostic endpoint: `GET /api/subscriptions/diagnose/:phone`
+
+2. **`src/controllers/passwordAuth.controller.js`** — Login response enriched (PENDING DEPLOY):
+   - Added `balance`, `membershipId`, `name`, `avatar` to all login responses (password, OTP, FaceID)
+   - Added `current_balance`, `membership_number`, `photo_url` to SELECT queries
+
+3. **`src/controllers/initiativesController.js`** — `Number()` conversion for all numeric fields
+4. **`src/controllers/diyasController.js`** — `Number()` conversion + flexible WHERE clause for diya detection
+5. **`src/controllers/occasionsController.js`** — Column mapping for iOS Event model
+6. **`src/routes/news.js`** — Removed `deleted_at`, fixed `ORDER BY publish_date`
+
+#### iOS (AlShuailFund/)
+1. **`Models/Models.swift`** — ALL structs now use flexible decoding via `flexDouble()`, `flexInt()`, `flexString()` helpers:
+   - Handles PostgreSQL numeric strings (`"50000.00"`) AND native numbers (`50000`)
+   - Structs fixed: `User`, `Member`, `Payment`, `Subscription`, `SubscriptionPlan`, `MemberSubscription`, `Activity`, `Event`, `DiyaCase`, `FamilyBranch`, `FamilyMember`, `AppNotification`, `NewsItem`, `FinancialReport`
+   - All `success: Bool` fields changed to `Bool?` (optional) across all response structs
+   - `User` struct has explicit memberwise init (needed for demo mode in AuthViewModel)
+
+2. **`Features/AllViews.swift`**:
+   - `BalanceCard`: Shows visible error text, uses `totalPaid` fallback, shows remaining amount
+   - `SubscriptionsView`: Fallback from `SubscriptionsListResponse` to `MemberSubscriptionResponse`
+   - `SubscriptionRow`: Uses `paidValue`, `requiredValue` computed properties
+
+### Database Facts (for phone 96551447806 — متعب مسعود سعود الثابت)
+- `members.id` = `5a4acecd-8e93-4a76-9752-112933f6f4d0` (UUID)
+- `members.current_balance` = `3000.00` (source of truth for balance)
+- `payments` table: 0 records for this member (balance is NOT from payments)
+- Most members' balances are stored in `members.current_balance`, not calculated from payments
+- `payments` table has only 2 records total, one with `beneficiary_id = null`
+
+### Next Steps for Tomorrow
+1. **Deploy passwordAuth.controller.js** — commit, push, deploy, then user logs out/in to see profile data
+2. **Test Diyas screen** — verify diya cases appear in iOS app
+3. **Test Initiatives screen** — verify initiatives appear with correct amounts
+4. **Remove diagnostic endpoint** — `/api/subscriptions/diagnose/:phone` (temporary debug route)
+5. **Consider**: App Store submission once all screens verified
+
+## Marriage Support System — Phase 2 (May 7, 2026)
+
+### Status: Backend + Admin UI + iOS shipped end-to-end
+
+Full workflow built today: member submits → committee chair reviews + activates initiative + enters financial inputs (calculation engine runs) + selects witnesses + generates إقرار الدين PDF (placeholder URL for now) → 4 sequential signatures (beneficiary → witness 1 → witness 2 → committee chair, each with SHA256 hash of canonical request data + IP + timestamp) → fund chairman approves → fund records disbursement (auto-creates expenses row).
+
+### Database
+Migration `20260501_marriage_support_system.sql` (applied to VPS):
+- `marriage_support_requests` — workflow row (calculation inputs/outputs, witness selections, PDF metadata, all actor columns plain UUID per gotcha #3 except `member_id` which is FK)
+- `marriage_support_signatures` — one row per (request, signer_role); UNIQUE constraint enforces single signature per role
+- `marriage_support_status_history` — append-only audit trail
+- `marriage_support_settings` — singleton row with the 4 tunables (defaults: `competition_discount_rate=0.25`, `marriage_support_minimum=10000`, `ananiyat_per_unit=500`, `additional_support_multiplier=1.5`)
+- Extended `initiatives` table with `type` (CHECK in `('fundraising','marriage_support')`) and `linked_marriage_request_id`
+
+### State machine
+```
+submitted ─► under_committee_review ─► data_entered ─► awaiting_signatures
+                                       └► rejected         ↓ (4 sigs)
+                                                    signatures_complete
+                                                         ↓ (chairman)
+                                                  approved_by_chairman
+                                                         ↓ (fund pays)
+                                                     completed
+```
+Cancellable while: `submitted`, `under_committee_review`.
+
+### Calculation engine (in `src/services/marriageSupportService.js`)
+```
+initial_total       = contributions_sum + (previous_ananiyat_count × ananiyat_per_unit)
+after_discount      = initial_total × (1 - competition_discount_rate)
+competitive_balance = max(after_discount, marriage_support_minimum)
+final_amount        = competitive_balance + (additional_support_balance × multiplier) + special_ananiya_value
+```
+All four outputs + the four settings are snapshotted on the request row at calculation time, so historical records survive future settings changes. `previous_ananiyat_count` is auto-counted from past payments to marriage_support initiatives, with manual override field for the committee chair.
+
+### New roles (registered in `src/middleware/rbacMiddleware.js`)
+- `marriage_committee_chair` — رئيس لجنة دعم الزواج
+- `committee_witness` — شاهد لجنة
+- For v1, `super_admin` doubles as fund chairman.
+
+### Backend file structure
+```
+alshuail-backend/
+├── migrations/20260501_marriage_support_system.sql
+├── src/services/marriageSupportService.js          # 654 lines — state machine, calc, hash, signatures
+├── src/controllers/marriageSupportController.js     # member side
+├── src/controllers/adminMarriageSupportController.js # committee + chairman
+└── src/routes/marriageSupport.js                    # mounted in server.js as 2 trees
+```
+
+### API endpoints
+**Member (`/api/marriage-support`):**
+- `GET /eligibility-check` · `GET /me` · `GET /me/:id` · `POST /` (multipart: marriage_contract) · `POST /me/:id/sign` · `DELETE /me/:id`
+
+**Admin (`/api/admin/marriage-support`):**
+- `GET /` · `GET /:id`
+- Committee: `start-review` · `link-initiative` · `enter-data` · `generate-pdf` · `sign-committee` · `sign-witness` · `reject`
+- Chairman: `chairman-approve` · `disburse`
+
+### Admin UI
+- `alshuail-admin-arabic/src/services/marriageSupportService.ts` — typed client
+- `alshuail-admin-arabic/src/pages/admin/MarriageSupportList.tsx` — list with status pills + filters
+- `alshuail-admin-arabic/src/pages/admin/MarriageSupportDetail.tsx` — KPIs, signatures timeline, role-aware actions
+- Sidebar entry `marriage-support` (💍 دعم الزواج) added to StyledDashboard
+
+### iOS UI
+- `Models/MarriageSupportModels.swift` — flexible decoders for status, request, signatures, history
+- `Features/MarriageSupportViews.swift` — home (list + CTA), single-page submission form, detail (calc breakdown + signatures timeline + sign + cancel)
+- `Features/RequestsHubView.swift` — marriage card now links to MarriageRequestsHomeView (was placeholder "قريباً")
+- `Core/Network/APIEndpoint.swift` — added `marriageEligibility`, `myMarriageRequests`, `myMarriageRequestDetail(id:)`, `createMarriageRequest`, `cancelMarriageRequest(id:)`, `signMarriageRequest(id:)`
+
+### Loan-system improvements shipped same day
+1. **Push notifications on loan status changes** — `notificationService.sendPushNotification` wired into `loanService.transitionStatus`. 8 status transitions trigger Arabic push messages (skips `brouj_processing` and `cancelled`). Fire-and-forget after COMMIT — failures don't roll back. `data` payload includes `loan_id` + `sequence_number` + `status` for deep-linking.
+2. **Disbursement → expenses entry** — auto-creates an `expenses` row (category=`loan`, status=`paid`, payment_method=`bank_transfer`) when fund records loan disbursement; sets `disbursement_expense_id` on `loan_requests`. Best-effort — expense INSERT failure logs a warning but the loan still completes.
+3. **Brouj test user** — `brouj@alshuail.com` / `BroujTest@2026` (id `866736e0-fdd7-4b68-8f35-bac5105cc5ff`), role `brouj_partner`, in `users` table. Login confirmed via `/api/auth/login`.
+
+### name_ar fix
+`authenticateAdmin` in `routes/auth.js` now returns BOTH `fullName` (legacy) and `full_name_ar` / `full_name_en` (snake_case for iOS + Flutter) on the user payload.
+
+### Deferred / known issues for next session
+1. **Firebase production credentials missing** — pm2 logs say "Firebase credentials not configured. Push notifications will be disabled." Push notifications (loans + marriage support) won't actually deliver until FCM service-account JSON is added to `/var/www/PROShael/alshuail-backend/.env.production` on the VPS.
+2. **PDF generation is a placeholder** — `generatePdfAndStamp` in `marriageSupportService.js` stamps the canonical hash and sets a placeholder `pdf_url` (`/api/marriage-support/:id/pdf` — not implemented). Replace with real `pdfkit` Arabic rendering when the إقرار الدين template is finalised.
+3. **iOS marriage form is single-page (not multi-step wizard)** — basic submission with national_id + spouse_name_ar + spouse_national_id + marriage_date. No marriage contract upload yet (form-only). Wizard + contract upload can come later.
+4. **No iOS UI for committee chair / chairman / witness flows** — they use the admin web. iOS only handles the beneficiary side.
+5. **Multi-role for admin/brouj** — currently a person can have one role at a time. If the admin needs to do both fund-side and brouj-side actions in the same session, consider a multi-role token or remove the `isBrouj` exclusion from fund actions.
+6. **Login response: name_ar fix needs to be deployed + retest** (committed, deploy pending).
+7. **iOS submodule** has tons of dirty state — only commit specific marriage support files, never `git add .`.
+
+### Test member (still active from yesterday)
+- Phone: `96551447806` · ID: `5a4acecd-8e93-4a76-9752-112933f6f4d0` · `current_balance` = 3000.00 · `national_id` = 1234567890
+
+### Quick smoke
+```bash
+# Member route returns 401 (auth required)
+curl -s -o /dev/null -w "%{http_code}\n" https://api.alshailfund.com/api/marriage-support/eligibility-check
+# Admin route returns 401 (auth required)
+curl -s -o /dev/null -w "%{http_code}\n" https://api.alshailfund.com/api/admin/marriage-support
+```
+
 ## Recent Updates (April 2025)
 
 - **Database Migration**: Migrated from Supabase Cloud to self-hosted PostgreSQL on VPS

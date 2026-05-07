@@ -63,6 +63,7 @@ import NewsManagement from '../pages/admin/NewsManagement';
 // @ts-ignore
 import InitiativesManagementNew from '../pages/admin/InitiativesManagement';
 import LoanRequestsList from '../pages/admin/LoanRequestsList';
+import MarriageSupportList from '../pages/admin/MarriageSupportList';
 // @ts-ignore
 import SubscriptionDashboard from '../pages/admin/SubscriptionDashboard';
 // @ts-ignore
@@ -930,6 +931,7 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
     { id: 'bank-transfers', label: '🏦 طلبات التحويل', icon: BanknotesIcon },
     { id: 'expenses', label: '💰 المصروفات', icon: BanknotesIcon },
     { id: 'loan-requests', label: '💳 طلبات السلف', icon: BanknotesIcon },
+    { id: 'marriage-support', label: '💍 دعم الزواج', icon: BanknotesIcon },
     { id: 'initiatives', label: 'المبادرات', icon: LightBulbIcon },
     { id: 'diyas', label: 'الديات', icon: ScaleIcon },
     { id: 'reports', label: 'التقارير', icon: DocumentTextIcon },
@@ -4291,6 +4293,9 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
                 {/* Loan requests (طلبات السلف) — same component serves
                     fund staff + brouj_partner; service picks the right URL. */}
                 {activeSection === 'loan-requests' && <LoanRequestsList />}
+
+                {/* Marriage support (دعم الزواج) — committee chair + chairman workflow */}
+                {activeSection === 'marriage-support' && <MarriageSupportList />}
 
                 {activeSection === 'news' && <NewsManagement />}
 

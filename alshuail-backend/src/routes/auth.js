@@ -285,7 +285,11 @@ async function authenticateAdmin(identifier, password, requestedRole = null) {
       id: user.id,
       email: user.email || `${user.phone}@alshuail.com`,
       phone: user.phone,
+      // Both shapes — `fullName` for legacy admin code, `full_name_ar` /
+      // `full_name_en` for iOS + Flutter clients that decode by snake_case.
       fullName: user.full_name_ar || user.full_name_en || user.full_name || user.email?.split('@')[0] || `Admin ${user.phone}`,
+      full_name_ar: user.full_name_ar || user.full_name || null,
+      full_name_en: user.full_name_en || null,
       role: roleInfo.name,
       roleAr: roleInfo.displayName,
       permissions: roleInfo.permissions
