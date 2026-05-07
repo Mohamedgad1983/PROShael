@@ -22,6 +22,7 @@ import {
   transitionStatus,
   recordSignature,
 } from '../services/marriageSupportService.js';
+import { streamMarriageSupportPdf } from '../services/marriageSupportPdf.js';
 import { getStatusHistory } from '../services/statusHistoryService.js';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -154,6 +155,35 @@ export const signBeneficiary = async (req, res) => {
     }
     log.error('[marriage] signBeneficiary', { error: err.message });
     return res.status(500).json({ success: false, error: 'فشل تسجيل التوقيع' });
+  }
+};
+
+/**
+ * Stream a generated PDF for the request. Both members (own request) and
+ * staff (any request) can hit this — server enforces ownership separately.
+ */
+export const downloadPdf = async (req, res) => {
+  try {
+    const { rows } = await query('SELECT * FROM marriage_support_requests WHERE id = $1', [req.params.id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'الطلب غير موجود' });
+    }
+    const request = rows[0];
+    // If the requester is a member, restrict to their own requests.
+    const isStaff = ['super_admin', 'admin', 'financial_manager', 'marriage_committee_chair'].includes(req.user?.role);
+    if (!isStaff && String(request.member_id) !== String(req.user.id)) {
+      return res.status(403).json({ success: false, error: 'غير مصرح' });
+    }
+    // Fetch signatures so the PDF placeholders show ✓ for already-signed roles.
+    const { rows: sigs } = await query(
+      'SELECT signer_role, signer_name, signer_member_id, signed_at FROM marriage_support_signatures WHERE request_id = $1 ORDER BY signed_at ASC',
+      [request.id]
+    );
+    request.signatures = sigs;
+    await streamMarriageSupportPdf(request, res);
+  } catch (err) {
+    log.error('[marriage] downloadPdf', { error: err.message });
+    return res.status(500).json({ success: false, error: 'فشل إنشاء الـ PDF' });
   }
 };
 

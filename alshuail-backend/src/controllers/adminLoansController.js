@@ -28,6 +28,16 @@ function isBrouj(user) {
 }
 
 /**
+ * Brouj-side actions are allowed for the official Brouj partner role AND
+ * for super_admin (since the family treats Brouj as an internal entity
+ * that the admin is also responsible for). This way one admin login can
+ * drive both fund-side and brouj-side actions in the same session.
+ */
+function canDoBroujActions(user) {
+  return user && (user.role === 'brouj_partner' || user.role === 'super_admin');
+}
+
+/**
  * Brouj should only ever see requests in stages that are theirs to handle.
  * For everyone else (fund admins) we don't add an extra filter.
  */
@@ -352,7 +362,7 @@ export const recordDisbursement = async (req, res) => {
 
 export const broujUploadNajiz = async (req, res) => {
   try {
-    if (!isBrouj(req.user)) {return res.status(403).json({ success: false, error: 'مخصص لبروز الريادة' });}
+    if (!canDoBroujActions(req.user)) {return res.status(403).json({ success: false, error: 'مخصص لبروز الريادة' });}
     if (!req.file) {
       return res.status(400).json({ success: false, code: 'NO_FILE', message: 'يرجى رفع إقرار ناجز' });
     }
@@ -381,7 +391,7 @@ export const broujUploadNajiz = async (req, res) => {
 
 export const broujConfirmFee = async (req, res) => {
   try {
-    if (!isBrouj(req.user)) {return res.status(403).json({ success: false, error: 'مخصص لبروز الريادة' });}
+    if (!canDoBroujActions(req.user)) {return res.status(403).json({ success: false, error: 'مخصص لبروز الريادة' });}
     if (!req.file) {
       return res.status(400).json({ success: false, code: 'NO_FILE', message: 'يرجى رفع إيصال الرسوم' });
     }

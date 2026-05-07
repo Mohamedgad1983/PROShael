@@ -17,6 +17,7 @@ import {
   getMy,
   create,
   signBeneficiary,
+  downloadPdf,
   cancelMy,
 } from '../controllers/marriageSupportController.js';
 import {
@@ -63,6 +64,7 @@ memberRouter.post('/',
 );
 
 memberRouter.post('/me/:id/sign',   authenticateToken, requireRole(MEMBER_ROLES), signBeneficiary);
+memberRouter.get('/:id/pdf',        authenticateToken, requireRole([...MEMBER_ROLES, 'committee_witness']), downloadPdf);
 memberRouter.delete('/me/:id',      authenticateToken, requireRole(MEMBER_ROLES), cancelMy);
 
 // =============================================================================
