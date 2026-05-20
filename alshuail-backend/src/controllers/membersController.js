@@ -814,7 +814,7 @@ export const getMemberBalance = async (req, res) => {
     const totalPaid = payments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
 
     // Prefer the column; fall back to SUM if the trigger never set it.
-    const currentBalance = member.current_balance != null
+    const currentBalance = member.current_balance !== null
       ? parseFloat(member.current_balance)
       : totalPaid;
 
@@ -932,33 +932,147 @@ export const getMemberNotifications = async (req, res) => {
   }
 };
 
+const MOBILE_PROFILE_ALLOWED_FIELDS = new Set([
+  'email',
+  'occupation',
+  'address',
+  'date_of_birth'
+]);
+
+const MOBILE_PROFILE_LOCKED_FIELDS = new Set([
+  'full_name',
+  'full_name_ar',
+  'full_name_en',
+  'name',
+  'fullNameAr',
+  'fullNameEn',
+  'membership_number',
+  'member_id',
+  'current_balance',
+  'balance',
+  'role',
+  'membership_status',
+  'profile_image_url',
+  'photo_url'
+]);
+
+const normalizeProfileString = (value) => {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null) {
+    return null;
+  }
+  const trimmed = String(value).trim();
+  return trimmed.length > 0 ? trimmed : null;
+};
+
+const normalizeProfileDate = (value) => {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null || String(value).trim() === '') {
+    return null;
+  }
+
+  const raw = String(value).trim();
+  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) {
+    const error = new Error('تاريخ الميلاد يجب أن يكون بصيغة YYYY-MM-DD');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+
+  const isValidCalendarDate =
+    parsed.getUTCFullYear() === year &&
+    parsed.getUTCMonth() === month - 1 &&
+    parsed.getUTCDate() === day;
+
+  if (!isValidCalendarDate) {
+    const error = new Error('تاريخ الميلاد غير صحيح');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const today = new Date();
+  const todayUTC = new Date(Date.UTC(
+    today.getUTCFullYear(),
+    today.getUTCMonth(),
+    today.getUTCDate()
+  ));
+
+  if (parsed > todayUTC) {
+    const error = new Error('تاريخ الميلاد لا يمكن أن يكون في المستقبل');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return raw;
+};
+
 export const updateMemberProfile = async (req, res) => {
   try {
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    const decoded = jwt.verify(token, config.jwt.secret);
-    const memberId = decoded.id;
+    // Prefer the authenticated member set by requireRole(); fall back to JWT
+    // decode for compatibility with older middleware paths.
+    let memberId = req.user?.id;
+    if (!memberId) {
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      const decoded = jwt.verify(token, config.jwt.secret);
+      memberId = decoded.id;
+    }
 
-    const updateData = req.body;
+    const updateData = req.body || {};
+    const requestedKeys = Object.keys(updateData);
+    const lockedKeys = requestedKeys.filter((key) => MOBILE_PROFILE_LOCKED_FIELDS.has(key));
 
-    // Remove sensitive fields that shouldn't be updated via mobile
-    const {
-      id: _id,
-      membership_number: _membership_number,
-      temp_password: _temp_password,
-      password_hash: _password_hash,
-      membership_status: _membership_status,
-      created_at: _created_at,
-      updated_at: _updated_at,
-      ...allowedUpdates
-    } = updateData;
+    if (lockedKeys.length > 0) {
+      log.warn('Blocked mobile profile update for admin-only fields', {
+        memberId,
+        fields: lockedKeys
+      });
+    }
 
-    // Add updated timestamp
+    const allowedUpdates = {};
+    for (const key of requestedKeys) {
+      if (!MOBILE_PROFILE_ALLOWED_FIELDS.has(key)) {
+        continue;
+      }
+
+      if (key === 'date_of_birth') {
+        const normalizedDate = normalizeProfileDate(updateData[key]);
+        if (normalizedDate !== undefined) {
+          allowedUpdates[key] = normalizedDate;
+        }
+      } else {
+        const normalizedValue = normalizeProfileString(updateData[key]);
+        if (normalizedValue !== undefined) {
+          allowedUpdates[key] = normalizedValue;
+        }
+      }
+    }
+
+    if (Object.keys(allowedUpdates).length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: lockedKeys.length > 0
+          ? 'لا يمكن تعديل الاسم أو بيانات العضوية من التطبيق. تواصل مع الإدارة.'
+          : 'لا توجد بيانات مسموح بتحديثها',
+        message_en: lockedKeys.length > 0
+          ? 'Name and membership fields are admin-only.'
+          : 'No allowed profile fields were provided.'
+      });
+    }
+
     allowedUpdates.updated_at = new Date().toISOString();
 
-    // Build dynamic UPDATE query
     const keys = Object.keys(allowedUpdates);
     const setClauses = keys.map((key, i) => `${key} = $${i + 1}`);
-    const values = keys.map(key => allowedUpdates[key]);
+    const values = keys.map((key) => allowedUpdates[key]);
     values.push(memberId);
 
     const { rows } = await query(
@@ -984,7 +1098,8 @@ export const updateMemberProfile = async (req, res) => {
       message: 'تم تحديث الملف الشخصي بنجاح'
     });
   } catch (error) {
-    res.status(500).json({
+    const statusCode = error.statusCode || 500;
+    res.status(statusCode).json({
       success: false,
       error: error.message || 'فشل في تحديث الملف الشخصي'
     });

@@ -32,8 +32,9 @@ import {
 } from '../controllers/memberRegistrationController.js';
 import { requireRole } from '../middleware/rbacMiddleware.js';
 
-// Configure multer for file uploads
-const upload = multer({
+// Configure multer for Excel imports only. Do not reuse this for member
+// photos: this filter intentionally rejects JPG/PNG/WebP.
+const excelUpload = multer({
   storage: multer.memoryStorage(),
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB limit
@@ -53,6 +54,52 @@ const upload = multer({
   }
 });
 
+// Configure multer for mobile profile photos. The previous implementation
+// reused the Excel-only middleware, so iOS JPEG uploads were rejected before
+// the `/mobile/photo` handler ran.
+const profilePhotoUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB profile photo limit
+    files: 1
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedMimeTypes = new Set([
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/webp',
+      'image/heic',
+      'image/heif'
+    ]);
+
+    if (allowedMimeTypes.has(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('نوع الصورة غير مدعوم. يجب أن تكون JPG أو PNG أو WebP'), false);
+    }
+  }
+});
+
+const handleProfilePhotoUpload = (req, res, next) => {
+  profilePhotoUpload.single('photo')(req, res, (err) => {
+    if (!err) {
+      return next();
+    }
+
+    const isSizeError = err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE';
+    return res.status(400).json({
+      success: false,
+      error: isSizeError
+        ? 'حجم الصورة كبير جداً. الحد الأقصى 5MB'
+        : (err.message || 'تعذر قراءة الصورة'),
+      message_en: isSizeError
+        ? 'Photo is too large. Maximum size is 5MB'
+        : 'Invalid profile photo upload'
+    });
+  });
+};
+
 const router = express.Router();
 
 // Members list endpoint - requires authentication and appropriate roles
@@ -71,7 +118,7 @@ router.put('/:id', requireRole(['super_admin']), updateMember);
 router.delete('/:id', requireRole(['super_admin']), deleteMember);
 
 // Admin routes for Excel import - require super admin privileges
-router.post('/admin/import', requireRole(['super_admin']), upload.single('excel_file'), importMembersFromExcel);
+router.post('/admin/import', requireRole(['super_admin']), excelUpload.single('excel_file'), importMembersFromExcel);
 router.get('/admin/import-history', requireRole(['super_admin']), getImportHistory);
 router.get('/admin/import-batches/:batchId', requireRole(['super_admin']), getImportBatchDetails);
 router.post('/admin/send-reminders', requireRole(['super_admin']), sendRegistrationReminders);
@@ -90,7 +137,7 @@ router.get('/mobile/notifications', requireRole(['member']), getMemberNotificati
 router.put('/mobile/profile', requireRole(['member']), updateMemberProfile);
 
 // Mobile photo upload route
-router.post('/mobile/photo', requireRole(['member']), upload.single('photo'), async (req, res) => {
+router.post('/mobile/photo', requireRole(['member']), handleProfilePhotoUpload, async (req, res) => {
   try {
     const memberId = req.user?.id;
 
@@ -129,15 +176,40 @@ router.post('/mobile/photo', requireRole(['member']), upload.single('photo'), as
     const photoUrl = uploadResult.url;
 
     // Update member profile with new photo URL
-    await dbQuery(
-      'UPDATE members SET profile_image_url = $1 WHERE id = $2',
-      [photoUrl, memberId]
+    const { rows } = await dbQuery(
+      'UPDATE members SET profile_image_url = $1, updated_at = $2 WHERE id = $3 RETURNING id, profile_image_url',
+      [photoUrl, new Date().toISOString(), memberId]
     );
+
+    if (!rows[0]) {
+      return res.status(404).json({
+        success: false,
+        error: 'العضو غير موجود',
+        message_en: 'Member not found'
+      });
+    }
+
+    await dbQuery(
+      `INSERT INTO audit_logs (user_id, user_role, action_type, details)
+       VALUES ($1, $2, $3, $4)`,
+      [
+        memberId,
+        'member',
+        'profile_photo_updated',
+        JSON.stringify({ profile_image_url: photoUrl })
+      ]
+    ).catch((auditError) => {
+      log.warn('Failed to write profile photo audit log', {
+        memberId,
+        error: auditError.message
+      });
+    });
 
     return res.json({
       success: true,
       data: {
-        url: photoUrl
+        url: photoUrl,
+        profile_image_url: photoUrl
       },
       message: 'تم رفع الصورة بنجاح',
       message_en: 'Photo uploaded successfully'
