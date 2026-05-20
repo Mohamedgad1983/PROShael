@@ -2,13 +2,13 @@
  * LoanRequestDetail — modal-style detail view shown over the list page.
  *
  * Displays:
- *   • header summary (sequence #, status, amount, fee)
+ *   • header summary (sequence #, status, item value)
  *   • applicant card (snapshotted personal/financial data)
  *   • documents list (with download)
  *   • status timeline
  *   • role-aware action panel:
  *       Fund staff:   start review → approve / reject → forward → disburse
- *       Brouj:        upload Najiz acknowledgment, confirm fee receipt
+ *       Brouj:        upload Najiz acknowledgment
  *
  * The component is intentionally self-contained — no Redux/Context — so it
  * stays easy to drop into other admin pages later.
@@ -67,7 +67,7 @@ const LoanRequestDetail: React.FC<Props> = ({ loanId, onClose, onChange }) => {
   const [disburseAmount, setDisburseAmount] = useState('');
   const [showDisburseBox, setShowDisburseBox] = useState(false);
 
-  // Brouj-specific file inputs (for upload Najiz + fee receipt).
+  // Brouj-specific file inputs (Najiz + legacy processing document).
   const najizInputRef = useRef<HTMLInputElement | null>(null);
   const feeInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -186,7 +186,7 @@ const LoanRequestDetail: React.FC<Props> = ({ loanId, onClose, onChange }) => {
         buttons.push(
           <ActionButton key="fee" tone="success" loading={actionInFlight === 'fee'}
             onClick={() => feeInputRef.current?.click()}>
-            تأكيد تحصيل الرسوم
+            تأكيد استكمال المعالجة
           </ActionButton>
         );
       }
@@ -235,12 +235,14 @@ const LoanRequestDetail: React.FC<Props> = ({ loanId, onClose, onChange }) => {
                   {STATUS_LABELS_AR[loan.status]}
                 </span>
                 <div style={{ display: 'flex', gap: 30, alignItems: 'center' }}>
+                  {loan.requested_item_amount && (
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={kpiLabel}>المبلغ المطلوب للسلعة</div>
+                      <div style={kpiValue}>{formatSAR(loan.requested_item_amount)}</div>
+                    </div>
+                  )}
                   <div style={{ textAlign: 'right' }}>
-                    <div style={kpiLabel}>الرسوم الإدارية</div>
-                    <div style={kpiValue}>{formatSAR(loan.admin_fee_amount)}</div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={kpiLabel}>مبلغ السلفة</div>
+                    <div style={kpiLabel}>قيمة السلعة الإجمالية</div>
                     <div style={{ ...kpiValue, fontSize: 22, color: '#4338ca' }}>{formatSAR(loan.loan_amount)}</div>
                   </div>
                 </div>

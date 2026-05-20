@@ -35,6 +35,8 @@ import {
 } from './eligibilityChecker.js';
 
 // ─── constants ────────────────────────────────────────────────────────────────
+const ITEM_PRICE_MULTIPLIER_FALLBACK = 1.15;
+
 export const LOAN_STATUS = Object.freeze({
   DRAFT:                  'draft',
   SUBMITTED:              'submitted',
@@ -60,7 +62,7 @@ const ALLOWED_TRANSITIONS = {
   [LOAN_STATUS.APPROVED_BY_FUND]:       [LOAN_STATUS.FORWARDED_TO_BROUJ, LOAN_STATUS.REJECTED],
   [LOAN_STATUS.FORWARDED_TO_BROUJ]:     [LOAN_STATUS.BROUJ_PROCESSING, LOAN_STATUS.REJECTED],
   [LOAN_STATUS.BROUJ_PROCESSING]:       [LOAN_STATUS.NAJIZ_UPLOADED, LOAN_STATUS.REJECTED],
-  [LOAN_STATUS.NAJIZ_UPLOADED]:         [LOAN_STATUS.FEE_COLLECTED, LOAN_STATUS.REJECTED],
+  [LOAN_STATUS.NAJIZ_UPLOADED]:         [LOAN_STATUS.READY_FOR_DISBURSEMENT, LOAN_STATUS.FEE_COLLECTED, LOAN_STATUS.REJECTED],
   [LOAN_STATUS.FEE_COLLECTED]:          [LOAN_STATUS.READY_FOR_DISBURSEMENT, LOAN_STATUS.REJECTED],
   [LOAN_STATUS.READY_FOR_DISBURSEMENT]: [LOAN_STATUS.COMPLETED, LOAN_STATUS.REJECTED],
   [LOAN_STATUS.COMPLETED]:              [],
@@ -92,12 +94,12 @@ const STATUS_NOTIFICATIONS = {
     body: (loan) => `تم تحويل طلب السلفة رقم ${loan.sequence_number} لمؤسسة بروز الريادة لاستكمال الإجراءات عبر منصة ناجز.`,
   },
   [LOAN_STATUS.NAJIZ_UPLOADED]: {
-    title: 'يلزم سداد الرسوم الإدارية',
-    body: (loan) => `تم رفع إقرار الدين من ناجز للطلب رقم ${loan.sequence_number}. الرجاء سداد الرسوم الإدارية (10%).`,
+    title: 'تم تجهيز إقرار ناجز',
+    body: (loan) => `تم رفع إقرار الدين من ناجز للطلب رقم ${loan.sequence_number}. طلبك جاهز للمرحلة النهائية.`,
   },
   [LOAN_STATUS.FEE_COLLECTED]: {
-    title: 'تم تحصيل الرسوم',
-    body: (loan) => `تم تحصيل الرسوم الإدارية للطلب رقم ${loan.sequence_number}. سيتم صرف السلفة قريباً.`,
+    title: 'تم استكمال المعالجة',
+    body: (loan) => `تم استكمال معالجة الطلب رقم ${loan.sequence_number}. سيتم الصرف قريباً.`,
   },
   [LOAN_STATUS.READY_FOR_DISBURSEMENT]: {
     title: 'جاهز للصرف',
@@ -160,11 +162,12 @@ export async function getLoanSettings() {
   const { rows } = await query('SELECT * FROM loan_settings WHERE id = 1');
   if (rows.length === 0) {
     return {
-      admin_fee_rate: 0.10,
+      admin_fee_rate: 0,
       min_loan_amount: 1000,
       max_loan_amount: 10000,
       max_dbr: 0.50,
       allowed_employment_types: 'government',
+      item_price_multiplier: ITEM_PRICE_MULTIPLIER_FALLBACK,
       enabled: true,
     };
   }
@@ -204,11 +207,29 @@ export async function checkLoanEligibility(memberId) {
     settings: {
       min_loan_amount: Number(settings.min_loan_amount),
       max_loan_amount: Number(settings.max_loan_amount),
-      admin_fee_rate: Number(settings.admin_fee_rate),
+      // Kept for older app/admin clients that still decode the field. New
+      // member UI must not display this as a separate fee.
+      admin_fee_rate: 0,
       max_dbr: Number(settings.max_dbr),
       allowed_employment_types: String(settings.allowed_employment_types || 'government').split(','),
     },
   };
+}
+
+function getItemPriceMultiplier(settings) {
+  const multiplier = Number(settings.item_price_multiplier);
+  return Number.isFinite(multiplier) && multiplier > 1
+    ? multiplier
+    : ITEM_PRICE_MULTIPLIER_FALLBACK;
+}
+
+function requestedItemAmountFromPayload(payload) {
+  return Number(payload.requested_item_amount ?? payload.loan_amount);
+}
+
+function calculateTotalItemValue(requestedItemAmount, settings) {
+  const multiplier = getItemPriceMultiplier(settings);
+  return Math.round((Number(requestedItemAmount) * multiplier) * 100) / 100;
 }
 
 // ─── validation ───────────────────────────────────────────────────────────────
@@ -227,7 +248,6 @@ export async function validateRequestPayload(payload) {
     'employment_type',
     'monthly_salary',
     'monthly_obligations',
-    'loan_amount',
     'terms_accepted',
   ];
   for (const f of requiredFields) {
@@ -262,7 +282,7 @@ export async function validateRequestPayload(payload) {
 
   const salary = Number(payload.monthly_salary);
   const obligations = Number(payload.monthly_obligations);
-  const amount = Number(payload.loan_amount);
+  const requestedItemAmount = requestedItemAmountFromPayload(payload);
 
   if (!Number.isFinite(salary) || salary <= 0) {
     return { code: 'INVALID_SALARY', message: 'الراتب الشهري غير صالح', message_en: 'Invalid salary' };
@@ -270,15 +290,15 @@ export async function validateRequestPayload(payload) {
   if (!Number.isFinite(obligations) || obligations < 0) {
     return { code: 'INVALID_OBLIGATIONS', message: 'الالتزامات غير صالحة', message_en: 'Invalid obligations' };
   }
-  if (!Number.isFinite(amount)) {
-    return { code: 'INVALID_AMOUNT', message: 'مبلغ السلفة غير صالح', message_en: 'Invalid loan amount' };
+  if (!Number.isFinite(requestedItemAmount)) {
+    return { code: 'INVALID_AMOUNT', message: 'مبلغ السلعة غير صالح', message_en: 'Invalid item amount' };
   }
 
-  if (amount < Number(settings.min_loan_amount) || amount > Number(settings.max_loan_amount)) {
+  if (requestedItemAmount < Number(settings.min_loan_amount) || requestedItemAmount > Number(settings.max_loan_amount)) {
     return {
       code: 'AMOUNT_OUT_OF_RANGE',
-      message: `يجب أن يتراوح مبلغ السلفة بين ${settings.min_loan_amount} و ${settings.max_loan_amount} ريال`,
-      message_en: `Loan amount must be between ${settings.min_loan_amount} and ${settings.max_loan_amount} SAR`,
+      message: `يجب أن يتراوح مبلغ السلعة بين ${settings.min_loan_amount} و ${settings.max_loan_amount} ريال`,
+      message_en: `Item amount must be between ${settings.min_loan_amount} and ${settings.max_loan_amount} SAR`,
     };
   }
 
@@ -323,6 +343,8 @@ export async function createLoanRequest({ memberId, payload }) {
     );
     const m = memberRows[0] || {};
     const applicantName = (m.full_name_ar || m.full_name || '').trim();
+    const requestedItemAmount = requestedItemAmountFromPayload(payload);
+    const totalItemValue = calculateTotalItemValue(requestedItemAmount, settings);
 
     const insert = await client.query(
       `INSERT INTO loan_requests (
@@ -330,8 +352,8 @@ export async function createLoanRequest({ memberId, payload }) {
          member_id,
          applicant_name, national_id, date_of_birth,
          employment_type,
-         monthly_salary, monthly_obligations, loan_amount,
-         admin_fee_rate,
+         monthly_salary, monthly_obligations, requested_item_amount, loan_amount,
+         admin_fee_rate, item_price_multiplier,
          terms_accepted_at,
          status
        ) VALUES (
@@ -339,10 +361,10 @@ export async function createLoanRequest({ memberId, payload }) {
          $4,
          $5, $6, $7,
          $8,
-         $9, $10, $11,
-         $12,
+         $9, $10, $11, $12,
+         $13, $14,
          NOW(),
-         $13
+         $15
        )
        RETURNING *`,
       [
@@ -350,8 +372,8 @@ export async function createLoanRequest({ memberId, payload }) {
         memberId,
         applicantName, String(payload.national_id), payload.date_of_birth,
         String(payload.employment_type),
-        Number(payload.monthly_salary), Number(payload.monthly_obligations), Number(payload.loan_amount),
-        Number(settings.admin_fee_rate),
+        Number(payload.monthly_salary), Number(payload.monthly_obligations), requestedItemAmount, totalItemValue,
+        0, getItemPriceMultiplier(settings),
         LOAN_STATUS.SUBMITTED,
       ]
     );

@@ -86,6 +86,7 @@ export interface LoanRequest {
   employment_type: string;
   monthly_salary: string | number;
   monthly_obligations: string | number;
+  requested_item_amount?: string | number | null;
   loan_amount: string | number;
   admin_fee_rate: string | number;
   admin_fee_amount: string | number;
@@ -238,7 +239,7 @@ export const loanService = {
       { headers: { 'Content-Type': 'multipart/form-data' } }
     );
     if (!res.data.success || !res.data.data) {
-      throw new Error(res.data.message || res.data.error || 'فشل تأكيد الرسوم');
+      throw new Error(res.data.message || res.data.error || 'فشل تأكيد المعالجة');
     }
     return res.data.data;
   },
@@ -254,7 +255,7 @@ export const STATUS_LABELS_AR: Record<LoanStatus, string> = {
   forwarded_to_brouj: 'محال إلى بروز الريادة',
   brouj_processing: 'قيد المعالجة',
   najiz_uploaded: 'تم رفع إقرار ناجز',
-  fee_collected: 'تم تحصيل الرسوم',
+  fee_collected: 'تم استكمال المعالجة',
   ready_for_disbursement: 'جاهز للصرف',
   completed: 'تم الصرف',
   rejected: 'مرفوض',
@@ -281,7 +282,7 @@ export const DOCUMENT_LABELS_AR: Record<string, string> = {
   salary_certificate: 'مشهد الراتب',
   financial_statement: 'كشف الحساب / سمة',
   najiz_acknowledgment: 'إقرار ناجز',
-  fee_receipt: 'إيصال الرسوم',
+  fee_receipt: 'مستند معالجة',
 };
 
 export function isFundRole(role?: string): boolean {

@@ -7,8 +7,8 @@
  *                  approve / reject / forward to Brouj / record disbursement.
  *
  *   2. Brouj partner (brouj_partner role) — sees ONLY requests forwarded to
- *                  Brouj. Their actions: upload Najiz acknowledgment + confirm
- *                  fee receipt. They cannot approve/reject the request itself.
+ *                  Brouj. Their action: upload Najiz acknowledgment. They
+ *                  cannot approve/reject the request itself.
  *
  * Filtering for Brouj is enforced server-side via `req.user.role`, so the
  * client UI can't bypass it.
@@ -373,7 +373,21 @@ export const broujUploadNajiz = async (req, res) => {
        VALUES ($1, 'najiz_acknowledgment', $2, $3, $4, $5, $6)`,
       [req.params.id, upload.path, upload.size, upload.type, req.file.originalname, req.user.id]
     );
-    const updated = await transitionStatus({
+
+    const { rows: currentRows } = await query(
+      'SELECT status FROM loan_requests WHERE id = $1',
+      [req.params.id]
+    );
+    if (currentRows[0]?.status === LOAN_STATUS.FORWARDED_TO_BROUJ) {
+      await transitionStatus({
+        loanId: req.params.id,
+        toStatus: LOAN_STATUS.BROUJ_PROCESSING,
+        changedById: req.user.id,
+        note: 'بدء معالجة بروز الريادة',
+      });
+    }
+
+    await transitionStatus({
       loanId: req.params.id,
       toStatus: LOAN_STATUS.NAJIZ_UPLOADED,
       changedById: req.user.id,
@@ -383,7 +397,18 @@ export const broujUploadNajiz = async (req, res) => {
         najiz_uploaded_at: new Date(),
       },
     });
-    return res.json({ success: true, data: updated });
+
+    // New financing policy: there is no separate member-facing fee collection
+    // step. The total item value already includes service/sustainability in the
+    // backend calculation, so after Najiz is uploaded the request is ready for
+    // fund disbursement.
+    const ready = await transitionStatus({
+      loanId: req.params.id,
+      toStatus: LOAN_STATUS.READY_FOR_DISBURSEMENT,
+      changedById: req.user.id,
+      note: 'جاهز للصرف من الصندوق',
+    });
+    return res.json({ success: true, data: ready });
   } catch (err) {
     return handleTransitionError(res, err);
   }
@@ -393,7 +418,7 @@ export const broujConfirmFee = async (req, res) => {
   try {
     if (!canDoBroujActions(req.user)) {return res.status(403).json({ success: false, error: 'مخصص لبروز الريادة' });}
     if (!req.file) {
-      return res.status(400).json({ success: false, code: 'NO_FILE', message: 'يرجى رفع إيصال الرسوم' });
+      return res.status(400).json({ success: false, code: 'NO_FILE', message: 'يرجى رفع مستند المعالجة' });
     }
     const upload = await uploadToSupabase(req.file, req.params.id, 'loan-fee_receipt');
     await query(
@@ -406,7 +431,7 @@ export const broujConfirmFee = async (req, res) => {
       loanId: req.params.id,
       toStatus: LOAN_STATUS.FEE_COLLECTED,
       changedById: req.user.id,
-      note: 'تم تحصيل الرسوم الإدارية',
+      note: 'تم استكمال المعالجة',
       extraUpdates: {
         admin_fee_collected: true,
         fee_collected_at: new Date(),
