@@ -227,6 +227,18 @@ function requestedItemAmountFromPayload(payload) {
   return Number(payload.requested_item_amount ?? payload.loan_amount);
 }
 
+function applicantNameFromPayload(payload) {
+  return String(
+    payload.applicant_name
+    ?? payload.applicantName
+    ?? payload.full_name
+    ?? payload.name
+    ?? ''
+  )
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
 function calculateTotalItemValue(requestedItemAmount, settings) {
   const multiplier = getItemPriceMultiplier(settings);
   return Math.round((Number(requestedItemAmount) * multiplier) * 100) / 100;
@@ -267,6 +279,20 @@ export async function validateRequestPayload(payload) {
       code: 'TERMS_NOT_ACCEPTED',
       message: 'يجب الموافقة على التعهد والإقرار',
       message_en: 'You must accept the terms',
+    };
+  }
+
+  // New mobile flow sends the applicant name typed exactly as shown on the
+  // national ID. Keep a fallback for older app versions until the iOS update is
+  // fully distributed.
+  const hasApplicantNameField = ['applicant_name', 'applicantName', 'full_name', 'name']
+    .some((key) => Object.prototype.hasOwnProperty.call(payload, key));
+  const applicantName = applicantNameFromPayload(payload);
+  if (hasApplicantNameField && (applicantName.length < 2 || applicantName.length > 150)) {
+    return {
+      code: 'INVALID_APPLICANT_NAME',
+      message: 'يرجى إدخال الاسم حسب ما هو مدون بالهوية الوطنية',
+      message_en: 'Applicant name must match the national ID record',
     };
   }
 
@@ -336,13 +362,18 @@ export async function createLoanRequest({ memberId, payload }) {
       client,
     });
 
-    // Snapshot the applicant's name from the members table at submit time.
-    const { rows: memberRows } = await client.query(
-      'SELECT full_name_ar, full_name FROM members WHERE id = $1',
-      [memberId]
-    );
-    const m = memberRows[0] || {};
-    const applicantName = (m.full_name_ar || m.full_name || '').trim();
+    // Prefer the name typed by the applicant as written on the national ID.
+    // Fall back to the member profile only for older mobile builds that do not
+    // send applicant_name yet.
+    let applicantName = applicantNameFromPayload(payload);
+    if (!applicantName) {
+      const { rows: memberRows } = await client.query(
+        'SELECT full_name_ar, full_name FROM members WHERE id = $1',
+        [memberId]
+      );
+      const m = memberRows[0] || {};
+      applicantName = (m.full_name_ar || m.full_name || '').trim();
+    }
     const requestedItemAmount = requestedItemAmountFromPayload(payload);
     const totalItemValue = calculateTotalItemValue(requestedItemAmount, settings);
 
