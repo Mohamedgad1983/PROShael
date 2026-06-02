@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { LockClosedIcon, EyeIcon, EyeSlashIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
+import { API_ORIGIN } from '../../utils/apiConfig';
 import './ChangePassword.css';
 
 const ChangePassword = () => {
@@ -68,7 +69,7 @@ const ChangePassword = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const API_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
+      const API_URL = API_ORIGIN;
 
       const response = await fetch(`${API_URL}/api/auth/change-password`, {
         method: 'POST',

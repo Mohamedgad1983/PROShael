@@ -7,11 +7,7 @@
  */
 
 import axios, { AxiosInstance } from 'axios';
-
-const API_BASE_URL =
-  typeof window !== 'undefined' && window.location.hostname === 'localhost'
-    ? 'http://localhost:3001/api'
-    : 'https://api.alshailfund.com/api';
+import { API_BASE_URL } from '../utils/apiConfig';
 
 const client: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,

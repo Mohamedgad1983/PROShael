@@ -24,6 +24,7 @@ import { StatusBadge } from './shared/StatusBadge';
 import { commonStyles, COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from './sharedStyles';
 
 import { logger } from '../../utils/logger';
+import { API_ORIGIN } from '../../utils/apiConfig';
 
 interface AuditLog {
   id: string;
@@ -42,7 +43,7 @@ interface AuditLog {
   severity: 'info' | 'warning' | 'error' | 'success';
 }
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+const API_BASE_URL = API_ORIGIN;
 const AUDIT_LOGS_ENDPOINT = `${API_BASE_URL}/api/settings/audit-logs`;
 
 const severityFromAction = (action?: string): AuditLog['severity'] => {

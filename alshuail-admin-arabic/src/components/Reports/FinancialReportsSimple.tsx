@@ -3,6 +3,7 @@ import React, { memo,  useState, useRef, useEffect } from 'react';
 import ExpenseManagement from './ExpenseManagement';
 
 import { logger } from '../../utils/logger';
+import { API_BASE_URL } from '../../utils/apiConfig';
 
 // Hijri date conversion helper
 const getHijriDate = () => {
@@ -53,7 +54,7 @@ const FinancialReportsSimple: React.FC = () => {
   const handleExportPDF = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:3001/api/reports/forensic?format=pdf&report_type=comprehensive_forensic', {
+      const response = await fetch(`${API_BASE_URL}/reports/forensic?format=pdf&report_type=comprehensive_forensic`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token') || 'mock-token'}`,
@@ -86,7 +87,7 @@ const FinancialReportsSimple: React.FC = () => {
   const handleExportExcel = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:3001/api/reports/forensic?format=excel&report_type=comprehensive_forensic', {
+      const response = await fetch(`${API_BASE_URL}/reports/forensic?format=excel&report_type=comprehensive_forensic`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token') || 'mock-token'}`,

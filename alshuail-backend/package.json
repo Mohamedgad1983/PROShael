@@ -12,7 +12,7 @@
     "test:ci": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --ci --coverage --maxWorkers=2",
     "test:coverage": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --coverage",
     "test:unit": "cross-env NODE_OPTIONS=--experimental-vm-modules jest __tests__/unit",
-    "test:integration": "cross-env NODE_OPTIONS=--experimental-vm-modules jest __tests__/integration",
+    "test:integration": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --config jest.integration.config.js",
     "lint": "eslint . --ext .js,.mjs --format=stylish",
     "lint:fix": "eslint . --ext .js,.mjs --fix",
     "security-audit": "npm audit --audit-level=moderate",
@@ -86,6 +86,9 @@
     "nodemon": "^3.0.1",
     "redis": "^5.10.0",
     "supertest": "^7.1.4"
+  },
+  "overrides": {
+    "uuid": "$uuid"
   },
   "author": "Al-Shuail",
   "license": "MIT"

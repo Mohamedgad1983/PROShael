@@ -7,6 +7,7 @@ import { HijriDateInput } from '../../components/Common/HijriDateInput';
 import useActiveMemberCount from '../../hooks/useActiveMemberCount';
 import MemberCountToast from '../../components/Common/MemberCountToast';
 import { logger } from '../../utils/logger';
+import { API_BASE_URL } from '../../utils/apiConfig';
 
 import '../../styles/SelectFix.css';
 
@@ -94,7 +95,7 @@ const NewsManagement = () => {
         publish_date: ''
     });
 
-    const API_URL = (process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.alshailfund.com')) + '/api';
+    const API_URL = API_BASE_URL;
 
     useEffect(() => {
         fetchNews();

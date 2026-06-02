@@ -19,6 +19,7 @@ import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, commonStyles, getMessageSty
 import { SettingsButton } from './shared';
 
 import { logger } from '../../utils/logger';
+import { API_ORIGIN } from '../../utils/apiConfig';
 
 interface SystemSettings {
   system_name: string;
@@ -57,7 +58,7 @@ const SystemSettingsEnhanced: React.FC = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
-  const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+  const API_BASE = API_ORIGIN;
 
   // Fetch settings on component mount
   useEffect(() => {

@@ -1,5 +1,6 @@
 import React, { memo,  useState, useEffect } from 'react';
 import { logger } from '../../utils/logger';
+import { API_ORIGIN } from '../../utils/apiConfig';
 
 import './CrisisDashboard.css';
 
@@ -11,8 +12,7 @@ const CrisisDashboard = () => {
   const [filterStatus, setFilterStatus] = useState('all'); // all, insufficient, sufficient
   const [refreshing, setRefreshing] = useState(false);
 
-  // Use hostname detection for local vs production environments
-  const API_URL = process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.alshailfund.com');
+  const API_URL = API_ORIGIN;
 
   // Log on component mount to debug
   logger.debug('🚀 Crisis Dashboard Component Mounted');
@@ -154,7 +154,7 @@ const CrisisDashboard = () => {
       // Check for specific error types
       if (err.name === 'TypeError' && err.message.includes('Failed to fetch')) {
         logger.error('❌ NETWORK ERROR: Cannot connect to backend!');
-        logger.error('  - Make sure backend is running on http://localhost:3001');
+        logger.error('  - Make sure backend API is reachable', { apiUrl: API_URL });
         logger.error('  - Run: cd alshuail-backend && npm run dev');
         setError('لا يمكن الاتصال بالخادم - تأكد من تشغيل الخادم على المنفذ 3001');
       } else if (err.message.includes('JSON')) {
@@ -282,7 +282,7 @@ const CrisisDashboard = () => {
             onClick={async () => {
               logger.debug('🧪 Testing direct fetch...');
               try {
-                const testUrl = 'http://localhost:3001/api/crisis/dashboard';
+                const testUrl = `${API_URL}/api/crisis/dashboard`;
                 logger.debug('Testing URL:', { testUrl });
                 const resp = await fetch(testUrl);
                 const text = await resp.text();

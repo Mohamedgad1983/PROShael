@@ -8,6 +8,7 @@ import useActiveMemberCount from '../../hooks/useActiveMemberCount';
 import MemberCountToast from '../../components/Common/MemberCountToast';
 
 import { logger } from '../../utils/logger';
+import { API_BASE_URL } from '../../utils/apiConfig';
 
 interface Initiative {
     id: number;
@@ -80,7 +81,7 @@ const InitiativesManagement = () => {
         start_date: '', end_date: '', status: 'active'
     });
 
-    const API_URL = (process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.alshailfund.com')) + '/api';
+    const API_URL = API_BASE_URL;
 
     useEffect(() => {
         fetchInitiatives();

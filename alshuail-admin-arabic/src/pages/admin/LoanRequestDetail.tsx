@@ -25,6 +25,7 @@ import {
   isFundRole,
   isBroujRole,
 } from '../../services/loanService';
+import { API_ORIGIN } from '../../utils/apiConfig';
 
 interface Props {
   loanId: string;
@@ -51,10 +52,10 @@ const formatDateTime = (s: string | undefined | null) => {
 /** Build a download URL the static-uploads pipeline can serve. */
 const fileUrl = (path?: string) => {
   if (!path) return '#';
-  // Backend serves uploads at /api/uploads/<path>. The path stored already
+  // Backend serves uploads at /uploads/<path>. The path stored already
   // includes the BUCKET_NAME segment (e.g. member-documents/...).
   if (path.startsWith('http')) return path;
-  return `https://api.alshailfund.com/api/uploads/${path.replace(/^\/+/, '')}`;
+  return `${API_ORIGIN}/uploads/${path.replace(/^\/+/, '')}`;
 };
 
 const LoanRequestDetail: React.FC<Props> = ({ loanId, onClose, onChange }) => {

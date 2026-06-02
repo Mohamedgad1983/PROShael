@@ -6,6 +6,7 @@ import {
   FaChevronDown, FaChevronLeft
 } from 'react-icons/fa';
 import { logger } from '../../utils/logger';
+import { API_ORIGIN } from '../../utils/apiConfig';
 
 import './DocumentManager.css';
 
@@ -81,7 +82,7 @@ const DocumentManager = () => {
       // members' documents with member info joined). The old /api/documents/member
       // endpoint returned only the logged-in user's own docs, which for an admin
       // was always empty — that's why the page appeared blank before.
-      const response = await fetch(`${process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.alshailfund.com')}/api/documents?${params}`, {
+      const response = await fetch(`${API_ORIGIN}/api/documents?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -110,7 +111,7 @@ const DocumentManager = () => {
   const fetchStats = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.alshailfund.com')}/api/documents/stats/overview`, {
+      const response = await fetch(`${API_ORIGIN}/api/documents/stats/overview`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -176,7 +177,7 @@ const DocumentManager = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.alshailfund.com')}/api/documents/upload`, {
+      const response = await fetch(`${API_ORIGIN}/api/documents/upload`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -212,7 +213,7 @@ const DocumentManager = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.alshailfund.com')}/api/documents/${documentId}`, {
+      const response = await fetch(`${API_ORIGIN}/api/documents/${documentId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`

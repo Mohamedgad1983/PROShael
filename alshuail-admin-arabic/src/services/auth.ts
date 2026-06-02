@@ -2,8 +2,9 @@ import axios from 'axios';
 import Cookies from 'js-cookie';
 
 import { logger } from '../utils/logger';
+import { API_ORIGIN } from '../utils/apiConfig';
 
-const API_BASE_URL = typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.alshailfund.com';
+const API_BASE_URL = API_ORIGIN;
 
 export interface LoginCredentials {
   phone: string;

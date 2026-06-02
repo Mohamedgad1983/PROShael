@@ -1,6 +1,6 @@
 # Al-Shuail Backend CI/CD Pipeline
-# Node.js API with Supabase PostgreSQL and JWT Authentication
-# Supports Railway deployment with staging and production environments
+# Node.js API with VPS PostgreSQL and JWT Authentication
+# Deployment is handled on the VPS via git pull + PM2 restart.
 
 name: Backend CI/CD
 
@@ -71,15 +71,12 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: ESLint - Code Quality Check
-        run: |
-          npx eslint . --ext .js,.mjs --format=stylish --max-warnings=0 || echo "ESLint issues found"
+        run: npm run lint
 
       - name: Security Audit
         run: |
           npm audit --audit-level=moderate
-          # Check for hardcoded secrets
-          echo "Checking for hardcoded secrets..."
-          grep -r "sk_\|pk_\|secret\|password" --include="*.js" --include="*.mjs" . || echo "No obvious secrets found"
+          node src/scripts/cleanup-secrets.js --dir=./src
 
       - name: Environment Variables Validation
         run: |
@@ -95,9 +92,8 @@ jobs:
       - name: Database Schema Validation
         env:
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/alshuail_test
-          SUPABASE_URL: http://localhost:54321
-          SUPABASE_KEY: dummy_key_for_testing
           JWT_SECRET: test_jwt_secret_for_ci_cd_pipeline_validation
+          CSRF_SECRET: test_csrf_secret_for_ci_cd_pipeline_validation
         run: |
           echo "Validating database schema and migrations..."
           # Create basic tables for testing
@@ -124,35 +120,28 @@ jobs:
       - name: API Health Check Tests
         env:
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/alshuail_test
-          SUPABASE_URL: http://localhost:54321
-          SUPABASE_KEY: dummy_key_for_testing
           JWT_SECRET: test_jwt_secret_for_ci_cd_pipeline_validation
+          CSRF_SECRET: test_csrf_secret_for_ci_cd_pipeline_validation
           PORT: 3001
         run: |
           echo "Starting API health check tests..."
-          # Start the server in background
-          npm start &
+          node server.js &
           SERVER_PID=$!
 
-          # Wait for server to start
           sleep 10
 
-          # Test basic endpoints
-          curl -f http://localhost:3001/health || echo "Health endpoint not available"
-          curl -f http://localhost:3001/api/status || echo "Status endpoint not available"
+          curl -f http://localhost:3001/api/health
+          curl -f http://localhost:3001/api/test
 
-          # Kill the server
-          kill $SERVER_PID || echo "Server already stopped"
+          kill $SERVER_PID
 
       - name: Run Unit Tests
         env:
           NODE_ENV: test
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/alshuail_test
-          SUPABASE_URL: http://localhost:54321
-          SUPABASE_KEY: dummy_key_for_testing
           JWT_SECRET: test_jwt_secret_for_ci_cd_pipeline_validation
-        run: |
-          npm test || echo "Tests completed with warnings"
+          CSRF_SECRET: test_csrf_secret_for_ci_cd_pipeline_validation
+        run: npm test
 
       - name: Islamic Calendar Validation
         run: |
@@ -170,16 +159,12 @@ jobs:
 
   # Build and Docker Image Creation
   build:
-    name: Build & Docker Image
+    name: Build & Docker Check
     runs-on: ubuntu-latest
     needs: quality-gates
     defaults:
       run:
         working-directory: ${{ env.WORKING_DIRECTORY }}
-
-    strategy:
-      matrix:
-        environment: [staging, production]
 
     steps:
       - name: Checkout Repository
@@ -193,29 +178,22 @@ jobs:
           cache-dependency-path: '${{ env.WORKING_DIRECTORY }}/package-lock.json'
 
       - name: Install Dependencies
-        run: npm ci --only=production
+        run: npm ci --omit=dev
+
+      - name: Validate Node Entry Point
+        run: npm run type-check
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Build and Push Docker Image
+      - name: Build Docker Image
         uses: docker/build-push-action@v5
         with:
           context: ${{ env.WORKING_DIRECTORY }}
-          push: true
-          tags: |
-            ${{ secrets.DOCKER_USERNAME }}/alshuail-backend:${{ matrix.environment }}-${{ github.sha }}
-            ${{ secrets.DOCKER_USERNAME }}/alshuail-backend:${{ matrix.environment }}-latest
+          push: false
+          tags: alshuail-backend:ci-${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          build-args: |
-            NODE_ENV=${{ matrix.environment }}
 
   # Integration Tests with Real Database
   integration-tests:
@@ -269,154 +247,28 @@ jobs:
         env:
           NODE_ENV: test
           DATABASE_URL: postgresql://integration_user:integration_password@localhost:5432/alshuail_integration
-          SUPABASE_URL: ${{ secrets.TEST_SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.TEST_SUPABASE_KEY }}
-          JWT_SECRET: ${{ secrets.TEST_JWT_SECRET }}
+          JWT_SECRET: test_jwt_secret_for_ci_cd_pipeline_validation
+          CSRF_SECRET: test_csrf_secret_for_ci_cd_pipeline_validation
           PORT: 3001
         run: |
           echo "Running integration tests..."
-          # Add your integration test commands here
-          npm start &
+          node server.js &
           SERVER_PID=$!
           sleep 15
 
-          # Test API endpoints
-          curl -f http://localhost:3001/api/health || echo "Health check failed"
-          curl -f http://localhost:3001/api/members || echo "Members endpoint test"
+          curl -f http://localhost:3001/api/health
+          curl -f http://localhost:3001/api/test
 
           kill $SERVER_PID
 
-  # Deploy to Staging (develop branch)
-  deploy-staging:
-    name: Deploy to Staging
-    runs-on: ubuntu-latest
-    needs: [quality-gates, build, integration-tests]
-    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
-    environment:
-      name: staging
-      url: https://api.alshailfund.com
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Deploy to Railway (Staging)
-        uses: railwayapp/railway-action@v2
-        with:
-          api-token: ${{ secrets.RAILWAY_TOKEN }}
-          project-id: ${{ secrets.RAILWAY_STAGING_PROJECT_ID }}
-          environment: staging
-          dockerfile: ${{ env.WORKING_DIRECTORY }}/Dockerfile
-
-      - name: Wait for Deployment
-        run: sleep 60
-
-      - name: Health Check (Staging)
-        run: |
-          echo "Performing staging health check..."
-          curl -f ${{ secrets.STAGING_API_URL }}/health || echo "Staging health check failed"
-          curl -f ${{ secrets.STAGING_API_URL }}/api/status || echo "Staging status check failed"
-
-  # Deploy to Production (main branch)
-  deploy-production:
-    name: Deploy to Production
+  deployment-readiness:
+    name: VPS Deployment Readiness
     runs-on: ubuntu-latest
     needs: [quality-gates, build, integration-tests]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    environment:
-      name: production
-      url: https://api.alshailfund.com
-
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Deploy to Railway (Production)
-        uses: railwayapp/railway-action@v2
-        with:
-          api-token: ${{ secrets.RAILWAY_TOKEN }}
-          project-id: ${{ secrets.RAILWAY_PRODUCTION_PROJECT_ID }}
-          environment: production
-          dockerfile: ${{ env.WORKING_DIRECTORY }}/Dockerfile
-
-      - name: Wait for Deployment
-        run: sleep 90
-
-      - name: Health Check (Production)
+      - name: Deployment Instructions
         run: |
-          echo "Performing production health check..."
-          max_attempts=5
-          attempt=1
-
-          while [ $attempt -le $max_attempts ]; do
-            echo "Health check attempt $attempt of $max_attempts..."
-            if curl -f ${{ secrets.PROD_API_URL }}/health; then
-              echo "✅ Production health check passed!"
-              break
-            else
-              echo "❌ Health check failed, retrying in 30 seconds..."
-              sleep 30
-              attempt=$((attempt + 1))
-            fi
-          done
-
-      - name: Database Migration Check
-        run: |
-          echo "Checking database migrations..."
-          # Add database migration validation if needed
-          curl -f ${{ secrets.PROD_API_URL }}/api/migrations/status || echo "Migration status not available"
-
-      - name: Performance Test
-        run: |
-          echo "Running basic performance test..."
-          time curl -f ${{ secrets.PROD_API_URL }}/api/members?limit=10 || echo "Performance test completed"
-
-  # Post-Deployment Monitoring
-  monitoring:
-    name: Post-Deployment Monitoring
-    runs-on: ubuntu-latest
-    needs: [deploy-production]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-
-    steps:
-      - name: Setup Monitoring Checks
-        run: |
-          echo "Setting up post-deployment monitoring..."
-
-          # API Response Time Check
-          response_time=$(curl -o /dev/null -s -w "%{time_total}" ${{ secrets.PROD_API_URL }}/health)
-          echo "API Response Time: ${response_time}s"
-
-          # Memory and CPU usage would be checked via Railway metrics
-          echo "✅ Monitoring setup completed"
-
-      - name: Update Deployment Status
-        run: |
-          echo "🚀 Production deployment completed successfully!"
-          echo "API URL: ${{ secrets.PROD_API_URL }}"
-          echo "Health Check: ✅ Passed"
-          echo "Deployment Time: $(date)"
-
-# Cleanup job to remove old Docker images
-  cleanup:
-    name: Cleanup Resources
-    runs-on: ubuntu-latest
-    needs: [deploy-staging, deploy-production]
-    if: always()
-
-    steps:
-      - name: Clean up old Docker images
-        run: |
-          echo "Cleanup of old Docker images will be handled by registry policies"
-          echo "Railway will automatically manage container lifecycle"
-
-# Future notification integration placeholder
-# notifications:
-#   name: Send Notifications
-#   runs-on: ubuntu-latest
-#   needs: [deploy-staging, deploy-production]
-#   if: always()
-#   steps:
-#     - name: Slack Notification
-#       run: |
-#         echo "Notification placeholder for Slack/Teams integration"
+          echo "Backend deployment target is VPS/PM2."
+          echo "Expected production command:"
+          echo "ssh root@213.199.62.185 \"cd /var/www/PROShael/alshuail-backend && git pull && npm ci --omit=dev && pm2 restart alshuail-backend\""

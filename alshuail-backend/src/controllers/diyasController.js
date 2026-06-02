@@ -97,10 +97,14 @@ export const getAllDiyas = async (req, res) => {
     const diyas = (activities || []).map(activity => ({
       ...activity,
       id: String(activity.id),
-      // Map DB columns (name_ar/name_en) to iOS DiyaCase model keys (title_ar/title_en)
+      // Map DB columns to iOS DiyaCase model keys
       title_ar: activity.name_ar || activity.title_ar || null,
       title_en: activity.name_en || activity.title_en || null,
+      // Convert numeric fields from string to number
+      target_amount: Number(activity.target_amount) || null,
+      current_amount: Number(activity.current_amount) || 0,
       payment_status: activity.status || null,
+      created_at: activity.created_at ? String(activity.created_at) : null,
       financial_contributions: contributions.filter(c => c.activity_id === activity.id)
     }));
 

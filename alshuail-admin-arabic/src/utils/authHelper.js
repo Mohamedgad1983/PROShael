@@ -3,9 +3,9 @@
  * Handles token refresh and session management
  */
 import { logger } from './logger';
+import { API_ORIGIN } from './apiConfig';
 
-
-const API_URL = typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.alshailfund.com';
+const API_URL = API_ORIGIN;
 
 /**
  * Check if token is expired

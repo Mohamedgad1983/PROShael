@@ -25,7 +25,7 @@ const mockSupabase = {
 
 jest.unstable_mockModule('@supabase/supabase-js', () => ({
   createClient: jest.fn(() => mockSupabase)
-}));
+}), { virtual: true });
 
 describe('Audit Logger Utility Unit Tests', () => {
   beforeEach(() => {

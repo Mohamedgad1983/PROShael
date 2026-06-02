@@ -26,7 +26,7 @@ const mockSupabase = {
 
 jest.unstable_mockModule('@supabase/supabase-js', () => ({
   createClient: jest.fn(() => mockSupabase)
-}));
+}), { virtual: true });
 
 describe('Family Tree Controller Unit Tests', () => {
   const createMockRequest = (overrides = {}) => ({

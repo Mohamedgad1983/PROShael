@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { ArrowRight, Check, Camera, User, Mail, MapPin, Briefcase, Calendar, Heart, FileText, Upload, Trash2, Eye, X, AlertCircle } from 'lucide-react'
 import { useAuth } from '../App'
 import { memberService } from '../services'
-import api from '../utils/api'
 
 const ProfileWizard = () => {
   const navigate = useNavigate()

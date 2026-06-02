@@ -71,9 +71,6 @@ const notificationService = {
       const userData = localStorage.getItem('alshuail_user')
       if (!userData) return { success: false }
       
-      const user = JSON.parse(userData)
-      const memberId = user.id || user.member_id
-      
       // Get all unread notifications for this member
       const notificationsRes = await notificationService.getMyNotifications(true)
       const notifications = notificationsRes.notifications || notificationsRes.data || []

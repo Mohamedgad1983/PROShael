@@ -28,6 +28,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { CheckCircleIcon as CheckCircleIconSolid, StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 import { logger } from '../../utils/logger';
+import { API_ORIGIN } from '../../utils/apiConfig';
 
 import './PremiumRegistration.css';
 
@@ -275,7 +276,7 @@ const PremiumRegistration: React.FC = () => {
 
     try {
       // API call to submit the form
-      const response = await fetch(`${process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.alshailfund.com')}/api/members/register`, {
+      const response = await fetch(`${API_ORIGIN}/api/members/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

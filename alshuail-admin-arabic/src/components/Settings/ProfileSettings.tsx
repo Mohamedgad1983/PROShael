@@ -8,6 +8,7 @@ import { UserIcon, PhotoIcon, XMarkIcon, CheckCircleIcon, ExclamationCircleIcon,
 import axios from 'axios';
 import { useRole } from '../../contexts/RoleContext';
 import { logger } from '../../utils/logger';
+import { API_ORIGIN } from '../../utils/apiConfig';
 
 import {
   SettingsCard,
@@ -22,7 +23,7 @@ import {
   commonStyles
 } from './sharedStyles';
 
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+const API_BASE = API_ORIGIN;
 
 interface Message {
   type: 'success' | 'error' | 'info';
@@ -1223,4 +1224,3 @@ const ProfileSettings: React.FC = () => {
 };
 
 export default ProfileSettings;
-

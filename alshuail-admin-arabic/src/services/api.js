@@ -1,11 +1,9 @@
 import { logger } from '../utils/logger';
+import { API_ORIGIN } from '../utils/apiConfig';
 
 class APIService {
   constructor() {
-    // Always use production URL in production
-    this.baseURL = window.location.hostname === 'localhost'
-      ? 'http://localhost:3001'
-      : 'https://api.alshailfund.com';
+    this.baseURL = API_ORIGIN;
 
     // Cache for successful responses
     this.cache = new Map();

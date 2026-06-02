@@ -28,6 +28,7 @@ import { StatusBadge } from './shared/StatusBadge';
 import { commonStyles, COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from './sharedStyles';
 
 import { logger } from '../../utils/logger';
+import { API_ORIGIN } from '../../utils/apiConfig';
 
 interface User {
   id: string;
@@ -41,7 +42,7 @@ interface User {
   lastLogin?: string;
 }
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+const API_BASE_URL = API_ORIGIN;
 const SETTINGS_ENDPOINT = `${API_BASE_URL}/api/settings`;
 const MANAGED_ROLES: UserRole[] = [
   'super_admin',

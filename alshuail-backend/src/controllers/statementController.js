@@ -738,7 +738,7 @@ export const getPaginatedMembersForStatement = async (req, res) => {
     const offset = (page - 1) * limit;
 
     // Build query to get balances from payments_yearly
-    let conditions = ['m.membership_status = $1'];
+    const conditions = ['m.membership_status = $1'];
     const params = ['active'];
     let paramCount = 2;
 

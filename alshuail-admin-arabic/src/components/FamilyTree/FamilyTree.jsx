@@ -14,6 +14,7 @@ import {
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { logger } from '../../utils/logger';
+import { API_ORIGIN } from '../../utils/apiConfig';
 
 import './FamilyTree.css';
 
@@ -36,7 +37,7 @@ const FamilyTree = () => {
   const treeRef = useRef(null);
 
   // API configuration
-  const API_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
+  const API_URL = API_ORIGIN;
 
   // Tree configuration
   const treeConfig = {

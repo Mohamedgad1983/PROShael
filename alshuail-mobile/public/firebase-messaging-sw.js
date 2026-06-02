@@ -5,49 +5,56 @@
  * Handles background push notifications
  */
 
-// Firebase App Config
-const firebaseConfig = {
-  apiKey: "AIzaSyDV_8GEXglt-rnftvs37GaTKGKbUIth5yA",
-  authDomain: "i-o-s-shaael-gqra2n-ef788.firebaseapp.com",
-  projectId: "i-o-s-shaael-gqra2n-ef788",
-  storageBucket: "i-o-s-shaael-gqra2n-ef788.firebasestorage.app",
-  messagingSenderId: "384257332256",
-  appId: "1:384257332256:web:11d2543409f62f655ad845"
-};
+importScripts('/firebase-sw-config.js');
 
-// Import Firebase scripts
-importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
+const firebaseConfig = self.FIREBASE_WEB_CONFIG || {};
+const hasFirebaseConfig = [
+  'apiKey',
+  'authDomain',
+  'projectId',
+  'messagingSenderId',
+  'appId'
+].every((key) => Boolean(firebaseConfig[key]));
 
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
+let messaging = null;
 
-// Get messaging instance
-const messaging = firebase.messaging();
+if (hasFirebaseConfig) {
+  // Import Firebase scripts
+  importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
+  importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
 
-// Handle background messages
-messaging.onBackgroundMessage((payload) => {
-  console.log('[firebase-messaging-sw.js] Received background message:', payload);
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
 
-  const notificationTitle = payload.notification?.title || 'صندوق عائلة شعيل';
-  const notificationOptions = {
-    body: payload.notification?.body || '',
-    icon: '/logo.png',
-    badge: '/logo.png',
-    tag: payload.data?.type || 'default',
-    data: payload.data,
-    dir: 'rtl',
-    lang: 'ar',
-    vibrate: [200, 100, 200],
-    requireInteraction: true,
-    actions: [
-      { action: 'open', title: 'فتح' },
-      { action: 'close', title: 'إغلاق' }
-    ]
-  };
+  // Get messaging instance
+  messaging = firebase.messaging();
 
-  return self.registration.showNotification(notificationTitle, notificationOptions);
-});
+  // Handle background messages
+  messaging.onBackgroundMessage((payload) => {
+    console.log('[firebase-messaging-sw.js] Received background message:', payload);
+
+    const notificationTitle = payload.notification?.title || 'صندوق عائلة شعيل';
+    const notificationOptions = {
+      body: payload.notification?.body || '',
+      icon: '/logo.png',
+      badge: '/logo.png',
+      tag: payload.data?.type || 'default',
+      data: payload.data,
+      dir: 'rtl',
+      lang: 'ar',
+      vibrate: [200, 100, 200],
+      requireInteraction: true,
+      actions: [
+        { action: 'open', title: 'فتح' },
+        { action: 'close', title: 'إغلاق' }
+      ]
+    };
+
+    return self.registration.showNotification(notificationTitle, notificationOptions);
+  });
+} else {
+  console.warn('[firebase-messaging-sw.js] Firebase config missing; background FCM disabled');
+}
 
 // Handle notification click
 self.addEventListener('notificationclick', (event) => {

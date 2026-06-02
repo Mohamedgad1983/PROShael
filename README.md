@@ -66,7 +66,7 @@ The Al-Shuail Family Management System is a full-stack application designed to m
                           │
             ┌─────────────▼─────────────┐
             │     PostgreSQL            │
-            │     (Supabase)            │
+            │     (VPS/self-hosted)     │
             └───────────────────────────┘
 ```
 
@@ -78,7 +78,7 @@ The Al-Shuail Family Management System is a full-stack application designed to m
 | Admin Frontend | React + TypeScript | 19.x |
 | Mobile Frontend | React + Vite | 18.x / 5.x |
 | Database | PostgreSQL | 15.x |
-| Hosting | Supabase + Cloudflare Pages | - |
+| Hosting | VPS + Cloudflare Pages | - |
 | Push Notifications | Firebase Cloud Messaging | - |
 | SMS/WhatsApp | UltraMsg / Twilio | - |
 
@@ -87,41 +87,22 @@ The Al-Shuail Family Management System is a full-stack application designed to m
 ## Project Structure
 
 ```
-D:/PROShael/
-├── alshuail-backend/           # Express.js API Server
-│   ├── src/
-│   │   ├── config/             # Configuration files
-│   │   ├── controllers/        # Route handlers
-│   │   ├── middleware/         # Express middleware
-│   │   ├── routes/             # API route definitions
-│   │   ├── services/           # Business logic services
-│   │   └── utils/              # Utility functions
-│   ├── migrations/             # Database migrations
-│   └── __tests__/              # Test suites
-│
-├── alshuail-admin-arabic/      # React Admin Dashboard
-│   ├── src/
-│   │   ├── components/         # React components (feature-based)
-│   │   ├── contexts/           # React contexts
-│   │   ├── hooks/              # Custom hooks
-│   │   ├── services/           # API service functions
-│   │   └── utils/              # Utility functions
-│   └── public/                 # Static assets
-│
-├── alshuail-mobile/            # React Mobile PWA
-│   ├── src/
-│   │   ├── components/         # React components
-│   │   ├── pages/              # Page components
-│   │   └── utils/              # Utility functions
-│   └── public/                 # PWA assets
-│
-├── claudedocs/                 # Documentation archive
-│   └── archived/               # Historical documentation
-│
-├── CLAUDE.md                   # AI assistant instructions
-├── README.md                   # This file
-└── CHANGELOG.md                # Version history
+PROShael/
+├── alshuail-backend/           # Active Express API, migrations, backend tests
+├── alshuail-admin-arabic/      # Active React admin dashboard
+├── alshuail-mobile/            # Active React/Vite mobile PWA
+├── alshuail-flutter/           # Active Flutter app
+├── AlShuailFund/               # Active SwiftUI iOS app
+├── database/                   # Root-level database schemas/migrations
+├── docs/                       # Architecture, specs, reports, iOS docs, analysis
+├── scripts/                    # Root operational scripts
+├── archive/                    # Historical backups only, not active source
+├── .github/workflows/          # CI/CD workflows
+├── package.json                # Root command surface
+└── AGENTS.md                   # Repository working instructions
 ```
+
+See [`docs/PROJECT_STRUCTURE.md`](docs/PROJECT_STRUCTURE.md) for the full structure contract, archive policy, generated-file policy, and app ownership rules.
 
 ---
 
@@ -131,7 +112,7 @@ D:/PROShael/
 
 - Node.js >= 18.0.0
 - npm >= 9.0.0
-- Supabase account
+- PostgreSQL 15 access (local or VPS)
 - Firebase project (for push notifications)
 
 ### Installation
@@ -144,17 +125,10 @@ cd alshuail-family-system
 
 2. **Install dependencies**
 ```bash
-# Backend
-cd alshuail-backend
 npm install
-
-# Admin Dashboard
-cd ../alshuail-admin-arabic
-npm install
-
-# Mobile PWA
-cd ../alshuail-mobile
-npm install
+npm --prefix alshuail-backend install
+npm --prefix alshuail-admin-arabic install
+npm --prefix alshuail-mobile install
 ```
 
 3. **Configure environment variables**
@@ -162,11 +136,14 @@ npm install
 Backend (`.env`):
 ```env
 # Required
-SUPABASE_URL=your_supabase_url
-SUPABASE_ANON_KEY=your_anon_key
-SUPABASE_SERVICE_KEY=your_service_key
+DATABASE_URL=postgresql://user:password@localhost:5432/alshuail_db
 JWT_SECRET=your_jwt_secret
+CSRF_SECRET=your_csrf_secret
 PORT=5001
+
+# Optional - Local document storage
+UPLOAD_DIR=/var/www/uploads/alshuail
+UPLOAD_URL=https://api.alshailfund.com/uploads
 
 # Optional - Push Notifications
 FIREBASE_PROJECT_ID=your_project_id
@@ -191,16 +168,13 @@ VITE_API_URL=http://localhost:5001/api
 4. **Start development servers**
 ```bash
 # Terminal 1 - Backend
-cd alshuail-backend
-npm run dev
+npm run backend:dev
 
 # Terminal 2 - Admin Dashboard
-cd alshuail-admin-arabic
-npm start
+npm run admin:dev
 
 # Terminal 3 - Mobile PWA
-cd alshuail-mobile
-npm run dev
+npm run mobile:dev
 ```
 
 ---
@@ -210,52 +184,43 @@ npm run dev
 ### Backend Development
 
 ```bash
-cd alshuail-backend
-
 # Development with watch mode
-npm run dev
+npm run backend:dev
 
 # Run tests
-npm test
+npm run backend:test
 
 # Lint code
-npm run lint
+npm run backend:lint
 
-# Security audit
-npm run security-audit
+# Security scan
+npm run backend:security
 ```
 
 ### Admin Dashboard Development
 
 ```bash
-cd alshuail-admin-arabic
-
 # Development server
-npm start
+npm run admin:dev
 
 # Type checking
-npm run type-check
+npm run admin:type-check
 
 # Production build
-npm run build:fast
-
-# Run tests
-npm test
+npm run admin:build
 ```
 
 ### Mobile PWA Development
 
 ```bash
-cd alshuail-mobile
-
 # Development server
-npm run dev
+npm run mobile:dev
 
 # Production build
-npm run build
+npm run mobile:build
 
-# Preview build
-npm run preview
+# Lint
+npm run mobile:lint
 ```
 
 ---
@@ -323,7 +288,7 @@ GET /api/reports/payments          # Payment reports
 GET /api/reports/subscriptions     # Subscription reports
 ```
 
-For complete API documentation, see [API.md](docs/API.md).
+For complete API documentation, see [API.md](docs/architecture/API.md).
 
 ---
 
@@ -332,31 +297,27 @@ For complete API documentation, see [API.md](docs/API.md).
 ### Backend Tests
 
 ```bash
-cd alshuail-backend
+# Unit tests from repository root
+npm run backend:test
 
-# Run all tests
-npm test
-
-# Unit tests only
-npm run test:unit
-
-# Integration tests
-npm run test:integration
-
-# Coverage report
-npm run test:coverage
+# Full backend validation
+npm run check:backend
 ```
 
-### Frontend Tests
+### Product Checks
 
 ```bash
-cd alshuail-admin-arabic
+# Dependency audits across root, backend, admin, and mobile
+npm run check:audit
 
-# Run tests
-npm test
+# Admin TypeScript and production build
+npm run check:admin
 
-# Coverage report
-npm run test:coverage
+# Mobile lint and production build
+npm run check:mobile
+
+# Full repository validation
+npm run check
 ```
 
 ---

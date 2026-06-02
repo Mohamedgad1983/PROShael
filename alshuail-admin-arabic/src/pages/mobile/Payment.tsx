@@ -15,6 +15,7 @@ import {
 import BottomNav from '../../components/mobile/BottomNav';
 import ReceiptUpload from './ReceiptUpload';
 import { logger } from '../../utils/logger';
+import { API_ORIGIN } from '../../utils/apiConfig';
 
 import '../../styles/mobile/Payment.css';
 
@@ -57,7 +58,7 @@ const Payment: React.FC = () => {
     try {
       setSearching(true);
       const token = localStorage.getItem('token');
-      const apiUrl = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
+      const apiUrl = API_ORIGIN;
 
       const response = await fetch(
         `${apiUrl}/api/member/search?q=${encodeURIComponent(searchQuery)}`,
@@ -107,7 +108,7 @@ const Payment: React.FC = () => {
     try {
       setSubmitting(true);
       const token = localStorage.getItem('token');
-      const apiUrl = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
+      const apiUrl = API_ORIGIN;
 
       const payload = {
         amount: parseFloat(amount),

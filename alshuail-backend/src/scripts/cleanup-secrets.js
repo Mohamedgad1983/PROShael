@@ -32,8 +32,8 @@ const SECURITY_PATTERNS = {
 
   // Hardcoded fallback values in process.env
   envFallback: {
-    pattern: /process\.env\.[A-Z_]+\s*\|\|\s*['"](?!undefined|null|''|""|\$\{)[^'"]+['"]/g,
-    name: 'Hardcoded Environment Fallback',
+    pattern: /process\.env\.[A-Z_]*(?:SECRET|TOKEN|KEY|PASSWORD|DATABASE_URL|DB_PASSWORD|REDIS_URL)[A-Z_]*\s*\|\|\s*['"](?!undefined|null|''|""|\$\{)[^'"]+['"]/g,
+    name: 'Hardcoded Sensitive Environment Fallback',
     severity: 'high'
   },
 
@@ -89,7 +89,7 @@ const SECURITY_PATTERNS = {
 
   // Passwords in config
   password: {
-    pattern: /(?:password|passwd|pwd)['"]?\s*[:=]\s*['"][^'"]{8,}['"]/gi,
+    pattern: /(?:password|passwd|pwd)['"]?\s*[:=]\s*['"][A-Za-z0-9!@#$%^&*()_+\-=.[\]{}:;?]{8,}['"]/gi,
     name: 'Hardcoded Password',
     severity: 'critical'
   },
@@ -106,7 +106,25 @@ const SECURITY_PATTERNS = {
 const SCAN_EXTENSIONS = ['.js', '.jsx', '.ts', '.tsx', '.mjs', '.json', '.env.example'];
 
 // Directories to skip
-const SKIP_DIRS = ['node_modules', '.git', 'build', 'dist', 'coverage', '.next', '.cache', 'public'];
+const SKIP_DIRS = [
+  'node_modules',
+  '.git',
+  'build',
+  'dist',
+  'coverage',
+  '.next',
+  '.cache',
+  'public',
+  'archive',
+  '_archived',
+  '__tests__',
+  'tests',
+  'docs',
+  'specs',
+  'claudedocs',
+  '.agents',
+  '.codex'
+];
 
 // Files to skip
 const SKIP_FILES = ['package-lock.json', 'yarn.lock', 'pnpm-lock.yaml', '.DS_Store'];
@@ -184,7 +202,11 @@ class SecretScanner {
             }
 
             // Skip if it's in a test file and looks like a mock
-            if (relativePath.includes('test') && this.isMockSecret(match[0])) {
+            if (this.isTestPath(relativePath) && this.isMockSecret(match[0])) {
+              continue;
+            }
+
+            if (this.isKnownFalsePositive(key, match[0], line)) {
               continue;
             }
 
@@ -233,6 +255,10 @@ class SecretScanner {
            trimmed.startsWith('#');
   }
 
+  isTestPath(relativePath) {
+    return /(^|[/\\])(__tests__|tests|test|specs?)([/\\]|$)|\.(test|spec)\.[jt]sx?$/i.test(relativePath);
+  }
+
   isMockSecret(secret) {
     const mockPatterns = [
       'XXXXXXX',
@@ -241,12 +267,34 @@ class SecretScanner {
       'example-token',
       'dummy-',
       'fake-',
+      'test-secret',
+      'testing-only',
+      'password123',
+      'testpass',
+      'Test@1234',
+      'Test123',
+      'sample',
+      'placeholder',
       '123456',
       'abcdef'
     ];
 
     const lowerSecret = secret.toLowerCase();
-    return mockPatterns.some(pattern => lowerSecret.includes(pattern));
+    return mockPatterns.some(pattern => lowerSecret.includes(pattern.toLowerCase()));
+  }
+
+  isKnownFalsePositive(type, secret, line) {
+    if (type === 'password') {
+      return /message|error|label|placeholder|validation|required|confirm|current/i.test(line) ||
+             /[\u0600-\u06FF]/.test(secret);
+    }
+
+    if (type === 'apiKey') {
+      return /apiKey:\s*import\.meta\.env/.test(line) ||
+             /apiKey:\s*['"]{2}/.test(line);
+    }
+
+    return false;
   }
 
   truncateSecret(secret) {

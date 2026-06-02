@@ -13,6 +13,7 @@ import {
 } from '@heroicons/react/24/outline';
 import BottomNav from '../../components/mobile/BottomNav';
 import { logger } from '../../utils/logger';
+import { API_ORIGIN } from '../../utils/apiConfig';
 
 import '../../styles/mobile/Notifications.css';
 
@@ -82,7 +83,7 @@ const Notifications: React.FC = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const apiUrl = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
+      const apiUrl = API_ORIGIN;
 
       const response = await fetch(`${apiUrl}/api/member/notifications`, {
         headers: {
@@ -117,7 +118,7 @@ const Notifications: React.FC = () => {
   const markAsRead = async (notificationId: string) => {
     try {
       const token = localStorage.getItem('token');
-      const apiUrl = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
+      const apiUrl = API_ORIGIN;
 
       await fetch(`${apiUrl}/api/member/notifications/${notificationId}/read`, {
         method: 'POST',
@@ -140,7 +141,7 @@ const Notifications: React.FC = () => {
   const markAllAsRead = async () => {
     try {
       const token = localStorage.getItem('token');
-      const apiUrl = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
+      const apiUrl = API_ORIGIN;
 
       await fetch(`${apiUrl}/api/member/notifications/read-all`, {
         method: 'POST',

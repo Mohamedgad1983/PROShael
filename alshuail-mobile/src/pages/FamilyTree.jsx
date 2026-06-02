@@ -9,7 +9,7 @@ import { familyTreeService } from '../services'
 const FamilyTree = () => {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const { fetchFamilyTree, fetchBranches, cache, getCacheStatus } = useDataCache()
+  const { fetchFamilyTree, fetchBranches, cache } = useDataCache()
   const containerRef = useRef(null)
   
   // Use cached data for initial state
@@ -21,7 +21,7 @@ const FamilyTree = () => {
   const [selectedMember, setSelectedMember] = useState(null)
   const [showAddChild, setShowAddChild] = useState(false)
   const [expandedNodes, setExpandedNodes] = useState(new Set())
-  const [branches, setBranches] = useState(cache.branches?.data || [])
+  const [, setBranches] = useState(cache.branches?.data || [])
   
   // New child form
   const [newChild, setNewChild] = useState({ name: '', gender: 'male', birthDate: '' })

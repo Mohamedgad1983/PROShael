@@ -2,6 +2,7 @@
 import { toHijri, toGregorian } from 'hijri-converter';
 import SimpleHijriDatePicker from '../Common/SimpleHijriDatePicker';
 import { logger } from '../../utils/logger';
+import { API_ORIGIN } from '../../utils/apiConfig';
 
 import {
   ScaleIcon,
@@ -55,7 +56,7 @@ const AppleDiyasManagement = () => {
   const [showContributorsModal, setShowContributorsModal] = useState(false);
 
   // API URL configuration
-  const API_URL = process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.alshailfund.com');
+  const API_URL = API_ORIGIN;
   const [newDiya, setNewDiya] = useState({
     title: '',
     type: 'accident',

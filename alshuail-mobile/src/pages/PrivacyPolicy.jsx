@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, Shield, Database, Users, Bell, Lock, Mail, Calendar, Globe } from 'lucide-react'
+import { ArrowRight, Shield, Database, Users, Lock, Mail, Calendar, Globe } from 'lucide-react'
 
 const PrivacyPolicy = () => {
   const navigate = useNavigate()

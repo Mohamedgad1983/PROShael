@@ -7,9 +7,10 @@ import '../../styles/mobile/Dashboard.css';
 import { getDashboardData } from '../../services/mobileApi';
 
 import { logger } from '../../utils/logger';
+import { API_ORIGIN } from '../../utils/apiConfig';
 
 // API Configuration
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
+const API_BASE_URL = API_ORIGIN;
 
 const MobileDashboard = () => {
   const navigate = useNavigate();

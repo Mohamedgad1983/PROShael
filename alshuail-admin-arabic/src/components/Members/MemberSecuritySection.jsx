@@ -23,8 +23,9 @@ import {
     FaClock
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
+import { API_ORIGIN } from '../../utils/apiConfig';
 
-const API_BASE = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
+const API_BASE = API_ORIGIN;
 
 /**
  * Member Security Section Component

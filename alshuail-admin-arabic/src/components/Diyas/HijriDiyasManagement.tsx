@@ -22,12 +22,12 @@ import {
 } from '@heroicons/react/24/outline';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import * as XLSX from 'xlsx';
 import { HijriDateDisplay } from '../Common/HijriDateDisplay';
 import { HijriDateInput } from '../Common/HijriDateInput';
 import { isOverdue, getDaysUntil } from '../../utils/hijriDateUtils';
 import { logger } from '../../utils/logger';
 import { API_BASE_URL } from '../../utils/apiConfig';
+import { exportAoAToExcel } from '../../utils/excelExport';
 
 import '../../styles/ultra-premium-islamic-design.css';
 
@@ -383,10 +383,7 @@ const HijriDiyasManagement: React.FC = () => {
       ])
     ];
 
-    const ws = XLSX.utils.aoa_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'المساهمون');
-    XLSX.writeFile(wb, `مساهمو-${selectedDiya.title}.xlsx`);
+    exportAoAToExcel(data, 'المساهمون', `مساهمو-${selectedDiya.title}.xlsx`);
   };
 
   // Handle items per page change

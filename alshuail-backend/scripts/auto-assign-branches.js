@@ -7,22 +7,12 @@
  * Run: node scripts/auto-assign-branches.js
  */
 
-import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 
 // Load environment variables
 dotenv.config();
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
-
-if (!supabaseUrl || !supabaseKey) {
-  console.error('❌ Missing required environment variables');
-  console.error('Required: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY or SUPABASE_SERVICE_KEY');
-  process.exit(1);
-}
-
-const supabase = createClient(supabaseUrl, supabaseKey);
+const { query, pool } = await import('../src/services/database.js');
 
 /**
  * Mapping of tribal_section text values to family_branches names
@@ -51,14 +41,9 @@ const TRIBAL_SECTION_MAPPING = {
 async function getFamilyBranches() {
   console.log('\n📋 Fetching family branches...');
 
-  const { data: branches, error } = await supabase
-    .from('family_branches')
-    .select('id, branch_name, branch_code');
-
-  if (error) {
-    console.error('❌ Error fetching branches:', error);
-    throw error;
-  }
+  const { rows: branches } = await query(
+    'SELECT id, branch_name, branch_code FROM family_branches'
+  );
 
   console.log(`✅ Found ${branches.length} family branches:`);
   branches.forEach(branch => {
@@ -74,17 +59,13 @@ async function getFamilyBranches() {
 async function getUnassignedMembersWithTribalSection() {
   console.log('\n🔍 Fetching unassigned members with tribal_section...');
 
-  const { data: members, error } = await supabase
-    .from('members')
-    .select('id, full_name, phone, tribal_section, family_branch_id')
-    .is('family_branch_id', null)
-    .not('tribal_section', 'is', null)
-    .neq('tribal_section', '');
-
-  if (error) {
-    console.error('❌ Error fetching members:', error);
-    throw error;
-  }
+  const { rows: members } = await query(
+    `SELECT id, full_name, phone, tribal_section, family_branch_id
+     FROM members
+     WHERE family_branch_id IS NULL
+       AND tribal_section IS NOT NULL
+       AND tribal_section <> ''`
+  );
 
   console.log(`✅ Found ${members.length} unassigned members with tribal_section`);
 
@@ -191,22 +172,18 @@ async function updateMemberBranches(assignments, dryRun = false) {
       const batch = members.slice(i, i + batchSize);
       const memberIds = batch.map(m => m.id);
 
-      const { data, error } = await supabase
-        .from('members')
-        .update({
-          family_branch_id: branchId,
-          updated_at: new Date().toISOString()
-        })
-        .in('id', memberIds)
-        .select('id');
+      try {
+        const { rows: data } = await query(
+          'UPDATE members SET family_branch_id = $1, updated_at = $2 WHERE id = ANY($3) RETURNING id',
+          [branchId, new Date().toISOString(), memberIds]
+        );
 
-      if (error) {
-        console.error(`   ❌ Error updating batch ${i / batchSize + 1}:`, error.message);
-        totalErrors += batch.length;
-      } else {
         const updated = data?.length || 0;
         totalUpdated += updated;
         console.log(`   ✅ Updated ${updated} members (batch ${i / batchSize + 1})`);
+      } catch (error) {
+        console.error(`   ❌ Error updating batch ${i / batchSize + 1}:`, error.message);
+        totalErrors += batch.length;
       }
     }
   }
@@ -295,11 +272,13 @@ async function main() {
       console.log(`Errors: ${totalErrors}`);
 
       // Verify results
-      const { data: remainingUnassigned } = await supabase
-        .from('members')
-        .select('id', { count: 'exact' })
-        .is('family_branch_id', null)
-        .eq('membership_status', 'active');
+      const { rows: remainingUnassigned } = await query(
+        `SELECT id
+         FROM members
+         WHERE family_branch_id IS NULL
+           AND membership_status = $1`,
+        ['active']
+      );
 
       console.log(`\n📊 Remaining unassigned members: ${remainingUnassigned?.length || 0}`);
     } else {
@@ -310,7 +289,9 @@ async function main() {
   } catch (error) {
     console.error('\n❌ SCRIPT FAILED:', error.message);
     console.error(error);
-    process.exit(1);
+    process.exitCode = 1;
+  } finally {
+    await pool.end();
   }
 }
 

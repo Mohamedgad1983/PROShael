@@ -1,5 +1,6 @@
 import React, { memo,  useState, useEffect } from 'react';
 import { logger } from '../../utils/logger';
+import { API_ORIGIN } from '../../utils/apiConfig';
 
 import './CrisisDashboard.css';
 
@@ -11,7 +12,7 @@ const CrisisDashboard = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [refreshing, setRefreshing] = useState(false);
 
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+  const API_URL = API_ORIGIN;
 
   // Fetch crisis data from backend
   const fetchCrisisData = async () => {

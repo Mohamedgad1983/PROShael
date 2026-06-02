@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, Bell, Check, CheckCheck, Trash2, RefreshCw, AlertCircle, WifiOff } from 'lucide-react'
+import { ArrowRight, Bell, CheckCheck, RefreshCw, WifiOff } from 'lucide-react'
 import { useDataCache } from '../contexts/DataCacheContext'
 import BottomNav from '../components/BottomNav'
 import { notificationService } from '../services'
 
 const Notifications = () => {
   const navigate = useNavigate()
-  const { fetchNotifications, cache, getCacheStatus } = useDataCache()
+  const { fetchNotifications, cache } = useDataCache()
   
   // Use cached data for initial state
   const [notifications, setNotifications] = useState(cache.notifications?.data || [])

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, Bell, Moon, Globe, Phone, FileText, Info, ChevronLeft, LogOut, Check, X, Lock } from 'lucide-react'
+import { ArrowRight, Bell, Moon, Globe, Phone, FileText, Info, ChevronLeft, LogOut, Lock } from 'lucide-react'
 import { useAuth } from '../App'
 import { pushNotificationService } from '../services'
 

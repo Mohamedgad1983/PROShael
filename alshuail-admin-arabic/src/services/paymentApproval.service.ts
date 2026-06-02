@@ -3,11 +3,7 @@
 // for the admin "موافقات الدفعات" screen.
 
 import axios from 'axios';
-
-const API_BASE_URL =
-  typeof window !== 'undefined' && window.location.hostname === 'localhost'
-    ? 'http://localhost:3001/api'
-    : 'https://api.alshailfund.com/api';
+import { API_BASE_URL } from '../utils/apiConfig';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -60,13 +56,15 @@ export interface PendingPayment {
   payer_membership_number: string | null;
   beneficiary_name: string | null;
   // Receipt fields — populated when the member uploaded a file.
-  // The backend joins documents_metadata and builds the URL for us.
-  receipt_uploaded: boolean | null;
-  receipt_filename: string | null;
-  receipt_mimetype: string | null;
+  // Backend joins documents_metadata and builds receipt_url. The
+  // receipt_uploaded boolean is computed server-side from
+  // (receipt_document_id IS NOT NULL).
   receipt_document_id: string | null;
+  receipt_uploaded: boolean;
   receipt_file_path: string | null;
   receipt_original_name: string | null;
+  receipt_file_size: number | null;
+  receipt_mimetype: string | null;
   receipt_url: string | null;
 }
 

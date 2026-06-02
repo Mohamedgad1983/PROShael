@@ -2,6 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { logger } from '../../utils/logger';
+import { API_ORIGIN } from '../../utils/apiConfig';
 
 import {
   CameraIcon,
@@ -80,7 +81,7 @@ const ReceiptUpload: React.FC<ReceiptUploadProps> = ({ onUploadComplete }) => {
       formData.append('receipt', selectedFile);
 
       const token = localStorage.getItem('token');
-      const apiUrl = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
+      const apiUrl = API_ORIGIN;
 
       // Simulate progress updates
       const progressInterval = setInterval(() => {

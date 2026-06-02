@@ -12,11 +12,12 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
-import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 import { logger } from '../../utils/logger';
+import { API_BASE_URL } from '../../utils/apiConfig';
+import { exportJsonToExcel } from '../../utils/excelExport';
 
 interface Initiative {
     id: number;
@@ -83,7 +84,7 @@ const InitiativeReport = () => {
     const [sendingNotification, setSendingNotification] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
 
-    const API_URL = (process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.alshailfund.com')) + '/api';
+    const API_URL = API_BASE_URL;
 
     useEffect(() => {
         fetchInitiativeReport();
@@ -190,22 +191,14 @@ const InitiativeReport = () => {
                 'البريد الإلكتروني': m.email || ''
             }));
 
-        // Create worksheet from data
-        const worksheet = XLSX.utils.json_to_sheet(exportData);
-
         // Set column widths for better readability
         const columnWidths = activeTab === 'contributors'
             ? [{ wch: 12 }, { wch: 25 }, { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 10 }]
             : [{ wch: 12 }, { wch: 25 }, { wch: 15 }, { wch: 25 }];
-        worksheet['!cols'] = columnWidths;
-
-        // Create workbook and add worksheet
-        const workbook = XLSX.utils.book_new();
         const sheetName = activeTab === 'contributors' ? 'المساهمون' : 'غير المساهمين';
-        XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
 
         // Generate Excel file and download
-        XLSX.writeFile(workbook, `initiative-${id}-${activeTab}-${Date.now()}.xlsx`);
+        exportJsonToExcel(exportData, sheetName, `initiative-${id}-${activeTab}-${Date.now()}.xlsx`, columnWidths);
     };
 
     const handleExportPDF = () => {

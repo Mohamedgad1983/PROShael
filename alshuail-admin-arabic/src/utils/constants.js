@@ -152,7 +152,7 @@ export const COUNTRY_CODES = {
 };
 
 // API Endpoints Base
-export const API_BASE_URL = typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:3001/api' : 'https://api.alshailfund.com/api';
+export { API_BASE_URL } from './apiConfig';
 
 // Pagination
 export const PAGINATION = {

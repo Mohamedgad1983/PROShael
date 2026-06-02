@@ -10,9 +10,7 @@
 import axios from 'axios';
 
 import { logger } from '../utils/logger';
-
-// API Base URL (production)
-const API_BASE_URL = 'https://api.alshailfund.com/api';
+import { API_BASE_URL } from '../utils/apiConfig';
 
 // Get auth token from localStorage
 const getAuthToken = () => {

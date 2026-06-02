@@ -1,5 +1,6 @@
 import React, { memo,  useState } from 'react';
 import { logger } from '../../utils/logger';
+import { API_ORIGIN } from '../../utils/apiConfig';
 
 import {
   XMarkIcon,
@@ -115,7 +116,7 @@ const AddMemberModal = ({ isOpen, onClose, onMemberAdded }) => {
       };
 
       // Call API to create member
-      const response = await fetch(`${process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.alshailfund.com')}/api/members/add-manual`, {
+      const response = await fetch(`${API_ORIGIN}/api/members/add-manual`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

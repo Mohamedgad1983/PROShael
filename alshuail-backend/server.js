@@ -107,26 +107,56 @@ if (!fs.existsSync(newsUploadsDir)) {
 // that don't exist here.
 const uploadStaticDir = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
 app.use('/uploads', express.static(uploadStaticDir));
-log.info('Static uploads served from: ' + uploadStaticDir);
+app.use('/api/uploads', express.static(uploadStaticDir));
+log.info(`Static uploads served from: ${uploadStaticDir}`);
 
 app.use(helmet({
   crossOriginResourcePolicy: false,
 }));
 
+const configuredCorsOrigins = (config.frontend.corsOrigin || '')
+  .split(',')
+  .map(origin => origin.trim())
+  .filter(Boolean);
+
+const allowedOrigins = [
+  'https://alshuail-admin.pages.dev',
+  'https://alshuail-admin-main.pages.dev',
+  'https://alshailfund.com',
+  'https://www.alshailfund.com',
+  'https://app.alshailfund.com',
+  'http://localhost:3002',
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://127.0.0.1:5500',
+  config.frontend.url,
+  ...configuredCorsOrigins
+].filter(Boolean);
+
+const isAllowedOrigin = (origin) => {
+  if (!origin) {
+    return true;
+  }
+
+  let hostname = '';
+  try {
+    hostname = new URL(origin).hostname;
+  } catch {
+    return false;
+  }
+
+  return allowedOrigins.includes(origin) ||
+    hostname === 'alshailfund.com' ||
+    hostname.endsWith('.alshailfund.com') ||
+    hostname === 'alshuail-admin.pages.dev' ||
+    hostname.endsWith('.alshuail-admin.pages.dev') ||
+    hostname === 'alshuail-admin-main.pages.dev' ||
+    hostname.endsWith('.alshuail-admin-main.pages.dev');
+};
+
 // Enhanced CORS configuration for production
 const corsOptions = {
   origin: function(origin, callback) {
-    const allowedOrigins = [
-      'https://alshuail-admin.pages.dev',
-      'https://alshuail-admin-main.pages.dev',
-      'https://alshailfund.com',
-      'https://www.alshailfund.com',
-      'http://localhost:3002',
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://127.0.0.1:5500'
-    ];
-
     // Log origin for debugging
     if (config.isProduction) {
       log.debug(`[CORS] Request from origin: ${origin || 'no-origin'}`);
@@ -139,16 +169,12 @@ const corsOptions = {
 
     // In production, check allowed origins
     if (config.isProduction) {
-      if (allowedOrigins.includes(origin) ||
-          origin.includes('alshuail-admin.pages.dev') ||
-          origin.includes('alshailfund.com') ||
-          origin === config.frontend.url) {
+      if (isAllowedOrigin(origin)) {
         log.info(`[CORS] ✓ Allowed origin: ${origin}`);
         return callback(null, true);
       } else {
         log.warn(`[CORS] ✗ Blocked origin: ${origin}`);
-        // Still allow for now to prevent blocking
-        return callback(null, true);
+        return callback(new Error('Not allowed by CORS'));
       }
     }
 
@@ -177,8 +203,7 @@ app.use(cors(corsOptions));
 // Additional CORS headers for extra safety
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  if (origin && (origin.includes('alshuail-admin.pages.dev') ||
-          origin.includes('alshailfund.com') || origin.includes('localhost'))) {
+  if (origin && (!config.isProduction || isAllowedOrigin(origin))) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
   }
@@ -407,9 +432,14 @@ app.get('/api/test', (req, res) => {
 
 // Debug endpoint for troubleshooting
 app.get('/api/debug/env', (req, res) => {
-  // Only in development or with special header
-  if (config.isProduction &&
-      req.headers['x-debug-token'] !== 'alshuail-debug-2024') {
+  const debugToken = req.headers['x-debug-token'];
+  const debugEnabled = config.debug.enabled && (!config.isProduction || config.debug.token);
+
+  if (!debugEnabled) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+
+  if (config.isProduction && debugToken !== config.debug.token) {
     return res.status(403).json({ error: 'Forbidden' });
   }
 

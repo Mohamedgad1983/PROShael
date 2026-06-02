@@ -17,6 +17,7 @@
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^13.5.0",
     "@types/d3": "^7.4.3",
+    "@types/d3-dispatch": "3.0.6",
     "@types/jest": "^27.5.2",
     "@types/node": "^16.18.126",
     "@types/react": "^19.1.13",
@@ -28,7 +29,7 @@
     "hijri-converter": "^1.1.1",
     "html2canvas": "^1.4.1",
     "js-cookie": "^3.0.5",
-    "jspdf": "^3.0.3",
+    "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.562.0",
     "moment-hijri": "^3.0.0",
@@ -49,14 +50,13 @@
     "web-vitals": "^2.1.4",
     "workbox-sw": "^7.3.0",
     "workbox-webpack-plugin": "^7.3.0",
-    "xlsx": "^0.18.5",
     "xlsx-populate": "^1.21.0"
   },
   "scripts": {
     "start": "craco start",
     "build": "set NODE_OPTIONS=--max-old-space-size=8192 && craco build",
     "build:fast": "set NODE_OPTIONS=--max-old-space-size=8192 && set GENERATE_SOURCEMAP=false && craco build",
-    "build:emergency": "node build-emergency.js",
+    "build:emergency": "node tools/build-emergency.js",
     "test": "craco test",
     "eject": "react-scripts eject",
     "test:ci": "craco test --coverage --watchAll=false --testTimeout=10000",
@@ -87,7 +87,7 @@
     "sw:update": "npx workbox generateSW workbox-config.js",
     "offline:test": "npm run build && serve -s build -l 3000 --no-request-logging",
     "manifest:validate": "npx web-app-manifest-validator public/manifest.json",
-    "build:optimized": "webpack --config webpack.optimize.js --mode production",
+    "build:optimized": "webpack --config tools/webpack.optimize.js --mode production",
     "analyze": "webpack-bundle-analyzer build/static/js/*.js"
   },
   "eslintConfig": {
@@ -117,9 +117,18 @@
     "eslint": "^8.57.0",
     "fs-extra": "^11.3.2",
     "glob": "^11.0.3",
-    "postcss": "^8.5.6",
+    "postcss": "8.5.10",
     "serve": "^14.2.1",
     "tailwindcss": "^3.4.17",
     "webpack-bundle-analyzer": "^4.9.1"
+  },
+  "overrides": {
+    "@tootallnate/once": "2.0.1",
+    "nth-check": "2.1.1",
+    "postcss": "8.5.10",
+    "serialize-javascript": "7.0.5",
+    "underscore": "1.13.8",
+    "uuid": "11.1.1",
+    "webpack-dev-server": "5.2.4"
   }
 }

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { logger } from '../../utils/logger';
+import { API_ORIGIN } from '../../utils/apiConfig';
 
 import './MemberSubscriptionView.css';
 
@@ -37,7 +38,7 @@ const MemberSubscriptionView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showPayModal, setShowPayModal] = useState(false);
 
-  const API_BASE = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
+  const API_BASE = API_ORIGIN;
   const token = localStorage.getItem('token');
   const axiosConfig = {
     headers: { Authorization: `Bearer ${token}` }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { logger } from '../../utils/logger';
+import { API_ORIGIN } from '../../utils/apiConfig';
 
 import {
   MagnifyingGlassIcon,
@@ -56,8 +57,7 @@ const MemberMonitoringDashboard = () => {
   const [selectedMember, setSelectedMember] = useState(null);
   const [suspendConfirmStep, setSuspendConfirmStep] = useState(1);
 
-  // API Configuration - Use environment variable or fallback to production
-  const API_URL = process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.alshailfund.com');
+  const API_URL = API_ORIGIN;
 
   // Tribal Sections (الفخذ)
   const tribalSections = [
@@ -136,7 +136,7 @@ const MemberMonitoringDashboard = () => {
         data = await response.json();
         logger.debug('✅ API Response received:', {
           hasData: !!data,
-          hasDataProp: !!(data && data.data);,
+          hasDataProp: !!(data && data.data),
           hasMembers: !!(data && data.members),
           isArray: Array.isArray(data)
         });

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, Heart, Users, Calendar, Target, CheckCircle, Clock, AlertCircle } from 'lucide-react'
+import { ArrowRight, Heart, Users, Calendar, CheckCircle, Clock, AlertCircle } from 'lucide-react'
 import BottomNav from '../components/BottomNav'
 import { initiativeService } from '../services'
 

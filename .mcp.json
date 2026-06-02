@@ -5,7 +5,7 @@
         "type": "http",
         "url": "https://mcp.render.com/mcp",
         "headers": {
-          "Authorization": "Bearer rnd_svCnPMCIuKeRNujGmgkgrZNjC4Lo"
+          "Authorization": "Bearer ${RENDER_MCP_TOKEN}"
         }
       }
     }

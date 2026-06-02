@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
 import { logger } from '../../utils/logger';
+import { API_ORIGIN } from '../../utils/apiConfig';
 
 // Arabic relationship types
 export const RELATIONSHIP_TYPES = {
@@ -123,7 +124,7 @@ export const useFamilyTreeData = () => {
       setLoading(true);
       setError(null);
 
-      const response = await axios.get(`${process.env.REACT_APP_API_URL || 'https://api.alshailfund.com'}/api/members`, {
+      const response = await axios.get(`${API_ORIGIN}/api/members`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`
         }
@@ -197,7 +198,7 @@ export const useFamilyTreeData = () => {
   ) => {
     try {
       await axios.post(
-        `${process.env.REACT_APP_API_URL || 'https://api.alshailfund.com'}/api/members/${memberId}/relationships`,
+        `${API_ORIGIN}/api/members/${memberId}/relationships`,
         {
           relatedMemberId,
           relationshipType
@@ -221,7 +222,7 @@ export const useFamilyTreeData = () => {
   const updateMember = useCallback(async (memberId: string, updates: Partial<FamilyMember>) => {
     try {
       await axios.patch(
-        `${process.env.REACT_APP_API_URL || 'https://api.alshailfund.com'}/api/members/${memberId}`,
+        `${API_ORIGIN}/api/members/${memberId}`,
         updates,
         {
           headers: {

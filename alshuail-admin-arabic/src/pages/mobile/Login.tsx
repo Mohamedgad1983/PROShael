@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { PhoneIcon, LockClosedIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import { isBiometricAvailable, authenticateBiometric, getBiometricType } from '../../utils/biometricAuth.jsx';
 import { logger } from '../../utils/logger';
+import { API_ORIGIN } from '../../utils/apiConfig';
 
 import '../../styles/mobile/Login.css';
 
@@ -39,7 +40,7 @@ const MobileLogin = () => {
     setError('');
 
     try {
-      const API_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
+      const API_URL = API_ORIGIN;
 
       const response = await fetch(`${API_URL}/api/auth/mobile-login`, {
         method: 'POST',

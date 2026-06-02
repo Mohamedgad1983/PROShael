@@ -9,7 +9,7 @@
  * 
  * Created: December 2025
  */
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { 
   ArrowRight, 

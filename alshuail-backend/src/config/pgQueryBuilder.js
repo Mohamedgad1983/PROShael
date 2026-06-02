@@ -12,12 +12,18 @@ import { log } from '../utils/logger.js';
 const { Pool } = pg;
 
 // Connection pool configuration
-const pool = new Pool({
+const poolConfig = process.env.DATABASE_URL ? {
+  connectionString: process.env.DATABASE_URL,
+} : {
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT) || 5432,
   database: process.env.DB_NAME || 'alshuail_db',
   user: process.env.DB_USER || 'alshuail',
   password: process.env.DB_PASSWORD,
+};
+
+const pool = new Pool({
+  ...poolConfig,
   max: 20,
   min: 5,
   idleTimeoutMillis: 30000,

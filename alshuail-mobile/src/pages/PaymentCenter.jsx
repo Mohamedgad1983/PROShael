@@ -21,21 +21,16 @@ import {
   Heart,
   Building2,
   ChevronLeft,
-  Check,
   Clock,
-  AlertCircle,
-  RefreshCw
+  AlertCircle
 } from 'lucide-react'
-import { useAuth } from '../App'
 import { useDataCache } from '../contexts/DataCacheContext'
 import MemberSearchField from '../components/MemberSearchField'
 import BottomNav from '../components/BottomNav'
-import api from '../utils/api'
 
 const PaymentCenter = () => {
   const navigate = useNavigate()
-  const { user } = useAuth()
-  const { cache, fetchProfile, invalidateCache } = useDataCache()
+  const { fetchProfile } = useDataCache()
 
   // Payment target: 'self' or 'other'
   const [paymentTarget, setPaymentTarget] = useState('self')

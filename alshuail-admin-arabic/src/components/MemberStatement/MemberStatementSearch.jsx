@@ -1,12 +1,11 @@
 ﻿import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { MagnifyingGlassIcon, PhoneIcon, UserIcon, PrinterIcon, DocumentArrowDownIcon, HomeIcon, CalendarIcon, CurrencyDollarIcon, CheckCircleIcon, XCircleIcon, ClockIcon, AdjustmentsHorizontalIcon } from '@heroicons/react/24/outline';
-// Using API instead of direct Supabase connection
-import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { motion, AnimatePresence } from 'framer-motion';
 import { logger } from '../../utils/logger';
 import { API_BASE_URL } from '../../utils/apiConfig';
+import { exportJsonToExcel } from '../../utils/excelExport';
 import { useAuth } from '../../contexts/AuthContext';
 import BalanceAdjustmentModal from './BalanceAdjustmentModal';
 
@@ -520,13 +519,9 @@ const MemberStatementSearch = () => {
       'رقم الإيصال': ''
     });
 
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'كشف الحساب');
-
     // Generate filename with member ID and timestamp
     const fileName = `statement_${selectedMember.member_no}_${new Date().toISOString().split('T')[0]}.xlsx`;
-    XLSX.writeFile(wb, fileName);
+    exportJsonToExcel(data, 'كشف الحساب', fileName);
   }, [memberStatement, selectedMember]);
 
   // Export to PDF - memoized with useCallback

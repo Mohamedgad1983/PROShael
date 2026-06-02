@@ -30,8 +30,9 @@ import { HijriDatePicker } from '../Common/HijriDatePicker';
 import axios from 'axios';
 
 import { logger } from '../../utils/logger';
+import { API_ORIGIN } from '../../utils/apiConfig';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.alshailfund.com');
+const API_BASE_URL = API_ORIGIN;
 
 interface UserWithRoles {
   id: string;

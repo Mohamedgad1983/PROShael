@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowRight, CreditCard, Check, Clock, AlertCircle, ChevronLeft } from 'lucide-react'
+import { ArrowRight, CreditCard, Check, Clock, AlertCircle } from 'lucide-react'
 import BottomNav from '../components/BottomNav'
 import api from '../utils/api'
 

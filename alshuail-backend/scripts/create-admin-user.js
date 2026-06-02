@@ -2,9 +2,9 @@
 
 /**
  * Create admin@alshuail.com user in PostgreSQL database
- * Password: Admin@123456
  *
- * Usage: node scripts/create-admin-user.js
+ * Usage: ADMIN_INITIAL_PASSWORD="..." node scripts/create-admin-user.js
+ *    or: node scripts/create-admin-user.js --password="..."
  */
 
 import pkg from 'pg';
@@ -15,9 +15,20 @@ import dotenv from 'dotenv';
 // Load environment variables
 dotenv.config();
 
-const PASSWORD = 'Admin@123456';
 const EMAIL = 'admin@alshuail.com';
 const PHONE = '0551234567';
+
+function getPassword() {
+  const passwordArg = process.argv.find((arg) => arg.startsWith('--password='));
+  const password = process.env.ADMIN_INITIAL_PASSWORD || passwordArg?.split('=')[1];
+
+  if (!password || password.length < 8) {
+    console.error('ADMIN_INITIAL_PASSWORD or --password must be at least 8 characters.');
+    process.exit(1);
+  }
+
+  return password;
+}
 
 async function createAdminUser() {
   const client = new Client({
@@ -29,13 +40,15 @@ async function createAdminUser() {
   });
 
   try {
+    const password = getPassword();
+
     console.log('🔗 Connecting to database...');
     await client.connect();
     console.log('✅ Connected to database\n');
 
     // Generate password hash
     console.log('🔐 Generating password hash...');
-    const passwordHash = await bcrypt.hash(PASSWORD, 10);
+    const passwordHash = await bcrypt.hash(password, 10);
     console.log('✅ Password hash generated\n');
 
     // Insert or update admin user
@@ -81,8 +94,8 @@ async function createAdminUser() {
     console.log(`   ID:       ${user.id}`);
     console.log(`   Email:    ${user.email}`);
     console.log(`   Phone:    ${PHONE}`);
-    console.log(`   Password: ${PASSWORD}`);
     console.log(`   Role:     ${user.role}`);
+    console.log('   Password: configured from operator input');
     console.log('\n🎉 You can now login to the admin dashboard!');
     console.log(`   URL: https://alshailfund.com/admin/login`);
 

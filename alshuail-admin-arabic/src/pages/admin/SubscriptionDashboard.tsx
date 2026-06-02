@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { logger } from '../../utils/logger';
+import { API_ORIGIN } from '../../utils/apiConfig';
 
 import './SubscriptionDashboard.css';
 
@@ -44,7 +45,7 @@ const SubscriptionDashboard: React.FC = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Subscription | null>(null);
 
-  const API_BASE = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
+  const API_BASE = API_ORIGIN;
   const token = localStorage.getItem('token');
 
   const axiosConfig = {

@@ -26,15 +26,32 @@
 
 ## 🔧 Firebase Configuration
 
-### Project Details
-- **Project ID**: `i-o-s-shaael-gqra2n-ef788`
-- **Client Email**: `firebase-adminsdk-fbsvc@i-o-s-shaael-gqra2n-ef788.iam.gserviceaccount.com`
-- **Messaging Sender ID**: `104000934539294451754`
+### Frontend Web Push
+Set these variables in `alshuail-mobile/.env` or in the deployment environment:
 
-### Backend (Already Configured)
-Location: `D:\PROShael\alshuail-backend\src\utils\firebase-admin.js`
+```bash
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_AUTH_DOMAIN=
+VITE_FIREBASE_PROJECT_ID=
+VITE_FIREBASE_STORAGE_BUCKET=
+VITE_FIREBASE_MESSAGING_SENDER_ID=
+VITE_FIREBASE_APP_ID=
+VITE_FIREBASE_VAPID_KEY=
+```
 
-The Firebase Admin SDK credentials are already hardcoded in the backend.
+`npm run dev` and `npm run build` generate `public/firebase-sw-config.js` from those variables so the service worker and app use the same Firebase project settings. If the variables are missing, push notifications disable cleanly.
+
+### Backend Admin SDK
+Configure backend Firebase Admin credentials through environment variables, not source files:
+
+```bash
+FIREBASE_ENABLED=true
+FIREBASE_PROJECT_ID=
+FIREBASE_CLIENT_EMAIL=
+FIREBASE_PRIVATE_KEY=
+```
+
+`FIREBASE_PRIVATE_KEY` should be stored in the server secret manager or `.env` file with escaped newlines if needed.
 
 ---
 
@@ -42,7 +59,7 @@ The Firebase Admin SDK credentials are already hardcoded in the backend.
 
 ### Step 1: Build Mobile App
 ```bash
-cd D:\PROShael\alshuail-mobile
+cd alshuail-mobile
 npm run build
 ```
 
@@ -172,7 +189,7 @@ Logs all sent notifications:
 
 ## ✅ Checklist
 
-- [x] Firebase Admin SDK configured in backend
+- [x] Firebase Admin SDK configured through environment variables
 - [x] Service worker created
 - [x] Push notification service created
 - [x] Permission prompt component created

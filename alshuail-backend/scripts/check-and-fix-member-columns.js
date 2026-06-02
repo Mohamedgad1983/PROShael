@@ -1,4 +1,3 @@
-import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -9,15 +8,7 @@ const __dirname = path.dirname(__filename);
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseKey) {
-  console.error('❌ Missing Supabase credentials');
-  process.exit(1);
-}
-
-const supabase = createClient(supabaseUrl, supabaseKey);
+const { query, pool } = await import('../src/services/database.js');
 
 async function checkAndFixMemberColumns() {
   console.log('🔍 Checking member table columns...\n');
@@ -25,15 +16,9 @@ async function checkAndFixMemberColumns() {
   try {
     // Step 1: Get a sample of members to check current data
     console.log('📊 Step 1: Fetching sample members to check current values...');
-    const { data: sampleMembers, error: fetchError } = await supabase
-      .from('members')
-      .select('id, full_name, gender, tribal_section')
-      .limit(10);
-
-    if (fetchError) {
-      console.error('❌ Error fetching members:', fetchError);
-      return;
-    }
+    const { rows: sampleMembers } = await query(
+      'SELECT id, full_name, gender, tribal_section FROM members LIMIT 10'
+    );
 
     console.log(`✅ Found ${sampleMembers.length} members`);
     console.log('\n📋 Sample of current data:');
@@ -49,15 +34,16 @@ async function checkAndFixMemberColumns() {
     // Step 2: Count members with NULL or empty values
     console.log('\n📊 Step 2: Counting members with NULL/empty values...');
 
-    const { count: nullGenderCount } = await supabase
-      .from('members')
-      .select('*', { count: 'exact', head: true })
-      .or('gender.is.null,gender.eq.');
+    const { rows: genderCountRows } = await query(
+      "SELECT COUNT(*) AS count FROM members WHERE gender IS NULL OR gender = ''"
+    );
 
-    const { count: nullTribalCount } = await supabase
-      .from('members')
-      .select('*', { count: 'exact', head: true })
-      .or('tribal_section.is.null,tribal_section.eq.');
+    const { rows: tribalCountRows } = await query(
+      "SELECT COUNT(*) AS count FROM members WHERE tribal_section IS NULL OR tribal_section = ''"
+    );
+
+    const nullGenderCount = parseInt(genderCountRows[0]?.count || 0);
+    const nullTribalCount = parseInt(tribalCountRows[0]?.count || 0);
 
     console.log(`\n📈 Statistics:`);
     console.log(`- Members with NULL/empty gender: ${nullGenderCount || 0}`);
@@ -77,41 +63,30 @@ async function checkAndFixMemberColumns() {
       // Step 4: Update NULL gender values
       if (nullGenderCount > 0) {
         console.log('\n📝 Updating NULL gender values to "male"...');
-        const { data: updatedGender, error: genderError } = await supabase
-          .from('members')
-          .update({ gender: 'male' })
-          .or('gender.is.null,gender.eq.')
-          .select();
+        const { rows: updatedGender } = await query(
+          "UPDATE members SET gender = $1, updated_at = NOW() WHERE gender IS NULL OR gender = '' RETURNING id",
+          ['male']
+        );
 
-        if (genderError) {
-          console.error('❌ Error updating gender:', genderError);
-        } else {
-          console.log(`✅ Updated gender for ${updatedGender.length} members`);
-        }
+        console.log(`✅ Updated gender for ${updatedGender.length} members`);
       }
 
       // Step 5: Update NULL tribal_section values
       if (nullTribalCount > 0) {
         console.log('\n📝 Updating NULL tribal_section values to "الدغيش"...');
-        const { data: updatedTribal, error: tribalError } = await supabase
-          .from('members')
-          .update({ tribal_section: 'الدغيش' })
-          .or('tribal_section.is.null,tribal_section.eq.')
-          .select();
+        const { rows: updatedTribal } = await query(
+          "UPDATE members SET tribal_section = $1, updated_at = NOW() WHERE tribal_section IS NULL OR tribal_section = '' RETURNING id",
+          ['الدغيش']
+        );
 
-        if (tribalError) {
-          console.error('❌ Error updating tribal_section:', tribalError);
-        } else {
-          console.log(`✅ Updated tribal_section for ${updatedTribal.length} members`);
-        }
+        console.log(`✅ Updated tribal_section for ${updatedTribal.length} members`);
       }
 
       // Step 6: Verify the updates
       console.log('\n🔍 Verifying updates...');
-      const { data: verifyMembers } = await supabase
-        .from('members')
-        .select('id, full_name, gender, tribal_section')
-        .limit(10);
+      const { rows: verifyMembers } = await query(
+        'SELECT id, full_name, gender, tribal_section FROM members LIMIT 10'
+      );
 
       console.log('\n📋 Sample after updates:');
       console.log('================================');
@@ -140,9 +115,9 @@ async function checkAndFixMemberColumns() {
 
     // Step 8: Check for any invalid values
     console.log('\n🔍 Checking for invalid values...');
-    const { data: allMembers } = await supabase
-      .from('members')
-      .select('gender, tribal_section');
+    const { rows: allMembers } = await query(
+      'SELECT gender, tribal_section FROM members'
+    );
 
     const invalidGenders = new Set();
     const invalidTribal = new Set();
@@ -171,6 +146,8 @@ async function checkAndFixMemberColumns() {
 
   } catch (error) {
     console.error('❌ Unexpected error:', error);
+  } finally {
+    await pool.end();
   }
 }
 

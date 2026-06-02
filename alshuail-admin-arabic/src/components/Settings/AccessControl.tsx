@@ -19,9 +19,9 @@ import { SettingsButton, StatusBadge } from './shared';
 
 import { logger } from '../../utils/logger';
 import { showToast } from '../../utils/toast';
+import { API_ORIGIN } from '../../utils/apiConfig';
 
-// Remove /api suffix if present to avoid double /api in URL
-const API_URL = (process.env.REACT_APP_API_URL || 'https://api.alshailfund.com').replace(/\/api$/, '');
+const API_URL = API_ORIGIN;
 
 // FORCE WEBPACK INCLUSION - This side effect prevents tree-shaking
 if (typeof window !== 'undefined') {

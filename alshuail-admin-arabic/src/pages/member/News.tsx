@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 import { logger } from '../../utils/logger';
+import { API_BASE_URL } from '../../utils/apiConfig';
 
 const News = () => {
     const navigate = useNavigate();
@@ -15,7 +16,7 @@ const News = () => {
     const [unreadCount, setUnreadCount] = useState(0);
     const observer = useRef();
 
-    const API_URL = process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001/api' : 'https://api.alshailfund.com/api');
+    const API_URL = API_BASE_URL;
 
     // Fetch unread count
     useEffect(() => {
