@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy,Suspense } from 'react';
 import LoadingSpinner from '../components/Common/LoadingSpinner';
 
 // Code-split heavy components (200KB+ saved)

@@ -1,28 +1,8 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
 import {
-  UserIcon,
-  PhoneIcon,
-  EnvelopeIcon,
-  IdentificationIcon,
-  CalendarDaysIcon,
-  MapPinIcon,
-  HomeIcon,
-  UserGroupIcon,
-  BriefcaseIcon,
-  AcademicCapIcon,
-  HeartIcon,
-  ShieldCheckIcon,
-  DocumentTextIcon,
-  PhotoIcon,
-  CheckCircleIcon,
-  ExclamationCircleIcon,
-  ArrowRightIcon,
-  SparklesIcon,
-  StarIcon,
-  CheckIcon,
-  BanknotesIcon
+AcademicCapIcon,ArrowRightIcon,BanknotesIcon,BriefcaseIcon,CalendarDaysIcon,CheckCircleIcon,CheckIcon,DocumentTextIcon,EnvelopeIcon,ExclamationCircleIcon,HeartIcon,HomeIcon,IdentificationIcon,MapPinIcon,PhoneIcon,PhotoIcon,ShieldCheckIcon,SparklesIcon,UserGroupIcon,UserIcon
 } from '@heroicons/react/24/outline';
-import { CheckCircleIcon as CheckCircleIconSolid, StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
+import { CheckCircleIcon as CheckCircleIconSolid,StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
+import React,{ useEffect,useRef,useState } from 'react';
 import { logger } from '../../utils/logger';
 
 import './AppleRegistrationForm.css';

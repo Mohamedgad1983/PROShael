@@ -1,11 +1,11 @@
-import React, { memo } from 'react';
+import React,{ memo } from 'react';
 import FamilyTree from './FamilyTree';
-import { useFamilyTreeData } from './useFamilyTreeData';
 import './FamilyTree.css';
+import { useFamilyTreeData } from './useFamilyTreeData';
 
 // Family Tree Page Component with Arabic RTL Support
 const FamilyTreePage: React.FC = () => {
-  const { treeData, loading, error, searchMembers } = useFamilyTreeData();
+  const { loading, error } = useFamilyTreeData();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-800 to-pink-700" dir="rtl">

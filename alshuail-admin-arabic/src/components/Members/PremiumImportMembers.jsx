@@ -1,31 +1,14 @@
-import React, { memo,  useState, useRef } from 'react';
 import {
-  CloudArrowUpIcon,
-  DocumentTextIcon,
-  TableCellsIcon,
-  DocumentArrowUpIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  ExclamationTriangleIcon,
-  UsersIcon,
-  MagnifyingGlassIcon,
-  SparklesIcon,
-  DocumentPlusIcon,
-  ArrowPathIcon,
-  InformationCircleIcon,
-  ChevronRightIcon,
-  ArrowDownTrayIcon,
-  ClipboardDocumentCheckIcon,
-  ShieldCheckIcon,
-  CheckBadgeIcon
+ArrowDownTrayIcon,ArrowPathIcon,CheckBadgeIcon,CheckCircleIcon,ChevronRightIcon,ClipboardDocumentCheckIcon,CloudArrowUpIcon,DocumentPlusIcon,DocumentTextIcon,ExclamationTriangleIcon,InformationCircleIcon,ShieldCheckIcon,SparklesIcon,TableCellsIcon,UsersIcon,XCircleIcon
 } from '@heroicons/react/24/outline';
+import React,{ memo,useRef,useState } from 'react';
 import { memberService } from '../../services/memberService';
 import { logger } from '../../utils/logger';
 
 import './PremiumImportMembers.css';
 
 const PremiumImportMembers = () => {
-  const [file, setFile] = useState(null);
+  const [, setFile] = useState(null);
   const [fileData, setFileData] = useState([]);
   const [columns, setColumns] = useState([]);
   const [columnMapping, setColumnMapping] = useState({});
@@ -95,7 +78,7 @@ const PremiumImportMembers = () => {
     readFile(selectedFile);
   };
 
-  const readFile = (file) => {
+  const readFile = () => {
     // Temporarily simplified file reading
     alert('استيراد الملفات معطل مؤقتاً للصيانة');
 

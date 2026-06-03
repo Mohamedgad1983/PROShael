@@ -1,9 +1,9 @@
 import '@testing-library/jest-dom';
+import { render,screen } from '@testing-library/react';
 import React from 'react';
-import { render, screen } from '@testing-library/react';
-import OverviewStats, { OverviewStat } from '../OverviewStats';
 import OverviewCharts from '../OverviewCharts';
-import RecentActivities, { ActivityItem } from '../RecentActivities';
+import OverviewStats,{ OverviewStat } from '../OverviewStats';
+import RecentActivities,{ ActivityItem } from '../RecentActivities';
 
 jest.mock('react-chartjs-2', () => ({
   Line: ({ data }: { data: unknown }) => <div data-testid="line-chart">{JSON.stringify(data)}</div>,

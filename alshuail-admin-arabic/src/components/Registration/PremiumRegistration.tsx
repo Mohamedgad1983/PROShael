@@ -1,34 +1,10 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
 import {
-  UserIcon,
-  PhoneIcon,
-  EnvelopeIcon,
-  IdentificationIcon,
-  CalendarDaysIcon,
-  MapPinIcon,
-  HomeIcon,
-  UserGroupIcon,
-  BriefcaseIcon,
-  AcademicCapIcon,
-  HeartIcon,
-  ShieldCheckIcon,
-  DocumentTextIcon,
-  PhotoIcon,
-  CheckCircleIcon,
-  ExclamationCircleIcon,
-  ArrowRightIcon,
-  SparklesIcon,
-  StarIcon,
-  CheckIcon,
-  BanknotesIcon,
-  GlobeAltIcon,
-  DevicePhoneMobileIcon,
-  CreditCardIcon,
-  BuildingOfficeIcon
+AcademicCapIcon,ArrowRightIcon,BanknotesIcon,BriefcaseIcon,BuildingOfficeIcon,CalendarDaysIcon,CheckCircleIcon,CheckIcon,CreditCardIcon,DevicePhoneMobileIcon,DocumentTextIcon,EnvelopeIcon,ExclamationCircleIcon,GlobeAltIcon,HeartIcon,HomeIcon,IdentificationIcon,MapPinIcon,PhoneIcon,PhotoIcon,ShieldCheckIcon,SparklesIcon,UserGroupIcon,UserIcon
 } from '@heroicons/react/24/outline';
-import { CheckCircleIcon as CheckCircleIconSolid, StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
-import { logger } from '../../utils/logger';
+import { CheckCircleIcon as CheckCircleIconSolid,StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
+import React,{ useEffect,useRef,useState } from 'react';
 import { API_ORIGIN } from '../../utils/apiConfig';
+import { logger } from '../../utils/logger';
 
 import './PremiumRegistration.css';
 

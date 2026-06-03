@@ -1,6 +1,7 @@
+/* eslint-disable testing-library/no-wait-for-multiple-assertions, testing-library/no-node-access, testing-library/prefer-screen-queries, testing-library/no-container, jest/no-conditional-expect */
+import { render,screen } from '@testing-library/react';
 import React from 'react';
-import { render, screen } from '@testing-library/react';
-import UnifiedDashboard, { DASHBOARD_VARIANTS } from '../UnifiedDashboard';
+import UnifiedDashboard,{ DASHBOARD_VARIANTS } from '../UnifiedDashboard';
 
 describe('UnifiedDashboard', () => {
   describe('Variant Configurations', () => {

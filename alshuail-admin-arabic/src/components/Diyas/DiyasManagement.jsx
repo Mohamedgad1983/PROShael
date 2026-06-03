@@ -1,52 +1,17 @@
-﻿import React, {  useState, useEffect , useCallback } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
 import { toHijri } from 'hijri-converter';
-import { logger } from '../../utils/logger';
+import React,{ useEffect,useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 import { API_ORIGIN } from '../../utils/apiConfig';
+import { logger } from '../../utils/logger';
 
 import {
-  ScaleIcon,
-  HandRaisedIcon,
-  UserGroupIcon,
-  CurrencyDollarIcon,
-  DocumentTextIcon,
-  ClockIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  ExclamationTriangleIcon,
-  MagnifyingGlassIcon,
-  FunnelIcon,
-  PlusIcon,
-  EyeIcon,
-  PencilIcon,
-  TrashIcon,
-  CalendarIcon,
-  MapPinIcon,
-  PhoneIcon,
-  ShieldExclamationIcon,
-  ShieldCheckIcon,
-  UsersIcon,
-  BanknotesIcon,
-  ChartBarIcon,
-  DocumentArrowDownIcon,
-  PrinterIcon,
-  ShareIcon,
-  ChatBubbleLeftRightIcon
+BanknotesIcon,CalendarIcon,ChartBarIcon,CheckCircleIcon,ClockIcon,DocumentArrowDownIcon,DocumentTextIcon,ExclamationTriangleIcon,EyeIcon,HandRaisedIcon,MagnifyingGlassIcon,MapPinIcon,PencilIcon,PlusIcon,ScaleIcon,ShieldCheckIcon,ShieldExclamationIcon,UserGroupIcon,UsersIcon,XCircleIcon
 } from '@heroicons/react/24/outline';
 
 const DiyasManagement = () => {
   // Performance optimized event handlers
-  const handleRefresh = useCallback(() => {
-    // Refresh logic here
-  }, []);
 
-  const handleFilterChange = useCallback((filterType, value) => {
-    // Filter logic here
-  }, []);
 
-  const handlePageChange = useCallback((page) => {
-    // Pagination logic here
-  }, []);
 
   const { user, canAccessModule } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
@@ -59,9 +24,9 @@ const DiyasManagement = () => {
     priority: '',
     payment_status: ''
   });
-  const [selectedDiya, setSelectedDiya] = useState(null);
-  const [showDiyaModal, setShowDiyaModal] = useState(false);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [, setSelectedDiya] = useState(null);
+  const [, setShowDiyaModal] = useState(false);
+  const [, setShowCreateModal] = useState(false);
 
   // API URL configuration
   const API_URL = API_ORIGIN;
@@ -296,6 +261,7 @@ const DiyasManagement = () => {
     if (canAccessModule('diyas')) {
       loadDiyasData();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- preserve existing one-time legacy load behavior
   }, [filters]);
 
   const loadDiyasData = async () => {
@@ -416,32 +382,7 @@ const DiyasManagement = () => {
     return matchesSearch && matchesStatus && matchesType && matchesPriority && matchesPayment;
   });
 
-  const formatHijriDate = (gregorianDate) => {
-    try {
-      const date = new Date(gregorianDate);
-      const hijriDate = toHijri(date.getFullYear(), date.getMonth() + 1, date.getDate());
-      return `${hijriDate.hy}/${hijriDate.hm}/${hijriDate.hd} هـ`;
-    } catch (error) {
-      return gregorianDate;
-    }
-  };
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'active':
-        return <CheckCircleIcon className="w-5 h-5 text-green-500" />;
-      case 'investigation':
-        return <MagnifyingGlassIcon className="w-5 h-5 text-blue-500" />;
-      case 'negotiation':
-        return <ChatBubbleLeftRightIcon className="w-5 h-5 text-yellow-500" />;
-      case 'completed':
-        return <CheckCircleIcon className="w-5 h-5 text-blue-500" />;
-      case 'cancelled':
-        return <XCircleIcon className="w-5 h-5 text-red-500" />;
-      default:
-        return <ClockIcon className="w-5 h-5 text-gray-500" />;
-    }
-  };
 
   const getStatusText = (status) => {
     switch (status) {

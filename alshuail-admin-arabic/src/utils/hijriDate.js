@@ -273,7 +273,7 @@ export const getTimeGreeting = () => {
   return 'تصبح على خير';
 };
 
-export default {
+const hijriDateExports = {
   toHijri,
   getCurrentHijri,
   formatBothCalendars,
@@ -290,3 +290,5 @@ export default {
   ARABIC_DAYS,
   GREGORIAN_MONTHS
 };
+
+export default hijriDateExports;

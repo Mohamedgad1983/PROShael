@@ -18,9 +18,9 @@
  * @date 2025-11-13
  */
 
-import React, { memo,  InputHTMLAttributes, ReactNode } from 'react';
+import { CheckIcon,MinusIcon } from '@heroicons/react/24/outline';
+import React,{ InputHTMLAttributes,memo } from 'react';
 import { getTheme } from '../../modernDesignSystem';
-import { CheckIcon, MinusIcon } from '@heroicons/react/24/outline';
 
 // ============================================================================
 // TYPES

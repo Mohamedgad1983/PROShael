@@ -5,14 +5,10 @@
  * available in the detail drawer are role-aware.
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React,{ useEffect,useMemo,useState } from 'react';
 import {
-  marriageSupportService,
-  MarriageRequest,
-  MarriageStatus,
-  STATUS_LABELS_AR,
-  STATUS_COLORS,
-  fmtAmount,
+fmtAmount,MarriageRequest,
+MarriageStatus,marriageSupportService,STATUS_COLORS,STATUS_LABELS_AR
 } from '../../services/marriageSupportService';
 import MarriageSupportDetail from './MarriageSupportDetail';
 

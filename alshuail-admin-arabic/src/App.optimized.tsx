@@ -1,10 +1,10 @@
-import React, { lazy, Suspense, useState, useCallback, useMemo } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React,{ lazy,Suspense,useCallback,useMemo,useState } from 'react';
+import { BrowserRouter as Router,Navigate,Route,Routes } from 'react-router-dom';
 import './App.css';
-import './styles/apple-design-system.css';
-import { RoleProvider } from './contexts/RoleContext';
-import { AuthProvider } from './contexts/AuthContext';
 import logo from './assets/logo.svg';
+import { AuthProvider } from './contexts/AuthContext';
+import { RoleProvider } from './contexts/RoleContext';
+import './styles/apple-design-system.css';
 
 import { logger } from './utils/logger';
 

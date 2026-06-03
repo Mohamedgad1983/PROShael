@@ -6,13 +6,9 @@
  * already-filtered data for brouj.
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React,{ useEffect,useMemo,useState } from 'react';
 import {
-  loanService,
-  LoanRequest,
-  LoanStatus,
-  STATUS_LABELS_AR,
-  STATUS_COLORS,
+LoanRequest,loanService,LoanStatus,STATUS_COLORS,STATUS_LABELS_AR
 } from '../../services/loanService';
 import LoanRequestDetail from './LoanRequestDetail';
 

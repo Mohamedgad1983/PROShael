@@ -1,13 +1,13 @@
 // @ts-nocheck
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import axios from 'axios';
-import '../../styles/mobile/Dashboard.css';
+import { motion } from 'framer-motion';
+import React,{ useEffect,useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getDashboardData } from '../../services/mobileApi';
+import '../../styles/mobile/Dashboard.css';
 
-import { logger } from '../../utils/logger';
 import { API_ORIGIN } from '../../utils/apiConfig';
+import { logger } from '../../utils/logger';
 
 // API Configuration
 const API_BASE_URL = API_ORIGIN;

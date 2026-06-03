@@ -1,33 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
-import ActivitiesManager from '../Activities/ActivitiesManager';
-import MembersManager from '../Members/MembersManager';
 import {
-  HomeIcon,
-  UsersIcon,
-  CalendarIcon,
-  CurrencyDollarIcon,
-  ChartBarIcon,
-  DocumentTextIcon,
-  CogIcon,
-  BellIcon,
-  PlusIcon,
-  ArrowTrendingUpIcon,
-  UserPlusIcon,
-  DocumentPlusIcon
+ArrowTrendingUpIcon,BellIcon,CalendarIcon,ChartBarIcon,CogIcon,CurrencyDollarIcon,DocumentPlusIcon,DocumentTextIcon,HomeIcon,PlusIcon,UserPlusIcon,UsersIcon
 } from '@heroicons/react/24/outline';
 import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  ChartOptions
+BarElement,CategoryScale,Chart as ChartJS,ChartOptions,Legend,LinearScale,Title,
+Tooltip
 } from 'chart.js';
+import React,{ useEffect,useState } from 'react';
 import { Bar } from 'react-chartjs-2';
+import { useAuth } from '../../contexts/AuthContext';
 import { logger } from '../../utils/logger';
+import ActivitiesManager from '../Activities/ActivitiesManager';
+import MembersManager from '../Members/MembersManager';
 
 import './CompleteDashboard.css';
 

@@ -263,7 +263,6 @@ class NotificationTester {
 
     try {
       // Simulate offline scenario
-      const originalOnLine = navigator.onLine;
 
       // Test notification queueing when offline
       notificationService.queueNotification('إشعار غير متصل', {
@@ -373,7 +372,7 @@ class NotificationTester {
       let clickHandled = false;
 
       // Set up click event listener
-      const handleClick = (event) => {
+      const handleClick = () => {
         clickHandled = true;
         window.removeEventListener('notificationClicked', handleClick);
       };

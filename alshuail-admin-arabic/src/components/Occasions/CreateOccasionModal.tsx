@@ -1,16 +1,11 @@
-import React, { memo,  useState } from 'react';
 import {
-  XMarkIcon,
-  CalendarIcon,
-  ClockIcon,
-  MapPinIcon,
-  UsersIcon,
-  TagIcon,
-  GlobeAltIcon,
-  LockClosedIcon
+CalendarIcon,
+ClockIcon,GlobeAltIcon,
+LockClosedIcon,MapPinIcon,TagIcon,UsersIcon,XMarkIcon
 } from '@heroicons/react/24/outline';
-import { OccasionFormData, OccasionType } from './types';
+import React,{ memo,useState } from 'react';
 import { ARABIC_LABELS } from '../../constants/arabic';
+import { OccasionFormData,OccasionType } from './types';
 
 interface CreateOccasionModalProps {
   isOpen: boolean;
@@ -278,11 +273,6 @@ const CreateOccasionModal: React.FC<CreateOccasionModalProps> = ({
     marginTop: '20px'
   };
 
-  const disabledButtonStyle: React.CSSProperties = {
-    ...submitButtonStyle,
-    opacity: 0.6,
-    cursor: 'not-allowed'
-  };
 
   return (
     <div style={overlayStyle} onClick={onClose}>

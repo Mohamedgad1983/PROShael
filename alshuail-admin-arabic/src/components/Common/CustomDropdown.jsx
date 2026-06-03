@@ -1,12 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDownIcon } from '@heroicons/react/24/outline';
+import React,{ useEffect,useRef,useState } from 'react';
 
 const CustomDropdown = ({
   value,
   onChange,
   options,
   placeholder = 'اختر',
-  required = false,
   width = '100%'
 }) => {
   const [isOpen, setIsOpen] = useState(false);

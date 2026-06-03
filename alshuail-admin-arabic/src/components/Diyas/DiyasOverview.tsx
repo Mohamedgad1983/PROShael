@@ -1,28 +1,22 @@
-import React, { memo,  useState, useEffect } from 'react';
 import {
-  PlusIcon,
-  ScaleIcon,
-  MagnifyingGlassIcon,
-  ChartBarIcon,
-  CurrencyDollarIcon,
-  ClockIcon,
-  DocumentCheckIcon,
-  ExclamationTriangleIcon
+ChartBarIcon,ClockIcon,CurrencyDollarIcon,DocumentCheckIcon,
+ExclamationTriangleIcon,MagnifyingGlassIcon,PlusIcon,
+ScaleIcon
 } from '@heroicons/react/24/outline';
-import DiyasTable from './DiyasTable';
+import React,{ memo,useState } from 'react';
+import { ARABIC_LABELS } from '../../constants/arabic';
+import { injectAnimationKeyframes,useStaggeredAnimation } from '../../utils/animations';
+import { formatArabicCurrency,formatArabicNumber,formatArabicPercentage } from '../../utils/arabic';
+import { getResponsiveGridStyles,getResponsiveSpacing,getTouchStyles,useResponsive } from '../../utils/responsive';
 import CreateDiyaModal from './CreateDiyaModal';
 import DiyaDetailsModal from './DiyaDetailsModal';
-import DiyaStatus from './DiyaStatus';
+import DiyasTable from './DiyasTable';
 import {
-  Diya,
-  DiyaFormData,
-  DiyaStatistics,
-  DiyaStatus as IDiyaStatus
+Diya,
+DiyaFormData,
+DiyaStatistics,
+DiyaStatus as IDiyaStatus
 } from './types';
-import { ARABIC_LABELS, CURRENCY } from '../../constants/arabic';
-import { formatArabicNumber, formatArabicCurrency, formatArabicPercentage } from '../../utils/arabic';
-import { useResponsive, getTouchStyles, getResponsiveGridStyles, getResponsiveSpacing } from '../../utils/responsive';
-import { useStaggeredAnimation, injectAnimationKeyframes } from '../../utils/animations';
 
 import { logger } from '../../utils/logger';
 
@@ -214,7 +208,7 @@ const mockDiyas: Diya[] = [
 ];
 
 const DiyasOverview: React.FC = () => {
-  const { isMobile, isTablet, breakpoint } = useResponsive();
+  const { isMobile, breakpoint } = useResponsive();
   const { getItemStyles } = useStaggeredAnimation(6, 'fadeIn', 120);
 
   React.useEffect(() => {
@@ -292,9 +286,6 @@ const DiyasOverview: React.FC = () => {
     }
   };
 
-  const formatAmount = (amount: number): string => {
-    return formatArabicNumber(amount);
-  };
 
   const containerStyle: React.CSSProperties = {
     padding: getResponsiveSpacing(breakpoint, { xs: '16px', sm: '20px', md: '24px' }),

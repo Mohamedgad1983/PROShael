@@ -1,11 +1,11 @@
 // @ts-nocheck
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { EyeIcon,EyeSlashIcon,LockClosedIcon,PhoneIcon } from '@heroicons/react/24/outline';
 import { motion } from 'framer-motion';
-import { PhoneIcon, LockClosedIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
-import { isBiometricAvailable, authenticateBiometric, getBiometricType } from '../../utils/biometricAuth.jsx';
-import { logger } from '../../utils/logger';
+import React,{ useEffect,useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { API_ORIGIN } from '../../utils/apiConfig';
+import { authenticateBiometric,getBiometricType,isBiometricAvailable } from '../../utils/biometricAuth.jsx';
+import { logger } from '../../utils/logger';
 
 import '../../styles/mobile/Login.css';
 

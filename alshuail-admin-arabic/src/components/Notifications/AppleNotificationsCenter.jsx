@@ -1,41 +1,12 @@
-import React, { memo,  useState, useEffect } from 'react';
 import {
-  BellIcon,
-  InboxIcon,
-  ExclamationTriangleIcon,
-  InformationCircleIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  ClockIcon,
-  EyeIcon,
-  TrashIcon,
-  ArchiveBoxIcon,
-  FunnelIcon,
-  MagnifyingGlassIcon,
-  ChartBarIcon,
-  Cog6ToothIcon,
-  BellAlertIcon,
-  EnvelopeIcon,
-  DevicePhoneMobileIcon,
-  ChatBubbleLeftRightIcon,
-  CalendarDaysIcon,
-  UserGroupIcon,
-  CurrencyDollarIcon,
-  DocumentTextIcon,
-  HeartIcon,
-  SparklesIcon,
-  StarIcon,
-  FireIcon,
-  ArrowTrendingUpIcon,
-  CheckIcon,
-  XMarkIcon
+ArchiveBoxIcon,ArrowTrendingUpIcon,BellAlertIcon,BellIcon,CheckCircleIcon,CheckIcon,ClockIcon,Cog6ToothIcon,CurrencyDollarIcon,DevicePhoneMobileIcon,EnvelopeIcon,ExclamationTriangleIcon,EyeIcon,FireIcon,InboxIcon,InformationCircleIcon,MagnifyingGlassIcon,StarIcon,TrashIcon,UserGroupIcon,XMarkIcon
 } from '@heroicons/react/24/outline';
+import React,{ memo,useEffect,useState } from 'react';
 // CSS styles are inline
 
 const AppleNotificationsCenter = () => {
   const [activeTab, setActiveTab] = useState('inbox');
   const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -139,6 +110,7 @@ const AppleNotificationsCenter = () => {
 
   useEffect(() => {
     setNotifications(mockNotifications);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- preserve existing one-time legacy load behavior
   }, []);
 
   // Helper functions

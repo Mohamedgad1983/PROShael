@@ -9,8 +9,8 @@
 
 import axios from 'axios';
 
-import { logger } from '../utils/logger';
 import { API_BASE_URL } from '../utils/apiConfig';
+import { logger } from '../utils/logger';
 
 // Get auth token from localStorage
 const getAuthToken = () => {
@@ -273,7 +273,7 @@ export const getDashboardData = async () => {
   };
 };
 
-export default {
+const mobileApiExports = {
   getMemberProfile,
   getMemberBalance,
   getMemberPayments,
@@ -285,3 +285,5 @@ export default {
   getMemberIdCard,
   getDashboardData
 };
+
+export default mobileApiExports;

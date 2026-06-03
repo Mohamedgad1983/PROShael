@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React,{ useEffect,useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import './ActivitiesManager.css';
 
 const ActivitiesManager = () => {
-  const { user, token } = useAuth();
+  const { token } = useAuth();
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -12,6 +12,7 @@ const ActivitiesManager = () => {
 
   useEffect(() => {
     loadActivities();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- preserve existing one-time legacy load behavior
   }, []);
 
   const loadActivities = async () => {

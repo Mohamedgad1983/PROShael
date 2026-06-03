@@ -4,26 +4,19 @@
  * Features glassmorphism effects, sophisticated animations, and full RTL support
  */
 
-import React, { memo,  useState, useEffect } from 'react';
+import React,{ memo,useEffect,useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import UserManagement from './UserManagement';
-import SystemSettings from './SystemSettings';
+import { logger } from '../../utils/logger';
+import AccessControl from './AccessControl';
 import AuditLogs from './AuditLogs';
 import MultiRoleManagement from './MultiRoleManagement';
-import AccessControl from './AccessControl';
-import { logger } from '../../utils/logger';
+import SystemSettings from './SystemSettings';
+import UserManagement from './UserManagement';
 
-import '../Members/AppleDesignSystem.css';
 import {
-  CogIcon,
-  UsersIcon,
-  UserGroupIcon,
-  ShieldCheckIcon,
-  ServerIcon,
-  KeyIcon,
-  SparklesIcon,
-  ExclamationTriangleIcon
+CogIcon,ExclamationTriangleIcon,KeyIcon,ServerIcon,ShieldCheckIcon,SparklesIcon,UserGroupIcon,UsersIcon
 } from '@heroicons/react/24/outline';
+import '../Members/AppleDesignSystem.css';
 
 const Settings = () => {
   const { user, hasRole, loading } = useAuth();
@@ -134,7 +127,6 @@ const Settings = () => {
   }, [availableTabs, activeTab]);
 
   const activeTabData = availableTabs.find(tab => tab.id === activeTab);
-  const ActiveComponent = activeTabData?.component;
 
   // Premium Header Component
   const PremiumHeader = () => (

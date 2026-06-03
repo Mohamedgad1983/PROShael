@@ -1,5 +1,5 @@
-import React, { memo } from 'react';
-import { ExclamationTriangleIcon, BellIcon } from '@heroicons/react/24/outline';
+import { BellIcon,ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import React,{ memo } from 'react';
 
 const MemberMonitoringHeader = memo(({ statistics, issueCount, onShowNotifications }) => {
   return (

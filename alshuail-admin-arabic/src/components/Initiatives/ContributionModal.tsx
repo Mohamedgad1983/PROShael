@@ -1,15 +1,9 @@
-import React, { memo,  useState } from 'react';
 import {
-  XMarkIcon,
-  CurrencyDollarIcon,
-  CreditCardIcon,
-  EyeSlashIcon,
-  EyeIcon,
-  ChatBubbleLeftIcon,
-  HeartIcon
+ChatBubbleLeftIcon,CreditCardIcon,CurrencyDollarIcon,EyeIcon,EyeSlashIcon,HeartIcon,XMarkIcon
 } from '@heroicons/react/24/outline';
-import { Initiative, ContributionFormData } from './types';
-import { ARABIC_LABELS, CURRENCY } from '../../constants/arabic';
+import React,{ memo,useState } from 'react';
+import { ARABIC_LABELS,CURRENCY } from '../../constants/arabic';
+import { ContributionFormData,Initiative } from './types';
 
 interface ContributionModalProps {
   isOpen: boolean;

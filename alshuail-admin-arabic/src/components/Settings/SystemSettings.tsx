@@ -3,14 +3,10 @@
  * General system configuration and settings
  */
 
-import React, { memo,  useState } from 'react';
 import {
-  ServerIcon,
-  CpuChipIcon,
-  ShieldCheckIcon,
-  ClockIcon,
-  CheckCircleIcon
+CheckCircleIcon,ClockIcon,CpuChipIcon,ServerIcon,ShieldCheckIcon
 } from '@heroicons/react/24/outline';
+import React,{ memo,useState } from 'react';
 import { API_ORIGIN } from '../../utils/apiConfig';
 
 const SystemSettings: React.FC = () => {

@@ -14,16 +14,9 @@
  * stays easy to drop into other admin pages later.
  */
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React,{ useEffect,useMemo,useRef,useState } from 'react';
 import {
-  loanService,
-  LoanRequest,
-  LoanStatus,
-  STATUS_LABELS_AR,
-  STATUS_COLORS,
-  DOCUMENT_LABELS_AR,
-  isFundRole,
-  isBroujRole,
+DOCUMENT_LABELS_AR,isBroujRole,isFundRole,LoanRequest,loanService,LoanStatus,STATUS_COLORS,STATUS_LABELS_AR
 } from '../../services/loanService';
 import { API_ORIGIN } from '../../utils/apiConfig';
 

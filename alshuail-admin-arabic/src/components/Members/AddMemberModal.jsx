@@ -1,20 +1,9 @@
-import React, { memo,  useState } from 'react';
-import { logger } from '../../utils/logger';
+import React,{ memo,useState } from 'react';
 import { API_ORIGIN } from '../../utils/apiConfig';
+import { logger } from '../../utils/logger';
 
 import {
-  XMarkIcon,
-  UserIcon,
-  PhoneIcon,
-  EnvelopeIcon,
-  IdentificationIcon,
-  HashtagIcon,
-  DevicePhoneMobileIcon,
-  BriefcaseIcon,
-  ShieldCheckIcon,
-  PaperAirplaneIcon,
-  CheckCircleIcon,
-  UserPlusIcon
+BriefcaseIcon,CheckCircleIcon,DevicePhoneMobileIcon,EnvelopeIcon,HashtagIcon,IdentificationIcon,PaperAirplaneIcon,PhoneIcon,ShieldCheckIcon,UserIcon,UserPlusIcon,XMarkIcon
 } from '@heroicons/react/24/outline';
 
 const AddMemberModal = ({ isOpen, onClose, onMemberAdded }) => {

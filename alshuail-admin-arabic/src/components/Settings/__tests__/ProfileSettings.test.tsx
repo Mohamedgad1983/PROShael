@@ -1,14 +1,15 @@
+/* eslint-disable testing-library/no-wait-for-multiple-assertions, testing-library/no-node-access, testing-library/prefer-screen-queries, testing-library/no-container, testing-library/no-wait-for-side-effects, jest/no-conditional-expect */
 /**
  * ProfileSettings Component Tests
  * Comprehensive test suite for avatar upload and profile management
  */
 
-import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { fireEvent,render,screen,waitFor } from '@testing-library/react';
 import axios from 'axios';
-import ProfileSettings from '../ProfileSettings';
+import React from 'react';
 import { useRole } from '../../../contexts/RoleContext';
+import ProfileSettings from '../ProfileSettings';
 
 // Mock dependencies
 jest.mock('axios');

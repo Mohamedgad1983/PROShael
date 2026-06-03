@@ -1,5 +1,6 @@
 // Integration Instructions for Member Monitoring Dashboard
 // ========================================================
+import { logger } from '../../utils/logger';
 
 // STEP 1: Add Import Statement
 // Add this import to StyledDashboard.tsx after line 71 (after MemberStatementSearch import):

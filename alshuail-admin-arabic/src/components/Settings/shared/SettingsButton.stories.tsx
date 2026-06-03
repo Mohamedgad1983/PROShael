@@ -6,9 +6,9 @@
  * 2. Run: npm run storybook
  */
 
-import type { Meta, StoryObj } from '@storybook/react';
+import { CheckIcon,PlusIcon,TrashIcon } from '@heroicons/react/24/outline';
+import type { Meta,StoryObj } from '@storybook/react';
 import { SettingsButton } from './SettingsButton';
-import { PlusIcon, TrashIcon, CheckIcon } from '@heroicons/react/24/outline';
 
 const meta: Meta<typeof SettingsButton> = {
   title: 'Settings/SettingsButton',

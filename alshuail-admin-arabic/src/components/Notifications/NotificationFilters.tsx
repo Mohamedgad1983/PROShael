@@ -1,20 +1,12 @@
-import React, { memo } from 'react';
 import {
-  FunnelIcon,
-  XMarkIcon,
-  CalendarIcon,
-  TagIcon,
-  EyeSlashIcon,
-  CheckCircleIcon
+CalendarIcon,EyeSlashIcon,FunnelIcon,TagIcon,XMarkIcon
 } from '@heroicons/react/24/outline';
-import {
-  NotificationFilters as INotificationFilters,
-  NotificationType,
-  NotificationPriority,
-  NotificationStatus,
-  RecipientType
-} from './types';
+import React,{ memo } from 'react';
 import { ARABIC_LABELS } from '../../constants/arabic';
+import {
+NotificationFilters as INotificationFilters,NotificationPriority,
+NotificationStatus,NotificationType,RecipientType
+} from './types';
 
 interface NotificationFiltersProps {
   filters: INotificationFilters;

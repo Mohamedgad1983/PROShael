@@ -6,7 +6,7 @@
  *   /api/marriage-support/me/:id ← used here only when an admin pretends to be a member
  */
 
-import axios, { AxiosInstance } from 'axios';
+import axios,{ AxiosInstance } from 'axios';
 import { API_BASE_URL } from '../utils/apiConfig';
 
 const client: AxiosInstance = axios.create({

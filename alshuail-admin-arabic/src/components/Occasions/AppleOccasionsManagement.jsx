@@ -1,52 +1,22 @@
-﻿import React, {  useState, useEffect , useCallback } from 'react';
-import { toHijri, toGregorian } from 'hijri-converter';
-import SimpleHijriDatePicker from '../Common/SimpleHijriDatePicker';
+import React,{ useEffect,useState } from 'react';
 import { logger } from '../../utils/logger';
+import SimpleHijriDatePicker from '../Common/SimpleHijriDatePicker';
 
 import {
-  CalendarIcon,
-  CalendarDaysIcon,
-  UsersIcon,
-  SparklesIcon,
-  HeartIcon,
-  GiftIcon,
-  CakeIcon,
-  PlusIcon,
-  EyeIcon,
-  PencilIcon,
-  TrashIcon,
-  MagnifyingGlassIcon,
-  FunnelIcon,
-  ChartBarIcon,
-  CheckCircleIcon,
-  ClockIcon,
-  ExclamationCircleIcon,
-  BellIcon,
-  ShareIcon,
-  CameraIcon,
-  MapPinIcon,
-  UserGroupIcon,
-  XMarkIcon
+BellIcon,CakeIcon,CalendarDaysIcon,CalendarIcon,CameraIcon,ChartBarIcon,
+CheckCircleIcon,
+ClockIcon,
+ExclamationCircleIcon,EyeIcon,HeartIcon,MagnifyingGlassIcon,MapPinIcon,PencilIcon,PlusIcon,ShareIcon,SparklesIcon,UserGroupIcon,UsersIcon,XMarkIcon
 } from '@heroicons/react/24/outline';
 // CSS styles are inline
 
 const AppleOccasionsManagement = () => {
   // Performance optimized event handlers
-  const handleRefresh = useCallback(() => {
-    // Refresh logic here
-  }, []);
 
-  const handleFilterChange = useCallback((filterType, value) => {
-    // Filter logic here
-  }, []);
 
-  const handlePageChange = useCallback((page) => {
-    // Pagination logic here
-  }, []);
 
   const [activeTab, setActiveTab] = useState('overview');
   const [occasions, setOccasions] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -138,19 +108,10 @@ const AppleOccasionsManagement = () => {
 
   useEffect(() => {
     setOccasions(mockOccasions);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- preserve existing one-time legacy load behavior
   }, []);
 
   // Handle Gregorian date change and convert to Hijri
-  const handleDateChange = (gregorianDate) => {
-    setNewOccasion(prev => ({ ...prev, date: gregorianDate }));
-
-    if (gregorianDate) {
-      const date = new Date(gregorianDate);
-      const hijri = toHijri(date.getFullYear(), date.getMonth() + 1, date.getDate());
-      const hijriFormatted = `${hijri.hd}/${hijri.hm}/${hijri.hy} هـ`;
-      setNewOccasion(prev => ({ ...prev, hijriDate: hijriFormatted }));
-    }
-  };
 
   // Handle form submission
   const handleSubmit = (e) => {

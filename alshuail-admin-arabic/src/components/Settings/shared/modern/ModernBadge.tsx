@@ -18,9 +18,9 @@
  * @date 2025-11-13
  */
 
-import React, { memo,  HTMLAttributes, ReactNode } from 'react';
-import { getTheme } from '../../modernDesignSystem';
 import { XMarkIcon } from '@heroicons/react/24/solid';
+import React,{ HTMLAttributes,memo,ReactNode } from 'react';
+import { getTheme } from '../../modernDesignSystem';
 
 // ============================================================================
 // TYPES

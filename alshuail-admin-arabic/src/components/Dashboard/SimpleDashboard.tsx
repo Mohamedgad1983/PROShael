@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React,{ useEffect,useState } from 'react';
+import { ARABIC_LABELS,CURRENCY } from '../../constants/arabic';
 import { apiService } from '../../services/api';
-import { ARABIC_LABELS, CURRENCY } from '../../constants/arabic';
+import ActivitiesManager from '../Activities/ActivitiesManager';
+import MembersManager from '../Members/MembersManager';
 
 interface Statistics {
   overview: {
@@ -23,8 +25,6 @@ interface Statistics {
     participants_count: number;
   }>;
 }
-import ActivitiesManager from '../Activities/ActivitiesManager';
-import MembersManager from '../Members/MembersManager';
 
 const SimpleDashboardBase: React.FC = () => {
   const [currentView, setCurrentView] = useState('dashboard');

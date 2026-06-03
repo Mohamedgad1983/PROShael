@@ -4,10 +4,10 @@
  * Used across all Al-Shuail Family Management System components
  */
 
-import React, { memo,  useState, useEffect } from 'react';
-import { CalendarIcon, CalendarDaysIcon, ClockIcon } from '@heroicons/react/24/outline';
-import { formatHijriDate, formatDualDate, getCurrentHijriDate, formatTimeAgo } from '../../utils/hijriDateUtils';
+import { CalendarDaysIcon,CalendarIcon,ClockIcon } from '@heroicons/react/24/outline';
+import React,{ memo,useEffect,useState } from 'react';
 import '../../styles/ultra-premium-islamic-design.css';
+import { formatDualDate,formatHijriDate,formatTimeAgo,getCurrentHijriDate } from '../../utils/hijriDateUtils';
 
 interface HijriDateDisplayProps {
   date?: Date | string;
@@ -29,9 +29,7 @@ export const HijriDateDisplay: React.FC<HijriDateDisplayProps> = ({
   className = '',
   style = {},
   highlightToday = false,
-  showTime = false,
-  locale = 'ar'
-}) => {
+  showTime = false}) => {
   const [hijriDate, setHijriDate] = useState<string>('');
   const [gregorianDate, setGregorianDate] = useState<string>('');
   const [isToday, setIsToday] = useState(false);
@@ -200,7 +198,6 @@ interface HijriDateRangeProps {
 export const HijriDateRange: React.FC<HijriDateRangeProps> = ({
   startDate = new Date(),
   endDate = new Date(),
-  onChange,
   className = ''
 }) => {
   return (
@@ -243,12 +240,9 @@ interface HijriCalendarWidgetProps {
 
 export const HijriCalendarWidget: React.FC<HijriCalendarWidgetProps> = ({
   selectedDate = new Date(),
-  onDateSelect,
-  showEvents = false,
-  events = []
-}) => {
-  const [currentMonth, setCurrentMonth] = useState(selectedDate.getMonth());
-  const [currentYear, setCurrentYear] = useState(selectedDate.getFullYear());
+  onDateSelect}) => {
+  const currentMonth = selectedDate.getMonth();
+  const currentYear = selectedDate.getFullYear();
 
   const hijriInfo = getCurrentHijriDate();
 
@@ -340,9 +334,7 @@ interface HijriDateFilterProps {
 }
 
 export const HijriDateFilter: React.FC<HijriDateFilterProps> = ({
-  onFilterChange,
-  quickFilters = true
-}) => {
+  onFilterChange}) => {
   const [selectedFilter, setSelectedFilter] = useState('all');
 
   const filters = [

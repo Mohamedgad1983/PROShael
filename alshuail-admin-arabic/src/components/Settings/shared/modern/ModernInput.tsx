@@ -19,9 +19,9 @@
  * @date 2025-11-13
  */
 
-import React, { memo,  InputHTMLAttributes, TextareaHTMLAttributes, ReactNode, useState, useEffect, useRef } from 'react';
+import { EyeIcon,EyeSlashIcon,XMarkIcon } from '@heroicons/react/24/outline';
+import React,{ InputHTMLAttributes,memo,ReactNode,TextareaHTMLAttributes,useEffect,useRef,useState } from 'react';
 import { getTheme } from '../../modernDesignSystem';
-import { EyeIcon, EyeSlashIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 // ============================================================================
 // TYPES
@@ -195,21 +195,24 @@ export const ModernInput: React.FC<ModernInputCombinedProps> = (props) => {
   // Handle password type
   const isPasswordType = !props.multiline && (props as ModernInputProps).type === 'password';
   const inputType = isPasswordType && showPassword ? 'text' : !props.multiline ? (props as ModernInputProps).type : undefined;
+  const isMultiline = props.multiline;
+  const textareaAutoResize = isMultiline ? (props as ModernTextareaProps).autoResize : false;
+  const textareaMinRows = isMultiline ? ((props as ModernTextareaProps).minRows || 3) : 3;
+  const textareaMaxRows = isMultiline ? ((props as ModernTextareaProps).maxRows || 10) : 10;
+  const bodyFontSize = theme.fontSize.body;
 
   // Auto-resize textarea
   useEffect(() => {
-    if (props.multiline && (props as ModernTextareaProps).autoResize && inputRef.current) {
+    if (isMultiline && textareaAutoResize && inputRef.current) {
       const textarea = inputRef.current as HTMLTextAreaElement;
       textarea.style.height = 'auto';
-      const minRows = (props as ModernTextareaProps).minRows || 3;
-      const maxRows = (props as ModernTextareaProps).maxRows || 10;
-      const lineHeight = parseInt(theme.fontSize.body) * 1.5;
-      const minHeight = lineHeight * minRows;
-      const maxHeight = lineHeight * maxRows;
+      const lineHeight = parseInt(bodyFontSize) * 1.5;
+      const minHeight = lineHeight * textareaMinRows;
+      const maxHeight = lineHeight * textareaMaxRows;
       const scrollHeight = textarea.scrollHeight;
       textarea.style.height = `${Math.min(Math.max(scrollHeight, minHeight), maxHeight)}px`;
     }
-  }, [value, props.multiline]);
+  }, [value, isMultiline, textareaAutoResize, textareaMinRows, textareaMaxRows, bodyFontSize]);
 
   // ========================================================================
   // STYLES

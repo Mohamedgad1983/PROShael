@@ -1,19 +1,15 @@
 // @ts-nocheck
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
-  FunnelIcon,
-  CalendarIcon,
-  CheckCircleIcon,
-  ClockIcon,
-  XCircleIcon,
-  DocumentTextIcon,
-  EyeIcon,
-  ArrowDownTrayIcon
+ArrowDownTrayIcon,CalendarIcon,
+CheckCircleIcon,
+ClockIcon,DocumentTextIcon,
+EyeIcon,FunnelIcon,XCircleIcon
 } from '@heroicons/react/24/outline';
+import { AnimatePresence,motion } from 'framer-motion';
+import React,{ useCallback,useEffect,useState } from 'react';
 import BottomNav from '../../components/mobile/BottomNav';
-import '../../styles/mobile/PaymentHistory.css';
 import { getMemberPayments } from '../../services/mobileApi';
+import '../../styles/mobile/PaymentHistory.css';
 import { formatBothCalendars } from '../../utils/hijriDate';
 
 import { logger } from '../../utils/logger';
@@ -70,15 +66,7 @@ const PaymentHistory: React.FC = () => {
     'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
   ];
 
-  useEffect(() => {
-    fetchPayments();
-  }, []);
-
-  useEffect(() => {
-    filterPayments();
-  }, [payments, activeFilter, selectedYear, selectedMonth]);
-
-  const fetchPayments = async () => {
+  const fetchPayments = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -120,9 +108,9 @@ const PaymentHistory: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const filterPayments = () => {
+  const filterPayments = useCallback(() => {
     let filtered = [...payments];
 
     // Filter by status
@@ -145,7 +133,15 @@ const PaymentHistory: React.FC = () => {
     }
 
     setFilteredPayments(filtered);
-  };
+  }, [activeFilter, payments, selectedMonth, selectedYear]);
+
+  useEffect(() => {
+    fetchPayments();
+  }, [fetchPayments]);
+
+  useEffect(() => {
+    filterPayments();
+  }, [filterPayments]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);

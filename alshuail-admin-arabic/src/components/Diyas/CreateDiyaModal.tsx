@@ -1,17 +1,9 @@
-import React, { memo,  useState } from 'react';
 import {
-  XMarkIcon,
-  ScaleIcon,
-  CalendarIcon,
-  MapPinIcon,
-  CurrencyDollarIcon,
-  ExclamationTriangleIcon,
-  UserPlusIcon,
-  DocumentTextIcon,
-  TagIcon
+CurrencyDollarIcon,DocumentTextIcon,MapPinIcon,ScaleIcon,UserPlusIcon,XMarkIcon
 } from '@heroicons/react/24/outline';
-import { DiyaFormData, DiyaCaseType, DiyaPriority, PartyRole } from './types';
-import { ARABIC_LABELS, CURRENCY } from '../../constants/arabic';
+import React,{ memo,useState } from 'react';
+import { ARABIC_LABELS,CURRENCY } from '../../constants/arabic';
+import { DiyaCaseType,DiyaFormData,DiyaPriority,PartyRole } from './types';
 
 interface CreateDiyaModalProps {
   isOpen: boolean;
@@ -338,11 +330,6 @@ const CreateDiyaModal: React.FC<CreateDiyaModalProps> = ({
     marginTop: '20px'
   };
 
-  const disabledButtonStyle: React.CSSProperties = {
-    ...submitButtonStyle,
-    opacity: 0.6,
-    cursor: 'not-allowed'
-  };
 
   return (
     <div style={overlayStyle} onClick={onClose}>

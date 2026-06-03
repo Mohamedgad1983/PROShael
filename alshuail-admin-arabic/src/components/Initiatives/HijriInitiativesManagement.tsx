@@ -1,39 +1,9 @@
-import React, { memo,  useState, useEffect } from 'react';
 import {
-  LightBulbIcon,
-  SparklesIcon,
-  RocketLaunchIcon,
-  UsersIcon,
-  ChartBarIcon,
-  ClockIcon,
-  CheckCircleIcon,
-  ExclamationTriangleIcon,
-  PlusIcon,
-  EyeIcon,
-  PencilIcon,
-  TrashIcon,
-  MagnifyingGlassIcon,
-  FunnelIcon,
-  CurrencyDollarIcon,
-  CalendarDaysIcon,
-  UserGroupIcon,
-  AcademicCapIcon,
-  HeartIcon,
-  BuildingLibraryIcon,
-  GlobeAltIcon,
-  StarIcon,
-  FireIcon,
-  TrophyIcon,
-  BanknotesIcon,
-  ArrowTrendingUpIcon,
-  DocumentTextIcon,
-  ShareIcon,
-  HandRaisedIcon,
-  CalendarIcon
+AcademicCapIcon,BanknotesIcon,BuildingLibraryIcon,CalendarDaysIcon,CalendarIcon,CheckCircleIcon,ClockIcon,CurrencyDollarIcon,ExclamationTriangleIcon,EyeIcon,FireIcon,GlobeAltIcon,HeartIcon,LightBulbIcon,MagnifyingGlassIcon,PencilIcon,PlusIcon,RocketLaunchIcon,ShareIcon,StarIcon,UserGroupIcon
 } from '@heroicons/react/24/outline';
-import { HijriDateDisplay, HijriDateFilter, HijriCalendarWidget } from '../Common/HijriDateDisplay';
-import { formatHijriDate, formatDualDate, formatTimeAgo } from '../../utils/hijriDateUtils';
+import React,{ memo,useEffect,useState } from 'react';
 import '../../styles/ultra-premium-islamic-design.css';
+import { HijriDateDisplay,HijriDateFilter } from '../Common/HijriDateDisplay';
 
 interface Initiative {
   id: number;
@@ -56,14 +26,12 @@ interface Initiative {
 }
 
 const HijriInitiativesManagement: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('overview');
   const [initiatives, setInitiatives] = useState<Initiative[]>([]);
-  const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedDateRange, setSelectedDateRange] = useState<{ start: Date; end: Date } | null>(null);
+  const [, setShowAddModal] = useState(false);
+  const [, setSelectedDateRange] = useState<{ start: Date; end: Date } | null>(null);
 
   // Mock data with Hijri dates
   const mockInitiatives: Initiative[] = [
@@ -128,6 +96,7 @@ const HijriInitiativesManagement: React.FC = () => {
 
   useEffect(() => {
     setInitiatives(mockInitiatives);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- preserve existing one-time legacy load behavior
   }, []);
 
   // Helper functions
@@ -174,7 +143,6 @@ const HijriInitiativesManagement: React.FC = () => {
     const statusInfo = getStatusInfo(initiative.status);
     const priorityInfo = getPriorityInfo(initiative.priority);
     const CategoryIcon = categoryInfo.icon;
-    const StatusIcon = statusInfo.icon;
 
     const progressPercentage = initiative.progress;
     const fundingPercentage = (initiative.raised / initiative.budget) * 100;

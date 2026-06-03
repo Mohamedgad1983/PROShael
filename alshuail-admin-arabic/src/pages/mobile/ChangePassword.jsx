@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { CheckCircleIcon,EyeIcon,EyeSlashIcon,LockClosedIcon,XCircleIcon } from '@heroicons/react/24/outline';
 import { motion } from 'framer-motion';
-import { LockClosedIcon, EyeIcon, EyeSlashIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
+import React,{ useState } from 'react';
+import { useLocation,useNavigate } from 'react-router-dom';
 import { API_ORIGIN } from '../../utils/apiConfig';
 import './ChangePassword.css';
 

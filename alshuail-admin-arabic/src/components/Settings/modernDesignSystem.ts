@@ -498,7 +498,7 @@ export type Theme = ReturnType<typeof getTheme>;
 
 export const defaultTheme = getTheme(false, true); // Light mode, RTL (Arabic default)
 
-export default {
+const modernDesignSystem = {
   FONTS,
   FONT_SIZES,
   FONT_WEIGHTS,
@@ -519,3 +519,5 @@ export default {
   getTheme,
   defaultTheme
 };
+
+export default modernDesignSystem;

@@ -2,9 +2,9 @@
  * StatusBadge Storybook Stories
  */
 
-import type { Meta, StoryObj } from '@storybook/react';
+import { CheckCircleIcon,ExclamationTriangleIcon,InformationCircleIcon,XCircleIcon } from '@heroicons/react/24/outline';
+import type { Meta,StoryObj } from '@storybook/react';
 import { StatusBadge } from './StatusBadge';
-import { CheckCircleIcon, XCircleIcon, ExclamationTriangleIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 
 const meta: Meta<typeof StatusBadge> = {
   title: 'Settings/StatusBadge',

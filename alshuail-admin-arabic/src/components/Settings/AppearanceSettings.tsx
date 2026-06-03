@@ -4,41 +4,27 @@
  * Allows users to customize theme mode, colors, font size, and UI preferences
  */
 
-import React, { memo,  useState, useEffect } from 'react';
 import {
-  PaintBrushIcon,
-  SunIcon,
-  MoonIcon,
-  ComputerDesktopIcon,
-  CheckCircleIcon,
-  ExclamationCircleIcon
+CheckCircleIcon,ComputerDesktopIcon,ExclamationCircleIcon,MoonIcon,PaintBrushIcon,
+SunIcon
 } from '@heroicons/react/24/outline';
 import axios from 'axios';
+import React,{ memo,useEffect,useState } from 'react';
+import { useTheme } from '../../contexts/ThemeContext';
 import {
-  SettingsCard,
-  SettingsButton
+AppearanceSettings as AppearanceSettingsType,applyAllAppearanceSettings,DEFAULT_APPEARANCE_SETTINGS,FontSize,FONT_SIZE_LABELS,
+PRESET_COLORS,ThemeMode,THEME_MODE_LABELS
+} from '../../types/appearanceSettings';
+import {
+SettingsButton,SettingsCard
 } from './shared';
 import {
-  COLORS,
-  SPACING,
-  TYPOGRAPHY,
-  BORDER_RADIUS,
-  commonStyles
+BORDER_RADIUS,COLORS,commonStyles,SPACING,
+TYPOGRAPHY
 } from './sharedStyles';
-import {
-  AppearanceSettings as AppearanceSettingsType,
-  ThemeMode,
-  FontSize,
-  THEME_MODE_LABELS,
-  FONT_SIZE_LABELS,
-  PRESET_COLORS,
-  DEFAULT_APPEARANCE_SETTINGS,
-  applyAllAppearanceSettings
-} from '../../types/appearanceSettings';
-import { useTheme } from '../../contexts/ThemeContext';
 
-import { logger } from '../../utils/logger';
 import { API_ORIGIN } from '../../utils/apiConfig';
+import { logger } from '../../utils/logger';
 
 const API_BASE = API_ORIGIN;
 
@@ -358,7 +344,7 @@ const AppearanceSettings: React.FC = () => {
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: SPACING.lg,
-    background: COLORS.gray50,
+    background: isActive ? COLORS.primaryLight + '15' : COLORS.gray50,
     borderRadius: BORDER_RADIUS.md,
     cursor: 'pointer'
   });

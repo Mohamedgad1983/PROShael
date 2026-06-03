@@ -1,4 +1,4 @@
-import React, { memo,  useState } from 'react';
+import React,{ memo,useState } from 'react';
 import ExpenseManagement from './ExpenseManagement';
 
 import { logger } from '../../utils/logger';

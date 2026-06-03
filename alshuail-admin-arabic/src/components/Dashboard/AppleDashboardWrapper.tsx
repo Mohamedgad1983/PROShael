@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import UnifiedDashboard, { DASHBOARD_VARIANTS } from './UnifiedDashboard';
+import UnifiedDashboard,{ DASHBOARD_VARIANTS } from './UnifiedDashboard';
 
 interface AppleDashboardProps {
   onLogout: () => void;

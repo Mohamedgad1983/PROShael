@@ -1,25 +1,13 @@
-import React, { memo,  useState, useEffect, useCallback } from 'react';
+import React,{ memo,useCallback,useEffect,useState } from 'react';
 import { memberService } from '../../services/memberService';
-import MemberImport from './MemberImport';
-import AddMemberModal from './AddMemberModal';
 import { logger } from '../../utils/logger';
+import AddMemberModal from './AddMemberModal';
+import MemberImport from './MemberImport';
 
 import {
-  MagnifyingGlassIcon,
-  FunnelIcon,
-  UserGroupIcon,
-  UserIcon,
-  CheckCircleIcon,
-  ClockIcon,
-  ShieldCheckIcon,
-  ArrowDownTrayIcon,
-  PaperAirplaneIcon,
-  PlusIcon,
-  EyeIcon,
-  PencilIcon,
-  TrashIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon
+ArrowDownTrayIcon,CheckCircleIcon,ChevronLeftIcon,
+ChevronRightIcon,ClockIcon,EyeIcon,FunnelIcon,MagnifyingGlassIcon,PaperAirplaneIcon,PencilIcon,PlusIcon,ShieldCheckIcon,TrashIcon,UserGroupIcon,
+UserIcon
 } from '@heroicons/react/24/outline';
 
 const MembersManagement = () => {
@@ -50,6 +38,7 @@ const MembersManagement = () => {
 
   useEffect(() => {
     loadMembers();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- preserve existing one-time legacy load behavior
   }, [filters, pagination.page, searchQuery]);
 
   const loadStatistics = async () => {
@@ -150,7 +139,7 @@ const MembersManagement = () => {
     }
   };
 
-  const handleMemberAdded = (newMember) => {
+  const handleMemberAdded = () => {
     setShowAddMemberModal(false);
     loadMembers();
     loadStatistics();

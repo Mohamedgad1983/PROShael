@@ -1,17 +1,12 @@
 // @ts-nocheck
-import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { logger } from '../../utils/logger';
+import React,{ useRef,useState } from 'react';
 import { API_ORIGIN } from '../../utils/apiConfig';
+import { logger } from '../../utils/logger';
 
 import {
-  CameraIcon,
-  PhotoIcon,
-  ArrowUpTrayIcon,
-  XMarkIcon,
-  CheckCircleIcon,
-  DocumentIcon,
-  ArrowPathIcon
+ArrowPathIcon,ArrowUpTrayIcon,CameraIcon,CheckCircleIcon,
+DocumentIcon,PhotoIcon,XMarkIcon
 } from '@heroicons/react/24/outline';
 import '../../styles/mobile/ReceiptUpload.css';
 

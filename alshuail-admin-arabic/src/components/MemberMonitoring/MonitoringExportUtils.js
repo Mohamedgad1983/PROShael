@@ -11,47 +11,8 @@ import { exportWorkbook } from '../../utils/excelExport';
 // ═══════════════════════════════════════════════════════════════════════════════
 // PROFESSIONAL LOGO - High Quality SVG embedded as base64
 // ═══════════════════════════════════════════════════════════════════════════════
-const LOGO_SVG = `<?xml version="1.0" encoding="UTF-8"?>
-<svg width="400" height="400" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#1e40af;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:1" />
-    </linearGradient>
-    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#059669;stop-opacity:1" />
-      <stop offset="50%" style="stop-color:#10b981;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#34d399;stop-opacity:1" />
-    </linearGradient>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000" flood-opacity="0.15"/>
-    </filter>
-  </defs>
-  <circle cx="200" cy="200" r="190" fill="white" filter="url(#shadow)"/>
-  <circle cx="200" cy="200" r="180" fill="none" stroke="url(#headerGrad)" stroke-width="8"/>
-  <circle cx="200" cy="200" r="165" fill="none" stroke="url(#greenGrad)" stroke-width="3"/>
-  <text x="200" y="75" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="#1e40af" text-anchor="middle">S.A.F</text>
-  <text x="200" y="105" font-family="Arial, sans-serif" font-size="16" fill="#059669" text-anchor="middle" letter-spacing="2">SHUAIL AL-ANZI FUND</text>
-  <g transform="translate(200, 190)">
-    <circle cx="-50" cy="-30" r="18" fill="url(#greenGrad)"/>
-    <ellipse cx="-50" cy="5" rx="14" ry="25" fill="url(#greenGrad)"/>
-    <circle cx="0" cy="-45" r="18" fill="url(#greenGrad)"/>
-    <ellipse cx="0" cy="-10" rx="14" ry="25" fill="url(#greenGrad)"/>
-    <circle cx="50" cy="-30" r="18" fill="url(#greenGrad)"/>
-    <ellipse cx="50" cy="5" rx="14" ry="25" fill="url(#greenGrad)"/>
-    <circle cx="-25" cy="15" r="16" fill="url(#greenGrad)"/>
-    <ellipse cx="-25" cy="45" rx="12" ry="22" fill="url(#greenGrad)"/>
-    <circle cx="25" cy="15" r="16" fill="url(#greenGrad)"/>
-    <ellipse cx="25" cy="45" rx="12" ry="22" fill="url(#greenGrad)"/>
-  </g>
-  <path d="M 90 250 Q 80 290 100 310 Q 130 340 160 310 L 170 290" fill="url(#headerGrad)" opacity="0.9"/>
-  <path d="M 310 250 Q 320 290 300 310 Q 270 340 240 310 L 230 290" fill="url(#headerGrad)" opacity="0.9"/>
-  <text x="200" y="340" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#1e40af" text-anchor="middle">صندوق شعيل العنزي</text>
-  <text x="200" y="370" font-family="Arial, sans-serif" font-size="16" fill="#059669" text-anchor="middle">Shuail Al-Anzi Fund</text>
-</svg>`;
 
 // Convert SVG to base64 for embedding
-const LOGO_BASE64 = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(LOGO_SVG)))}`;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // BRAND COLORS - Professional color palette
@@ -84,23 +45,6 @@ const BRAND = {
 };
 
 // Hex versions for Excel
-const BRAND_HEX = {
-  primary: '1e40af',
-  primaryLight: '3b82f6',
-  secondary: '059669',
-  secondaryLight: '10b981',
-  success: '22c55e',
-  warning: 'f59e0b',
-  danger: 'ef4444',
-  info: '3b82f6',
-  text: '1f2937',
-  textLight: '6b7280',
-  background: 'f9fafb',
-  white: 'ffffff',
-  border: 'e5e7eb',
-  headerBg: '1e40af',
-  rowAlt: 'f3f4f6'
-};
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // UTILITY FUNCTIONS
@@ -167,18 +111,6 @@ const getStatusColor = (status) => {
   return colorMap[status] || BRAND.textLight;
 };
 
-const getStatusHexColor = (status) => {
-  const colorMap = {
-    'compliant': BRAND_HEX.success,
-    'excellent': BRAND_HEX.secondaryLight,
-    'non-compliant': BRAND_HEX.warning,
-    'critical': BRAND_HEX.danger,
-    'active': BRAND_HEX.success,
-    'inactive': BRAND_HEX.textLight,
-    'suspended': BRAND_HEX.danger
-  };
-  return colorMap[status] || BRAND_HEX.textLight;
-};
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // PDF EXPORT - Professional Enterprise-Grade Report
@@ -431,7 +363,7 @@ export const exportToPDF = (members, statistics, filterDescription = '') => {
       }
     },
     margin: { left: margin, right: margin },
-    didDrawPage: (data) => {
+    didDrawPage: () => {
       // Footer on each page
       const pageCount = doc.internal.getNumberOfPages();
       const currentPage = doc.internal.getCurrentPageInfo().pageNumber;
@@ -711,7 +643,9 @@ export const exportToExcel = (members, statistics, filterDescription = '') => {
 // ═══════════════════════════════════════════════════════════════════════════════
 // DEFAULT EXPORT
 // ═══════════════════════════════════════════════════════════════════════════════
-export default {
+const monitoringExportUtils = {
   exportToPDF,
   exportToExcel
 };
+
+export default monitoringExportUtils;

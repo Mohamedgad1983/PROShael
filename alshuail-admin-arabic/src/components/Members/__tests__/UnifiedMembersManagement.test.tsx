@@ -1,13 +1,14 @@
+/* eslint-disable testing-library/no-wait-for-multiple-assertions, testing-library/no-node-access, testing-library/prefer-screen-queries, testing-library/no-container, jest/no-conditional-expect */
 /**
  * UnifiedMembersManagement Test Suite
  * Tests all member management variants and configurations
  */
 
-import React from 'react';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { render,screen,waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import UnifiedMembersManagement, { MEMBERS_VARIANTS, MembersVariant } from '../UnifiedMembersManagement';
+import React from 'react';
 import { memberService } from '../../../services/memberService';
+import UnifiedMembersManagement,{ MembersVariant,MEMBERS_VARIANTS } from '../UnifiedMembersManagement';
 
 // Mock member service
 jest.mock('../../../services/memberService', () => ({

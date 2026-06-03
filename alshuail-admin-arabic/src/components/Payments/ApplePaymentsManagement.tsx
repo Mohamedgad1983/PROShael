@@ -1,29 +1,10 @@
-import React, { memo,  useState, useEffect, useMemo } from 'react';
 import {
-  CreditCardIcon,
-  BanknotesIcon,
-  ArrowTrendingUpIcon,
-  ArrowTrendingDownIcon,
-  CalendarDaysIcon,
-  FunnelIcon,
-  EyeIcon,
-  PlusIcon,
-  XMarkIcon,
-  CheckCircleIcon,
-  ClockIcon,
-  ExclamationTriangleIcon,
-  DocumentArrowDownIcon,
-  UserIcon,
-  PhoneIcon,
-  EnvelopeIcon,
-  MagnifyingGlassIcon,
-  AdjustmentsHorizontalIcon,
-  PencilIcon,
-  TrashIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon
+AdjustmentsHorizontalIcon,ArrowTrendingDownIcon,ArrowTrendingUpIcon,BanknotesIcon,CalendarDaysIcon,CheckCircleIcon,ChevronLeftIcon,
+ChevronRightIcon,ClockIcon,DocumentArrowDownIcon,ExclamationTriangleIcon,EyeIcon,MagnifyingGlassIcon,PencilIcon,PlusIcon,
+XMarkIcon
 } from '@heroicons/react/24/outline';
-import { CheckCircleIcon as CheckCircleIconSolid, StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
+import { CheckCircleIcon as CheckCircleIconSolid } from '@heroicons/react/24/solid';
+import React,{ memo,useEffect,useMemo,useState } from 'react';
 import '../../styles/apple-design-system.css';
 
 // Enhanced TypeScript interfaces
@@ -81,7 +62,7 @@ const ApplePaymentsManagement: React.FC = () => {
   // State management
   const [payments, setPayments] = useState<Payment[]>([]);
   const [statistics, setStatistics] = useState<PaymentStatistics>({} as PaymentStatistics);
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<FilterState>({
     status: '',
@@ -98,9 +79,7 @@ const ApplePaymentsManagement: React.FC = () => {
   });
   const [selectedPayments, setSelectedPayments] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
-  const [showCreatePayment, setShowCreatePayment] = useState(false);
-  const [sortBy, setSortBy] = useState<string>('createdDate');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [, setShowCreatePayment] = useState(false);
 
   // Mock payments data
   const mockPayments: Payment[] = [
@@ -218,6 +197,7 @@ const ApplePaymentsManagement: React.FC = () => {
       total: mockPayments.length,
       totalPages: Math.ceil(mockPayments.length / prev.limit)
     }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- preserve existing one-time legacy load behavior
   }, []);
 
   // Utility functions

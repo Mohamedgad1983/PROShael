@@ -2,8 +2,8 @@
  * Authentication Helper Utilities
  * Handles token refresh and session management
  */
-import { logger } from './logger';
 import { API_ORIGIN } from './apiConfig';
+import { logger } from './logger';
 
 const API_URL = API_ORIGIN;
 
@@ -135,9 +135,11 @@ export const authenticatedFetch = async (url, options = {}) => {
   return response;
 };
 
-export default {
+const authHelperExports = {
   isTokenExpired,
   getValidToken,
   refreshTokenIfNeeded,
   authenticatedFetch
 };
+
+export default authHelperExports;

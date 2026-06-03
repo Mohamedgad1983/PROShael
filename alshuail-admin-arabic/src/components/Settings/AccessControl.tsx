@@ -3,23 +3,18 @@
  * Allows superadmin to create and reset passwords for users
  */
 
-import React, { memo,  useState } from 'react';
 import {
-  KeyIcon,
-  MagnifyingGlassIcon,
-  UserIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  ExclamationTriangleIcon,
-  LockClosedIcon,
-  LockOpenIcon
+CheckCircleIcon,ExclamationTriangleIcon,KeyIcon,LockClosedIcon,
+LockOpenIcon,MagnifyingGlassIcon,
+UserIcon,XCircleIcon
 } from '@heroicons/react/24/outline';
-import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS, commonStyles, getMessageStyle } from './sharedStyles';
-import { SettingsButton, StatusBadge } from './shared';
+import React,{ memo,useState } from 'react';
+import { SettingsButton } from './shared';
+import { BORDER_RADIUS,COLORS,commonStyles,getMessageStyle,SPACING,TYPOGRAPHY } from './sharedStyles';
 
+import { API_ORIGIN } from '../../utils/apiConfig';
 import { logger } from '../../utils/logger';
 import { showToast } from '../../utils/toast';
-import { API_ORIGIN } from '../../utils/apiConfig';
 
 const API_URL = API_ORIGIN;
 
@@ -62,7 +57,7 @@ const AccessControl: React.FC = () => {
       uppercase: /[A-Z]/.test(password),
       lowercase: /[a-z]/.test(password),
       number: /[0-9]/.test(password),
-      special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)
+      special: /[^A-Za-z0-9]/.test(password)
     };
 
     const isValid = Object.values(checks).every(check => check);
@@ -184,7 +179,7 @@ const AccessControl: React.FC = () => {
   const renderPasswordStrength = () => {
     if (!newPassword) return null;
 
-    const { isValid, checks } = validatePassword(newPassword);
+    const { checks } = validatePassword(newPassword);
 
     return (
       <div style={passwordStrengthContainerStyle}>

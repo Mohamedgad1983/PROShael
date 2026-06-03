@@ -4,11 +4,9 @@
  */
 
 import {
-  mockDatabase,
-  findMemberById,
-  findPlanById,
-  findSubscriptionById,
-  getMockStats
+findMemberById,
+findPlanById,
+findSubscriptionById,mockDatabase
 } from './mockData.js';
 import PaymentValidationService from './paymentValidationService.js';
 
@@ -42,12 +40,6 @@ const addMonths = (date, months) => {
   return result;
 };
 
-/**
- * Check if date is in the past
- */
-const isPastDate = (date) => {
-  return new Date(date) < new Date();
-};
 
 /**
  * Calculate prorated amount for partial periods
@@ -1063,7 +1055,7 @@ export const getMemberSubscriptionStatus = async (memberId) => {
 };
 
 // Export all functions as default
-export default {
+const subscriptionServiceExports = {
   // Plan management
   getSubscriptionPlans,
   createSubscriptionPlan,
@@ -1089,3 +1081,5 @@ export default {
   formatDate,
   addMonths
 };
+
+export default subscriptionServiceExports;

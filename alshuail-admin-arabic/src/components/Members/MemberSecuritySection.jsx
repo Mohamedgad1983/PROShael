@@ -8,19 +8,10 @@
  * =====================================================
  */
 
-import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import React,{ useEffect,useState } from 'react';
 import {
-    FaLock,
-    FaUnlock,
-    FaFingerprint,
-    FaTrash,
-    FaHistory,
-    FaShieldAlt,
-    FaExclamationTriangle,
-    FaCheckCircle,
-    FaTimesCircle,
-    FaClock
+FaCheckCircle,FaClock,FaExclamationTriangle,FaFingerprint,FaHistory,FaLock,FaShieldAlt,FaTimesCircle,FaTrash,FaUnlock
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import { API_ORIGIN } from '../../utils/apiConfig';

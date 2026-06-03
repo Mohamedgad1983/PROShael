@@ -1,58 +1,26 @@
-﻿import React, {  useState, useEffect , useCallback } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
 import { toHijri } from 'hijri-converter';
+import React,{ useEffect,useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 import { logger } from '../../utils/logger';
 
 import {
-  ChartBarIcon,
-  CreditCardIcon,
-  UsersIcon,
-  CalendarIcon,
-  ArrowTrendingUpIcon,
-  ClockIcon,
-  BanknotesIcon,
-  PlusIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  ExclamationTriangleIcon,
-  SparklesIcon,
-  EyeIcon,
-  PencilIcon,
-  TrashIcon,
-  FunnelIcon,
-  MagnifyingGlassIcon,
-  ShieldExclamationIcon,
-  ArrowLeftIcon,
-  CogIcon,
-  DocumentTextIcon,
-  BellIcon
+ArrowLeftIcon,ArrowTrendingUpIcon,BanknotesIcon,CalendarIcon,ChartBarIcon,CheckCircleIcon,ClockIcon,CreditCardIcon,DocumentTextIcon,ExclamationTriangleIcon,EyeIcon,MagnifyingGlassIcon,PencilIcon,PlusIcon,ShieldExclamationIcon,SparklesIcon,TrashIcon,UsersIcon,XCircleIcon
 } from '@heroicons/react/24/outline';
 
 const SubscriptionsManagement = () => {
   // Performance optimized event handlers
-  const handleRefresh = useCallback(() => {
-    // Refresh logic here
-  }, []);
 
-  const handleFilterChange = useCallback((filterType, value) => {
-    // Filter logic here
-  }, []);
 
-  const handlePageChange = useCallback((page) => {
-    // Pagination logic here
-  }, []);
 
   const { user, canAccessModule } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [subscriptions, setSubscriptions] = useState([]);
-  const [plans, setPlans] = useState([]);
+  const [, setPlans] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
-  const [showPlanModal, setShowPlanModal] = useState(false);
-  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState(null);
-  const [selectedSubscription, setSelectedSubscription] = useState(null);
+  const [, setShowSubscriptionModal] = useState(false);
+  const [, setSelectedSubscription] = useState(null);
   const [currentView, setCurrentView] = useState('list'); // 'list' or 'addSubscription'
   const [subscriptionQuantity, setSubscriptionQuantity] = useState(1);
 
@@ -157,6 +125,7 @@ const SubscriptionsManagement = () => {
     if (canAccessModule('financial')) {
       loadSubscriptionsData();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- preserve existing one-time legacy load behavior
   }, []);
 
   const loadSubscriptionsData = async () => {

@@ -1,17 +1,10 @@
-import React, { memo } from 'react';
 import {
-  AcademicCapIcon,
-  HeartIcon,
-  UserGroupIcon,
-  HomeIcon,
-  GlobeAltIcon,
-  ComputerDesktopIcon,
-  ExclamationTriangleIcon,
-  BuildingOfficeIcon,
-  TagIcon
+AcademicCapIcon,BuildingOfficeIcon,ComputerDesktopIcon,
+ExclamationTriangleIcon,GlobeAltIcon,HeartIcon,TagIcon,UserGroupIcon
 } from '@heroicons/react/24/outline';
-import { InitiativeCategory, InitiativeFilters } from './types';
+import React,{ memo } from 'react';
 import { ARABIC_LABELS } from '../../constants/arabic';
+import { InitiativeCategory } from './types';
 
 interface InitiativeCategoriesProps {
   selectedCategory?: InitiativeCategory;

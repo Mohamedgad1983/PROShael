@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  Users, GitBranch, Search, RefreshCw, ChevronDown, ChevronRight,
-  User, Phone, CreditCard, Calendar, Home, Eye, UserPlus, Settings,
-  TreeDeciduous, Crown, Users2, TrendingUp, Filter, Download
+import {
+ChevronDown,ChevronRight,CreditCard,Crown,Download,Eye,Filter,GitBranch,Home,Phone,RefreshCw,Search,Settings,
+TreeDeciduous,TrendingUp,User,UserPlus,Users,Users2
 } from 'lucide-react';
+import React,{ useCallback,useEffect,useState } from 'react';
 import { API_BASE_URL } from '../../utils/apiConfig';
 import './FamilyTreeManagement.css';
 
@@ -67,14 +66,14 @@ const FamilyTreeManagement: React.FC = () => {
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
 
   // Get auth token
-  const getAuthToken = () => {
+  const getAuthToken = useCallback(() => {
     return sessionStorage.getItem('token') || 
            localStorage.getItem('token') || 
            localStorage.getItem('authToken');
-  };
+  }, []);
 
   // Fetch data from API
-  const fetchWithAuth = async (endpoint: string) => {
+  const fetchWithAuth = useCallback(async (endpoint: string) => {
     const token = getAuthToken();
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       headers: {
@@ -88,7 +87,7 @@ const FamilyTreeManagement: React.FC = () => {
     }
     
     return response.json();
-  };
+  }, [getAuthToken]);
 
   // Load all data
   const loadData = useCallback(async () => {
@@ -120,7 +119,7 @@ const FamilyTreeManagement: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetchWithAuth]);
 
   useEffect(() => {
     loadData();

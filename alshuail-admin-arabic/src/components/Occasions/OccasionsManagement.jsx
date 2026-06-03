@@ -1,50 +1,15 @@
-﻿import React, {  useState, useEffect , useCallback } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
 import { toHijri } from 'hijri-converter';
+import React,{ useEffect,useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 import { logger } from '../../utils/logger';
 
 import {
-  CalendarDaysIcon,
-  SparklesIcon,
-  UserGroupIcon,
-  HeartIcon,
-  GiftIcon,
-  CakeIcon,
-  MagnifyingGlassIcon,
-  FunnelIcon,
-  PlusIcon,
-  EyeIcon,
-  PencilIcon,
-  TrashIcon,
-  ClockIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  ExclamationTriangleIcon,
-  ShieldExclamationIcon,
-  CurrencyDollarIcon,
-  UsersIcon,
-  MapPinIcon,
-  CalendarIcon,
-  DocumentTextIcon,
-  PhotoIcon,
-  ShareIcon,
-  BellIcon,
-  StarIcon
-} from '@heroicons/react/24/outline';
+CakeIcon,CalendarDaysIcon,CalendarIcon,CheckCircleIcon,ClockIcon,CurrencyDollarIcon,DocumentTextIcon,EyeIcon,GiftIcon,HeartIcon,MagnifyingGlassIcon,MapPinIcon,PencilIcon,PlusIcon,ShareIcon,ShieldExclamationIcon,SparklesIcon,StarIcon,UsersIcon} from '@heroicons/react/24/outline';
 
 const OccasionsManagement = () => {
   // Performance optimized event handlers
-  const handleRefresh = useCallback(() => {
-    // Refresh logic here
-  }, []);
 
-  const handleFilterChange = useCallback((filterType, value) => {
-    // Filter logic here
-  }, []);
 
-  const handlePageChange = useCallback((page) => {
-    // Pagination logic here
-  }, []);
 
   const { user, canAccessModule } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
@@ -57,9 +22,9 @@ const OccasionsManagement = () => {
     date_range: '',
     budget_range: ''
   });
-  const [selectedOccasion, setSelectedOccasion] = useState(null);
-  const [showOccasionModal, setShowOccasionModal] = useState(false);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [, setSelectedOccasion] = useState(null);
+  const [, setShowOccasionModal] = useState(false);
+  const [, setShowCreateModal] = useState(false);
 
   // Mock occasions data
   const mockOccasions = [
@@ -169,6 +134,7 @@ const OccasionsManagement = () => {
     if (canAccessModule('occasions')) {
       loadOccasionsData();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- preserve existing one-time legacy load behavior
   }, [filters]);
 
   const loadOccasionsData = async () => {
@@ -240,20 +206,6 @@ const OccasionsManagement = () => {
     }
   };
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'upcoming':
-        return <CalendarIcon className="w-5 h-5 text-blue-500" />;
-      case 'planning':
-        return <ClockIcon className="w-5 h-5 text-yellow-500" />;
-      case 'completed':
-        return <CheckCircleIcon className="w-5 h-5 text-green-500" />;
-      case 'cancelled':
-        return <XCircleIcon className="w-5 h-5 text-red-500" />;
-      default:
-        return <ClockIcon className="w-5 h-5 text-gray-500" />;
-    }
-  };
 
   const getStatusText = (status) => {
     switch (status) {
@@ -292,16 +244,6 @@ const OccasionsManagement = () => {
     }
   };
 
-  const getTypeText = (type) => {
-    switch (type) {
-      case 'wedding': return 'زفاف';
-      case 'graduation': return 'تخرج';
-      case 'birth': return 'مولود';
-      case 'memorial': return 'ذكرى';
-      case 'engagement': return 'خطوبة';
-      default: return 'أخرى';
-    }
-  };
 
   const getPriorityColor = (priority) => {
     switch (priority) {

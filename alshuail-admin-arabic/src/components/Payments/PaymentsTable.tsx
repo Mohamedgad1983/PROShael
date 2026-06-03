@@ -1,32 +1,19 @@
-import React, { memo,  useState, useMemo } from 'react';
 import {
-  EyeIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  ArrowPathIcon,
-  DocumentTextIcon,
-  EllipsisVerticalIcon,
-  ChevronUpIcon,
-  ChevronDownIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  BanknotesIcon
+ArrowPathIcon,BanknotesIcon,CheckCircleIcon,ChevronDownIcon,
+ChevronLeftIcon,
+ChevronRightIcon,ChevronUpIcon,DocumentTextIcon,
+EllipsisVerticalIcon,EyeIcon,XCircleIcon
 } from '@heroicons/react/24/outline';
+import React,{ memo,useMemo,useState } from 'react';
 import { ARABIC_LABELS } from '../../constants/arabic';
-import { Payment, PaymentsTableProps, PaymentAction } from './types';
+import { Payment,PaymentAction,PaymentsTableProps } from './types';
 import {
-  formatCurrency,
-  formatDate,
-  toArabicNumerals,
-  getPaymentStatusColor,
-  getPaymentCategoryColor,
-  getPaymentMethodIcon
+formatCurrency,
+formatDate,getPaymentMethodIcon,toArabicNumerals
 } from './utils';
 
 const PaymentsTable: React.FC<PaymentsTableProps> = ({
   payments,
-  filters,
-  onFilterChange,
   onPaymentSelect,
   onPaymentAction,
   loading = false,
@@ -38,7 +25,7 @@ const PaymentsTable: React.FC<PaymentsTableProps> = ({
   const [showActionMenu, setShowActionMenu] = useState<string | null>(null);
 
   // Mock data for demonstration
-  const mockPayments: Payment[] = [
+  const mockPayments: Payment[] = useMemo(() => [
     {
       id: '1',
       referenceNumber: 'PAY-12345678-1234',
@@ -88,7 +75,7 @@ const PaymentsTable: React.FC<PaymentsTableProps> = ({
       createdDate: new Date('2023-12-01'),
       createdBy: 'admin1'
     }
-  ];
+  ], []);
 
   const sortedPayments = useMemo(() => {
     const paymentsToSort = payments.length > 0 ? payments : mockPayments;

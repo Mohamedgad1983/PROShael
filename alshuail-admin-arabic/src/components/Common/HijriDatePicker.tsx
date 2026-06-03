@@ -4,19 +4,13 @@
  * Provides both manual input and calendar selection
  */
 
-import React, { memo,  useState, useEffect, useRef } from 'react';
-import { CalendarIcon, ChevronLeftIcon, ChevronRightIcon, XMarkIcon } from '@heroicons/react/24/outline';
-import {
-  gregorianToHijri,
-  hijriToGregorian,
-  formatHijriDate,
-  formatDualDate,
-  getHijriMonthDays,
-  isValidHijriDate,
-  getCurrentHijriDate,
-  HIJRI_MONTHS
-} from '../../utils/hijriDateUtils';
+import { CalendarIcon,ChevronLeftIcon,ChevronRightIcon } from '@heroicons/react/24/outline';
+import React,{ memo,useEffect,useRef,useState } from 'react';
 import '../../styles/ultra-premium-islamic-design.css';
+import {
+getCurrentHijriDate,getHijriMonthDays,gregorianToHijri,
+hijriToGregorian,HIJRI_MONTHS,isValidHijriDate
+} from '../../utils/hijriDateUtils';
 
 interface HijriDatePickerProps {
   value?: string; // Gregorian date in YYYY-MM-DD format
@@ -36,8 +30,6 @@ export const HijriDatePicker: React.FC<HijriDatePickerProps> = ({
   label,
   placeholder = 'اختر التاريخ الهجري',
   required = false,
-  minDate,
-  maxDate,
   showGregorian = true,
   className = ''
 }) => {

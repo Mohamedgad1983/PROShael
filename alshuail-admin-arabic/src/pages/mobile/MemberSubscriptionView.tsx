@@ -1,8 +1,8 @@
 // @ts-nocheck
-import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { logger } from '../../utils/logger';
+import React,{ useCallback,useEffect,useMemo,useState } from 'react';
 import { API_ORIGIN } from '../../utils/apiConfig';
+import { logger } from '../../utils/logger';
 
 import './MemberSubscriptionView.css';
 
@@ -40,16 +40,11 @@ const MemberSubscriptionView: React.FC = () => {
 
   const API_BASE = API_ORIGIN;
   const token = localStorage.getItem('token');
-  const axiosConfig = {
+  const axiosConfig = useMemo(() => ({
     headers: { Authorization: `Bearer ${token}` }
-  };
+  }), [token]);
 
-  useEffect(() => {
-    fetchSubscription();
-    fetchPaymentHistory();
-  }, []);
-
-  const fetchSubscription = async () => {
+  const fetchSubscription = useCallback(async () => {
     try {
       const { data } = await axios.get(`${API_BASE}/api/subscriptions/member/subscription`, axiosConfig);
       setSubscription(data.subscription);
@@ -58,16 +53,21 @@ const MemberSubscriptionView: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [API_BASE, axiosConfig]);
 
-  const fetchPaymentHistory = async () => {
+  const fetchPaymentHistory = useCallback(async () => {
     try {
       const { data } = await axios.get(`${API_BASE}/api/subscriptions/member/subscription/payments?limit=10`, axiosConfig);
       setPayments(data.payments);
     } catch (error) {
       logger.error('فشل في تحميل السجل:', { error });
     }
-  };
+  }, [API_BASE, axiosConfig]);
+
+  useEffect(() => {
+    fetchSubscription();
+    fetchPaymentHistory();
+  }, [fetchSubscription, fetchPaymentHistory]);
 
   if (loading) {
     return (

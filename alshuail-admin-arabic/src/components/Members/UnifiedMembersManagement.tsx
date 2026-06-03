@@ -8,36 +8,16 @@
  * UPDATED: November 17, 2025 - Phase 3: Real Data Integration
  */
 
-import React, { memo, useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  FunnelIcon,
-  UserGroupIcon,
-  UserIcon,
-  CheckCircleIcon,
-  ClockIcon,
-  ShieldCheckIcon,
-  ArrowDownTrayIcon,
-  PlusIcon,
-  EyeIcon,
-  PencilIcon,
-  TrashIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  AdjustmentsHorizontalIcon,
-  XMarkIcon,
-  DocumentArrowDownIcon,
-  UsersIcon,
-  BanknotesIcon,
-  CalendarDaysIcon,
-  MapPinIcon,
-  PhoneIcon,
-  EnvelopeIcon,
-  ExclamationCircleIcon,
+ArrowDownTrayIcon,BanknotesIcon,CheckCircleIcon,ChevronLeftIcon,
+ChevronRightIcon,ExclamationCircleIcon,EyeIcon,
+PencilIcon,PlusIcon,TrashIcon,UserGroupIcon
 } from '@heroicons/react/24/outline';
-import { CheckCircleIcon as CheckCircleIconSolid, StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
+import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
+import React,{ memo,useCallback,useEffect,useState } from 'react';
 
-import { logger } from '../../utils/logger';
 import memberService from '../../services/memberService'; // ✅ NEW - Import real service
+import { logger } from '../../utils/logger';
 import MemberTableSkeleton from './MemberTableSkeleton'; // ✅ NEW - Import skeleton
 import StatsCardSkeleton from './StatsCardSkeleton'; // ✅ NEW - Import skeleton
 
@@ -158,7 +138,7 @@ const UnifiedMembersManagement: React.FC<UnifiedMembersManagementProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null); // ✅ NEW - Error state
   const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState<FilterState>({
+  const [filters] = useState<FilterState>({
     status: '',
     profile_completed: '',
     social_security_beneficiary: '',
@@ -172,8 +152,7 @@ const UnifiedMembersManagement: React.FC<UnifiedMembersManagementProps> = ({
     totalPages: 0,
   });
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
-  const [showFilters, setShowFilters] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(config.theme === 'dark');
+  const [isDarkMode] = useState(config.theme === 'dark');
 
   // ✅ NEW - Fetch REAL members data from API
   const fetchMembers = useCallback(async () => {
@@ -256,10 +235,6 @@ const UnifiedMembersManagement: React.FC<UnifiedMembersManagementProps> = ({
   }, [fetchMembers]);
 
   // Handle filter changes
-  const handleFilterChange = (key: keyof FilterState, value: string) => {
-    setFilters((prev) => ({ ...prev, [key]: value }));
-    setPagination((prev) => ({ ...prev, page: 1 }));
-  };
 
   // Handle pagination
   const handlePaginationChange = (newPage: number) => {

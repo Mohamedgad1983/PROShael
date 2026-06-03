@@ -2,7 +2,7 @@
  * SettingsInput Storybook Stories
  */
 
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta,StoryObj } from '@storybook/react';
 import { useState } from 'react';
 import { SettingsInput } from './SettingsInput';
 
@@ -38,6 +38,82 @@ type Story = StoryObj<typeof SettingsInput>;
 const InteractiveWrapper = (args: any) => {
   const [value, setValue] = useState(args.value || '');
   return <SettingsInput {...args} value={value} onChange={setValue} />;
+};
+
+const FormExampleRender = () => {
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [phone, setPhone] = useState('');
+
+  return (
+    <div style={{ maxWidth: '400px', direction: 'rtl' }}>
+      <h3>نموذج تسجيل</h3>
+      <SettingsInput
+        label="اسم المستخدم"
+        value={username}
+        onChange={setUsername}
+        placeholder="أدخل اسم المستخدم"
+        required
+      />
+      <SettingsInput
+        label="البريد الإلكتروني"
+        type="email"
+        value={email}
+        onChange={setEmail}
+        placeholder="example@domain.com"
+        required
+      />
+      <SettingsInput
+        label="كلمة المرور"
+        type="password"
+        value={password}
+        onChange={setPassword}
+        placeholder="••••••••"
+        required
+      />
+      <SettingsInput
+        label="رقم الهاتف"
+        type="tel"
+        value={phone}
+        onChange={setPhone}
+        placeholder="05XXXXXXXX"
+      />
+    </div>
+  );
+};
+
+const ValidationExampleRender = () => {
+  const [email, setEmail] = useState('');
+  const [error, setError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const validateEmail = (value: string) => {
+    setEmail(value);
+    if (value && !value.includes('@')) {
+      setError(true);
+      setErrorMessage('البريد الإلكتروني يجب أن يحتوي على @');
+    } else {
+      setError(false);
+      setErrorMessage('');
+    }
+  };
+
+  return (
+    <div style={{ maxWidth: '400px', direction: 'rtl' }}>
+      <h3>مثال على التحقق من الصحة</h3>
+      <SettingsInput
+        label="البريد الإلكتروني"
+        type="email"
+        value={email}
+        onChange={validateEmail}
+        placeholder="أدخل البريد الإلكتروني"
+        error={error}
+        errorMessage={errorMessage}
+        required
+      />
+    </div>
+  );
 };
 
 // Basic Text Input
@@ -123,82 +199,10 @@ export const Disabled: Story = {
 
 // Form Example
 export const FormExample: Story = {
-  render: () => {
-    const [username, setUsername] = useState('');
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [phone, setPhone] = useState('');
-
-    return (
-      <div style={{ maxWidth: '400px', direction: 'rtl' }}>
-        <h3>نموذج تسجيل</h3>
-        <SettingsInput
-          label="اسم المستخدم"
-          value={username}
-          onChange={setUsername}
-          placeholder="أدخل اسم المستخدم"
-          required
-        />
-        <SettingsInput
-          label="البريد الإلكتروني"
-          type="email"
-          value={email}
-          onChange={setEmail}
-          placeholder="example@domain.com"
-          required
-        />
-        <SettingsInput
-          label="كلمة المرور"
-          type="password"
-          value={password}
-          onChange={setPassword}
-          placeholder="••••••••"
-          required
-        />
-        <SettingsInput
-          label="رقم الهاتف"
-          type="tel"
-          value={phone}
-          onChange={setPhone}
-          placeholder="05XXXXXXXX"
-        />
-      </div>
-    );
-  }
+  render: FormExampleRender
 };
 
 // Validation Example
 export const ValidationExample: Story = {
-  render: () => {
-    const [email, setEmail] = useState('');
-    const [error, setError] = useState(false);
-    const [errorMessage, setErrorMessage] = useState('');
-
-    const validateEmail = (value: string) => {
-      setEmail(value);
-      if (value && !value.includes('@')) {
-        setError(true);
-        setErrorMessage('البريد الإلكتروني يجب أن يحتوي على @');
-      } else {
-        setError(false);
-        setErrorMessage('');
-      }
-    };
-
-    return (
-      <div style={{ maxWidth: '400px', direction: 'rtl' }}>
-        <h3>مثال على التحقق من الصحة</h3>
-        <SettingsInput
-          label="البريد الإلكتروني"
-          type="email"
-          value={email}
-          onChange={validateEmail}
-          placeholder="أدخل البريد الإلكتروني"
-          error={error}
-          errorMessage={errorMessage}
-          required
-        />
-      </div>
-    );
-  }
+  render: ValidationExampleRender
 };

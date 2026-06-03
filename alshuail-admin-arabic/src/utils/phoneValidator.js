@@ -238,7 +238,7 @@ export const getPhoneFormatDescription = (country = 'SA') => {
   }
 };
 
-export default {
+const phoneValidatorExports = {
   validatePhone,
   formatPhone,
   normalizePhone,
@@ -248,3 +248,5 @@ export default {
   getPhoneFormatDescription,
   COUNTRY_CODES
 };
+
+export default phoneValidatorExports;

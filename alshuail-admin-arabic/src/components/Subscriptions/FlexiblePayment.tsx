@@ -1,4 +1,4 @@
-import React, { memo,  useState, useCallback, useEffect } from 'react';
+import React,{ memo,useCallback,useEffect,useState } from 'react';
 import './FlexiblePayment.css';
 
 // Define interfaces for type safety

@@ -3,31 +3,17 @@
  * Allows super admins to assign multiple time-based roles to users
  */
 
-import React, { memo,  useState, useEffect } from 'react';
 import {
-  UserGroupIcon,
-  PlusIcon,
-  MagnifyingGlassIcon,
-  CalendarIcon,
-  PencilIcon,
-  TrashIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  ClockIcon,
-  ShieldCheckIcon,
-  ExclamationTriangleIcon
+CheckCircleIcon,ExclamationTriangleIcon,MagnifyingGlassIcon,
+PencilIcon,PlusIcon,ShieldCheckIcon,TrashIcon,UserGroupIcon
 } from '@heroicons/react/24/outline';
-import multiRoleService, {
-  Role,
-  User,
-  RoleAssignment,
-  AssignRoleRequest,
-  UpdateRoleAssignmentRequest
+import React,{ memo,useCallback,useEffect,useState } from 'react';
+import multiRoleService,{
+AssignRoleRequest,Role,RoleAssignment,UpdateRoleAssignmentRequest,User
 } from '../../services/multiRoleService';
 import { HijriDatePicker } from '../Common/HijriDatePicker';
 // Import shared styles for consistent design
-import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, commonStyles, getMessageStyle } from './sharedStyles';
-import { SettingsButton, StatusBadge } from './shared';
+import { BORDER_RADIUS,COLORS,commonStyles,getMessageStyle,SPACING,TYPOGRAPHY } from './sharedStyles';
 
 import { logger } from '../../utils/logger';
 
@@ -83,11 +69,52 @@ const MultiRoleManagement: React.FC = () => {
     notes: ''
   });
 
+  const showNotification = useCallback((type: 'success' | 'error', message: string) => {
+    setNotification({ type, message });
+    setTimeout(() => setNotification(null), 5000);
+  }, []);
+
+  const loadRoles = useCallback(async () => {
+    try {
+      const data = await multiRoleService.getRoles();
+      setRoles(data);
+    } catch (error) {
+      showNotification('error', 'فشل تحميل الأدوار');
+      logger.error('Load roles error:', { error });
+    }
+  }, [showNotification]);
+
+  const loadAllUsersWithRoles = useCallback(async () => {
+    try {
+      setLoadingAllUsers(true);
+      const data = await multiRoleService.getAllAssignments();
+      setAllUsersWithRoles(data.users || []);
+    } catch (error) {
+      // Don't show error if endpoint doesn't exist yet
+      logger.debug('Load all users with roles:', { error });
+    } finally {
+      setLoadingAllUsers(false);
+    }
+  }, []);
+
+  const searchMembers = useCallback(async () => {
+    try {
+      setLoading(true);
+      const results = await multiRoleService.searchMembers(searchQuery);
+      setSearchResults(results);
+    } catch (error) {
+      showNotification('error', 'فشل البحث عن الأعضاء');
+      logger.error('Search error:', { error });
+    } finally {
+      setLoading(false);
+    }
+  }, [searchQuery, showNotification]);
+
   // Load roles and all users with roles on mount
   useEffect(() => {
     loadRoles();
     loadAllUsersWithRoles();
-  }, []);
+  }, [loadRoles, loadAllUsersWithRoles]);
 
   // Search members with debounce
   useEffect(() => {
@@ -100,43 +127,7 @@ const MultiRoleManagement: React.FC = () => {
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchQuery]);
-
-  const loadRoles = async () => {
-    try {
-      const data = await multiRoleService.getRoles();
-      setRoles(data);
-    } catch (error) {
-      showNotification('error', 'فشل تحميل الأدوار');
-      logger.error('Load roles error:', { error });
-    }
-  };
-
-  const loadAllUsersWithRoles = async () => {
-    try {
-      setLoadingAllUsers(true);
-      const data = await multiRoleService.getAllAssignments();
-      setAllUsersWithRoles(data.users || []);
-    } catch (error) {
-      // Don't show error if endpoint doesn't exist yet
-      logger.debug('Load all users with roles:', { error });
-    } finally {
-      setLoadingAllUsers(false);
-    }
-  };
-
-  const searchMembers = async () => {
-    try {
-      setLoading(true);
-      const results = await multiRoleService.searchMembers(searchQuery);
-      setSearchResults(results);
-    } catch (error) {
-      showNotification('error', 'فشل البحث عن الأعضاء');
-      logger.error('Search error:', { error });
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [searchQuery, searchMembers]);
 
   const loadUserAssignments = async (userId: string) => {
     try {
@@ -261,11 +252,6 @@ const MultiRoleManagement: React.FC = () => {
       end_date_hijri: '',
       notes: ''
     });
-  };
-
-  const showNotification = (type: 'success' | 'error', message: string) => {
-    setNotification({ type, message });
-    setTimeout(() => setNotification(null), 5000);
   };
 
   const getStatusBadge = (status: string) => {

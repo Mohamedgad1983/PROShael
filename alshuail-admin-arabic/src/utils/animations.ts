@@ -205,8 +205,8 @@ export const getLoadingSpinnerStyles = (size: number = 24, color: string = '#667
  * Progress bar animation styles
  */
 export const getProgressBarStyles = (
-  progress: number,
-  duration: number = 500,
+  _progress: number,
+  _duration: number = 500,
   color: string = '#667eea'
 ): React.CSSProperties => ({
   width: '100%',
@@ -252,7 +252,7 @@ export const getSkeletonLoadingStyles = (
  * Hover animation styles
  */
 export const getHoverStyles = (
-  scale: number = 1.05,
+  _scale: number = 1.05,
   duration: number = 200
 ): React.CSSProperties => ({
   transition: `transform ${duration}ms ease, box-shadow ${duration}ms ease`,
@@ -270,7 +270,7 @@ export const getHoverActiveStyles = (
  * Press animation styles
  */
 export const getPressStyles = (
-  scale: number = 0.95,
+  _scale: number = 0.95,
   duration: number = 100
 ): React.CSSProperties => ({
   transition: `transform ${duration}ms ease`
@@ -286,7 +286,7 @@ export const getPressActiveStyles = (
  * Floating animation for call-to-action elements
  */
 export const getFloatingStyles = (
-  yOffset: number = 4,
+  _yOffset: number = 4,
   duration: number = 2000
 ): React.CSSProperties => ({
   animation: `float ${duration}ms ease-in-out infinite`
@@ -295,7 +295,7 @@ export const getFloatingStyles = (
 /**
  * Notification badge pulse animation
  */
-export const getBadgePulseStyles = (color: string = '#ef4444'): React.CSSProperties => ({
+export const getBadgePulseStyles = (_color: string = '#ef4444'): React.CSSProperties => ({
   position: 'relative'
 });
 

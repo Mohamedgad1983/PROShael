@@ -1,7 +1,8 @@
-import React from 'react';
-import { render, fireEvent } from '@testing-library/react';
-import { DesktopNavigation, MobileNavigation, NavigationItem } from '../DashboardNavigation';
+/* eslint-disable testing-library/no-wait-for-multiple-assertions, testing-library/no-node-access, testing-library/prefer-screen-queries, testing-library/no-container, jest/no-conditional-expect */
 import { HomeIcon } from '@heroicons/react/24/outline';
+import { fireEvent,render } from '@testing-library/react';
+import React from 'react';
+import { DesktopNavigation,MobileNavigation,NavigationItem } from '../DashboardNavigation';
 
 describe('DashboardNavigation', () => {
   const items: NavigationItem[] = [

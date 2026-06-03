@@ -3,23 +3,17 @@
  * Full API integration with validation and error handling
  */
 
-import React, { memo,  useState, useEffect } from 'react';
 import {
-  ServerIcon,
-  CpuChipIcon,
-  ShieldCheckIcon,
-  ClockIcon,
-  CheckCircleIcon,
-  ExclamationCircleIcon,
-  ArrowPathIcon
+ArrowPathIcon,CheckCircleIcon,ClockIcon,CpuChipIcon,ExclamationCircleIcon,ServerIcon,ShieldCheckIcon
 } from '@heroicons/react/24/outline';
 import axios from 'axios';
+import React,{ memo,useCallback,useEffect,useState } from 'react';
 // Import shared styles for consistent design
-import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, commonStyles, getMessageStyle } from './sharedStyles';
 import { SettingsButton } from './shared';
+import { BORDER_RADIUS,COLORS,commonStyles,SPACING,TYPOGRAPHY } from './sharedStyles';
 
-import { logger } from '../../utils/logger';
 import { API_ORIGIN } from '../../utils/apiConfig';
+import { logger } from '../../utils/logger';
 
 interface SystemSettings {
   system_name: string;
@@ -60,12 +54,7 @@ const SystemSettingsEnhanced: React.FC = () => {
 
   const API_BASE = API_ORIGIN;
 
-  // Fetch settings on component mount
-  useEffect(() => {
-    fetchSettings();
-  }, []);
-
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -112,7 +101,12 @@ const SystemSettingsEnhanced: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [API_BASE]);
+
+  // Fetch settings on component mount
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
 
   const validateSettings = (): boolean => {
     const errors: Record<string, string> = {};
@@ -172,7 +166,7 @@ const SystemSettingsEnhanced: React.FC = () => {
         security_settings: settings.security_settings
       };
 
-      const response = await axios.put(`${API_BASE}/api/settings/system`, payload, {
+      await axios.put(`${API_BASE}/api/settings/system`, payload, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

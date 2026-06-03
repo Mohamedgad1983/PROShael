@@ -3,11 +3,11 @@
  * API endpoint handlers that the frontend can integrate with
  */
 
-import subscriptionService from './subscriptionService.js';
-import paymentService from './paymentService.js';
 import analyticsService from './analyticsService.js';
+import { findMemberById,findPlanById,mockDatabase } from './mockData.js';
+import paymentService from './paymentService.js';
 import PaymentValidationService from './paymentValidationService.js';
-import { mockDatabase, findMemberById, findPlanById, findSubscriptionById } from './mockData.js';
+import subscriptionService from './subscriptionService.js';
 
 import { logger } from '../utils/logger';
 
@@ -68,7 +68,6 @@ const handleError = (error, context = 'API') => {
  */
 const validateRequest = (params, requiredFields) => {
   const missing = [];
-  const invalid = [];
 
   requiredFields.forEach(field => {
     if (params[field] === undefined || params[field] === null || params[field] === '') {
@@ -898,7 +897,7 @@ export const healthCheckHandler = async () => {
 };
 
 // Export all handlers
-export default {
+const apiHandlerExports = {
   // Plan management
   getSubscriptionPlansHandler,
   createSubscriptionPlanHandler,
@@ -949,3 +948,5 @@ export default {
   validateRequest,
   validateId
 };
+
+export default apiHandlerExports;

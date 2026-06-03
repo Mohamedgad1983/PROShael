@@ -11,22 +11,13 @@
  * - Show adjustment history
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
-  XMarkIcon,
-  PlusCircleIcon,
-  MinusCircleIcon,
-  ClockIcon,
-  ExclamationTriangleIcon,
-  CheckCircleIcon,
-  AdjustmentsHorizontalIcon,
-  CalendarIcon,
-  DocumentTextIcon,
-  ArrowPathIcon
+AdjustmentsHorizontalIcon,ArrowPathIcon,CalendarIcon,CheckCircleIcon,ClockIcon,DocumentTextIcon,ExclamationTriangleIcon,MinusCircleIcon,PlusCircleIcon,XMarkIcon
 } from '@heroicons/react/24/outline';
-import { logger } from '../../utils/logger';
+import { AnimatePresence,motion } from 'framer-motion';
+import React,{ useCallback,useEffect,useState } from 'react';
 import { API_BASE_URL } from '../../utils/apiConfig';
+import { logger } from '../../utils/logger';
 import './BalanceAdjustmentModal.css';
 
 const BalanceAdjustmentModal = ({ isOpen, onClose, member, onSuccess }) => {
@@ -73,15 +64,7 @@ const BalanceAdjustmentModal = ({ isOpen, onClose, member, onSuccess }) => {
     { value: 'yearly_payment', label: 'دفعة سنوية', icon: CalendarIcon, color: 'purple' }
   ];
 
-  // Load adjustment history and balance summary when modal opens
-  useEffect(() => {
-    if (isOpen && member?.id) {
-      loadAdjustmentHistory();
-      loadBalanceSummary();
-    }
-  }, [isOpen, member?.id]);
-
-  const loadAdjustmentHistory = async () => {
+  const loadAdjustmentHistory = useCallback(async () => {
     if (!member?.id) return;
     setHistoryLoading(true);
 
@@ -105,9 +88,9 @@ const BalanceAdjustmentModal = ({ isOpen, onClose, member, onSuccess }) => {
     } finally {
       setHistoryLoading(false);
     }
-  };
+  }, [API_URL, member?.id]);
 
-  const loadBalanceSummary = async () => {
+  const loadBalanceSummary = useCallback(async () => {
     if (!member?.id) return;
 
     try {
@@ -128,7 +111,15 @@ const BalanceAdjustmentModal = ({ isOpen, onClose, member, onSuccess }) => {
     } catch (err) {
       logger.error('Error loading balance summary:', { err });
     }
-  };
+  }, [API_URL, member?.id]);
+
+  // Load adjustment history and balance summary when modal opens
+  useEffect(() => {
+    if (isOpen && member?.id) {
+      loadAdjustmentHistory();
+      loadBalanceSummary();
+    }
+  }, [isOpen, member?.id, loadAdjustmentHistory, loadBalanceSummary]);
 
   const handleInputChange = useCallback((e) => {
     const { name, value } = e.target;

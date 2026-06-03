@@ -16,7 +16,7 @@
  * @date 2025-11-13
  */
 
-import React, { memo,  ButtonHTMLAttributes, ReactNode } from 'react';
+import React,{ ButtonHTMLAttributes,ReactNode } from 'react';
 import { getTheme } from '../../modernDesignSystem';
 
 // ============================================================================
@@ -115,9 +115,8 @@ export interface ModernButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonE
 // LOADING SPINNER COMPONENT
 // ============================================================================
 
-const LoadingSpinner: React.FC<{ size: ButtonSize; isDarkMode: boolean }> = ({ size, isDarkMode }) => {
+const LoadingSpinner: React.FC<{ size: ButtonSize }> = ({ size }) => {
   const spinnerSize = size === 'small' ? '14px' : size === 'large' ? '20px' : '16px';
-  const theme = getTheme(isDarkMode);
 
   return (
     <svg
@@ -386,7 +385,7 @@ export const ModernButton: React.FC<ModernButtonProps> = ({
       {/* Loading Spinner */}
       {loading && (
         <span style={{ display: 'flex', alignItems: 'center' }}>
-          <LoadingSpinner size={size} isDarkMode={isDarkMode} />
+          <LoadingSpinner size={size} />
         </span>
       )}
 

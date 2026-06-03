@@ -478,7 +478,7 @@ export const initializeMobileOptimizations = () => {
 };
 
 // Export all utilities as default
-export default {
+const mobileUtilityExports = {
   DeviceDetection,
   SafeArea,
   ViewportUtils,
@@ -493,3 +493,5 @@ export default {
   RTLUtils,
   initializeMobileOptimizations
 };
+
+export default mobileUtilityExports;

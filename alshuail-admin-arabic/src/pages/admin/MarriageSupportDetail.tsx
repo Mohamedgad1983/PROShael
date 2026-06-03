@@ -5,17 +5,9 @@
  * timeline, status history, and a role-aware action panel.
  */
 
-import React, { useEffect, useState } from 'react';
+import React,{ useEffect,useState } from 'react';
 import {
-  marriageSupportService,
-  MarriageRequest,
-  STATUS_LABELS_AR,
-  STATUS_COLORS,
-  SIGNER_ROLE_LABELS_AR,
-  SignerRole,
-  fmtAmount,
-  isCommitteeRole,
-  isChairmanRole,
+fmtAmount,isChairmanRole,isCommitteeRole,MarriageRequest,marriageSupportService,SignerRole,SIGNER_ROLE_LABELS_AR,STATUS_COLORS,STATUS_LABELS_AR
 } from '../../services/marriageSupportService';
 
 interface Props {

@@ -1,11 +1,11 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React,{ useCallback,useEffect,useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { API_BASE_URL } from '../../utils/apiConfig';
+import { logger } from '../../utils/logger';
 import ErrorDisplay from '../Common/ErrorDisplay';
 import LoadingSpinner from '../Common/LoadingSpinner';
-import ExpenseVoucher from './ExpenseVoucher';
 import FundBalanceCard from '../FundBalanceCard';
-import { logger } from '../../utils/logger';
-import { API_BASE_URL } from '../../utils/apiConfig';
+import ExpenseVoucher from './ExpenseVoucher';
 
 import './ExpenseManagement.css';
 
@@ -77,10 +77,6 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
     { value: 'marketing', label_ar: 'تسويق', label_en: 'Marketing' },
     { value: 'other', label_ar: 'أخرى', label_en: 'Other' }
   ]);
-
-  useEffect(() => {
-    fetchExpenses();
-  }, [dateFilter, statusFilter, categoryFilter, sortBy, sortOrder]);
 
   // Fetch fund balance for expense validation
   const fetchFundBalance = useCallback(async () => {
@@ -193,6 +189,10 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
       setLoading(false);
     }
   }, [dateFilter, statusFilter, categoryFilter, sortBy, sortOrder, searchTerm, token, lastFetchTime]);
+
+  useEffect(() => {
+    fetchExpenses();
+  }, [fetchExpenses]);
 
   const handleCreateExpense = async (e) => {
     e.preventDefault();

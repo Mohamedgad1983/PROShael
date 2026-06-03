@@ -1,6 +1,6 @@
-import React, { memo,  useState, useEffect } from 'react';
-import { logger } from '../../utils/logger';
+import React,{ memo,useEffect,useState } from 'react';
 import { API_ORIGIN } from '../../utils/apiConfig';
+import { logger } from '../../utils/logger';
 
 import './CrisisDashboard.css';
 
@@ -216,6 +216,7 @@ const CrisisDashboard = () => {
     // Auto-refresh every 30 seconds
     const interval = setInterval(fetchCrisisData, 30000);
     return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- preserve existing one-time legacy load behavior
   }, []);
 
   // Manual refresh

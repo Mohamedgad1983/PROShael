@@ -3,24 +3,20 @@
  * Allows users to manage their profile information and avatar
  */
 
-import React, { memo,  useState, useRef, useEffect } from 'react';
-import { UserIcon, PhotoIcon, XMarkIcon, CheckCircleIcon, ExclamationCircleIcon, EyeIcon, EyeSlashIcon, LockClosedIcon } from '@heroicons/react/24/outline';
+import { CheckCircleIcon,ExclamationCircleIcon,EyeIcon,EyeSlashIcon,LockClosedIcon,PhotoIcon,XMarkIcon } from '@heroicons/react/24/outline';
 import axios from 'axios';
+import React,{ useEffect,useRef,useState } from 'react';
 import { useRole } from '../../contexts/RoleContext';
-import { logger } from '../../utils/logger';
 import { API_ORIGIN } from '../../utils/apiConfig';
+import { logger } from '../../utils/logger';
 
 import {
-  SettingsCard,
-  SettingsButton,
-  SettingsInput
+SettingsButton,SettingsCard,SettingsInput
 } from './shared';
 import {
-  COLORS,
-  SPACING,
-  TYPOGRAPHY,
-  BORDER_RADIUS,
-  commonStyles
+BORDER_RADIUS,COLORS,
+SPACING,
+TYPOGRAPHY
 } from './sharedStyles';
 
 const API_BASE = API_ORIGIN;

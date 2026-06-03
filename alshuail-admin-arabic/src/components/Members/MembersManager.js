@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React,{ useEffect,useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { logger } from '../../utils/logger';
 
@@ -17,6 +17,7 @@ const MembersManager = () => {
   useEffect(() => {
     loadMembers();
     loadRoles();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- preserve existing one-time legacy load behavior
   }, []);
 
   const loadMembers = async () => {

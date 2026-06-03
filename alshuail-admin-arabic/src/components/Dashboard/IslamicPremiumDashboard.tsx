@@ -1,26 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
 import {
-  HomeIcon,
-  UsersIcon,
-  CreditCardIcon,
-  BanknotesIcon,
-  CalendarIcon,
-  LightBulbIcon,
-  ChartBarIcon,
-  BellIcon,
-  MoonIcon,
-  SunIcon,
-  Bars3Icon,
-  XMarkIcon,
-  SparklesIcon,
-  StarIcon,
-  HeartIcon,
-  GlobeAltIcon,
-  BookOpenIcon,
-  GiftIcon,
-  HandRaisedIcon
+BanknotesIcon,Bars3Icon,BellIcon,CalendarIcon,ChartBarIcon,CreditCardIcon,GiftIcon,
+HandRaisedIcon,HomeIcon,LightBulbIcon,MoonIcon,SparklesIcon,
+StarIcon,SunIcon,UsersIcon,XMarkIcon
 } from '@heroicons/react/24/outline';
-import { Line, Doughnut, Bar } from 'react-chartjs-2';
+import React,{ useEffect,useState } from 'react';
+import { Doughnut,Line } from 'react-chartjs-2';
 import '../../styles/ultra-premium-islamic-design.css';
 
 interface DashboardStats {
@@ -38,10 +22,9 @@ const IslamicPremiumDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [showNotifications, setShowNotifications] = useState(false);
   const [currentHijriDate, setCurrentHijriDate] = useState('');
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [stats, setStats] = useState<DashboardStats>({
+  const [stats] = useState<DashboardStats>({
     totalMembers: 156,
     activeMembers: 142,
     monthlyContributions: 47500,

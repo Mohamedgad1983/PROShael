@@ -1,8 +1,8 @@
-import React, { memo } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { HomeIcon, CreditCardIcon, BellIcon, UserIcon } from '@heroicons/react/24/outline';
-import { HomeIcon as HomeIconSolid, CreditCardIcon as CreditCardIconSolid, BellIcon as BellIconSolid, UserIcon as UserIconSolid } from '@heroicons/react/24/solid';
+import { BellIcon,CreditCardIcon,HomeIcon,UserIcon } from '@heroicons/react/24/outline';
+import { BellIcon as BellIconSolid,CreditCardIcon as CreditCardIconSolid,HomeIcon as HomeIconSolid,UserIcon as UserIconSolid } from '@heroicons/react/24/solid';
 import { motion } from 'framer-motion';
+import React,{ memo } from 'react';
+import { useLocation,useNavigate } from 'react-router-dom';
 import './BottomNav.css';
 
 const BottomNav = ({ unreadNotifications = 0 }) => {

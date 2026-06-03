@@ -1,25 +1,10 @@
-import React, { memo,  useState, useEffect, useRef } from 'react';
 import {
-  XMarkIcon,
-  UserIcon,
-  PhoneIcon,
-  EnvelopeIcon,
-  IdentificationIcon,
-  HashtagIcon,
-  DevicePhoneMobileIcon,
-  BriefcaseIcon,
-  ShieldCheckIcon,
-  PaperAirplaneIcon,
-  CheckCircleIcon,
-  UserPlusIcon,
-  MapPinIcon,
-  CalendarDaysIcon,
-  ExclamationTriangleIcon,
-  PhotoIcon
+BriefcaseIcon,DevicePhoneMobileIcon,EnvelopeIcon,ExclamationTriangleIcon,HashtagIcon,IdentificationIcon,MapPinIcon,PaperAirplaneIcon,PhoneIcon,PhotoIcon,ShieldCheckIcon,UserIcon,UserPlusIcon,XMarkIcon
 } from '@heroicons/react/24/outline';
 import { CheckCircleIcon as CheckCircleIconSolid } from '@heroicons/react/24/solid';
-import { HijriDatePicker } from '../Common/HijriDatePicker';
+import React,{ memo,useEffect,useRef,useState } from 'react';
 import { logger } from '../../utils/logger';
+import { HijriDatePicker } from '../Common/HijriDatePicker';
 
 import '../../styles/apple-design-system.css';
 
@@ -77,7 +62,7 @@ const AppleAddMemberModal: React.FC<AddMemberModalProps> = ({
   const [errors, setErrors] = useState<ValidationError[]>([]);
   const [success, setSuccess] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
-  const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [, setFocusedField] = useState<string | null>(null);
 
   const modalRef = useRef<HTMLDivElement>(null);
   const firstInputRef = useRef<HTMLInputElement>(null);
@@ -533,7 +518,7 @@ const AppleAddMemberModal: React.FC<AddMemberModalProps> = ({
                 <div>
                   <HijriDatePicker
                     value={formData.birth_date}
-                    onChange={(gregorianDate, hijriDate) => {
+                    onChange={(gregorianDate) => {
                       setFormData(prev => ({ ...prev, birth_date: gregorianDate }));
                     }}
                     label="تاريخ الميلاد (اختياري)"

@@ -13,7 +13,6 @@ import { logger } from './utils/logger';
 import(
   /* webpackChunkName: "access-control-bundle" */
   /* webpackMode: "eager" */
-  /* webpackExports: ["default", "AccessControl", "__KEEP_ACCESS_CONTROL__"] */
   './features/access-control'
 ).then((module) => {
   // Store in global scope to create visible side-effect

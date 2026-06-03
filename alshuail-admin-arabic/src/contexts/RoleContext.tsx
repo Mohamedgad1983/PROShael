@@ -3,7 +3,7 @@
  * Manages user roles and permissions throughout the application
  */
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React,{ createContext,ReactNode,useContext,useEffect,useState } from 'react';
 
 import { logger } from '../utils/logger';
 
@@ -117,15 +117,6 @@ const ROLE_NAVIGATION = {
       view_own_data: true
     }
   }
-};
-
-// Permission checking helpers
-const PERMISSION_HIERARCHY: Record<UserRole, number> = {
-  super_admin: 100,
-  financial_manager: 80,
-  family_tree_admin: 70,
-  occasions_initiatives_diyas_admin: 60,
-  user_member: 10
 };
 
 interface RoleProviderProps {

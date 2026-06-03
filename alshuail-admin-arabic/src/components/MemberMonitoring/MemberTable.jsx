@@ -1,11 +1,8 @@
-import React, { memo,  useState } from 'react';
-import ActionButtons from './ActionButtons';
 import {
-  UserIcon,
-  PhoneIcon,
-  CurrencyDollarIcon,
-  UsersIcon
+CurrencyDollarIcon,PhoneIcon,UserIcon,UsersIcon
 } from '@heroicons/react/24/outline';
+import React,{ memo,useState } from 'react';
+import ActionButtons from './ActionButtons';
 
 const MemberTable = ({ members, userRole, onSuspend, onNotify }) => {
   const [sortField, setSortField] = useState(null);

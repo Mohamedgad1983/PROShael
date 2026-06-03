@@ -316,9 +316,11 @@ export const errorHandling = {
   }
 };
 
-export default {
+const memberServiceDemoExports = {
   adminExamples,
   publicExamples,
   reactExamples,
   errorHandling
 };
+
+export default memberServiceDemoExports;

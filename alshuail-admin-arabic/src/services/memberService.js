@@ -1,7 +1,5 @@
-import { apiService } from './api.js';
-
-import { logger } from '../utils/logger';
 import { API_ORIGIN } from '../utils/apiConfig';
+import { logger } from '../utils/logger';
 
 /**
  * Member Management Service

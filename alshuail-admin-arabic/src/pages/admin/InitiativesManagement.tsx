@@ -1,14 +1,13 @@
-import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import React,{ useCallback,useEffect,useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { toHijri, toGregorian } from 'hijri-converter';
-import SimpleHijriDatePicker from '../../components/Common/SimpleHijriDatePicker';
 import { HijriDateInput } from '../../components/Common/HijriDateInput';
-import useActiveMemberCount from '../../hooks/useActiveMemberCount';
 import MemberCountToast from '../../components/Common/MemberCountToast';
+import SimpleHijriDatePicker from '../../components/Common/SimpleHijriDatePicker';
+import useActiveMemberCount from '../../hooks/useActiveMemberCount';
 
-import { logger } from '../../utils/logger';
 import { API_BASE_URL } from '../../utils/apiConfig';
+import { logger } from '../../utils/logger';
 
 interface Initiative {
     id: number;
@@ -83,11 +82,7 @@ const InitiativesManagement = () => {
 
     const API_URL = API_BASE_URL;
 
-    useEffect(() => {
-        fetchInitiatives();
-    }, [selectedStatus]);
-
-    const fetchInitiatives = async () => {
+    const fetchInitiatives = useCallback(async () => {
         try {
             const token = localStorage.getItem('token');
             const params = selectedStatus !== 'all' ? { status: selectedStatus } : {};
@@ -102,7 +97,11 @@ const InitiativesManagement = () => {
             setInitiatives([]);
             setLoading(false);
         }
-    };
+    }, [API_URL, selectedStatus]);
+
+    useEffect(() => {
+        fetchInitiatives();
+    }, [fetchInitiatives]);
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();

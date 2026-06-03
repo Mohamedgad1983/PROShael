@@ -1,6 +1,7 @@
-import React from 'react';
+/* eslint-disable testing-library/no-wait-for-multiple-assertions, testing-library/no-node-access, testing-library/prefer-screen-queries, testing-library/no-container, jest/no-conditional-expect */
 import { render } from '@testing-library/react';
-import { SettingsTable, SettingsTableColumn } from '../SettingsTable';
+import React from 'react';
+import { SettingsTable,SettingsTableColumn } from '../SettingsTable';
 
 interface User {
   id: string;
@@ -64,7 +65,7 @@ describe('SettingsTable', () => {
       }
     ];
 
-    const { getByTestId, getAllByTestId } = render(
+    const { getAllByTestId } = render(
       <SettingsTable
         columns={columnsWithRender}
         data={sampleUsers}

@@ -1,52 +1,20 @@
-﻿import React, {  useState, useEffect , useCallback } from 'react';
-import { toHijri, toGregorian } from 'hijri-converter';
-import SimpleHijriDatePicker from '../Common/SimpleHijriDatePicker';
-import { logger } from '../../utils/logger';
+import React,{ useEffect,useState } from 'react';
 import { API_ORIGIN } from '../../utils/apiConfig';
+import { logger } from '../../utils/logger';
+import SimpleHijriDatePicker from '../Common/SimpleHijriDatePicker';
 
 import {
-  ScaleIcon,
-  BanknotesIcon,
-  ClockIcon,
-  CheckCircleIcon,
-  ExclamationTriangleIcon,
-  PlusIcon,
-  EyeIcon,
-  PencilIcon,
-  TrashIcon,
-  MagnifyingGlassIcon,
-  FunnelIcon,
-  CurrencyDollarIcon,
-  CalendarDaysIcon,
-  UserGroupIcon,
-  DocumentTextIcon,
-  ShieldCheckIcon,
-  ChartBarIcon,
-  UsersIcon,
-  HandRaisedIcon,
-  FireIcon,
-  StarIcon,
-  ArrowTrendingUpIcon,
-  XMarkIcon
+ArrowTrendingUpIcon,BanknotesIcon,CalendarDaysIcon,ChartBarIcon,CheckCircleIcon,ClockIcon,CurrencyDollarIcon,DocumentTextIcon,ExclamationTriangleIcon,EyeIcon,FireIcon,HandRaisedIcon,MagnifyingGlassIcon,PlusIcon,ScaleIcon,ShieldCheckIcon,StarIcon,UsersIcon,XMarkIcon
 } from '@heroicons/react/24/outline';
 
 const AppleDiyasManagement = () => {
   // Performance optimized event handlers
-  const handleRefresh = useCallback(() => {
-    // Refresh logic here
-  }, []);
 
-  const handleFilterChange = useCallback((filterType, value) => {
-    // Filter logic here
-  }, []);
 
-  const handlePageChange = useCallback((page) => {
-    // Pagination logic here
-  }, []);
 
   const [activeTab, setActiveTab] = useState('overview');
   const [diyas, setDiyas] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterType, setFilterType] = useState('');
@@ -152,6 +120,7 @@ const AppleDiyasManagement = () => {
 
   useEffect(() => {
     fetchRealDiyaData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- preserve existing one-time legacy load behavior
   }, []);
 
   // Fetch real diya data from API
@@ -264,15 +233,6 @@ const AppleDiyasManagement = () => {
   ];
 
   // Handle date change with Hijri conversion
-  const handleDateChange = (gregorianDate) => {
-    setNewDiya(prev => ({ ...prev, incidentDate: gregorianDate }));
-    if (gregorianDate) {
-      const date = new Date(gregorianDate);
-      const hijri = toHijri(date.getFullYear(), date.getMonth() + 1, date.getDate());
-      const hijriFormatted = `${hijri.hd}/${hijri.hm}/${hijri.hy} هـ`;
-      setNewDiya(prev => ({ ...prev, incidentHijriDate: hijriFormatted }));
-    }
-  };
 
   const handleAmountChange = (amount) => {
     setNewDiya(prev => ({

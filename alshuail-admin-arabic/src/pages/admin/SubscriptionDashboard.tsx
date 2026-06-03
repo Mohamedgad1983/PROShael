@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { logger } from '../../utils/logger';
+import React,{ useCallback,useEffect,useMemo,useState } from 'react';
 import { API_ORIGIN } from '../../utils/apiConfig';
+import { logger } from '../../utils/logger';
 
 import './SubscriptionDashboard.css';
 
@@ -48,30 +48,25 @@ const SubscriptionDashboard: React.FC = () => {
   const API_BASE = API_ORIGIN;
   const token = localStorage.getItem('token');
 
-  const axiosConfig = {
+  const axiosConfig = useMemo(() => ({
     headers: { Authorization: `Bearer ${token}` }
-  };
+  }), [token]);
 
-  // Fetch stats
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const { data } = await axios.get(`${API_BASE}/api/subscriptions/admin/subscriptions/stats`, axiosConfig);
       setStats(data);
     } catch (error) {
       logger.error('فشل في تحميل الإحصائيات:', { error });
     }
-  };
+  }, [API_BASE, axiosConfig]);
 
-  // Fetch subscriptions
+  // Fetch stats
   useEffect(() => {
-    fetchSubscriptions();
-  }, [currentPage, searchTerm, statusFilter]);
+    fetchStats();
+  }, [fetchStats]);
 
-  const fetchSubscriptions = async () => {
+  const fetchSubscriptions = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -93,7 +88,12 @@ const SubscriptionDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [API_BASE, axiosConfig, currentPage, searchTerm, statusFilter]);
+
+  // Fetch subscriptions
+  useEffect(() => {
+    fetchSubscriptions();
+  }, [fetchSubscriptions]);
 
   // Record payment handler
   const handleRecordPayment = async (paymentData: {

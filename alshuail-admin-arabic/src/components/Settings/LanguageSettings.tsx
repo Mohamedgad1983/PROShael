@@ -4,48 +4,25 @@
  * Allows users to customize language, region, timezone, date/time formats, and currency preferences
  */
 
-import React, { memo,  useState, useEffect } from 'react';
 import {
-  LanguageIcon,
-  GlobeAltIcon,
-  ClockIcon,
-  CalendarIcon,
-  CurrencyDollarIcon,
-  CheckCircleIcon,
-  ExclamationCircleIcon
+CalendarIcon,CheckCircleIcon,ClockIcon,CurrencyDollarIcon,ExclamationCircleIcon,GlobeAltIcon,LanguageIcon
 } from '@heroicons/react/24/outline';
 import axios from 'axios';
-import { logger } from '../../utils/logger';
+import React,{ memo,useEffect,useState } from 'react';
 import { API_ORIGIN } from '../../utils/apiConfig';
+import { logger } from '../../utils/logger';
 
 import {
-  SettingsCard,
-  SettingsButton
+applyLanguageSettings,COMMON_CURRENCIES,COMMON_REGIONS,DateFormat,DATE_FORMAT_LABELS,DEFAULT_LANGUAGE_SETTINGS,Language,LanguageSettings as LanguageSettingsType,LANGUAGE_LABELS,NumberFormat,NUMBER_FORMAT_LABELS,TimeFormat,TIME_FORMAT_LABELS,WeekStart,WEEK_START_LABELS
+} from '../../types/languageSettings';
+import {
+SettingsButton,SettingsCard
 } from './shared';
 import {
-  COLORS,
-  SPACING,
-  TYPOGRAPHY,
-  BORDER_RADIUS,
-  commonStyles
+BORDER_RADIUS,COLORS,
+SPACING,
+TYPOGRAPHY
 } from './sharedStyles';
-import {
-  LanguageSettings as LanguageSettingsType,
-  Language,
-  DateFormat,
-  TimeFormat,
-  NumberFormat,
-  WeekStart,
-  LANGUAGE_LABELS,
-  DATE_FORMAT_LABELS,
-  TIME_FORMAT_LABELS,
-  NUMBER_FORMAT_LABELS,
-  WEEK_START_LABELS,
-  COMMON_REGIONS,
-  COMMON_CURRENCIES,
-  DEFAULT_LANGUAGE_SETTINGS,
-  applyLanguageSettings
-} from '../../types/languageSettings';
 
 const API_BASE = API_ORIGIN;
 

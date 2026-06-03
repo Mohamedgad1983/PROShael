@@ -1,21 +1,16 @@
 // @ts-nocheck
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
-  CreditCardIcon,
-  UserIcon,
-  CameraIcon,
-  PhotoIcon,
-  CheckCircleIcon,
-  MagnifyingGlassIcon,
-  XMarkIcon,
-  BanknotesIcon
+BanknotesIcon,CameraIcon,
+CheckCircleIcon,CreditCardIcon,
+UserIcon,XMarkIcon
 } from '@heroicons/react/24/outline';
+import { AnimatePresence,motion } from 'framer-motion';
+import React,{ useCallback,useEffect,useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import BottomNav from '../../components/mobile/BottomNav';
-import ReceiptUpload from './ReceiptUpload';
-import { logger } from '../../utils/logger';
 import { API_ORIGIN } from '../../utils/apiConfig';
+import { logger } from '../../utils/logger';
+import ReceiptUpload from './ReceiptUpload';
 
 import '../../styles/mobile/Payment.css';
 
@@ -42,19 +37,7 @@ const Payment: React.FC = () => {
   const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
   const [errors, setErrors] = useState<{ amount?: string; member?: string }>({});
 
-  // Debounced search
-  useEffect(() => {
-    if (paymentMode === 'behalf' && searchQuery.length >= 2) {
-      const timer = setTimeout(() => {
-        searchMembers();
-      }, 500);
-      return () => clearTimeout(timer);
-    } else {
-      setSearchResults([]);
-    }
-  }, [searchQuery, paymentMode]);
-
-  const searchMembers = async () => {
+  const searchMembers = useCallback(async () => {
     try {
       setSearching(true);
       const token = localStorage.getItem('token');
@@ -85,7 +68,19 @@ const Payment: React.FC = () => {
     } finally {
       setSearching(false);
     }
-  };
+  }, [searchQuery]);
+
+  // Debounced search
+  useEffect(() => {
+    if (paymentMode === 'behalf' && searchQuery.length >= 2) {
+      const timer = setTimeout(() => {
+        searchMembers();
+      }, 500);
+      return () => clearTimeout(timer);
+    } else {
+      setSearchResults([]);
+    }
+  }, [searchQuery, paymentMode, searchMembers]);
 
   const validateForm = () => {
     const newErrors: { amount?: string; member?: string } = {};
@@ -160,13 +155,6 @@ const Payment: React.FC = () => {
   const handleReceiptUpload = (url: string) => {
     setReceiptUrl(url);
     setShowReceiptUpload(false);
-  };
-
-  const formatAmount = (value: string) => {
-    // Remove non-digits
-    const digits = value.replace(/\D/g, '');
-    // Add thousand separators
-    return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   };
 
   return (

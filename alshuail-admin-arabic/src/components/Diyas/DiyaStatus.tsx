@@ -1,16 +1,11 @@
-import React, { memo } from 'react';
 import {
-  ClockIcon,
-  MagnifyingGlassIcon,
-  ChatBubbleLeftRightIcon,
-  CheckCircleIcon,
-  CurrencyDollarIcon,
-  DocumentCheckIcon,
-  XCircleIcon,
-  ExclamationCircleIcon
+ChatBubbleLeftRightIcon,
+CheckCircleIcon,ClockIcon,CurrencyDollarIcon,
+DocumentCheckIcon,ExclamationCircleIcon,MagnifyingGlassIcon,XCircleIcon
 } from '@heroicons/react/24/outline';
-import { DiyaStatus as IDiyaStatus, DiyaPriority } from './types';
+import React,{ memo } from 'react';
 import { ARABIC_LABELS } from '../../constants/arabic';
+import { DiyaPriority,DiyaStatus as IDiyaStatus } from './types';
 
 interface DiyaStatusProps {
   status: IDiyaStatus;
@@ -312,7 +307,7 @@ const DiyaStatus: React.FC<DiyaStatusProps> = ({
         <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '12px', color: '#374151' }}>
           مراحل القضية:
         </div>
-        {timeline.map((item, index) => {
+        {timeline.map((item) => {
           const itemConfig = getStatusConfig(item.status);
           const ItemIcon = itemConfig.icon;
 

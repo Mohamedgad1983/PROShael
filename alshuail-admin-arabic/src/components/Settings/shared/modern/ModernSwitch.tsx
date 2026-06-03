@@ -18,7 +18,7 @@
  * @date 2025-11-13
  */
 
-import React, { memo,  InputHTMLAttributes, ReactNode } from 'react';
+import React,{ InputHTMLAttributes } from 'react';
 import { getTheme } from '../../modernDesignSystem';
 
 // ============================================================================
@@ -131,7 +131,7 @@ const SIZE_CONFIG = {
 // LOADING SPINNER COMPONENT
 // ============================================================================
 
-const LoadingSpinner: React.FC<{ size: SwitchSize; isDarkMode: boolean }> = ({ size, isDarkMode }) => {
+const LoadingSpinner: React.FC<{ size: SwitchSize; isDarkMode: boolean }> = ({ size }) => {
   const sizeConfig = SIZE_CONFIG[size];
   const spinnerSize = sizeConfig.thumbSize * 0.6;
 

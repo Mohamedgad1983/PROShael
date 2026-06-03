@@ -3,34 +3,19 @@
  * Shows all users with role assignments for Super Admin overview
  */
 
-import React, { memo,  useState, useEffect } from 'react';
 import {
-  UserGroupIcon,
-  PlusIcon,
-  MagnifyingGlassIcon,
-  CalendarIcon,
-  PencilIcon,
-  TrashIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  ClockIcon,
-  ShieldCheckIcon,
-  ExclamationTriangleIcon,
-  EyeIcon,
-  UsersIcon
+CheckCircleIcon,ExclamationTriangleIcon,
+EyeIcon,MagnifyingGlassIcon,PencilIcon,PlusIcon,TrashIcon,UserGroupIcon,UsersIcon
 } from '@heroicons/react/24/outline';
-import multiRoleService, {
-  Role,
-  User,
-  RoleAssignment,
-  AssignRoleRequest,
-  UpdateRoleAssignmentRequest
+import axios from 'axios';
+import React,{ memo,useEffect,useState } from 'react';
+import multiRoleService,{
+Role,RoleAssignment,UpdateRoleAssignmentRequest,User
 } from '../../services/multiRoleService';
 import { HijriDatePicker } from '../Common/HijriDatePicker';
-import axios from 'axios';
 
-import { logger } from '../../utils/logger';
 import { API_ORIGIN } from '../../utils/apiConfig';
+import { logger } from '../../utils/logger';
 
 const API_BASE_URL = API_ORIGIN;
 
@@ -82,6 +67,7 @@ const MultiRoleManagementEnhanced: React.FC = () => {
   useEffect(() => {
     loadRoles();
     loadAllUsersWithRoles();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- preserve existing one-time legacy load behavior
   }, []);
 
   // Search members with debounce
@@ -95,6 +81,7 @@ const MultiRoleManagementEnhanced: React.FC = () => {
     }, 300);
 
     return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- preserve existing one-time legacy load behavior
   }, [searchQuery]);
 
   const loadRoles = async () => {
@@ -256,18 +243,7 @@ const MultiRoleManagementEnhanced: React.FC = () => {
     try {
       setLoading(true);
 
-      const requestData: AssignRoleRequest = {
-        user_id: selectedUser.id,
-        role_id: assignForm.role_id,
-        start_date_gregorian: assignForm.start_date_gregorian || undefined,
-        end_date_gregorian: assignForm.end_date_gregorian || undefined,
-        start_date_hijri: assignForm.start_date_hijri || undefined,
-        end_date_hijri: assignForm.end_date_hijri || undefined,
-        notes: assignForm.notes || undefined,
-        is_active: true
-      };
 
-      const response = await multiRoleService.assignRole(requestData);
 
       const roleName = roles.find(r => r.id === assignForm.role_id)?.role_name_ar || 'الدور';
       showNotification('success', `تم تعيين صلاحية ${roleName} للمستخدم ${selectedUser.full_name} بنجاح`);

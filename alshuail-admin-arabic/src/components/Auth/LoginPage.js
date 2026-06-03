@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React,{ useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import logo from '../../assets/logo.svg';
 import { useAuth } from '../../contexts/AuthContext';
 import './LoginPage.css';
-import logo from '../../assets/logo.svg';
 
 import { logger } from '../../utils/logger';
 

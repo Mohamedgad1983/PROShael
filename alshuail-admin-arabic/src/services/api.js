@@ -1,5 +1,5 @@
-import { logger } from '../utils/logger';
 import { API_ORIGIN } from '../utils/apiConfig';
+import { logger } from '../utils/logger';
 
 class APIService {
   constructor() {

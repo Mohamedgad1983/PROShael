@@ -3,7 +3,7 @@
  * Features: Real-time updates, badge counting, permission management, offline support
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useCallback,useEffect,useRef,useState } from 'react';
 import notificationService from '../services/notificationService';
 
 import { logger } from '../utils/logger';

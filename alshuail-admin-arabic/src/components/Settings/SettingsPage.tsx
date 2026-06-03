@@ -4,44 +4,29 @@
  * Last Modified: 2025-11-12 - Fixed profile-settings tab filtering bug
  */
 
-import React, { memo,  useState, useEffect } from 'react';
 import {
-  CogIcon,
-  UsersIcon,
-  UserIcon,
-  UserGroupIcon,
-  ShieldCheckIcon,
-  PaintBrushIcon,
-  GlobeAltIcon,
-  KeyIcon,
-  ServerIcon
+CogIcon,GlobeAltIcon,
+KeyIcon,PaintBrushIcon,ServerIcon,ShieldCheckIcon,UserGroupIcon,UserIcon,UsersIcon
 } from '@heroicons/react/24/outline';
+import React,{ memo,useEffect,useState } from 'react';
 import { useRole } from '../../contexts/RoleContext';
-import UserManagement from './UserManagement';
-import SystemSettings from './SystemSettingsEnhanced';
+import AppearanceSettings from './AppearanceSettings';
 import AuditLogs from './AuditLogs';
+import LanguageSettings from './LanguageSettings.modern';
 import MultiRoleManagement from './MultiRoleManagement';
 import ProfileSettings from './ProfileSettings.modern';
-import AppearanceSettings from './AppearanceSettings';
-import LanguageSettings from './LanguageSettings.modern';
+import SystemSettings from './SystemSettingsEnhanced';
+import UserManagement from './UserManagement';
 // CRITICAL: Import from feature package to prevent tree-shaking
-import AccessControl, { __KEEP_ACCESS_CONTROL__ } from '../../features/access-control';
+import AccessControl,{ __KEEP_ACCESS_CONTROL__ } from '../../features/access-control';
 // Import shared styles for consistent design
-import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, commonStyles } from './sharedStyles';
-import { PerformanceProfiler, PerformanceUtils } from './shared/PerformanceProfiler';
 import { logger } from '../../utils/logger';
+import { PerformanceProfiler,PerformanceUtils } from './shared/PerformanceProfiler';
+import { BORDER_RADIUS,COLORS,commonStyles,SPACING,TYPOGRAPHY } from './sharedStyles';
 
 // CRITICAL: Reference the keep symbol to create explicit dependency
 // DO NOT REMOVE - This prevents Webpack from tree-shaking the component
 void __KEEP_ACCESS_CONTROL__;
-
-interface SettingsTab {
-  id: string;
-  label: string;
-  icon: React.ComponentType<any>;
-  requiredRole?: string[];
-  description: string;
-}
 
 const SettingsPage: React.FC = () => {
   const { user, hasRole, loading } = useRole();

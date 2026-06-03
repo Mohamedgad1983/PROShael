@@ -3,8 +3,8 @@
  * Apple-inspired Hijri date picker with day/month/year dropdowns
  */
 
-import React, { memo,  useState, useEffect } from 'react';
-import { toGregorian, toHijri } from 'hijri-converter';
+import { toGregorian } from 'hijri-converter';
+import React,{ memo,useEffect,useState } from 'react';
 
 import { logger } from '../../utils/logger';
 
@@ -22,7 +22,6 @@ export const HijriDateInput: React.FC<HijriDateInputProps> = ({
   value = '',
   onChange,
   label = 'التاريخ الهجري',
-  placeholder = 'اختر التاريخ',
   minYear = 1440,
   maxYear = 1450,
   className = ''

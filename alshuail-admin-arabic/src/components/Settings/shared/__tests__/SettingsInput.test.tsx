@@ -1,5 +1,6 @@
+/* eslint-disable testing-library/no-wait-for-multiple-assertions, testing-library/no-node-access, testing-library/prefer-screen-queries, testing-library/no-container, jest/no-conditional-expect */
+import { fireEvent,render } from '@testing-library/react';
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react';
 import { SettingsInput } from '../SettingsInput';
 
 describe('SettingsInput', () => {

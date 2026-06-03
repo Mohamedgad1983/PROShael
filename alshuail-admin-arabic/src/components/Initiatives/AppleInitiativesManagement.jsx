@@ -1,57 +1,17 @@
-﻿import React, {  useState, useEffect , useCallback } from 'react';
-import { toHijri, toGregorian } from 'hijri-converter';
-import SimpleHijriDatePicker from '../Common/SimpleHijriDatePicker';
 import {
-  LightBulbIcon,
-  SparklesIcon,
-  RocketLaunchIcon,
-  UsersIcon,
-  ChartBarIcon,
-  ClockIcon,
-  CheckCircleIcon,
-  ExclamationTriangleIcon,
-  PlusIcon,
-  EyeIcon,
-  PencilIcon,
-  TrashIcon,
-  MagnifyingGlassIcon,
-  FunnelIcon,
-  CurrencyDollarIcon,
-  CalendarDaysIcon,
-  UserGroupIcon,
-  AcademicCapIcon,
-  HeartIcon,
-  BuildingLibraryIcon,
-  GlobeAltIcon,
-  StarIcon,
-  FireIcon,
-  TrophyIcon,
-  BanknotesIcon,
-  ArrowTrendingUpIcon,
-  DocumentTextIcon,
-  ShareIcon,
-  HandRaisedIcon,
-  XMarkIcon
+AcademicCapIcon,ArrowTrendingUpIcon,BanknotesIcon,BuildingLibraryIcon,ChartBarIcon,CheckCircleIcon,ClockIcon,CurrencyDollarIcon,DocumentTextIcon,ExclamationTriangleIcon,EyeIcon,FireIcon,GlobeAltIcon,HandRaisedIcon,HeartIcon,LightBulbIcon,MagnifyingGlassIcon,PencilIcon,PlusIcon,RocketLaunchIcon,ShareIcon,SparklesIcon,StarIcon,TrophyIcon,UserGroupIcon,XMarkIcon
 } from '@heroicons/react/24/outline';
+import React,{ useEffect,useState } from 'react';
+import SimpleHijriDatePicker from '../Common/SimpleHijriDatePicker';
 // CSS styles are inline
 
 const AppleInitiativesManagement = () => {
   // Performance optimized event handlers
-  const handleRefresh = useCallback(() => {
-    // Refresh logic here
-  }, []);
 
-  const handleFilterChange = useCallback((filterType, value) => {
-    // Filter logic here
-  }, []);
 
-  const handlePageChange = useCallback((page) => {
-    // Pagination logic here
-  }, []);
 
   const [activeTab, setActiveTab] = useState('overview');
   const [initiatives, setInitiatives] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
@@ -164,6 +124,7 @@ const AppleInitiativesManagement = () => {
 
   useEffect(() => {
     setInitiatives(mockInitiatives);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- preserve existing one-time legacy load behavior
   }, []);
 
   // Helper functions
@@ -665,25 +626,7 @@ const AppleInitiativesManagement = () => {
   };
 
   // Handle date changes with Hijri conversion
-  const handleStartDateChange = (gregorianDate) => {
-    setNewInitiative(prev => ({ ...prev, startDate: gregorianDate }));
-    if (gregorianDate) {
-      const date = new Date(gregorianDate);
-      const hijri = toHijri(date.getFullYear(), date.getMonth() + 1, date.getDate());
-      const hijriFormatted = `${hijri.hd}/${hijri.hm}/${hijri.hy} هـ`;
-      setNewInitiative(prev => ({ ...prev, startHijriDate: hijriFormatted }));
-    }
-  };
 
-  const handleEndDateChange = (gregorianDate) => {
-    setNewInitiative(prev => ({ ...prev, endDate: gregorianDate }));
-    if (gregorianDate) {
-      const date = new Date(gregorianDate);
-      const hijri = toHijri(date.getFullYear(), date.getMonth() + 1, date.getDate());
-      const hijriFormatted = `${hijri.hd}/${hijri.hm}/${hijri.hy} هـ`;
-      setNewInitiative(prev => ({ ...prev, endHijriDate: hijriFormatted }));
-    }
-  };
 
   const handleSubmit = (e) => {
     e.preventDefault();

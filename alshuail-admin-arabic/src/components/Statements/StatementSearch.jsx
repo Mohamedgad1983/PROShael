@@ -1,7 +1,7 @@
-import React, { memo,  useState } from 'react';
-import VisualAlertSystem, { AlertBadge } from './VisualAlertSystem';
-import { logger } from '../../utils/logger';
+import React,{ memo,useState } from 'react';
 import { API_ORIGIN } from '../../utils/apiConfig';
+import { logger } from '../../utils/logger';
+import VisualAlertSystem,{ AlertBadge } from './VisualAlertSystem';
 
 import './StatementSearch.css';
 

@@ -114,7 +114,7 @@ export const RequireAuth = ({ children }) => {
 
   // Check if token is expired (optional, implement if needed)
   try {
-    const userData = JSON.parse(user);
+    JSON.parse(user);
     // You can add token expiration check here
 
     // User is authenticated, allow access
@@ -248,7 +248,7 @@ export const PermissionRoute = ({ children, permission }) => {
   );
 };
 
-export default {
+const routeGuardExports = {
   AdminRoute,
   MemberRoute,
   PublicRoute,
@@ -256,3 +256,5 @@ export default {
   RoleBasedRedirect,
   PermissionRoute
 };
+
+export default routeGuardExports;

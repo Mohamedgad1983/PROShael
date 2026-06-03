@@ -1,29 +1,13 @@
-import React, { memo,  useState } from 'react';
 import {
-  EyeIcon,
-  PencilSquareIcon,
-  TrashIcon,
-  CalendarIcon,
-  UsersIcon,
-  ClockIcon,
-  ExclamationTriangleIcon,
-  InformationCircleIcon,
-  SpeakerWaveIcon,
-  EnvelopeIcon,
-  BellIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  EyeSlashIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon
+BellIcon,CalendarIcon,CheckCircleIcon,ChevronLeftIcon,
+ChevronRightIcon,ClockIcon,EnvelopeIcon,ExclamationTriangleIcon,EyeIcon,EyeSlashIcon,InformationCircleIcon,PencilSquareIcon,SpeakerWaveIcon,TrashIcon,UsersIcon
 } from '@heroicons/react/24/outline';
-import {
-  Notification,
-  NotificationType,
-  NotificationPriority,
-  NotificationStatus
-} from './types';
+import React,{ memo,useState } from 'react';
 import { ARABIC_LABELS } from '../../constants/arabic';
+import {
+Notification,NotificationPriority,
+NotificationStatus,NotificationType
+} from './types';
 
 interface NotificationsListProps {
   notifications: Notification[];

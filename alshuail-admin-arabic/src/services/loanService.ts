@@ -10,7 +10,7 @@
  * appropriate URL based on the current user's role.
  */
 
-import axios, { AxiosInstance } from 'axios';
+import axios,{ AxiosInstance } from 'axios';
 import { API_BASE_URL } from '../utils/apiConfig';
 
 const client: AxiosInstance = axios.create({

@@ -4,27 +4,18 @@
  * MIGRATED: Now uses shared component system for consistency
  */
 
-import React, { memo,  useState, useEffect, useCallback } from 'react';
 import {
-  ShieldCheckIcon,
-  ClockIcon,
-  UserIcon,
-  MagnifyingGlassIcon,
-  ArrowPathIcon,
-  ExclamationTriangleIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  InformationCircleIcon
+ArrowPathIcon,CheckCircleIcon,ClockIcon,ExclamationTriangleIcon,InformationCircleIcon,MagnifyingGlassIcon,ShieldCheckIcon,UserIcon,XCircleIcon
 } from '@heroicons/react/24/outline';
-import { SettingsCard } from './shared/SettingsCard';
+import React,{ memo,useCallback,useEffect,useState } from 'react';
 import { SettingsButton } from './shared/SettingsButton';
+import { SettingsCard } from './shared/SettingsCard';
 import { SettingsInput } from './shared/SettingsInput';
 import { SettingsSelect } from './shared/SettingsSelect';
-import { StatusBadge } from './shared/StatusBadge';
-import { commonStyles, COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from './sharedStyles';
+import { BORDER_RADIUS,COLORS,SPACING,TYPOGRAPHY } from './sharedStyles';
 
-import { logger } from '../../utils/logger';
 import { API_ORIGIN } from '../../utils/apiConfig';
+import { logger } from '../../utils/logger';
 
 interface AuditLog {
   id: string;

@@ -7,46 +7,21 @@
  * @date 2025-11-13
  */
 
-import React, { memo,  useState, useEffect } from 'react';
 import {
-  LanguageIcon,
-  GlobeAltIcon,
-  ClockIcon,
-  CalendarIcon,
-  CurrencyDollarIcon,
-  CheckCircleIcon,
-  ExclamationCircleIcon,
-  InformationCircleIcon,
-  XMarkIcon
+CalendarIcon,CheckCircleIcon,ClockIcon,CurrencyDollarIcon,ExclamationCircleIcon,GlobeAltIcon,InformationCircleIcon,LanguageIcon,XMarkIcon
 } from '@heroicons/react/24/outline';
 import axios from 'axios';
-import { logger } from '../../utils/logger';
-import { API_ORIGIN } from '../../utils/apiConfig';
+import React,{ memo,useEffect,useState } from 'react';
 import {
-  ModernCard,
-  ModernButton,
-  ModernBadge,
-  ModernDivider,
-  ModernSkeleton
-} from './shared/modern';
+applyLanguageSettings,COMMON_CURRENCIES,COMMON_REGIONS,DateFormat,DATE_FORMAT_LABELS,DEFAULT_LANGUAGE_SETTINGS,Language,LanguageSettings as LanguageSettingsType,LANGUAGE_LABELS,NumberFormat,NUMBER_FORMAT_LABELS,TimeFormat,TIME_FORMAT_LABELS,WeekStart,WEEK_START_LABELS
+} from '../../types/languageSettings';
+import { API_ORIGIN } from '../../utils/apiConfig';
+import { logger } from '../../utils/logger';
 import { getTheme } from './modernDesignSystem';
 import {
-  LanguageSettings as LanguageSettingsType,
-  Language,
-  DateFormat,
-  TimeFormat,
-  NumberFormat,
-  WeekStart,
-  LANGUAGE_LABELS,
-  DATE_FORMAT_LABELS,
-  TIME_FORMAT_LABELS,
-  NUMBER_FORMAT_LABELS,
-  WEEK_START_LABELS,
-  COMMON_REGIONS,
-  COMMON_CURRENCIES,
-  DEFAULT_LANGUAGE_SETTINGS,
-  applyLanguageSettings
-} from '../../types/languageSettings';
+ModernBadge,ModernButton,ModernCard,ModernDivider,
+ModernSkeleton
+} from './shared/modern';
 
 const API_BASE = API_ORIGIN;
 
@@ -156,9 +131,6 @@ const LanguageSettings: React.FC = () => {
         });
         return;
       }
-
-      // Store previous settings for rollback on failure
-      const previousSettings = originalSettings;
 
       const updates: Partial<LanguageSettingsType> = {};
       if (settings.language !== originalSettings.language) updates.language = settings.language;

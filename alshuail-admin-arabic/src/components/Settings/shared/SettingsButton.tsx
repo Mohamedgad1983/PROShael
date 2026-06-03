@@ -3,7 +3,7 @@
  * Consistent button styling with variants
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import { commonStyles } from '../sharedStyles';
 
 interface SettingsButtonProps {

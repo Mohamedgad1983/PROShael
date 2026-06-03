@@ -1,6 +1,6 @@
-import React, { useState, useCallback, memo } from 'react';
 import { PhoneIcon } from '@heroicons/react/24/outline';
-import { validatePhone, formatPhone, COUNTRY_CODES, getPhoneFormatDescription } from '../../utils/phoneValidator';
+import React,{ memo,useCallback,useState } from 'react';
+import { COUNTRY_CODES,formatPhone,getPhoneFormatDescription,validatePhone } from '../../utils/phoneValidator';
 
 const PhoneInput = memo(({
   value = '',

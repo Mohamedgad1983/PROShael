@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS } from '../sharedStyles';
+import { COLORS,SPACING,TYPOGRAPHY } from '../sharedStyles';
 
 export interface SettingsTableColumn<T> {
   key: string;

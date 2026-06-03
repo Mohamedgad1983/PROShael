@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, memo } from 'react';
+import React,{ memo,useEffect,useRef,useState } from 'react';
 
 const LazyImage = memo(({ src, alt, className, placeholder = '/placeholder.svg' }) => {
   const [imageSrc, setImageSrc] = useState(placeholder);
@@ -22,13 +22,15 @@ const LazyImage = memo(({ src, alt, className, placeholder = '/placeholder.svg' 
       }
     );
 
-    if (imgRef.current) {
-      observer.observe(imgRef.current);
+    const imageElement = imgRef.current;
+
+    if (imageElement) {
+      observer.observe(imageElement);
     }
 
     return () => {
-      if (imgRef.current) {
-        observer.unobserve(imgRef.current);
+      if (imageElement) {
+        observer.unobserve(imageElement);
       }
     };
   }, [src]);

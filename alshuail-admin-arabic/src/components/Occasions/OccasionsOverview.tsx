@@ -1,23 +1,17 @@
-import React, { memo,  useState, useEffect } from 'react';
 import {
-  PlusIcon,
-  CalendarDaysIcon,
-  FunnelIcon,
-  MagnifyingGlassIcon,
-  ChartBarIcon,
-  UsersIcon,
-  ClockIcon,
-  CheckCircleIcon
+CalendarDaysIcon,ChartBarIcon,CheckCircleIcon,ClockIcon,FunnelIcon,
+MagnifyingGlassIcon,PlusIcon,UsersIcon
 } from '@heroicons/react/24/outline';
-import OccasionCard from './OccasionCard';
-import CreateOccasionModal from './CreateOccasionModal';
-import RSVPModal from './RSVPModal';
-import OccasionsCalendar from './OccasionsCalendar';
-import { Occasion, OccasionFormData, RSVP, RSVPStatus, OccasionFilters, OccasionStatistics } from './types';
+import React,{ memo,useEffect,useState } from 'react';
 import { ARABIC_LABELS } from '../../constants/arabic';
 import { apiService } from '../../services/api';
-import { useResponsive } from '../../utils/responsive';
 import { formatArabicNumber } from '../../utils/arabic';
+import { useResponsive } from '../../utils/responsive';
+import CreateOccasionModal from './CreateOccasionModal';
+import OccasionCard from './OccasionCard';
+import OccasionsCalendar from './OccasionsCalendar';
+import RSVPModal from './RSVPModal';
+import { Occasion,OccasionFilters,OccasionFormData,OccasionStatistics,RSVP,RSVPStatus } from './types';
 
 import { logger } from '../../utils/logger';
 
@@ -108,10 +102,10 @@ const OccasionsOverview: React.FC = () => {
   const [showRSVPModal, setShowRSVPModal] = useState(false);
   const [selectedOccasion, setSelectedOccasion] = useState<Occasion | null>(null);
   const [view, setView] = useState<'list' | 'calendar'>('list');
-  const [filters, setFilters] = useState<OccasionFilters>({});
+  const [filters] = useState<OccasionFilters>({});
   const [searchTerm, setSearchTerm] = useState('');
 
-  const { isMobile, isTablet, breakpoint } = useResponsive();
+  const { isMobile } = useResponsive();
 
   // Debug logging for modal state
   useEffect(() => {

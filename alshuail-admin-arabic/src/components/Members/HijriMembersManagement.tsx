@@ -1,35 +1,11 @@
-import React, { memo,  useState, useEffect } from 'react';
 import {
-  UsersIcon,
-  UserPlusIcon,
-  UserGroupIcon,
-  IdentificationIcon,
-  PhoneIcon,
-  EnvelopeIcon,
-  CalendarIcon,
-  CalendarDaysIcon,
-  MapPinIcon,
-  AcademicCapIcon,
-  BriefcaseIcon,
-  PlusIcon,
-  MagnifyingGlassIcon,
-  FunnelIcon,
-  ArrowDownTrayIcon,
-  ArrowUpTrayIcon,
-  PencilIcon,
-  TrashIcon,
-  EyeIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  ClockIcon,
-  ChartBarIcon,
-  CakeIcon,
-  HomeIcon,
-  HeartIcon
+AcademicCapIcon,ArrowDownTrayIcon,
+ArrowUpTrayIcon,BriefcaseIcon,CakeIcon,CalendarDaysIcon,CalendarIcon,CheckCircleIcon,ClockIcon,EnvelopeIcon,EyeIcon,HeartIcon,MagnifyingGlassIcon,MapPinIcon,PencilIcon,PhoneIcon,TrashIcon,UserGroupIcon,UserPlusIcon,UsersIcon,XCircleIcon
 } from '@heroicons/react/24/outline';
-import { HijriDateDisplay, HijriDateFilter, HijriCalendarWidget } from '../Common/HijriDateDisplay';
-import { formatHijriDate, formatDualDate, calculateHijriAge, formatTimeAgo } from '../../utils/hijriDateUtils';
+import React,{ memo,useEffect,useState } from 'react';
+import { calculateHijriAge } from '../../utils/hijriDateUtils';
 import { logger } from '../../utils/logger';
+import { HijriDateDisplay,HijriDateFilter } from '../Common/HijriDateDisplay';
 
 import '../../styles/ultra-premium-islamic-design.css';
 
@@ -62,15 +38,13 @@ interface Member {
 }
 
 const HijriMembersManagement: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('overview');
   const [members, setMembers] = useState<Member[]>([]);
-  const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterType, setFilterType] = useState('');
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedMember, setSelectedMember] = useState<Member | null>(null);
-  const [showMemberDetails, setShowMemberDetails] = useState(false);
+  const [, setShowAddModal] = useState(false);
+  const [, setSelectedMember] = useState<Member | null>(null);
+  const [, setShowMemberDetails] = useState(false);
 
   // Mock data with Hijri dates
   const mockMembers: Member[] = [
@@ -155,6 +129,7 @@ const HijriMembersManagement: React.FC = () => {
 
   useEffect(() => {
     setMembers(mockMembers);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- preserve existing one-time legacy load behavior
   }, []);
 
   // Helper functions

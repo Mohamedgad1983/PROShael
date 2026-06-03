@@ -1,10 +1,10 @@
 // @ts-nocheck
-import React, { memo,  useState, useEffect } from 'react';
 import axios from 'axios';
+import React,{ memo,useEffect,useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { logger } from '../../utils/logger';
 import { API_BASE_URL } from '../../utils/apiConfig';
+import { logger } from '../../utils/logger';
 
 interface NewsItem {
     id: number;
@@ -28,6 +28,7 @@ const NewsWidget = () => {
     useEffect(() => {
         fetchLatestNews();
         fetchUnreadCount();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- preserve existing one-time legacy load behavior
     }, []);
 
     const fetchLatestNews = async () => {

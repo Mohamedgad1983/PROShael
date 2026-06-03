@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { logger } from '../../utils/logger';
+import React,{ useState } from 'react';
 import { API_ORIGIN } from '../../utils/apiConfig';
+import { logger } from '../../utils/logger';
 
 import './LoginPage.css';
 

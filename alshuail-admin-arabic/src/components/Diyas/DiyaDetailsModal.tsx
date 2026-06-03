@@ -1,23 +1,10 @@
-import React, { memo,  useState } from 'react';
 import {
-  XMarkIcon,
-  ScaleIcon,
-  CalendarIcon,
-  MapPinIcon,
-  CurrencyDollarIcon,
-  UsersIcon,
-  DocumentTextIcon,
-  PhoneIcon,
-  EnvelopeIcon,
-  ClockIcon,
-  UserIcon,
-  ExclamationTriangleIcon,
-  CheckCircleIcon,
-  PencilSquareIcon
+CalendarIcon,ClockIcon,CurrencyDollarIcon,DocumentTextIcon,EnvelopeIcon,ExclamationTriangleIcon,MapPinIcon,PencilSquareIcon,PhoneIcon,ScaleIcon,UserIcon,UsersIcon,XMarkIcon
 } from '@heroicons/react/24/outline';
-import { Diya } from './types';
+import React,{ memo,useState } from 'react';
+import { ARABIC_LABELS,CURRENCY } from '../../constants/arabic';
 import DiyaStatus from './DiyaStatus';
-import { ARABIC_LABELS, CURRENCY } from '../../constants/arabic';
+import { Diya } from './types';
 
 interface DiyaDetailsModalProps {
   isOpen: boolean;

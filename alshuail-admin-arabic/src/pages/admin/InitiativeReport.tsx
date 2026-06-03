@@ -9,15 +9,15 @@
  * - Export functionality
  */
 
-import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useParams, useNavigate } from 'react-router-dom';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import React,{ useCallback,useEffect,useState } from 'react';
+import { useNavigate,useParams } from 'react-router-dom';
 
-import { logger } from '../../utils/logger';
 import { API_BASE_URL } from '../../utils/apiConfig';
 import { exportJsonToExcel } from '../../utils/excelExport';
+import { logger } from '../../utils/logger';
 
 interface Initiative {
     id: number;
@@ -86,12 +86,7 @@ const InitiativeReport = () => {
 
     const API_URL = API_BASE_URL;
 
-    useEffect(() => {
-        fetchInitiativeReport();
-        fetchNonContributors();
-    }, [id]);
-
-    const fetchInitiativeReport = async () => {
+    const fetchInitiativeReport = useCallback(async () => {
         try {
             const token = localStorage.getItem('token');
             const response = await axios.get(`${API_URL}/initiatives-enhanced/${id}/details`, {
@@ -106,9 +101,9 @@ const InitiativeReport = () => {
             logger.error('Error fetching initiative report:', { error });
             setLoading(false);
         }
-    };
+    }, [API_URL, id]);
 
-    const fetchNonContributors = async () => {
+    const fetchNonContributors = useCallback(async () => {
         try {
             const token = localStorage.getItem('token');
             const response = await axios.get(`${API_URL}/initiatives-enhanced/${id}/non-contributors`, {
@@ -120,7 +115,12 @@ const InitiativeReport = () => {
         } catch (error) {
             logger.error('Error fetching non-contributors:', { error });
         }
-    };
+    }, [API_URL, id]);
+
+    useEffect(() => {
+        fetchInitiativeReport();
+        fetchNonContributors();
+    }, [fetchInitiativeReport, fetchNonContributors]);
 
     const handleNotifyNonContributors = async () => {
         if (!window.confirm(`هل تريد إرسال تذكير لـ ${nonContributors.length} عضو غير مساهم؟`)) {

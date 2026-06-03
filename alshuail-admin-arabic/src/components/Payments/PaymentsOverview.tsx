@@ -1,20 +1,11 @@
-import React, { memo,  useState, useEffect } from 'react';
 import {
-  BanknotesIcon,
-  ClockIcon,
-  ExclamationTriangleIcon,
-  CheckCircleIcon,
-  PlusIcon,
-  FunnelIcon,
-  MagnifyingGlassIcon,
-  CalendarIcon,
-  DocumentArrowDownIcon,
-  ArrowUpIcon,
-  ArrowDownIcon
+ArrowDownIcon,ArrowUpIcon,BanknotesIcon,CheckCircleIcon,ClockIcon,DocumentArrowDownIcon,ExclamationTriangleIcon,FunnelIcon,
+MagnifyingGlassIcon,PlusIcon
 } from '@heroicons/react/24/outline';
+import React,{ memo,useEffect,useState } from 'react';
 import { ARABIC_LABELS } from '../../constants/arabic';
-import { PaymentStatistics, PaymentFilters, PaymentsOverviewProps } from './types';
-import { formatCurrency, toArabicNumerals, calculatePaymentStats } from './utils';
+import { PaymentFilters,PaymentsOverviewProps,PaymentStatistics } from './types';
+import { formatCurrency,toArabicNumerals } from './utils';
 
 import { logger } from '../../utils/logger';
 

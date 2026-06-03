@@ -6,10 +6,8 @@ import { logger } from '../utils/logger';
 
 
 import {
-  mockDatabase,
-  findSubscriptionById,
-  findMemberById,
-  findPlanById
+findMemberById,
+findPlanById,findSubscriptionById,mockDatabase
 } from './mockData.js';
 
 // ====================
@@ -572,7 +570,7 @@ const getPaymentStatusArabic = (status) => {
 };
 
 // Export all functions
-export default {
+const paymentServiceExports = {
   updatePaymentStatus,
   getOverduePayments,
   generatePaymentReminders,
@@ -582,3 +580,5 @@ export default {
   daysBetween,
   getPaymentStatusArabic
 };
+
+export default paymentServiceExports;

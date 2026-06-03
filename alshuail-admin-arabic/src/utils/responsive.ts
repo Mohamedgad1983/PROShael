@@ -2,7 +2,7 @@
  * Mobile responsiveness utilities and breakpoint helpers
  */
 
-import React, { useState, useEffect } from 'react';
+import React,{ useEffect,useState } from 'react';
 
 // Breakpoint definitions (matching TailwindCSS v4)
 export const BREAKPOINTS = {
