@@ -7,6 +7,9 @@ import {
 ArrowTrendingUpIcon,BanknotesIcon,CalendarDaysIcon,ChartBarIcon,CheckCircleIcon,ClockIcon,CurrencyDollarIcon,DocumentTextIcon,ExclamationTriangleIcon,EyeIcon,FireIcon,HandRaisedIcon,MagnifyingGlassIcon,PlusIcon,ScaleIcon,ShieldCheckIcon,StarIcon,UsersIcon,XMarkIcon
 } from '@heroicons/react/24/outline';
 
+const ALLOW_MOCK_FALLBACK = process.env.NODE_ENV === 'development' &&
+  process.env.REACT_APP_ENABLE_MOCK_FALLBACK === 'true';
+
 const AppleDiyasManagement = () => {
   // Performance optimized event handlers
 
@@ -25,6 +28,10 @@ const AppleDiyasManagement = () => {
 
   // API URL configuration
   const API_URL = API_ORIGIN;
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('token') || localStorage.getItem('alshuail_token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
   const [newDiya, setNewDiya] = useState({
     title: '',
     type: 'accident',
@@ -127,7 +134,9 @@ const AppleDiyasManagement = () => {
   const fetchRealDiyaData = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/api/diya/dashboard`);
+      const response = await fetch(`${API_URL}/api/diya/dashboard`, {
+        headers: getAuthHeaders()
+      });
       const result = await response.json();
 
       if (result.success && result.data) {
@@ -151,13 +160,11 @@ const AppleDiyasManagement = () => {
 
         setDiyas(transformedDiyas);
       } else {
-        // Fallback to mock data
-        setDiyas(mockDiyas);
+        setDiyas(ALLOW_MOCK_FALLBACK ? mockDiyas : []);
       }
     } catch (error) {
       logger.error('Error fetching diya data:', { error });
-      // Fallback to mock data on error
-      setDiyas(mockDiyas);
+      setDiyas(ALLOW_MOCK_FALLBACK ? mockDiyas : []);
     } finally {
       setLoading(false);
     }
@@ -166,7 +173,9 @@ const AppleDiyasManagement = () => {
   // Fetch contributors for specific diya
   const fetchContributors = async (diyaId) => {
     try {
-      const response = await fetch(`${API_URL}/api/diya/${diyaId}/contributors`);
+      const response = await fetch(`${API_URL}/api/diya/${diyaId}/contributors`, {
+        headers: getAuthHeaders()
+      });
       const result = await response.json();
 
       if (result.success && result.data) {

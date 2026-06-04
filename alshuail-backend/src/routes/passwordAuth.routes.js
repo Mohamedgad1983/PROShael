@@ -149,9 +149,9 @@ router.delete(
 
 /**
  * @route   POST /api/auth/password/admin/set-default-password
- * @desc    Set default password "123456" for all members or specific member
+ * @desc    Issue a unique temporary password for a specific member
  * @access  Super Admin only
- * @body    { allMembers: true } or { memberId: "uuid" }
+ * @body    { memberId: "uuid" }
  */
 router.post(
     '/admin/set-default-password',

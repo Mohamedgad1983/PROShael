@@ -39,11 +39,11 @@ const ChangePassword = () => {
   const validatePassword = (password) => {
     const errors = [];
     if (password.length < 8) errors.push('8 أحرف على الأقل');
-    // Make other requirements optional - just length is required
-    // if (!/[A-Z]/.test(password)) errors.push('حرف كبير');
-    // if (!/[a-z]/.test(password)) errors.push('حرف صغير');
-    // if (!/[0-9]/.test(password)) errors.push('رقم');
-    // if (!/[@$!%*?&#]/.test(password)) errors.push('رمز خاص');
+    if (!/[A-Z]/.test(password)) errors.push('حرف كبير');
+    if (!/[a-z]/.test(password)) errors.push('حرف صغير');
+    if (!/[0-9]/.test(password)) errors.push('رقم');
+    if (!/[@$!%*?&#]/.test(password)) errors.push('رمز خاص');
+    if (password === '123456') errors.push('كلمة مرور مختلفة عن الافتراضية القديمة');
     return errors;
   };
 
@@ -78,7 +78,7 @@ const ChangePassword = () => {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          current_password: isFirstLogin ? '123456' : currentPassword,
+          current_password: currentPassword,
           new_password: newPassword
         })
       });

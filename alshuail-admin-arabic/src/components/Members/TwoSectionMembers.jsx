@@ -424,7 +424,7 @@ const TwoSectionMembers = () => {
     if (!editingMember) return;
 
     const confirmed = window.confirm(
-      `هل أنت متأكد من إعادة تعيين كلمة المرور للعضو ${editingMember.full_name}؟ سيتم تعيين كلمة المرور إلى 123456`
+      `هل أنت متأكد من إعادة تعيين كلمة المرور للعضو ${editingMember.full_name}؟ سيتم إصدار كلمة مرور مؤقتة فريدة`
     );
     if (!confirmed) return;
 
@@ -442,7 +442,7 @@ const TwoSectionMembers = () => {
       const data = await response.json();
 
       if (data.success) {
-        alert('تم إعادة تعيين كلمة المرور بنجاح');
+        alert(`تم إصدار كلمة مرور مؤقتة بنجاح: ${data.temporaryPassword || 'راجع السجل'}`);
       } else {
         alert(data.message || 'فشل إعادة تعيين كلمة المرور');
       }

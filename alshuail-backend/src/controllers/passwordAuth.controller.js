@@ -13,6 +13,11 @@ import { query } from '../services/database.js';
 import { sendWhatsAppOTP } from '../services/whatsappOtpService.js';
 import { generateSecureOTP } from '../utils/secureOtp.js';
 import { log } from '../utils/logger.js';
+import {
+    generateTemporaryPassword,
+    LEGACY_DEFAULT_PASSWORD,
+    validateStrongPassword
+} from '../utils/passwordPolicy.js';
 
 // Constants
 const SALT_ROUNDS = 12;
@@ -262,6 +267,14 @@ export const loginWithPassword = async (req, res) => {
                 success: false,
                 message: 'لم يتم إنشاء كلمة مرور. استخدم تسجيل الدخول بـ OTP',
                 requiresPasswordSetup: true
+            });
+        }
+
+        if (password === LEGACY_DEFAULT_PASSWORD) {
+            await logSecurityAction(member.id, 'login_failed', null, { method: 'password', reason: 'legacy_default_password' }, ip);
+            return res.status(401).json({
+                success: false,
+                message: 'كلمة المرور الافتراضية القديمة غير مدعومة. استخدم استعادة كلمة المرور عبر OTP'
             });
         }
 
@@ -638,10 +651,12 @@ export const createPassword = async (req, res) => {
             });
         }
 
-        if (password.length < 6) {
+        const passwordValidation = validateStrongPassword(password);
+        if (!passwordValidation.valid) {
             return res.status(400).json({
                 success: false,
-                message: 'كلمة المرور يجب أن تكون 6 أحرف على الأقل'
+                message: passwordValidation.message,
+                message_en: passwordValidation.message_en
             });
         }
 
@@ -661,6 +676,7 @@ export const createPassword = async (req, res) => {
         await query(
             `UPDATE members
              SET password_hash = $1, has_password = true, must_change_password = false,
+                 requires_password_change = false, is_first_login = false,
                  password_updated_at = $2, failed_login_attempts = 0, locked_until = NULL
              WHERE id = $3`,
             [passwordHash, new Date().toISOString(), memberId]
@@ -711,10 +727,12 @@ export const resetPassword = async (req, res) => {
             });
         }
 
-        if (newPassword.length < 6) {
+        const passwordValidation = validateStrongPassword(newPassword);
+        if (!passwordValidation.valid) {
             return res.status(400).json({
                 success: false,
-                message: 'كلمة المرور يجب أن تكون 6 أحرف على الأقل'
+                message: passwordValidation.message,
+                message_en: passwordValidation.message_en
             });
         }
 
@@ -761,7 +779,8 @@ export const resetPassword = async (req, res) => {
         // Update member password
         await query(
             `UPDATE members
-             SET password_hash = $1, has_password = true, password_updated_at = $2,
+             SET password_hash = $1, has_password = true, must_change_password = false,
+                 requires_password_change = false, is_first_login = false, password_updated_at = $2,
                  failed_login_attempts = 0, locked_until = NULL
              WHERE id = $3`,
             [passwordHash, new Date().toISOString(), otpRecord.member_id]
@@ -1146,11 +1165,11 @@ export const getMemberSecurityInfo = async (req, res) => {
 };
 
 // =====================================================
-// 12. ADMIN: SET DEFAULT PASSWORD FOR MEMBERS
+// 12. ADMIN: ISSUE TEMPORARY PASSWORD FOR MEMBER
 // =====================================================
 /**
- * Set default password "123456" for all members or specific member
- * Members will be required to change password on first login
+ * Issue a unique temporary password for a specific member.
+ * Members will be required to change it on first login.
  */
 export const adminSetDefaultPassword = async (req, res) => {
     try {
@@ -1166,39 +1185,17 @@ export const adminSetDefaultPassword = async (req, res) => {
             });
         }
 
-        // Default password
-        const DEFAULT_PASSWORD = '123456';
-        const passwordHash = await bcrypt.hash(DEFAULT_PASSWORD, SALT_ROUNDS);
-
         let updatedCount = 0;
+        let temporaryPassword = null;
 
         if (allMembers === true) {
-            // Set default password for ALL members (except admin)
-            const _result = await query(
-                `UPDATE members
-                 SET password_hash = $1, has_password = true, must_change_password = true,
-                     password_updated_at = $2
-                 WHERE id != $3`,
-                [passwordHash, new Date().toISOString(), adminId]
-            );
-
-            // Count updated members
-            const { rows: countRows } = await query(
-                'SELECT COUNT(*) as count FROM members WHERE has_password = true AND must_change_password = true'
-            );
-
-            updatedCount = parseInt(countRows[0].count) || 0;
-
-            await logSecurityAction(
-                null,
-                'default_password_set_all',
-                adminId,
-                { count: updatedCount, default_password: '123456' },
-                ip
-            );
+            return res.status(400).json({
+                success: false,
+                message: 'تم تعطيل تعيين كلمة مرور موحدة لجميع الأعضاء. استخدم إعادة تعيين عضو محدد أو تدفق OTP'
+            });
 
         } else if (memberId) {
-            // Set default password for specific member
+            // Issue a unique temporary password for specific member
             const { rows: memberRows } = await query(
                 'SELECT id, full_name_ar, phone FROM members WHERE id = $1',
                 [memberId]
@@ -1212,9 +1209,13 @@ export const adminSetDefaultPassword = async (req, res) => {
                 });
             }
 
+            temporaryPassword = generateTemporaryPassword();
+            const passwordHash = await bcrypt.hash(temporaryPassword, SALT_ROUNDS);
+
             await query(
                 `UPDATE members
                  SET password_hash = $1, has_password = true, must_change_password = true,
+                     requires_password_change = true, is_first_login = true,
                      password_updated_at = $2
                  WHERE id = $3`,
                 [passwordHash, new Date().toISOString(), memberId]
@@ -1224,9 +1225,9 @@ export const adminSetDefaultPassword = async (req, res) => {
 
             await logSecurityAction(
                 memberId,
-                'default_password_set',
+                'temporary_password_issued',
                 adminId,
-                { member_name: member.full_name_ar, default_password: '123456' },
+                { member_name: member.full_name_ar },
                 ip
             );
 
@@ -1239,17 +1240,17 @@ export const adminSetDefaultPassword = async (req, res) => {
 
         res.json({
             success: true,
-            message: `تم تعيين كلمة المرور الافتراضية لـ ${updatedCount} عضو`,
+            message: `تم إصدار كلمة مرور مؤقتة لـ ${updatedCount} عضو`,
             updatedCount,
-            defaultPassword: DEFAULT_PASSWORD,
-            note: 'سيُطلب من الأعضاء تغيير كلمة المرور عند أول تسجيل دخول'
+            temporaryPassword,
+            note: 'تظهر كلمة المرور المؤقتة مرة واحدة فقط، وسيُطلب من العضو تغييرها عند أول تسجيل دخول'
         });
 
     } catch (error) {
-        log.error('Set default password failed', { error: error.message, stack: error.stack });
+        log.error('Issue temporary password failed', { error: error.message, stack: error.stack });
         res.status(500).json({
             success: false,
-            message: 'حدث خطأ في تعيين كلمة المرور الافتراضية'
+            message: 'حدث خطأ في إصدار كلمة المرور المؤقتة'
         });
     }
 };

@@ -17,7 +17,7 @@ on:
       - '.github/workflows/frontend-ci-cd.yml'
 
 env:
-  NODE_VERSION: '18'
+  NODE_VERSION: '20'
   WORKING_DIRECTORY: './alshuail-admin-arabic'
 
 jobs:
@@ -45,7 +45,7 @@ jobs:
           npm ci --prefer-offline --no-audit
 
       - name: Cache Dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ${{ env.WORKING_DIRECTORY }}/node_modules
@@ -110,7 +110,7 @@ jobs:
           cache-dependency-path: '${{ env.WORKING_DIRECTORY }}/package-lock.json'
 
       - name: Restore Dependencies Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ${{ env.WORKING_DIRECTORY }}/node_modules
@@ -148,7 +148,7 @@ jobs:
           du -sh build/ | awk '{print "Build size: " $1}'
 
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: build-${{ matrix.environment }}-${{ github.sha }}
           path: ${{ env.WORKING_DIRECTORY }}/build
@@ -170,11 +170,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: '${{ env.WORKING_DIRECTORY }}/package-lock.json'
+
+      - name: Install Dependencies
+        run: npm ci --prefer-offline --no-audit
 
       - name: Security Audit
-        run: |
-          npm audit --audit-level=moderate
-          npx audit-ci --moderate
+        run: npm audit --audit-level=moderate
 
       - name: Check for Sensitive Files
         run: |

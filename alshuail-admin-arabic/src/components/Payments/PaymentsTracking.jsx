@@ -9,6 +9,9 @@ ArrowDownTrayIcon,ArrowsRightLeftIcon,ArrowTrendingUpIcon,BanknotesIcon,
 ChartBarIcon,CheckCircleIcon,ClockIcon,CurrencyDollarIcon,DocumentTextIcon,EyeIcon,MagnifyingGlassIcon,PencilIcon,PlusIcon,ReceiptPercentIcon,ShieldExclamationIcon,UserGroupIcon,WalletIcon,XCircleIcon
 } from '@heroicons/react/24/outline';
 
+const ALLOW_MOCK_FALLBACK = process.env.NODE_ENV === 'development' &&
+  process.env.REACT_APP_ENABLE_MOCK_FALLBACK === 'true';
+
 const PaymentsTracking = () => {
   const { user, canAccessModule } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
@@ -174,8 +177,7 @@ const PaymentsTracking = () => {
       setPayments(paymentsData);
     } catch (error) {
       logger.error('Error loading payments data:', { error });
-      // Fallback to mock data if API fails
-      setPayments(mockPayments);
+      setPayments(ALLOW_MOCK_FALLBACK ? mockPayments : []);
     } finally {
       setLoading(false);
     }

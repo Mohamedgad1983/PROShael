@@ -43,6 +43,17 @@ interface RoleContextType {
 // Create context
 const RoleContext = createContext<RoleContextType | undefined>(undefined);
 
+const VALID_ROLES: UserRole[] = [
+  'super_admin',
+  'financial_manager',
+  'family_tree_admin',
+  'occasions_initiatives_diyas_admin',
+  'user_member'
+];
+
+const isUserRole = (role: unknown): role is UserRole =>
+  typeof role === 'string' && VALID_ROLES.includes(role as UserRole);
+
 // Navigation configuration by role
 const ROLE_NAVIGATION = {
   super_admin: {
@@ -154,19 +165,20 @@ export const RoleProvider: React.FC<RoleProviderProps> = ({ children }) => {
       if (storedUser && token) {
         try {
           const userData = JSON.parse(storedUser);
+          if (!isUserRole(userData.role)) {
+            logger.warn('Stored user is missing a valid role');
+            setError('لم يتم تحديد صلاحيات المستخدم');
+            setUser(null);
+            return;
+          }
 
           // Map the stored user data to UserWithRole format
           const user: UserWithRole = {
-            id: userData.id || '1',
-            email: userData.email || userEmail || 'admin@alshuail.com',
-            role: userData.role as UserRole || 'super_admin',
+            id: userData.id,
+            email: userData.email || userEmail || '',
+            role: userData.role,
             roleAr: userData.role === 'super_admin' ? 'مدير النظام الرئيسي' : 'مدير النظام',
-            permissions: userData.permissions || {
-              users: { create: true, read: true, update: true, delete: true },
-              settings: { read: true, update: true },
-              roles: { assign: true, revoke: true },
-              all: true
-            }
+            permissions: userData.permissions || {}
           };
 
           setUser(user);
@@ -176,21 +188,8 @@ export const RoleProvider: React.FC<RoleProviderProps> = ({ children }) => {
         }
       }
 
-      // Fallback to mock user for testing
-      const mockUser: UserWithRole = {
-        id: '1',
-        email: userEmail || 'admin@alshuail.com',
-        role: 'super_admin',
-        roleAr: 'مدير النظام الرئيسي',
-        permissions: {
-          users: { create: true, read: true, update: true, delete: true },
-          settings: { read: true, update: true },
-          roles: { assign: true, revoke: true },
-          all: true
-        }
-      };
-
-      setUser(mockUser);
+      setError('لم يتم العثور على بيانات صلاحيات المستخدم');
+      setUser(null);
     } catch (err) {
       logger.error('Error fetching user role:', { err });
       setError('خطأ في جلب صلاحيات المستخدم');

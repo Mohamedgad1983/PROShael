@@ -50,15 +50,18 @@ const FinancialReportsSimple: React.FC = () => {
     setCurrentHijriDate(getHijriDate());
   }, []);
 
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('token') || localStorage.getItem('alshuail_token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
   // Export to PDF
   const handleExportPDF = async () => {
     setLoading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/reports/forensic?format=pdf&report_type=comprehensive_forensic`, {
         method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token') || 'mock-token'}`,
-        }
+        headers: getAuthHeaders()
       });
 
       if (response.ok) {
@@ -89,9 +92,7 @@ const FinancialReportsSimple: React.FC = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/reports/forensic?format=excel&report_type=comprehensive_forensic`, {
         method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token') || 'mock-token'}`,
-        }
+        headers: getAuthHeaders()
       });
 
       if (response.ok) {

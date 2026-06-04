@@ -12,7 +12,8 @@ interface SettingsInputProps {
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
   placeholder?: string;
   type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url';
-  error?: string; // Can be boolean or string (error message)
+  error?: boolean | string;
+  errorMessage?: string;
   disabled?: boolean;
   required?: boolean;
   style?: React.CSSProperties;
@@ -25,12 +26,13 @@ export const SettingsInput: React.FC<SettingsInputProps> = ({
   placeholder,
   type = 'text',
   error,
+  errorMessage,
   disabled = false,
   required = false,
   style
 }) => {
   const hasError = Boolean(error);
-  const errorMessage = typeof error === 'string' ? error : undefined;
+  const renderedErrorMessage = typeof error === 'string' ? error : errorMessage;
   const labelStyle: React.CSSProperties = {
     display: 'block',
     marginBottom: SPACING.sm,
@@ -76,9 +78,9 @@ export const SettingsInput: React.FC<SettingsInputProps> = ({
         required={required}
         style={inputStyle}
       />
-      {hasError && errorMessage && (
+      {hasError && renderedErrorMessage && (
         <div style={errorStyle}>
-          ⚠️ {errorMessage}
+          ⚠️ {renderedErrorMessage}
         </div>
       )}
     </div>

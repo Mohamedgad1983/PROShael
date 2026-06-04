@@ -4,6 +4,9 @@ import { logger } from '../../utils/logger';
 
 import './CrisisDashboard.css';
 
+const ALLOW_MOCK_FALLBACK = process.env.NODE_ENV === 'development' &&
+  process.env.REACT_APP_ENABLE_MOCK_FALLBACK === 'true';
+
 const CrisisDashboard = () => {
   const [crisisData, setCrisisData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -39,9 +42,9 @@ const CrisisDashboard = () => {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        credentials: 'omit' // Don't send credentials for testing
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token') || localStorage.getItem('alshuail_token') || ''}`
+        }
       });
 
       // Log response details
@@ -163,9 +166,12 @@ const CrisisDashboard = () => {
         setError(err.message || 'فشل في تحميل بيانات الأزمة');
       }
 
-      // Use mock data as fallback
-      logger.debug('📊 Using mock data as fallback');
-      setCrisisData(generateMockData());
+      if (ALLOW_MOCK_FALLBACK) {
+        logger.debug('📊 Using mock data as fallback');
+        setCrisisData(generateMockData());
+      } else {
+        setCrisisData(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -285,7 +291,11 @@ const CrisisDashboard = () => {
               try {
                 const testUrl = `${API_URL}/api/crisis/dashboard`;
                 logger.debug('Testing URL:', { testUrl });
-                const resp = await fetch(testUrl);
+                const resp = await fetch(testUrl, {
+                  headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token') || localStorage.getItem('alshuail_token') || ''}`
+                  }
+                });
                 const text = await resp.text();
                 logger.debug('Response headers:', { headers: resp.headers });
                 logger.debug('Response text (first 200 chars);:', text.substring(0, 200));

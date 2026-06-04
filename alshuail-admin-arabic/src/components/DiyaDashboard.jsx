@@ -8,6 +8,10 @@ import { logger } from '../utils/logger';
 
 // API Configuration
 const API_URL = API_ORIGIN;
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token') || localStorage.getItem('alshuail_token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
 
 // Animations
 const fadeIn = keyframes`
@@ -320,7 +324,9 @@ const DiyaDashboard = () => {
 
   const fetchDiyaDashboard = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/diya/dashboard`);
+      const response = await fetch(`${API_URL}/api/diya/dashboard`, {
+        headers: getAuthHeaders()
+      });
       const data = await response.json();
       if (data.success) {
         setDiyaCases(data.data);
@@ -335,7 +341,9 @@ const DiyaDashboard = () => {
   const fetchContributors = async (activityId) => {
     setModalLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/diya/${activityId}/contributors`);
+      const response = await fetch(`${API_URL}/api/diya/${activityId}/contributors`, {
+        headers: getAuthHeaders()
+      });
       const data = await response.json();
       if (data.success) {
         setContributors(data.data);

@@ -218,7 +218,7 @@ class AuthService {
           print('📱 [SERVICE] User data saved!');
         }
 
-        // Check if user must change password (first-time login with default password)
+        // Check if user must change password after temporary credential login.
         final mustChangePassword = data['mustChangePassword'] == true;
 
         return AuthResult.success(

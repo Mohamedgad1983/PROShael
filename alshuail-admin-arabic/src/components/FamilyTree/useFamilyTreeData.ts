@@ -4,6 +4,9 @@ import { useCallback,useEffect,useState } from 'react';
 import { API_ORIGIN } from '../../utils/apiConfig';
 import { logger } from '../../utils/logger';
 
+const ALLOW_MOCK_FALLBACK = process.env.NODE_ENV === 'development' &&
+  process.env.REACT_APP_ENABLE_MOCK_FALLBACK === 'true';
+
 // Arabic relationship types
 export const RELATIONSHIP_TYPES = {
   FATHER: 'أب',
@@ -162,11 +165,15 @@ export const useFamilyTreeData = () => {
       logger.error('Error fetching family members:', { err });
       setError('فشل في تحميل بيانات العائلة');
 
-      // Use mock data as fallback
-      const mockData = generateMockData();
-      setMembers(mockData);
-      const tree = buildFamilyTree(mockData);
-      setTreeData(tree);
+      if (ALLOW_MOCK_FALLBACK) {
+        const mockData = generateMockData();
+        setMembers(mockData);
+        const tree = buildFamilyTree(mockData);
+        setTreeData(tree);
+      } else {
+        setMembers([]);
+        setTreeData(null);
+      }
     } finally {
       setLoading(false);
     }

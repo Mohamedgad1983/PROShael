@@ -5,12 +5,13 @@ import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
 import { setAuthCookie, clearAuthCookie } from '../middleware/cookie-auth.js';
 import { config } from '../config/env.js';
+import { LEGACY_DEFAULT_PASSWORD } from '../utils/passwordPolicy.js';
 
 const router = express.Router();
 
 const ADMIN_TOKEN_TTL = config.jwt.adminTtl;
 const MEMBER_TOKEN_TTL = config.jwt.memberTtl;
-const allowTestMemberLogin = process.env.ALLOW_TEST_MEMBER_LOGINS === 'true';
+const allowTestMemberLogin = config.testing.allowTestMemberLogins;
 
 const TEST_MEMBERS = {
   '0501234567': {
@@ -33,7 +34,29 @@ const TEST_MEMBERS = {
   }
 };
 
-const TEST_MEMBER_PASSWORD = process.env.TEST_MEMBER_PASSWORD;
+const addConfiguredTestMember = (phone, member) => {
+  const cleanPhone = String(phone || '').replace(/\s|-/g, '');
+  if (!cleanPhone) {
+    return;
+  }
+  TEST_MEMBERS[cleanPhone] = member;
+};
+
+addConfiguredTestMember(process.env.TEST_MEMBER_PHONE_SA, {
+  fullName: 'عضو تجريبي - السعودية',
+  membershipNumber: 'TEST-SA',
+  balance: 2500,
+  minimumBalance: 3000
+});
+
+addConfiguredTestMember(process.env.TEST_MEMBER_PHONE_KW, {
+  fullName: 'عضو تجريبي - الكويت',
+  membershipNumber: 'TEST-KW',
+  balance: 2500,
+  minimumBalance: 3000
+});
+
+const TEST_MEMBER_PASSWORD = config.testing.testMemberPassword;
 if (!TEST_MEMBER_PASSWORD && allowTestMemberLogin) {
   throw new Error('TEST_MEMBER_PASSWORD is required when ALLOW_TEST_MEMBER_LOGINS is true');
 }
@@ -302,21 +325,30 @@ function resolveTestMember(phone, password) {
     return null;
   }
 
-  const record = TEST_MEMBERS[phone];
-  // Allow both TEST_MEMBER_PASSWORD and default password '123456'
-  if (!record || (password !== TEST_MEMBER_PASSWORD && password !== '123456')) {
+  const variants = [phone];
+  if (phone.startsWith('0')) {
+    variants.push(`+966${phone.substring(1)}`);
+  } else if (phone.startsWith('+966')) {
+    variants.push(`0${phone.substring(4)}`);
+  } else if (phone.startsWith('+965')) {
+    variants.push(phone.substring(4));
+  }
+
+  const matchedPhone = variants.find((variant) => TEST_MEMBERS[variant]);
+  const record = matchedPhone ? TEST_MEMBERS[matchedPhone] : null;
+  if (!record || password !== TEST_MEMBER_PASSWORD) {
     return null;
   }
 
   return {
-    id: `test-member-${phone}`,
+    id: `test-member-${matchedPhone}`,
     full_name: record.fullName,
-    phone,
+    phone: matchedPhone,
     membership_number: record.membershipNumber,
     membership_status: 'active',
     balance: record.balance,
     minimum_balance: record.minimumBalance,
-    requires_password_change: password === '123456' // Mark for password change if using default
+    requires_password_change: false
   };
 }
 
@@ -373,6 +405,14 @@ async function authenticateMember(phone, password) {
     };
   }
 
+  if (password === LEGACY_DEFAULT_PASSWORD) {
+    return {
+      ok: false,
+      status: 401,
+      message: 'كلمة المرور الافتراضية القديمة غير مدعومة. استخدم استعادة كلمة المرور عبر OTP'
+    };
+  }
+
   let passwordMatch = false;
   let passwordHashToPersist = member.password_hash;
 
@@ -395,17 +435,6 @@ async function authenticateMember(phone, password) {
       } catch (compareError) {
         passwordMatch = false;
       }
-    }
-  }
-
-  // Check for default password '123456' for first-time login
-  if (!passwordMatch && password === '123456') {
-    // Allow default password if no password_hash is set (first-time login)
-    if (!member.password_hash) {
-      passwordMatch = true;
-      passwordHashToPersist = await bcrypt.hash('123456', 10);
-      // Mark as requires password change
-      member.requires_password_change = true;
     }
   }
 
@@ -631,6 +660,9 @@ const validateMemberPasswordStrength = (password) => {
   if (!/[0-9]/.test(password)) {
     return { valid: false, message: 'كلمة المرور يجب أن تحتوي على رقم واحد على الأقل', message_en: 'Password must contain at least one number' };
   }
+  if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) {
+    return { valid: false, message: 'كلمة المرور يجب أن تحتوي على رمز خاص واحد على الأقل', message_en: 'Password must contain at least one special character' };
+  }
   return { valid: true };
 };
 
@@ -691,8 +723,8 @@ router.post('/change-password', async (req, res) => {
       });
     }
 
-    // Reject "123456" as new password
-    if (new_password === '123456') {
+    // Reject the legacy default password as a new password
+    if (new_password === LEGACY_DEFAULT_PASSWORD) {
       return res.status(400).json({
         success: false,
         message: 'لا يمكن استخدام كلمة المرور المؤقتة ككلمة مرور جديدة',

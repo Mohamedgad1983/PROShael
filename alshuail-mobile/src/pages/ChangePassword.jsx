@@ -20,7 +20,7 @@ const ChangePassword = () => {
 
   const isFirstLogin = location.state?.isFirstLogin || false
 
-  const [currentPassword, setCurrentPassword] = useState(isFirstLogin ? '123456' : '')
+  const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
@@ -35,9 +35,10 @@ const ChangePassword = () => {
     uppercase: /[A-Z]/.test(newPassword),
     lowercase: /[a-z]/.test(newPassword),
     number: /[0-9]/.test(newPassword),
-    notTemp: newPassword !== '123456'
+    special: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(newPassword),
+    notLegacyDefault: newPassword !== '123456'
   }
-  const allChecksPassed = checks.length && checks.uppercase && checks.lowercase && checks.number && checks.notTemp
+  const allChecksPassed = checks.length && checks.uppercase && checks.lowercase && checks.number && checks.special && checks.notLegacyDefault
   const passwordsMatch = newPassword && confirmPassword && newPassword === confirmPassword
 
   // Block back navigation on first login
@@ -147,7 +148,7 @@ const ChangePassword = () => {
                 <input
                   type={showCurrentPassword ? 'text' : 'password'}
                   className="w-full px-4 py-3 pr-12 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:outline-none transition-colors"
-                  placeholder={isFirstLogin ? '123456' : 'أدخل كلمة المرور الحالية'}
+                  placeholder={isFirstLogin ? 'أدخل كلمة المرور المؤقتة الحالية' : 'أدخل كلمة المرور الحالية'}
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   disabled={loading}
@@ -194,7 +195,8 @@ const ChangePassword = () => {
                   <PasswordCheck passed={checks.uppercase} label="حرف كبير واحد على الأقل (A-Z)" />
                   <PasswordCheck passed={checks.lowercase} label="حرف صغير واحد على الأقل (a-z)" />
                   <PasswordCheck passed={checks.number} label="رقم واحد على الأقل (0-9)" />
-                  <PasswordCheck passed={checks.notTemp} label="ليست كلمة المرور المؤقتة" />
+                  <PasswordCheck passed={checks.special} label="رمز خاص واحد على الأقل" />
+                  <PasswordCheck passed={checks.notLegacyDefault} label="ليست كلمة المرور الافتراضية القديمة" />
                 </div>
               )}
             </div>

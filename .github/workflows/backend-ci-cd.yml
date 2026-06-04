@@ -17,7 +17,7 @@ on:
       - '.github/workflows/backend-ci-cd.yml'
 
 env:
-  NODE_VERSION: '18'
+  NODE_VERSION: '20'
   WORKING_DIRECTORY: './alshuail-backend'
   POSTGRES_VERSION: '15'
 
@@ -61,7 +61,7 @@ jobs:
           npm ci --prefer-offline --no-audit
 
       - name: Cache Dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ${{ env.WORKING_DIRECTORY }}/node_modules

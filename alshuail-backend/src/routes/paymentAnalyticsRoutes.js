@@ -4,12 +4,13 @@ import {
   getYearlyMemberPayments,
   getTribalSectionPayments
 } from '../controllers/paymentAnalyticsController.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, authorize } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// All analytics routes require authentication
+// All analytics routes require financial/admin authorization
 router.use(authenticateToken);
+router.use(authorize(['super_admin', 'admin', 'financial_manager']));
 
 /**
  * @route   GET /api/analytics/payments/monthly

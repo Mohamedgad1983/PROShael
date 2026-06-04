@@ -194,9 +194,17 @@ export const requireRole = (allowedRoles) => {
         return;
       }
 
-      // Handle admin roles (from admin login)
-      // Use role and permissions directly from token instead of fetching from database
-      const userRole = decoded.role || 'super_admin';
+      // Handle admin roles (from admin login). Tokens without an explicit role
+      // are invalid for authorization; never grant a privileged default.
+      if (!decoded.role) {
+        log.warn('RBAC denied token without role', { userId: decoded.id || decoded.user_id || null });
+        return res.status(403).json({
+          success: false,
+          message: 'لم يتم تحديد الصلاحيات المطلوبة'
+        });
+      }
+
+      const userRole = decoded.role;
       const userPermissions = decoded.permissions || getRolePermissions(userRole);
 
       // Check if user's role is in allowed roles
@@ -206,12 +214,7 @@ export const requireRole = (allowedRoles) => {
       if (!isAllowed) {
         return res.status(403).json({
           success: false,
-          message: 'ليس لديك الصلاحية للوصول إلى هذا المورد',
-          debug: {
-            userRole,
-            allowedRoles,
-            tokenPayload: decoded
-          }
+          message: 'ليس لديك الصلاحية للوصول إلى هذا المورد'
         });
       }
 
@@ -256,10 +259,27 @@ export const requirePermission = (permissionName) => {
       }
 
       const token = authHeader.substring(7);
-      const decoded = jwt.verify(token, JWT_SECRET);
+
+      let decoded;
+      try {
+        decoded = jwt.verify(token, JWT_SECRET);
+      } catch (err) {
+        return res.status(401).json({
+          success: false,
+          message: 'جلسة غير صالحة، الرجاء تسجيل الدخول مجدداً'
+        });
+      }
+
+      if (!decoded.role) {
+        log.warn('Permission denied token without role', { userId: decoded.id || decoded.user_id || null });
+        return res.status(403).json({
+          success: false,
+          message: 'لم يتم تحديد الصلاحيات المطلوبة'
+        });
+      }
 
       // Use permissions directly from token
-      const userPermissions = decoded.permissions || getRolePermissions(decoded.role || 'super_admin');
+      const userPermissions = decoded.permissions || getRolePermissions(decoded.role);
 
       // Check if user has the specific permission
       const hasUserPermission = userPermissions[permissionName] === true ||
@@ -279,8 +299,8 @@ export const requirePermission = (permissionName) => {
         id: decoded.id,
         email: decoded.email,
         phone: decoded.phone,
-        role: decoded.role || 'super_admin',
-        roleAr: getArabicRoleName(decoded.role || 'super_admin'),
+        role: decoded.role,
+        roleAr: getArabicRoleName(decoded.role),
         permissions: userPermissions
       };
 
@@ -483,5 +503,4 @@ export default {
   validateRoleAssignment,
   getRoleDataFilter
 };
-
 

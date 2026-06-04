@@ -3,6 +3,9 @@
   "version": "2.0.0",
   "private": true,
   "description": "Al-Shuail Family Management System monorepo",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "backend:dev": "npm --prefix alshuail-backend run dev",
     "backend:start": "npm --prefix alshuail-backend start",

@@ -8,6 +8,9 @@ import {
 BanknotesIcon,CalendarIcon,ChartBarIcon,CheckCircleIcon,ClockIcon,DocumentArrowDownIcon,DocumentTextIcon,ExclamationTriangleIcon,EyeIcon,HandRaisedIcon,MagnifyingGlassIcon,MapPinIcon,PencilIcon,PlusIcon,ScaleIcon,ShieldCheckIcon,ShieldExclamationIcon,UserGroupIcon,UsersIcon,XCircleIcon
 } from '@heroicons/react/24/outline';
 
+const ALLOW_MOCK_FALLBACK = process.env.NODE_ENV === 'development' &&
+  process.env.REACT_APP_ENABLE_MOCK_FALLBACK === 'true';
+
 const DiyasManagement = () => {
   // Performance optimized event handlers
 
@@ -30,6 +33,10 @@ const DiyasManagement = () => {
 
   // API URL configuration
   const API_URL = API_ORIGIN;
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('token') || localStorage.getItem('alshuail_token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
 
   // Mock diyas data
   const mockDiyas = [
@@ -268,7 +275,9 @@ const DiyasManagement = () => {
     setLoading(true);
     try {
       // Fetch real data from API
-      const response = await fetch(`${API_URL}/api/diya/dashboard`);
+      const response = await fetch(`${API_URL}/api/diya/dashboard`, {
+        headers: getAuthHeaders()
+      });
       const result = await response.json();
 
       if (result.success && result.data) {
@@ -320,13 +329,11 @@ const DiyasManagement = () => {
 
         setDiyas(transformedDiyas);
       } else {
-        // Fallback to mock data
-        setDiyas(mockDiyas);
+        setDiyas(ALLOW_MOCK_FALLBACK ? mockDiyas : []);
       }
     } catch (error) {
       logger.error('Error loading diyas data:', { error });
-      // Fallback to mock data on error
-      setDiyas(mockDiyas);
+      setDiyas(ALLOW_MOCK_FALLBACK ? mockDiyas : []);
     } finally {
       setLoading(false);
     }

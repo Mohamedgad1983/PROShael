@@ -2,6 +2,9 @@
   "name": "alshuail-admin-arabic",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20"
+  },
   "sideEffects": [
     "src/components/Settings/MultiRoleManagement.tsx",
     "src/components/Settings/SettingsPage.tsx",

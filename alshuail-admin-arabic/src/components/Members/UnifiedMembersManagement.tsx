@@ -485,7 +485,7 @@ const UnifiedMembersManagement: React.FC<UnifiedMembersManagementProps> = ({
   };
 
   return (
-    <div style={containerStyle}>
+    <div data-testid="members-management" dir="rtl" style={containerStyle}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <h1 style={{ margin: 0, fontSize: '28px' }}>إدارة الأعضاء</h1>
@@ -571,6 +571,7 @@ const UnifiedMembersManagement: React.FC<UnifiedMembersManagementProps> = ({
       {!loading && !error && pagination.totalPages > 1 && (
         <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', alignItems: 'center' }}>
           <button
+            aria-label="الصفحة السابقة"
             disabled={pagination.page === 1}
             onClick={() => handlePaginationChange(pagination.page - 1)}
             style={{ 
@@ -589,6 +590,7 @@ const UnifiedMembersManagement: React.FC<UnifiedMembersManagementProps> = ({
             الصفحة {pagination.page} من {pagination.totalPages}
           </span>
           <button
+            aria-label="الصفحة التالية"
             disabled={pagination.page === pagination.totalPages}
             onClick={() => handlePaginationChange(pagination.page + 1)}
             style={{ 

@@ -74,6 +74,28 @@ log.info('Environment Check on Start:', {
 
 const app = express();
 const PORT = config.port;
+const DB_CHECK_TIMEOUT_MS = Number.parseInt(process.env.DB_CHECK_TIMEOUT_MS || '5000', 10);
+
+const runDatabaseCheck = async () => {
+  let timeoutId;
+  try {
+    return await Promise.race([
+      testConnection(),
+      new Promise((resolve) => {
+        timeoutId = setTimeout(() => {
+          log.error('[Startup] Database connection check timed out', {
+            timeoutMs: DB_CHECK_TIMEOUT_MS
+          });
+          resolve(false);
+        }, DB_CHECK_TIMEOUT_MS);
+      })
+    ]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+};
 
 // Trust proxy - required for express-rate-limit behind Nginx/reverse proxy
 // This allows correct IP identification from X-Forwarded-For header
@@ -321,7 +343,9 @@ app.use('/api/initiatives-enhanced', initiativesEnhancedRoutes);
 app.use('/api/news', newsRoutes);
 app.use('/api/diyas', diyasRoutes);
 app.use('/api/notifications', notificationsRoutes);
-app.use('/api/test', testRoutes);
+if (!config.isProduction) {
+  app.use('/api/test', testRoutes);
+}
 app.use('/api/expenses', expensesRoutes);
 app.use('/api/reports', financialReportsRoutes);
 app.use('/api/settings', settingsRoutes);
@@ -402,8 +426,7 @@ app.get('/api/health', async (req, res) => {
 
   // Test database connection
   try {
-    const { testConnection } = await import('./src/config/database.js');
-    health.checks.database = await testConnection();
+    health.checks.database = await runDatabaseCheck();
   } catch (error) {
     log.error('Health check DB error:', { message: error.message });
     health.checks.database = false;
@@ -417,30 +440,27 @@ app.get('/api/health', async (req, res) => {
   res.json(health);
 });
 
-// Simple test endpoint that always works
-app.get('/api/test', (req, res) => {
-  res.json({
-    success: true,
-    message: 'API is working!',
-    timestamp: new Date().toISOString(),
-    headers: {
-      origin: req.headers.origin || 'no-origin',
-      authorization: req.headers.authorization ? 'present' : 'missing'
-    }
+if (!config.isProduction) {
+  // Simple test endpoint that always works in non-production environments.
+  app.get('/api/test', (req, res) => {
+    res.json({
+      success: true,
+      message: 'API is working!',
+      timestamp: new Date().toISOString(),
+      headers: {
+        origin: req.headers.origin || 'no-origin',
+        authorization: req.headers.authorization ? 'present' : 'missing'
+      }
+    });
   });
-});
+}
 
 // Debug endpoint for troubleshooting
 app.get('/api/debug/env', (req, res) => {
-  const debugToken = req.headers['x-debug-token'];
-  const debugEnabled = config.debug.enabled && (!config.isProduction || config.debug.token);
+  const debugEnabled = !config.isProduction && config.debug.enabled;
 
   if (!debugEnabled) {
     return res.status(404).json({ error: 'Not found' });
-  }
-
-  if (config.isProduction && debugToken !== config.debug.token) {
-    return res.status(403).json({ error: 'Forbidden' });
   }
 
   res.json({
@@ -473,7 +493,7 @@ const startServer = async () => {
 
   // Test database connection
   log.info('🔍 Testing database connection...');
-  const dbConnected = await testConnection();
+  const dbConnected = await runDatabaseCheck();
 
   if (!dbConnected) {
     log.error('⚠️  WARNING: Database connection could not be verified');
@@ -496,7 +516,9 @@ const startServer = async () => {
     log.info('═══════════════════════════════════════');
     log.info(`📡 API Server: http://localhost:${PORT}`);
     log.info(`💚 Health Check: http://localhost:${PORT}/api/health`);
-    log.info(`🧪 Test Endpoint: http://localhost:${PORT}/api/test`);
+    if (!config.isProduction) {
+      log.info(`🧪 Test Endpoint: http://localhost:${PORT}/api/test`);
+    }
     log.info(`📊 Dashboard: http://localhost:3002`);
     log.info('\n📌 Production URLs:');
     log.info(`   API: https://api.alshailfund.com`);

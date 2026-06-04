@@ -32,9 +32,9 @@ const OTP_EXPIRY_MINUTES = 5;
 const OTP_MAX_ATTEMPTS = 3;
 const OTP_RESEND_COOLDOWN_SECONDS = 60;
 
-// Test mode: Use fixed OTP '123456' in development
+// Test mode is never enabled in production, even if USE_TEST_OTP is set.
 const TEST_OTP = '123456';
-const USE_TEST_OTP = config.isDevelopment || process.env.USE_TEST_OTP === 'true';
+const USE_TEST_OTP = !config.isProduction && (config.isDevelopment || config.isTest || process.env.USE_TEST_OTP === 'true');
 
 /**
  * Generate secure random OTP

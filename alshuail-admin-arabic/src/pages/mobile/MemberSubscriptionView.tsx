@@ -98,7 +98,7 @@ const MemberSubscriptionView: React.FC = () => {
             </p>
             <ul style={{ textAlign: 'right', fontSize: '0.9rem', color: 'rgba(255,255,255,0.7)', marginBottom: '1.5rem' }}>
               <li>قم بتسجيل الخروج</li>
-              <li>سجل دخول كعضو: 0555555555 / 123456</li>
+              <li>سجل دخول كعضو باستخدام كلمة مرور مؤقتة من الإدارة أو رمز التحقق</li>
               <li>أو استخدم لوحة تحكم المسؤول لعرض جميع الاشتراكات</li>
             </ul>
             <button

@@ -8,6 +8,7 @@ import { jest, describe, test, expect, beforeEach } from '@jest/globals';
 const mockQuery = jest.fn();
 const mockHash = jest.fn(async (value) => `hashed_${value}`);
 const mockVerify = jest.fn(() => ({ id: 'member-1', role: 'member' }));
+const strongTemporaryPasswordPattern = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{14}$/;
 
 jest.unstable_mockModule('../../../src/services/database.js', () => ({
   query: mockQuery
@@ -398,7 +399,7 @@ describe('Members Controller Unit Tests', () => {
         body: { full_name: 'محمد', phone: '0500000000', send_registration_link: true }
       }), res);
 
-      expect(mockHash).toHaveBeenCalledWith(expect.stringMatching(/^\d{6}$/), 10);
+      expect(mockHash).toHaveBeenCalledWith(expect.stringMatching(strongTemporaryPasswordPattern), 10);
       expect(mockQuery).toHaveBeenNthCalledWith(2, expect.stringContaining('INSERT INTO members'), expect.any(Array));
       expect(mockQuery).toHaveBeenNthCalledWith(3, expect.stringContaining('INSERT INTO member_registration_tokens'), expect.any(Array));
       expect(res.status).toHaveBeenCalledWith(201);
@@ -407,7 +408,7 @@ describe('Members Controller Unit Tests', () => {
         data: expect.objectContaining({
           member: expect.objectContaining({
             registration_token: expect.any(String),
-            temp_password: expect.stringMatching(/^\d{6}$/)
+            temp_password: expect.stringMatching(strongTemporaryPasswordPattern)
           })
         })
       }));

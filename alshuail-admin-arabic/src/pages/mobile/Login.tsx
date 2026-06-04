@@ -246,7 +246,7 @@ const MobileLogin = () => {
         {/* Help Text */}
         <div className="help-section">
           <p className="help-text">
-            🔒 كلمة المرور الافتراضية: <strong>123456</strong>
+            🔒 استخدم كلمة المرور المؤقتة المرسلة من الإدارة
           </p>
           <p className="help-subtext">
             ستُطلب منك تغييرها عند أول دخول

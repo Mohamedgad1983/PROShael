@@ -23,14 +23,23 @@ describe('SettingsInput', () => {
 
   it('calls onChange when value changes', () => {
     const handleChange = jest.fn();
+    const changedValues: string[] = [];
     const { getByRole } = render(
-      <SettingsInput label="الاسم" value="" onChange={handleChange} />
+      <SettingsInput
+        label="الاسم"
+        value=""
+        onChange={(event) => {
+          changedValues.push(event.target.value);
+          handleChange(event);
+        }}
+      />
     );
 
     const input = getByRole('textbox');
     fireEvent.change(input, { target: { value: 'محمد' } });
 
-    expect(handleChange).toHaveBeenCalledWith('محمد');
+    expect(handleChange).toHaveBeenCalledTimes(1);
+    expect(changedValues).toEqual(['محمد']);
   });
 
   it('renders with placeholder', () => {
@@ -74,7 +83,7 @@ describe('SettingsInput', () => {
       />
     );
 
-    expect(getByText('البريد الإلكتروني غير صالح')).toBeInTheDocument();
+    expect(getByText(/البريد الإلكتروني غير صالح/)).toBeInTheDocument();
   });
 
   it('applies error background when error is true', () => {

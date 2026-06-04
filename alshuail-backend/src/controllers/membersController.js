@@ -5,6 +5,7 @@ import { sanitizeJSON as _sanitizeJSON, prepareUpdateData } from '../utils/jsonS
 import { sanitizeSearchTerm, sanitizeNumber, sanitizeBoolean, sanitizePhone } from '../utils/inputSanitizer.js';
 import { log } from '../utils/logger.js';
 import { config } from '../config/env.js';
+import { generateTemporaryPassword } from '../utils/passwordPolicy.js';
 
 // Financial calculation constants for 5-year subscription (2021-2025)
 const SUBSCRIPTION_CONFIG = {
@@ -224,8 +225,8 @@ export const createMember = async (req, res) => {
       memberData.membership_number = `SH-${  Date.now().toString().slice(-8)}`;
     }
 
-    // Default password hash for "123456" (12-round bcrypt)
-    const defaultPasswordHash = '$2b$12$OJ5iRDohKqpP2Ne/6XBstO7qeikbJxltZ/vvfrCycWBPpGX5vws/O';
+    const temporaryPassword = generateTemporaryPassword();
+    const temporaryPasswordHash = await bcrypt.hash(temporaryPassword, 12);
 
     // Ensure all fields are properly set
     const memberToCreate = {
@@ -239,7 +240,7 @@ export const createMember = async (req, res) => {
       address: memberData.address || null,
       occupation: memberData.occupation || null,
       employer: memberData.employer || null,
-      password: memberData.password || null,
+      password: null,
       membership_number: memberData.membership_number,
       membership_status: memberData.membership_status || 'active',
       profile_completed: memberData.profile_completed || false,
@@ -258,7 +259,7 @@ export const createMember = async (req, res) => {
         memberToCreate.district, memberToCreate.address, memberToCreate.occupation,
         memberToCreate.employer, memberToCreate.password, memberToCreate.membership_number,
         memberToCreate.membership_status, memberToCreate.profile_completed, memberToCreate.created_at,
-        defaultPasswordHash, true, true, false
+        temporaryPasswordHash, true, true, true
       ]
     );
 
@@ -269,6 +270,8 @@ export const createMember = async (req, res) => {
     res.status(201).json({
       success: true,
       data: newMember,
+      temporaryPassword,
+      note: 'Temporary password is shown once and must be changed by the member',
       message: 'تم إضافة العضو بنجاح'
     });
   } catch (error) {
@@ -680,8 +683,7 @@ export const addMemberManually = async (req, res) => {
       registrationToken += chars.charAt(Math.floor(Math.random() * chars.length));
     }
 
-    // Generate temporary password (6 digits)
-    const tempPassword = Math.floor(100000 + Math.random() * 900000).toString();
+    const tempPassword = generateTemporaryPassword();
     const hashedPassword = await bcrypt.hash(tempPassword, 10);
 
     // Create registration token record
