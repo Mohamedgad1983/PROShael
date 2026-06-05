@@ -127,11 +127,23 @@ jobs:
           echo "Starting API health check tests..."
           node server.js &
           SERVER_PID=$!
+          trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
 
-          sleep 10
+          for attempt in {1..30}; do
+            if curl -fsS http://localhost:3001/api/health; then
+              break
+            fi
 
-          curl -f http://localhost:3001/api/health
-          curl -f http://localhost:3001/api/test
+            if ! kill -0 $SERVER_PID 2>/dev/null; then
+              echo "Server process exited before becoming healthy"
+              wait $SERVER_PID
+              exit 1
+            fi
+
+            sleep 2
+          done
+
+          curl -fsS http://localhost:3001/api/test
 
           kill $SERVER_PID
 
@@ -245,7 +257,7 @@ jobs:
 
       - name: Run Integration Tests
         env:
-          NODE_ENV: test
+          NODE_ENV: ci
           DATABASE_URL: postgresql://integration_user:integration_password@localhost:5432/alshuail_integration
           JWT_SECRET: test_jwt_secret_for_ci_cd_pipeline_validation
           CSRF_SECRET: test_csrf_secret_for_ci_cd_pipeline_validation
@@ -254,10 +266,23 @@ jobs:
           echo "Running integration tests..."
           node server.js &
           SERVER_PID=$!
-          sleep 15
+          trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
 
-          curl -f http://localhost:3001/api/health
-          curl -f http://localhost:3001/api/test
+          for attempt in {1..30}; do
+            if curl -fsS http://localhost:3001/api/health; then
+              break
+            fi
+
+            if ! kill -0 $SERVER_PID 2>/dev/null; then
+              echo "Server process exited before becoming healthy"
+              wait $SERVER_PID
+              exit 1
+            fi
+
+            sleep 2
+          done
+
+          curl -fsS http://localhost:3001/api/test
 
           kill $SERVER_PID
 

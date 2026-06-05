@@ -25,7 +25,7 @@
     "env:validate": "node src/scripts/validate-env.js",
     "env:generate": "node src/scripts/validate-env.js --generate-template",
     "env:fix": "node src/scripts/validate-env.js --auto-fix",
-    "prepare": "husky",
+    "prepare": "node scripts/prepare-husky.cjs",
     "type-check": "node --check server.js",
     "build": "echo 'No build step required for Node.js'",
     "health-check": "node healthcheck.js",
@@ -75,6 +75,7 @@
     "pdfkit": "^0.17.2",
     "pdfkit-table": "^0.1.99",
     "pg": "^8.16.3",
+    "redis": "^5.12.1",
     "twilio": "^5.10.4",
     "uuid": "^13.0.0",
     "winston": "^3.11.0"
@@ -89,7 +90,6 @@
     "husky": "^9.1.7",
     "jest": "^30.2.0",
     "nodemon": "^3.0.1",
-    "redis": "^5.10.0",
     "supertest": "^7.1.4"
   },
   "overrides": {
