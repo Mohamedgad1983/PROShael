@@ -26,6 +26,7 @@ RUN apt-get update && \
 
 # Copy package files
 COPY package*.json ./
+COPY scripts/prepare-husky.cjs ./scripts/
 
 # Install all dependencies (including devDependencies for build)
 RUN npm ci --omit=dev && npm cache clean --force
@@ -80,6 +81,8 @@ EXPOSE 3001
 
 # Switch to non-root user
 USER alshuail
+
+ARG GITHUB_SHA=unknown
 
 # Health check configuration
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
