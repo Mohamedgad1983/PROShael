@@ -1,15 +1,9 @@
-import React, { memo,  useState } from 'react';
+import React,{ memo,useState } from 'react';
 import { logger } from '../../utils/logger';
 
 import {
-  XMarkIcon,
-  UserIcon,
-  CreditCardIcon,
-  CalendarDaysIcon,
-  CheckCircleIcon,
-  ExclamationTriangleIcon,
-  BanknotesIcon,
-  ClockIcon
+BanknotesIcon,CalendarDaysIcon,
+CheckCircleIcon,ClockIcon,CreditCardIcon,UserIcon,XMarkIcon
 } from '@heroicons/react/24/outline';
 
 interface Member {

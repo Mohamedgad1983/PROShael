@@ -365,7 +365,7 @@ export function initPerformanceMonitoring() {
   }
 }
 
-export default {
+const performanceUtils = {
   debounce,
   throttle,
   calculateVisibleRange,
@@ -377,3 +377,5 @@ export default {
   registerServiceWorker,
   initPerformanceMonitoring
 };
+
+export default performanceUtils;

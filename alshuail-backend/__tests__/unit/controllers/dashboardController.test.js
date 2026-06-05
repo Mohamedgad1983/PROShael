@@ -17,92 +17,54 @@ let mockState = {
   shouldThrow: false
 };
 
-// Determine which mock data to return based on query context
-function determineResult(tableName, selectFields, hasOrder) {
-  // getTribalSectionsStatistics: members table with tribal_section
-  if (tableName === 'members' && selectFields && selectFields.includes('tribal_section')) {
+// Determine which mock data to return based on the PostgreSQL query text.
+function determineResult(sql) {
+  if (sql.includes('FROM members') && sql.includes('tribal_section')) {
     return mockState.tribalMembers;
   }
 
-  // getRecentActivities: payments with order
-  if (tableName === 'payments' && hasOrder) {
+  if (sql.includes('FROM payments') && sql.includes('ORDER BY created_at DESC LIMIT 5')) {
     return mockState.recentPayments;
   }
 
-  // getRecentActivities: members with order and member_id
-  if (tableName === 'members' && hasOrder && selectFields && selectFields.includes('member_id')) {
+  if (sql.includes('FROM members') && sql.includes('ORDER BY created_at DESC LIMIT 5')) {
     return mockState.recentMembers;
   }
 
-  // getMembersStatistics: members with is_active
-  if (tableName === 'members' && selectFields && selectFields.includes('is_active')) {
+  if (sql.includes('FROM members') && sql.includes('is_active')) {
     return mockState.membersStats;
   }
 
-  // getPaymentsStatistics: payments without order
-  if (tableName === 'payments' && !hasOrder) {
+  if (sql.includes('FROM payments')) {
     return mockState.payments;
   }
 
-  // getSubscriptionStatistics: subscriptions
-  if (tableName === 'subscriptions') {
+  if (sql.includes('FROM subscriptions')) {
     return mockState.subscriptions;
   }
-
-  // Default fallback based on table
-  if (tableName === 'members') return mockState.membersStats;
-  if (tableName === 'payments') return mockState.payments;
-  if (tableName === 'subscriptions') return mockState.subscriptions;
 
   return { data: null, error: null };
 }
 
-// Create chainable mock that tracks each query's own context
-const mockSupabase = {
-  from: jest.fn((tableName) => {
-    // Each call to from() creates a new chain with its own context
-    let queryContext = {
-      tableName,
-      selectFields: null,
-      hasOrder: false
-    };
+const mockQuery = jest.fn(async (sql) => {
+  if (mockState.shouldThrow) {
+    throw new Error('Database error');
+  }
 
-    const chain = {
-      select: jest.fn((fields) => {
-        queryContext.selectFields = fields;
-        return chain;
-      }),
-      eq: jest.fn(() => chain),
-      gte: jest.fn(() => chain),
-      lte: jest.fn(() => chain),
-      limit: jest.fn(() => chain),
-      order: jest.fn(() => {
-        queryContext.hasOrder = true;
-        return chain;
-      }),
-      single: jest.fn(() => {
-        if (mockState.shouldThrow) {
-          return Promise.reject(new Error('Database error'));
-        }
-        const result = determineResult(queryContext.tableName, queryContext.selectFields, queryContext.hasOrder);
-        return Promise.resolve(result);
-      }),
-      then: jest.fn((callback) => {
-        if (mockState.shouldThrow) {
-          return Promise.reject(new Error('Database error'));
-        }
-        const result = determineResult(queryContext.tableName, queryContext.selectFields, queryContext.hasOrder);
-        return Promise.resolve(callback(result));
-      })
-    };
+  const result = determineResult(sql);
+  if (result?.error) {
+    throw new Error(result.error.message || 'Database error');
+  }
 
-    return chain;
-  })
-};
+  return {
+    rows: result?.data || [],
+    rowCount: result?.data?.length || 0
+  };
+});
 
 // Mock modules
-jest.unstable_mockModule('../../../src/config/database.js', () => ({
-  supabase: mockSupabase
+jest.unstable_mockModule('../../../src/services/database.js', () => ({
+  query: mockQuery
 }));
 
 jest.unstable_mockModule('../../../src/utils/logger.js', () => ({

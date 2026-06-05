@@ -2,11 +2,11 @@
  * SettingsTable Storybook Stories
  */
 
-import type { Meta, StoryObj } from '@storybook/react';
+import { PencilIcon,TrashIcon } from '@heroicons/react/24/outline';
+import type { Meta,StoryObj } from '@storybook/react';
+import { SettingsButton } from './SettingsButton';
 import { SettingsTable } from './SettingsTable';
 import { StatusBadge } from './StatusBadge';
-import { SettingsButton } from './SettingsButton';
-import { PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 interface User {
   id: string;
@@ -109,7 +109,7 @@ export const WithActions: Story = {
         key: 'actions',
         label: 'الإجراءات',
         width: '25%',
-        render: (user) => (
+        render: () => (
           <div style={{ display: 'flex', gap: '8px' }}>
             <SettingsButton
               variant="secondary"
@@ -210,7 +210,7 @@ export const CompleteExample: Story = {
         key: 'actions',
         label: 'الإجراءات',
         width: '25%',
-        render: (user) => (
+        render: () => (
           <div style={{ display: 'flex', gap: '8px' }}>
             <SettingsButton
               variant="secondary"

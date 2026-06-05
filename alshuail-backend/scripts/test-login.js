@@ -12,7 +12,12 @@ import('../src/routes/auth.js').then(async (authModule) => {
 
   // Simulate a login request
   const testEmail = 'admin@alshuail.com';
-  const testPassword = 'Admin@123456';
+  const testPassword = process.env.TEST_LOGIN_PASSWORD || process.argv[2];
+
+  if (!testPassword) {
+    console.error('TEST_LOGIN_PASSWORD or a positional password argument is required.');
+    process.exit(1);
+  }
 
   try {
     // Import the query function to test database directly

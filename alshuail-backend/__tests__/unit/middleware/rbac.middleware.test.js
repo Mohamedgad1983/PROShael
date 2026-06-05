@@ -20,7 +20,7 @@ const mockSupabase = {
 
 jest.unstable_mockModule('@supabase/supabase-js', () => ({
   createClient: jest.fn(() => mockSupabase)
-}));
+}), { virtual: true });
 
 describe('RBAC Middleware (rbac.middleware.js) Unit Tests', () => {
   const createMockRequest = (overrides = {}) => ({
@@ -431,7 +431,7 @@ describe('RBAC Middleware (rbac.middleware.js) Unit Tests', () => {
     });
 
     test('should not call next() on failure', () => {
-      let nextCalled = false;
+      const nextCalled = false;
       const res = createMockResponse();
 
       // Simulate failed authorization

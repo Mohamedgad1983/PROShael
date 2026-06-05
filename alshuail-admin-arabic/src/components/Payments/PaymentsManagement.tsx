@@ -1,17 +1,13 @@
-import React, { memo,  useState, useEffect } from 'react';
-import { ARABIC_LABELS } from '../../constants/arabic';
-import PaymentsOverview from './PaymentsOverview';
-import PaymentsTable from './PaymentsTable';
+import React,{ memo,useState } from 'react';
+import { logger } from '../../utils/logger';
 import CreatePaymentForm from './CreatePaymentForm';
 import PaymentDetailsModal from './PaymentDetailsModal';
-import { logger } from '../../utils/logger';
+import PaymentsOverview from './PaymentsOverview';
+import PaymentsTable from './PaymentsTable';
 
 import {
-  Payment,
-  PaymentFilters,
-  PaymentFormData,
-  PaymentAction,
-  PaymentStatistics
+Payment,PaymentAction,PaymentFilters,
+PaymentFormData
 } from './types';
 
 // Mock members data

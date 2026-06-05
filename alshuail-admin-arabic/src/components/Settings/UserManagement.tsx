@@ -4,29 +4,21 @@
  * Migrated to use shared styles and components
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
 import {
-  UserIcon,
-  UserGroupIcon,
-  ShieldCheckIcon,
-  PencilIcon,
-  PlusIcon,
-  MagnifyingGlassIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  ExclamationTriangleIcon,
-  ArrowPathIcon,
-  KeyIcon
+ArrowPathIcon,CheckCircleIcon,ExclamationTriangleIcon,KeyIcon,MagnifyingGlassIcon,PencilIcon,
+PlusIcon,ShieldCheckIcon,UserGroupIcon,UserIcon,XCircleIcon
 } from '@heroicons/react/24/outline';
-import { ROLE_DISPLAY_NAMES, UserRole } from '../../contexts/RoleContext';
-import { SettingsCard } from './shared/SettingsCard';
+import React,{ useCallback,useEffect,useState } from 'react';
+import { ROLE_DISPLAY_NAMES,UserRole } from '../../contexts/RoleContext';
 import { SettingsButton } from './shared/SettingsButton';
+import { SettingsCard } from './shared/SettingsCard';
 import { SettingsInput } from './shared/SettingsInput';
 import { SettingsSelect } from './shared/SettingsSelect';
-import { SettingsTable, SettingsTableColumn } from './shared/SettingsTable';
+import { SettingsTable,SettingsTableColumn } from './shared/SettingsTable';
 import { StatusBadge } from './shared/StatusBadge';
-import { commonStyles, COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from './sharedStyles';
+import { BORDER_RADIUS,COLORS,commonStyles,SHADOWS,SPACING,TYPOGRAPHY } from './sharedStyles';
 
+import { API_ORIGIN } from '../../utils/apiConfig';
 import { logger } from '../../utils/logger';
 
 interface User {
@@ -41,7 +33,7 @@ interface User {
   lastLogin?: string;
 }
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+const API_BASE_URL = API_ORIGIN;
 const SETTINGS_ENDPOINT = `${API_BASE_URL}/api/settings`;
 const MANAGED_ROLES: UserRole[] = [
   'super_admin',
@@ -210,18 +202,6 @@ const UserManagement: React.FC = () => {
       setSaving(false);
     }
   };
-
-  const handleRefresh = useCallback(() => {
-    fetchUsers();
-  }, [fetchUsers]);
-
-  const handleFilterChange = useCallback((filterType: string, value: any) => {
-    logger.debug('Filter changed:', { filterType, value });
-  }, []);
-
-  const handlePageChange = useCallback((page: number) => {
-    logger.debug('Page changed:', { page });
-  }, []);
 
   const getRoleBadgeType = (role: UserRole): 'success' | 'error' | 'warning' | 'info' => {
     const typeMap: Record<UserRole, 'success' | 'error' | 'warning' | 'info'> = {

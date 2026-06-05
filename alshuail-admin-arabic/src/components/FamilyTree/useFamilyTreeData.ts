@@ -1,7 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { useCallback,useEffect,useState } from 'react';
 
+import { API_ORIGIN } from '../../utils/apiConfig';
 import { logger } from '../../utils/logger';
+
+const ALLOW_MOCK_FALLBACK = process.env.NODE_ENV === 'development' &&
+  process.env.REACT_APP_ENABLE_MOCK_FALLBACK === 'true';
 
 // Arabic relationship types
 export const RELATIONSHIP_TYPES = {
@@ -123,7 +127,7 @@ export const useFamilyTreeData = () => {
       setLoading(true);
       setError(null);
 
-      const response = await axios.get(`${process.env.REACT_APP_API_URL || 'https://api.alshailfund.com'}/api/members`, {
+      const response = await axios.get(`${API_ORIGIN}/api/members`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`
         }
@@ -161,11 +165,15 @@ export const useFamilyTreeData = () => {
       logger.error('Error fetching family members:', { err });
       setError('فشل في تحميل بيانات العائلة');
 
-      // Use mock data as fallback
-      const mockData = generateMockData();
-      setMembers(mockData);
-      const tree = buildFamilyTree(mockData);
-      setTreeData(tree);
+      if (ALLOW_MOCK_FALLBACK) {
+        const mockData = generateMockData();
+        setMembers(mockData);
+        const tree = buildFamilyTree(mockData);
+        setTreeData(tree);
+      } else {
+        setMembers([]);
+        setTreeData(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -197,7 +205,7 @@ export const useFamilyTreeData = () => {
   ) => {
     try {
       await axios.post(
-        `${process.env.REACT_APP_API_URL || 'https://api.alshailfund.com'}/api/members/${memberId}/relationships`,
+        `${API_ORIGIN}/api/members/${memberId}/relationships`,
         {
           relatedMemberId,
           relationshipType
@@ -221,7 +229,7 @@ export const useFamilyTreeData = () => {
   const updateMember = useCallback(async (memberId: string, updates: Partial<FamilyMember>) => {
     try {
       await axios.patch(
-        `${process.env.REACT_APP_API_URL || 'https://api.alshailfund.com'}/api/members/${memberId}`,
+        `${API_ORIGIN}/api/members/${memberId}`,
         updates,
         {
           headers: {

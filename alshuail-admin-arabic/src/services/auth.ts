@@ -1,9 +1,10 @@
 import axios from 'axios';
 import Cookies from 'js-cookie';
 
+import { API_ORIGIN } from '../utils/apiConfig';
 import { logger } from '../utils/logger';
 
-const API_BASE_URL = typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.alshailfund.com';
+const API_BASE_URL = API_ORIGIN;
 
 export interface LoginCredentials {
   phone: string;
@@ -70,12 +71,17 @@ class AuthService {
 
       return authData;
     } catch (error: any) {
-      throw {
-        status: 'error',
-        message_ar: 'خطأ في تسجيل الدخول',
-        message_en: 'Login error',
-        error: error.response?.data || error.message
+      const loginError = new Error('Login error') as Error & {
+        status?: string;
+        message_ar?: string;
+        message_en?: string;
+        error?: unknown;
       };
+      loginError.status = 'error';
+      loginError.message_ar = 'خطأ في تسجيل الدخول';
+      loginError.message_en = 'Login error';
+      loginError.error = error.response?.data || error.message;
+      throw loginError;
     }
   }
 

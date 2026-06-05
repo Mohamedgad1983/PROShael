@@ -1,6 +1,7 @@
 import { query } from '../services/database.js';
 import bcrypt from 'bcryptjs';
 import { log } from '../utils/logger.js';
+import { generateTemporaryPassword } from '../utils/passwordPolicy.js';
 
 // Helper function to convert Gregorian date to Hijri
 function convertToHijri(gregorianDate) {
@@ -389,18 +390,8 @@ export const resendRegistrationToken = async (req, res) => {
       tokenExists = existingTokenResult.rows && existingTokenResult.rows.length > 0;
     }
 
-    // Get temporary password from most recent token
-    const recentTokenResult = await query(
-      `SELECT temp_password FROM member_registration_tokens
-       WHERE member_id = $1
-       ORDER BY created_at DESC
-       LIMIT 1`,
-      [memberId]
-    );
-
-    const tempPassword = recentTokenResult.rows && recentTokenResult.rows.length > 0
-      ? recentTokenResult.rows[0].temp_password
-      : '123456';
+    const tempPassword = generateTemporaryPassword();
+    const tempPasswordHash = await bcrypt.hash(tempPassword, 10);
 
     // Create new token record
     const expiryDate = new Date();
@@ -410,7 +401,7 @@ export const resendRegistrationToken = async (req, res) => {
       `INSERT INTO member_registration_tokens (
         member_id, token, temp_password, expires_at, is_used
       ) VALUES ($1, $2, $3, $4, $5)`,
-      [memberId, registrationToken, tempPassword, expiryDate.toISOString(), false]
+      [memberId, registrationToken, tempPasswordHash, expiryDate.toISOString(), false]
     );
 
     res.json({

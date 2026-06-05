@@ -2,7 +2,7 @@
  * SettingsSelect Storybook Stories
  */
 
-import type { Meta, StoryObj } from '@storybook/react';
+import type { Meta,StoryObj } from '@storybook/react';
 import { useState } from 'react';
 import { SettingsSelect } from './SettingsSelect';
 
@@ -33,6 +33,92 @@ type Story = StoryObj<typeof SettingsSelect>;
 const InteractiveWrapper = (args: any) => {
   const [value, setValue] = useState(args.value || '');
   return <SettingsSelect {...args} value={value} onChange={setValue} />;
+};
+
+const FormExampleRender = () => {
+  const [role, setRole] = useState('');
+  const [status, setStatus] = useState('');
+  const [department, setDepartment] = useState('');
+
+  return (
+    <div style={{ maxWidth: '400px', direction: 'rtl' }}>
+      <h3>نموذج إعدادات المستخدم</h3>
+      <SettingsSelect
+        label="الدور"
+        value={role}
+        onChange={setRole}
+        placeholder="اختر الدور"
+        required
+        options={[
+          { value: 'super_admin', label: 'مسؤول رئيسي' },
+          { value: 'admin', label: 'مسؤول' },
+          { value: 'moderator', label: 'مشرف' },
+          { value: 'user', label: 'مستخدم' }
+        ]}
+      />
+      <SettingsSelect
+        label="الحالة"
+        value={status}
+        onChange={setStatus}
+        placeholder="اختر الحالة"
+        required
+        options={[
+          { value: 'active', label: 'نشط' },
+          { value: 'inactive', label: 'غير نشط' },
+          { value: 'suspended', label: 'معلق' }
+        ]}
+      />
+      <SettingsSelect
+        label="القسم"
+        value={department}
+        onChange={setDepartment}
+        placeholder="اختر القسم"
+        options={[
+          { value: 'hr', label: 'الموارد البشرية' },
+          { value: 'it', label: 'تقنية المعلومات' },
+          { value: 'finance', label: 'المالية' },
+          { value: 'sales', label: 'المبيعات' }
+        ]}
+      />
+    </div>
+  );
+};
+
+const ValidationExampleRender = () => {
+  const [role, setRole] = useState('');
+  const [error, setError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const handleChange = (value: string) => {
+    setRole(value);
+    if (!value) {
+      setError(true);
+      setErrorMessage('يجب اختيار دور');
+    } else {
+      setError(false);
+      setErrorMessage('');
+    }
+  };
+
+  return (
+    <div style={{ maxWidth: '400px', direction: 'rtl' }}>
+      <h3>مثال على التحقق من الصحة</h3>
+      <SettingsSelect
+        label="الدور"
+        value={role}
+        onChange={handleChange}
+        placeholder="اختر الدور"
+        required
+        error={error}
+        errorMessage={errorMessage}
+        options={[
+          { value: 'admin', label: 'مسؤول' },
+          { value: 'user', label: 'مستخدم' },
+          { value: 'guest', label: 'ضيف' }
+        ]}
+      />
+    </div>
+  );
 };
 
 // Basic Select
@@ -134,92 +220,10 @@ export const ManyOptions: Story = {
 
 // Form Example
 export const FormExample: Story = {
-  render: () => {
-    const [role, setRole] = useState('');
-    const [status, setStatus] = useState('');
-    const [department, setDepartment] = useState('');
-
-    return (
-      <div style={{ maxWidth: '400px', direction: 'rtl' }}>
-        <h3>نموذج إعدادات المستخدم</h3>
-        <SettingsSelect
-          label="الدور"
-          value={role}
-          onChange={setRole}
-          placeholder="اختر الدور"
-          required
-          options={[
-            { value: 'super_admin', label: 'مسؤول رئيسي' },
-            { value: 'admin', label: 'مسؤول' },
-            { value: 'moderator', label: 'مشرف' },
-            { value: 'user', label: 'مستخدم' }
-          ]}
-        />
-        <SettingsSelect
-          label="الحالة"
-          value={status}
-          onChange={setStatus}
-          placeholder="اختر الحالة"
-          required
-          options={[
-            { value: 'active', label: 'نشط' },
-            { value: 'inactive', label: 'غير نشط' },
-            { value: 'suspended', label: 'معلق' }
-          ]}
-        />
-        <SettingsSelect
-          label="القسم"
-          value={department}
-          onChange={setDepartment}
-          placeholder="اختر القسم"
-          options={[
-            { value: 'hr', label: 'الموارد البشرية' },
-            { value: 'it', label: 'تقنية المعلومات' },
-            { value: 'finance', label: 'المالية' },
-            { value: 'sales', label: 'المبيعات' }
-          ]}
-        />
-      </div>
-    );
-  }
+  render: FormExampleRender
 };
 
 // Validation Example
 export const ValidationExample: Story = {
-  render: () => {
-    const [role, setRole] = useState('');
-    const [error, setError] = useState(false);
-    const [errorMessage, setErrorMessage] = useState('');
-
-    const handleChange = (value: string) => {
-      setRole(value);
-      if (!value) {
-        setError(true);
-        setErrorMessage('يجب اختيار دور');
-      } else {
-        setError(false);
-        setErrorMessage('');
-      }
-    };
-
-    return (
-      <div style={{ maxWidth: '400px', direction: 'rtl' }}>
-        <h3>مثال على التحقق من الصحة</h3>
-        <SettingsSelect
-          label="الدور"
-          value={role}
-          onChange={handleChange}
-          placeholder="اختر الدور"
-          required
-          error={error}
-          errorMessage={errorMessage}
-          options={[
-            { value: 'admin', label: 'مسؤول' },
-            { value: 'user', label: 'مستخدم' },
-            { value: 'guest', label: 'ضيف' }
-          ]}
-        />
-      </div>
-    );
-  }
+  render: ValidationExampleRender
 };

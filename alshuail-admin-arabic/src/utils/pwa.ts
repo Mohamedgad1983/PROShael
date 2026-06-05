@@ -81,7 +81,7 @@ class PWAManager {
   }
 
   // Handle app installation
-  private handleAppInstalled(e: Event) {
+  private handleAppInstalled(_e: Event) {
     logger.debug('PWA installed successfully');
     this.isInstalled = true;
     this.deferredPrompt = null;

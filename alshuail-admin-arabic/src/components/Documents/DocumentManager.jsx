@@ -1,10 +1,9 @@
-import React, { memo,  useState, useEffect, useMemo } from 'react';
+import React,{ memo,useCallback,useEffect,useMemo,useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import {
-  FaUpload, FaFileAlt, FaFilePdf, FaImage, FaSearch, FaFilter,
-  FaTrash, FaDownload, FaEye, FaFolder, FaFolderOpen, FaUser,
-  FaChevronDown, FaChevronLeft
+FaChevronDown,FaChevronLeft,FaDownload,FaEye,FaFileAlt,FaFilePdf,FaFilter,FaFolder,FaFolderOpen,FaImage,FaSearch,FaTrash,FaUpload,FaUser
 } from 'react-icons/fa';
+import { API_ORIGIN } from '../../utils/apiConfig';
 import { logger } from '../../utils/logger';
 
 import './DocumentManager.css';
@@ -67,7 +66,7 @@ const DocumentManager = () => {
   };
 
   // Fetch documents
-  const fetchDocuments = async () => {
+  const fetchDocuments = useCallback(async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
@@ -81,7 +80,7 @@ const DocumentManager = () => {
       // members' documents with member info joined). The old /api/documents/member
       // endpoint returned only the logged-in user's own docs, which for an admin
       // was always empty — that's why the page appeared blank before.
-      const response = await fetch(`${process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.alshailfund.com')}/api/documents?${params}`, {
+      const response = await fetch(`${API_ORIGIN}/api/documents?${params}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -104,13 +103,13 @@ const DocumentManager = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedCategory, searchTerm]);
 
   // Fetch statistics
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.alshailfund.com')}/api/documents/stats/overview`, {
+      const response = await fetch(`${API_ORIGIN}/api/documents/stats/overview`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -131,21 +130,21 @@ const DocumentManager = () => {
     } catch (error) {
       logger.error('Error fetching stats:', { error });
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchDocuments();
     fetchStats();
-  }, [selectedCategory, searchTerm]);
+  }, [fetchDocuments, fetchStats]);
 
   // Handle file drop
   const onDrop = (acceptedFiles) => {
     if (acceptedFiles.length > 0) {
       setSelectedFile(acceptedFiles[0]);
-      setUploadFormData({
-        ...uploadFormData,
+      setUploadFormData((prev) => ({
+        ...prev,
         title: acceptedFiles[0].name
-      });
+      }));
       setShowUploadModal(true);
     }
   };
@@ -176,7 +175,7 @@ const DocumentManager = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.alshailfund.com')}/api/documents/upload`, {
+      const response = await fetch(`${API_ORIGIN}/api/documents/upload`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -212,7 +211,7 @@ const DocumentManager = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.alshailfund.com')}/api/documents/${documentId}`, {
+      const response = await fetch(`${API_ORIGIN}/api/documents/${documentId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`

@@ -22,48 +22,32 @@
  * - Live preview indicators
  */
 
-import React, { memo,  useState, useEffect } from 'react';
 import {
-  PaintBrushIcon,
-  SunIcon,
-  MoonIcon,
-  ComputerDesktopIcon,
-  CheckCircleIcon,
-  ExclamationCircleIcon,
-  InformationCircleIcon
+CheckCircleIcon,ComputerDesktopIcon,ExclamationCircleIcon,
+InformationCircleIcon,MoonIcon,PaintBrushIcon,
+SunIcon
 } from '@heroicons/react/24/outline';
 import axios from 'axios';
+import React,{ memo,useEffect,useState } from 'react';
+import { API_ORIGIN } from '../../utils/apiConfig';
 import { logger } from '../../utils/logger';
 
 // Modern component library imports
 import {
-  ModernCard,
-  ModernButton,
-  ModernInput,
-  ModernSwitch,
-  ModernBadge,
-  ModernDivider,
-  ModernSkeleton,
-  ModernTooltip
+ModernBadge,ModernButton,ModernCard,ModernDivider,ModernInput,ModernSkeleton,ModernSwitch,ModernTooltip
 } from './shared/modern';
 
 // Theme utilities
-import { getTheme } from './modernDesignSystem';
 import { useTheme } from '../../contexts/ThemeContext';
+import { getTheme } from './modernDesignSystem';
 
 // Type imports
 import {
-  AppearanceSettings as AppearanceSettingsType,
-  ThemeMode,
-  FontSize,
-  THEME_MODE_LABELS,
-  FONT_SIZE_LABELS,
-  PRESET_COLORS,
-  DEFAULT_APPEARANCE_SETTINGS,
-  applyAllAppearanceSettings
+AppearanceSettings as AppearanceSettingsType,applyAllAppearanceSettings,DEFAULT_APPEARANCE_SETTINGS,FontSize,FONT_SIZE_LABELS,
+PRESET_COLORS,ThemeMode,THEME_MODE_LABELS
 } from '../../types/appearanceSettings';
 
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+const API_BASE = API_ORIGIN;
 
 interface Message {
   type: 'success' | 'error' | 'info' | 'warning';
@@ -175,7 +159,6 @@ const AppearanceSettings: React.FC = () => {
       }
 
       // Store previous settings for rollback on failure
-      const previousSettings = originalSettings;
 
       const updates: Partial<AppearanceSettingsType> = {};
       if (settings.theme_mode !== originalSettings.theme_mode) updates.theme_mode = settings.theme_mode;

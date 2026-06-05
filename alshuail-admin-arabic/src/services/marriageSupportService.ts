@@ -6,12 +6,8 @@
  *   /api/marriage-support/me/:id ← used here only when an admin pretends to be a member
  */
 
-import axios, { AxiosInstance } from 'axios';
-
-const API_BASE_URL =
-  typeof window !== 'undefined' && window.location.hostname === 'localhost'
-    ? 'http://localhost:3001/api'
-    : 'https://api.alshailfund.com/api';
+import axios,{ AxiosInstance } from 'axios';
+import { API_BASE_URL } from '../utils/apiConfig';
 
 const client: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,

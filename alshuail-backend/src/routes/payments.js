@@ -2,7 +2,7 @@
 // Cache middleware for GET requests
 const cacheMiddleware = (duration = 300) => (req, res, next) => {
   if (req.method === 'GET') {
-    res.set('Cache-Control', `public, max-age=${duration}`);
+    res.set('Cache-Control', `private, max-age=${duration}`);
   }
   next();
 };
@@ -77,6 +77,15 @@ router.get('/pending/stats', requireRole(['super_admin', 'financial_manager']), 
 // Basic CRUD Operations - require financial access
 router.get('/', cacheMiddleware(300), requireRole(['super_admin', 'financial_manager']), getAllPayments);
 router.post('/', requireRole(['super_admin', 'financial_manager']), validatePaymentInitiation, createPayment);
+
+// Statistics and Analytics - require financial access
+router.get('/statistics', cacheMiddleware(300), requireRole(['super_admin', 'financial_manager']), getPaymentStatistics);
+router.get('/stats', cacheMiddleware(300), requireRole(['super_admin', 'financial_manager']), getPaymentStats); // Keep for backward compatibility
+router.get('/revenue', cacheMiddleware(300), requireRole(['super_admin', 'financial_manager']), getRevenueStats);
+router.get('/categories', cacheMiddleware(300), requireRole(['super_admin', 'financial_manager']), getPaymentsByCategory);
+router.get('/contributions', cacheMiddleware(300), requireRole(['super_admin', 'financial_manager']), getMemberContributions);
+router.get('/overdue', cacheMiddleware(300), requireRole(['super_admin', 'financial_manager']), getOverduePayments);
+
 router.get('/:id', cacheMiddleware(300), requireRole(['super_admin', 'financial_manager', 'member']), getPaymentById);
 // Admin approval / status change.
 // NOTE: validatePaymentVerification was removed because that middleware is
@@ -87,14 +96,6 @@ router.get('/:id', cacheMiddleware(300), requireRole(['super_admin', 'financial_
 // the status enum in PaymentProcessingService.updatePaymentStatus().
 router.put('/:id/status',   requireRole(['super_admin', 'financial_manager']), updatePaymentStatus);
 router.post('/:id/process', requireRole(['super_admin', 'financial_manager']), processPayment);
-
-// Statistics and Analytics - require financial access
-router.get('/statistics', cacheMiddleware(300), requireRole(['super_admin', 'financial_manager']), getPaymentStatistics);
-router.get('/stats', cacheMiddleware(300), requireRole(['super_admin', 'financial_manager']), getPaymentStats); // Keep for backward compatibility
-router.get('/revenue', cacheMiddleware(300), requireRole(['super_admin', 'financial_manager']), getRevenueStats);
-router.get('/categories', cacheMiddleware(300), requireRole(['super_admin', 'financial_manager']), getPaymentsByCategory);
-router.get('/contributions', cacheMiddleware(300), requireRole(['super_admin', 'financial_manager']), getMemberContributions);
-router.get('/overdue', cacheMiddleware(300), requireRole(['super_admin', 'financial_manager']), getOverduePayments);
 
 // Member-specific Operations - members can view their own, admins can view all
 router.get('/member/:memberId', cacheMiddleware(300),

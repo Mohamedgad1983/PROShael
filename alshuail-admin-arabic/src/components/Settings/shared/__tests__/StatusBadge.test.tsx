@@ -1,7 +1,8 @@
-import React from 'react';
-import { render } from '@testing-library/react';
-import { StatusBadge } from '../StatusBadge';
+/* eslint-disable testing-library/no-wait-for-multiple-assertions, testing-library/no-node-access, testing-library/prefer-screen-queries, testing-library/no-container, jest/no-conditional-expect */
 import { CheckCircleIcon } from '@heroicons/react/24/outline';
+import { render } from '@testing-library/react';
+import React from 'react';
+import { StatusBadge } from '../StatusBadge';
 
 describe('StatusBadge', () => {
   it('renders badge with text', () => {

@@ -1,24 +1,9 @@
-import React, { memo,  useState, useEffect, useMemo } from 'react';
 import {
-  BanknotesIcon,
-  ArrowTrendingUpIcon,
-  ArrowTrendingDownIcon,
-  CalendarDaysIcon,
-  FunnelIcon,
-  DocumentArrowDownIcon,
-  ChartBarIcon,
-  CurrencyDollarIcon,
-  ReceiptPercentIcon,
-  CreditCardIcon,
-  UserGroupIcon,
-  ClockIcon,
-  CheckCircleIcon,
-  ExclamationTriangleIcon,
-  EyeIcon,
-  PrinterIcon,
-  ShareIcon
+ArrowTrendingDownIcon,ArrowTrendingUpIcon,BanknotesIcon,CalendarDaysIcon,CheckCircleIcon,ClockIcon,CurrencyDollarIcon,DocumentArrowDownIcon,ExclamationTriangleIcon,
+EyeIcon,FunnelIcon,PrinterIcon,ReceiptPercentIcon,ShareIcon,UserGroupIcon
 } from '@heroicons/react/24/outline';
 import { ArrowTrendingUpIcon as ArrowTrendingUpIconSolid } from '@heroicons/react/24/solid';
+import React,{ memo,useEffect,useMemo,useState } from 'react';
 import { logger } from '../../utils/logger';
 
 import '../../styles/apple-design-system.css';
@@ -514,7 +499,7 @@ const AppleFinancialReports: React.FC = () => {
 
             {/* Simple Chart Implementation */}
             <div className="h-80 apple-flex items-end justify-between gap-4">
-              {chartData.map((data, index) => {
+              {chartData.map((data) => {
                 const maxValue = Math.max(...chartData.map(d => d.revenue));
                 const revenueHeight = (data.revenue / maxValue) * 100;
                 const expensesHeight = (data.expenses / maxValue) * 100;

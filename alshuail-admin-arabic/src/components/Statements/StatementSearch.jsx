@@ -1,6 +1,7 @@
-import React, { memo,  useState } from 'react';
-import VisualAlertSystem, { AlertBadge } from './VisualAlertSystem';
+import React,{ memo,useState } from 'react';
+import { API_ORIGIN } from '../../utils/apiConfig';
 import { logger } from '../../utils/logger';
+import VisualAlertSystem,{ AlertBadge } from './VisualAlertSystem';
 
 import './StatementSearch.css';
 
@@ -11,7 +12,7 @@ const StatementSearch = () => {
   const [searchResults, setSearchResults] = useState(null);
   const [error, setError] = useState(null);
 
-  const API_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
+  const API_URL = API_ORIGIN;
 
   // Handle search
   const handleSearch = async () => {

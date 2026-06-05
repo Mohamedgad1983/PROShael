@@ -1,6 +1,12 @@
+/* eslint-disable testing-library/no-wait-for-multiple-assertions, testing-library/no-node-access, testing-library/prefer-screen-queries, testing-library/no-container, jest/no-conditional-expect */
+import { render,screen } from '@testing-library/react';
 import React from 'react';
-import { render, screen } from '@testing-library/react';
-import UnifiedDashboard, { DASHBOARD_VARIANTS } from '../UnifiedDashboard';
+import UnifiedDashboard,{ DASHBOARD_VARIANTS } from '../UnifiedDashboard';
+
+jest.mock('../OverviewCharts', () => ({
+  __esModule: true,
+  default: () => null,
+}));
 
 describe('UnifiedDashboard', () => {
   describe('Variant Configurations', () => {
@@ -75,7 +81,7 @@ describe('UnifiedDashboard', () => {
         />
       );
       expect(container.querySelector('[dir="rtl"]')).toBeTruthy();
-      expect(screen.getByText(/عائلة الشعيل/)).toBeTruthy();
+      expect(screen.getAllByText(/عائلة الشعيل/).length).toBeGreaterThan(0);
     });
 
     it('should maintain IslamicPremiumDashboard compatibility', () => {
@@ -100,7 +106,7 @@ describe('UnifiedDashboard', () => {
       );
 
       // Check for header
-      expect(screen.getByText(/عائلة الشعيل/)).toBeTruthy();
+      expect(screen.getAllByText(/عائلة الشعيل/).length).toBeGreaterThan(0);
 
       // Check for welcome section (when mounted)
       // Note: Component shows loading state initially, then dashboard section
@@ -151,7 +157,7 @@ describe('UnifiedDashboard', () => {
           onLogout={() => {}}
         />
       );
-      expect(container.getAttribute('dir')).toBe('rtl');
+      expect(container.querySelector('[dir="rtl"]')).toBeTruthy();
     });
   });
 });

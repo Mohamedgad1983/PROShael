@@ -20,8 +20,7 @@ import {
   User,
   Users,
   Target,
-  TrendingUp,
-  Calendar
+  TrendingUp
 } from 'lucide-react'
 import { useAuth } from '../App'
 import { useDataCache } from '../contexts/DataCacheContext'

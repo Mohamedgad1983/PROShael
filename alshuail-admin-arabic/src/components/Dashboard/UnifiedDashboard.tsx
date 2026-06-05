@@ -1,38 +1,10 @@
-import React, {  useState, useEffect, useMemo , useCallback } from 'react';
 import {
-  HomeIcon,
-  UsersIcon,
-  CreditCardIcon,
-  CalendarDaysIcon,
-  HeartIcon,
-  ScaleIcon,
-  BellIcon,
-  ChartBarIcon,
-  Bars3Icon,
-  XMarkIcon,
-  PlusIcon,
-  ArrowTrendingUpIcon,
-  ArrowTrendingDownIcon,
-  SparklesIcon,
-  BanknotesIcon,
-  ClockIcon,
-  CheckCircleIcon,
-  ExclamationCircleIcon,
-  MagnifyingGlassIcon,
-  CogIcon,
-  UserCircleIcon,
-  MoonIcon,
-  SunIcon,
-  GiftIcon,
-  HandRaisedIcon,
-  LightBulbIcon,
-  BookOpenIcon,
-  GlobeAltIcon,
+BanknotesIcon,Bars3Icon,BellIcon,CalendarDaysIcon,ChartBarIcon,CreditCardIcon,HeartIcon,HomeIcon,MoonIcon,ScaleIcon,SparklesIcon,SunIcon,UsersIcon,XMarkIcon
 } from '@heroicons/react/24/outline';
-import { StarIcon } from '@heroicons/react/24/solid';
+import React,{ useEffect,useMemo,useState } from 'react';
 import { DesktopNavigation } from './DashboardNavigation';
-import OverviewStats from './OverviewStats';
 import OverviewCharts from './OverviewCharts';
+import OverviewStats from './OverviewStats';
 import RecentActivities from './RecentActivities';
 import styles from './styles';
 
@@ -140,13 +112,6 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
   const [isDarkMode, setIsDarkMode] = useState(config.theme === 'dark');
   const [searchQuery, setSearchQuery] = useState('');
   const [mounted, setMounted] = useState(false);
-  const [currentTime, setCurrentTime] = useState(new Date());
-
-  // Time updates
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 60000);
-    return () => clearInterval(timer);
-  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -282,19 +247,6 @@ const UnifiedDashboard: React.FC<UnifiedDashboardProps> = ({
   );
 
   const handleNavigationSelect = (id: string) => {
-  // Performance optimized event handlers
-  const handleRefresh = useCallback(() => {
-    // Refresh logic here
-  }, []);
-
-  const handleFilterChange = useCallback((filterType, value) => {
-    // Filter logic here
-  }, []);
-
-  const handlePageChange = useCallback((page) => {
-    // Pagination logic here
-  }, []);
-
     setActiveSection(id);
     onNavigate(id);
   };

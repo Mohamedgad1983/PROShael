@@ -383,14 +383,14 @@ describe('Integration test harness', () => {
 });
 
 export {
-  runIntegrationTests,
-  testHealthCheck,
-  testAPIService,
-  testOccasionsIntegration,
-  testInitiativesIntegration,
-  testNotificationsIntegration,
-  testCrossSectionIntegration,
-  testPerformance
+runIntegrationTests,
+testHealthCheck,
+testAPIService,
+testOccasionsIntegration,
+testInitiativesIntegration,
+testNotificationsIntegration,
+testCrossSectionIntegration,
+testPerformance
 };
 
 // Run tests if this file is executed directly

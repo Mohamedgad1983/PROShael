@@ -8,6 +8,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import crypto from 'crypto';
 import chalk from 'chalk';
 import dotenv from 'dotenv';
 import { log } from '../utils/logger.js';
@@ -19,21 +20,31 @@ const __dirname = path.dirname(__filename);
 const ENV_CONFIG = {
   // Critical - Application won't work without these
   critical: {
-    // Supabase Configuration
-    SUPABASE_URL: {
-      description: 'Supabase project URL',
-      example: 'https://xxxxx.supabase.co',
-      validator: (value) => value.startsWith('https://') && value.includes('.supabase.co')
+    // PostgreSQL VPS Configuration
+    DB_HOST: {
+      description: 'PostgreSQL host',
+      example: '127.0.0.1',
+      validator: (value) => value.length > 0
     },
-    SUPABASE_SERVICE_KEY: {
-      description: 'Supabase service role key',
-      example: 'eyJhbGci...',
-      validator: (value) => value.startsWith('eyJ') && value.length > 100
+    DB_PORT: {
+      description: 'PostgreSQL port',
+      example: '5432',
+      validator: (value) => !isNaN(parseInt(value)) && parseInt(value) > 0
     },
-    SUPABASE_ANON_KEY: {
-      description: 'Supabase anonymous/public key',
-      example: 'eyJhbGci...',
-      validator: (value) => value.startsWith('eyJ') && value.length > 100
+    DB_NAME: {
+      description: 'PostgreSQL database name',
+      example: 'alshuail_db',
+      validator: (value) => value.length > 0
+    },
+    DB_USER: {
+      description: 'PostgreSQL database user',
+      example: 'alshuail',
+      validator: (value) => value.length > 0
+    },
+    DB_PASSWORD: {
+      description: 'PostgreSQL database password',
+      example: 'set-a-strong-database-password',
+      validator: (value) => value.length >= 8
     },
 
     // Authentication
@@ -41,10 +52,13 @@ const ENV_CONFIG = {
       description: 'Secret key for JWT token signing',
       example: 'your-secret-key-min-32-chars',
       validator: (value) => value.length >= 32,
-      generateDefault: () => {
-        const crypto = require('crypto');
-        return crypto.randomBytes(48).toString('base64');
-      }
+      generateDefault: () => crypto.randomBytes(48).toString('base64')
+    },
+    CSRF_SECRET: {
+      description: 'Secret key for CSRF token signing',
+      example: 'your-csrf-secret-min-32-chars',
+      validator: (value) => value.length >= 32,
+      generateDefault: () => crypto.randomBytes(48).toString('base64')
     },
 
     // Server Configuration
@@ -74,10 +88,7 @@ const ENV_CONFIG = {
       description: 'Express session secret',
       example: 'your-session-secret',
       validator: (value) => value.length >= 16,
-      generateDefault: () => {
-        const crypto = require('crypto');
-        return crypto.randomBytes(32).toString('base64');
-      }
+      generateDefault: () => crypto.randomBytes(32).toString('base64')
     },
     RATE_LIMIT_WINDOW_MS: {
       description: 'Rate limiting window in milliseconds',

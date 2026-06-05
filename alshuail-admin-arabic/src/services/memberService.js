@@ -1,5 +1,4 @@
-import { apiService } from './api.js';
-
+import { API_ORIGIN } from '../utils/apiConfig';
 import { logger } from '../utils/logger';
 
 /**
@@ -10,7 +9,7 @@ import { logger } from '../utils/logger';
 
 class MemberService {
   constructor() {
-    this.baseURL = typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.alshailfund.com';
+    this.baseURL = API_ORIGIN;
   }
 
   /**

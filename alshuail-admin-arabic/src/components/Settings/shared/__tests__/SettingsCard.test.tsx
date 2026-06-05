@@ -1,5 +1,6 @@
-import React from 'react';
+/* eslint-disable testing-library/no-wait-for-multiple-assertions, testing-library/no-node-access, testing-library/prefer-screen-queries, testing-library/no-container, jest/no-conditional-expect */
 import { render } from '@testing-library/react';
+import React from 'react';
 import { SettingsCard } from '../SettingsCard';
 
 describe('SettingsCard', () => {

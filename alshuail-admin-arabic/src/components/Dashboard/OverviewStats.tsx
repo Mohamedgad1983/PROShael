@@ -1,5 +1,5 @@
-import React from 'react';
 import { ArrowTrendingUpIcon } from '@heroicons/react/24/outline';
+import React from 'react';
 import styles from './styles';
 
 export interface OverviewStat {

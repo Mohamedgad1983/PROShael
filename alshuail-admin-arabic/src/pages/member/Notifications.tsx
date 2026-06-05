@@ -1,8 +1,9 @@
 // @ts-nocheck
-import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import React,{ useCallback,useEffect,useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { API_BASE_URL } from '../../utils/apiConfig';
 import { logger } from '../../utils/logger';
 
 const Notifications = () => {
@@ -11,13 +12,9 @@ const Notifications = () => {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
 
-    const API_URL = process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001/api' : 'https://api.alshailfund.com/api');
+    const API_URL = API_BASE_URL;
 
-    useEffect(() => {
-        fetchNotifications();
-    }, []);
-
-    const fetchNotifications = async (isRefresh = false) => {
+    const fetchNotifications = useCallback(async (isRefresh = false) => {
         try {
             if (isRefresh) setRefreshing(true);
 
@@ -37,7 +34,11 @@ const Notifications = () => {
             setLoading(false);
             setRefreshing(false);
         }
-    };
+    }, [API_URL]);
+
+    useEffect(() => {
+        fetchNotifications();
+    }, [fetchNotifications]);
 
     const handleNotificationClick = async (notification) => {
         try {
@@ -71,8 +72,6 @@ const Notifications = () => {
     const handleMarkAllRead = async () => {
         try {
             const token = localStorage.getItem('token');
-            const memberId = localStorage.getItem('memberId');
-
             // Mark all as read
             const unreadIds = notifications
                 .filter(n => !n.is_read)

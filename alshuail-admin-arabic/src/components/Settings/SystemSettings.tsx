@@ -3,20 +3,17 @@
  * General system configuration and settings
  */
 
-import React, { memo,  useState } from 'react';
 import {
-  ServerIcon,
-  CpuChipIcon,
-  ShieldCheckIcon,
-  ClockIcon,
-  CheckCircleIcon
+CheckCircleIcon,ClockIcon,CpuChipIcon,ServerIcon,ShieldCheckIcon
 } from '@heroicons/react/24/outline';
+import React,{ memo,useState } from 'react';
+import { API_ORIGIN } from '../../utils/apiConfig';
 
 const SystemSettings: React.FC = () => {
   const [settings, setSettings] = useState({
     systemName: 'نظام إدارة عائلة الشعيل',
     systemVersion: '2.0.1',
-    apiUrl: 'http://localhost:3001',
+    apiUrl: API_ORIGIN,
     maxUploadSize: '10',
     sessionTimeout: '30',
     enableNotifications: true,

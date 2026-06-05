@@ -1,31 +1,11 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { getDistrictsByCity } from '../../utils/cityDistrictData';
 import {
-  UserIcon,
-  PhoneIcon,
-  EnvelopeIcon,
-  IdentificationIcon,
-  CalendarDaysIcon,
-  MapPinIcon,
-  HomeIcon,
-  UserGroupIcon,
-  BriefcaseIcon,
-  AcademicCapIcon,
-  HeartIcon,
-  ShieldCheckIcon,
-  DocumentTextIcon,
-  PhotoIcon,
-  CheckCircleIcon,
-  ExclamationCircleIcon,
-  ArrowRightIcon,
-  SparklesIcon,
-  StarIcon,
-  CheckIcon,
-  BanknotesIcon
+AcademicCapIcon,ArrowRightIcon,BanknotesIcon,BriefcaseIcon,CalendarDaysIcon,CheckCircleIcon,CheckIcon,DocumentTextIcon,EnvelopeIcon,ExclamationCircleIcon,HeartIcon,HomeIcon,IdentificationIcon,MapPinIcon,PhoneIcon,PhotoIcon,ShieldCheckIcon,SparklesIcon,UserGroupIcon,UserIcon
 } from '@heroicons/react/24/outline';
-import { CheckCircleIcon as CheckCircleIconSolid, StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
-import { HijriDatePicker } from '../Common/HijriDatePicker';
+import { CheckCircleIcon as CheckCircleIconSolid,StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
+import React,{ useCallback,useEffect,useRef,useState } from 'react';
+import { getDistrictsByCity } from '../../utils/cityDistrictData';
 import { logger } from '../../utils/logger';
+import { HijriDatePicker } from '../Common/HijriDatePicker';
 
 import './AppleRegistrationForm.css';
 
@@ -151,6 +131,9 @@ const AppleMembersManagement = () => {
         if (!formData.occupation) {
           newErrors.push({ field: 'occupation', message: 'المهنة مطلوبة' });
         }
+        break;
+
+      default:
         break;
     }
 
@@ -328,7 +311,7 @@ const AppleMembersManagement = () => {
         <div className="input-group">
           <HijriDatePicker
             value={formData.birthDate}
-            onChange={(gregorianDate, hijriDate) => {
+            onChange={(gregorianDate) => {
               handleInputChange('birthDate', gregorianDate);
             }}
             label="تاريخ الميلاد"

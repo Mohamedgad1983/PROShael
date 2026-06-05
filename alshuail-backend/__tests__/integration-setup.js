@@ -15,7 +15,7 @@ process.env.NODE_ENV = 'test';
 // Keep real Supabase credentials from .env (don't override them)
 // Just ensure JWT_SECRET is set
 if (!process.env.JWT_SECRET) {
-  process.env.JWT_SECRET = 'alshuail-super-secure-jwt-secret-key-2024-production-ready-32chars';
+  process.env.JWT_SECRET = 'test-jwt-secret-key-for-integration-tests-only';
 }
 
 // Test config

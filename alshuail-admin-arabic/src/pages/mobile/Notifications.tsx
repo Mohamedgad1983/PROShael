@@ -1,17 +1,11 @@
 // @ts-nocheck
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
-  BellIcon,
-  NewspaperIcon,
-  GiftIcon,
-  CurrencyDollarIcon,
-  LightBulbIcon,
-  HeartIcon,
-  ClockIcon,
-  CheckIcon
+BellIcon,CheckIcon,ClockIcon,CurrencyDollarIcon,GiftIcon,HeartIcon,LightBulbIcon,NewspaperIcon
 } from '@heroicons/react/24/outline';
+import { AnimatePresence,motion } from 'framer-motion';
+import React,{ useCallback,useEffect,useState } from 'react';
 import BottomNav from '../../components/mobile/BottomNav';
+import { API_ORIGIN } from '../../utils/apiConfig';
 import { logger } from '../../utils/logger';
 
 import '../../styles/mobile/Notifications.css';
@@ -69,20 +63,11 @@ const Notifications: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    fetchNotifications();
-  }, []);
-
-  useEffect(() => {
-    filterNotifications();
-    updateUnreadCount();
-  }, [notifications, activeFilter]);
-
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const apiUrl = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
+      const apiUrl = API_ORIGIN;
 
       const response = await fetch(`${apiUrl}/api/member/notifications`, {
         headers: {
@@ -99,25 +84,34 @@ const Notifications: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const filterNotifications = () => {
+  const filterNotifications = useCallback(() => {
     if (activeFilter === 'all') {
       setFilteredNotifications(notifications);
     } else {
       setFilteredNotifications(notifications.filter(n => n.type === activeFilter));
     }
-  };
+  }, [activeFilter, notifications]);
 
-  const updateUnreadCount = () => {
+  const updateUnreadCount = useCallback(() => {
     const count = notifications.filter(n => !n.is_read).length;
     setUnreadCount(count);
-  };
+  }, [notifications]);
+
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
+
+  useEffect(() => {
+    filterNotifications();
+    updateUnreadCount();
+  }, [filterNotifications, updateUnreadCount]);
 
   const markAsRead = async (notificationId: string) => {
     try {
       const token = localStorage.getItem('token');
-      const apiUrl = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
+      const apiUrl = API_ORIGIN;
 
       await fetch(`${apiUrl}/api/member/notifications/${notificationId}/read`, {
         method: 'POST',
@@ -140,7 +134,7 @@ const Notifications: React.FC = () => {
   const markAllAsRead = async () => {
     try {
       const token = localStorage.getItem('token');
-      const apiUrl = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
+      const apiUrl = API_ORIGIN;
 
       await fetch(`${apiUrl}/api/member/notifications/read-all`, {
         method: 'POST',

@@ -1,5 +1,5 @@
-import React, { memo,  useState, useEffect } from 'react';
-import { CreditCardIcon, ExclamationTriangleIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { CheckCircleIcon,CreditCardIcon,ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import React,{ memo,useState } from 'react';
 
 interface FlexiblePaymentInputProps {
   onAmountChange: (amount: number | null) => void;

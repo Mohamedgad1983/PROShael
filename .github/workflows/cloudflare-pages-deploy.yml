@@ -29,30 +29,17 @@ jobs:
       - name: Install dependencies
         run: |
           cd alshuail-admin-arabic
-          npm install --prefer-offline --no-audit
+          npm ci --prefer-offline --no-audit
 
       - name: Build
         run: |
           cd alshuail-admin-arabic
-          # Try to build, but if it fails, check if we have an existing build
-          NODE_OPTIONS="--max-old-space-size=8192" GENERATE_SOURCEMAP=false npm run build || echo "Build failed, checking for existing build..."
-
-          # Check if build directory exists with content
-          if [ -d "build" ] && [ "$(ls -A build)" ]; then
-            echo "Build directory exists with content"
-          else
-            echo "No build directory found, creating placeholder"
-            mkdir -p build
-            echo '<!DOCTYPE html><html><head><title>Al-Shuail Admin</title></head><body><h1>Deployment Pending</h1></body></html>' > build/index.html
-          fi
+          NODE_OPTIONS="--max-old-space-size=8192" GENERATE_SOURCEMAP=false npm run build
         env:
           REACT_APP_API_URL: ${{ secrets.REACT_APP_API_URL || 'https://api.alshailfund.com' }}
-          REACT_APP_SUPABASE_URL: ${{ secrets.REACT_APP_SUPABASE_URL }}
-          REACT_APP_SUPABASE_ANON_KEY: ${{ secrets.REACT_APP_SUPABASE_ANON_KEY }}
 
       - name: Publish to Cloudflare Pages
         id: cloudflare
-        continue-on-error: true
         uses: cloudflare/pages-action@v1
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -62,10 +49,3 @@ jobs:
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ github.ref_name }}
           wranglerVersion: '3'
-
-      - name: Retry Cloudflare Deployment
-        if: steps.cloudflare.outcome == 'failure'
-        run: |
-          echo "First attempt failed, waiting 30 seconds before retry..."
-          sleep 30
-          npx wrangler pages deploy alshuail-admin-arabic/build --project-name=alshuail-admin || echo "Deployment retry failed"

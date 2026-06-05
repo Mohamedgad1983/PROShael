@@ -1,8 +1,9 @@
 // @ts-nocheck
-import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useParams, useNavigate } from 'react-router-dom';
+import React,{ useCallback,useEffect,useState } from 'react';
+import { useNavigate,useParams } from 'react-router-dom';
 
+import { API_BASE_URL } from '../../utils/apiConfig';
 import { logger } from '../../utils/logger';
 
 const NewsDetail = () => {
@@ -15,13 +16,9 @@ const NewsDetail = () => {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [shareSuccess, setShareSuccess] = useState(false);
 
-    const API_URL = process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001/api' : 'https://api.alshailfund.com/api');
+    const API_URL = API_BASE_URL;
 
-    useEffect(() => {
-        fetchNewsDetail();
-    }, [id]);
-
-    const fetchNewsDetail = async () => {
+    const fetchNewsDetail = useCallback(async () => {
         try {
             const token = localStorage.getItem('token');
             const memberId = localStorage.getItem('memberId');
@@ -56,7 +53,11 @@ const NewsDetail = () => {
             logger.error('Error fetching news:', { error });
             setLoading(false);
         }
-    };
+    }, [API_URL, id]);
+
+    useEffect(() => {
+        fetchNewsDetail();
+    }, [fetchNewsDetail]);
 
     const handleReaction = async (reactionType) => {
         try {

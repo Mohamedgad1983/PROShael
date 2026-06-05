@@ -1,8 +1,9 @@
 // @ts-nocheck
-import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import React,{ useCallback,useEffect,useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { API_BASE_URL } from '../../utils/apiConfig';
 import { logger } from '../../utils/logger';
 
 const Initiatives = () => {
@@ -18,14 +19,9 @@ const Initiatives = () => {
     const [contributing, setContributing] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
 
-    const API_URL = process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001/api' : 'https://api.alshailfund.com/api');
+    const API_URL = API_BASE_URL;
 
-    useEffect(() => {
-        fetchInitiatives();
-        fetchMyContributions();
-    }, []);
-
-    const fetchInitiatives = async () => {
+    const fetchInitiatives = useCallback(async () => {
         try {
             const token = localStorage.getItem('token');
 
@@ -47,9 +43,9 @@ const Initiatives = () => {
             logger.error('Error fetching initiatives:', { error });
             setLoading(false);
         }
-    };
+    }, [API_URL]);
 
-    const fetchMyContributions = async () => {
+    const fetchMyContributions = useCallback(async () => {
         try {
             const token = localStorage.getItem('token');
             const memberId = localStorage.getItem('memberId');
@@ -63,7 +59,12 @@ const Initiatives = () => {
         } catch (error) {
             logger.error('Error fetching contributions:', { error });
         }
-    };
+    }, [API_URL]);
+
+    useEffect(() => {
+        fetchInitiatives();
+        fetchMyContributions();
+    }, [fetchInitiatives, fetchMyContributions]);
 
     const handleContributeClick = (initiative) => {
         setSelectedInitiative(initiative);

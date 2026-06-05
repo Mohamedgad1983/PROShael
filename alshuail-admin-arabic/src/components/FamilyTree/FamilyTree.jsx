@@ -1,18 +1,11 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import Tree from 'react-d3-tree';
 import {
-  MagnifyingGlassIcon,
-  UserIcon,
-  DocumentArrowDownIcon,
-  ArrowsPointingOutIcon,
-  ArrowsPointingInIcon,
-  XMarkIcon,
-  UserGroupIcon,
-  PhoneIcon,
-  CreditCardIcon,
+ArrowsPointingInIcon,ArrowsPointingOutIcon,CreditCardIcon,DocumentArrowDownIcon,MagnifyingGlassIcon,PhoneIcon,UserGroupIcon,UserIcon,XMarkIcon
 } from '@heroicons/react/24/outline';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import React,{ useCallback,useEffect,useRef,useState } from 'react';
+import Tree from 'react-d3-tree';
+import { API_ORIGIN } from '../../utils/apiConfig';
 import { logger } from '../../utils/logger';
 
 import './FamilyTree.css';
@@ -28,7 +21,7 @@ const FamilyTree = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [highlightedNodes, setHighlightedNodes] = useState(new Set());
   const [membersList, setMembersList] = useState([]);
-  const [selectedMemberId, setSelectedMemberId] = useState(null);
+  const [, setSelectedMemberId] = useState(null);
   const [memberSearchTerm, setMemberSearchTerm] = useState('');
 
   // Refs
@@ -36,7 +29,7 @@ const FamilyTree = () => {
   const treeRef = useRef(null);
 
   // API configuration
-  const API_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
+  const API_URL = API_ORIGIN;
 
   // Tree configuration
   const treeConfig = {
@@ -372,6 +365,7 @@ const FamilyTree = () => {
     fetchMembersList(); // Fetch members list on mount
     // Don't fetch tree immediately - wait for user to select a member
     setLoading(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- preserve existing one-time legacy load behavior
   }, []); // Empty dependency array for mount only
 
   // Handle member selection

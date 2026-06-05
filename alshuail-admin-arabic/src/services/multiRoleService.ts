@@ -1,6 +1,6 @@
 import axios from 'axios';
-
-const API_BASE_URL = typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.alshailfund.com';
+import { API_ORIGIN } from '../utils/apiConfig';
+const API_BASE_URL = API_ORIGIN;
 
 export interface Role {
   id: string;

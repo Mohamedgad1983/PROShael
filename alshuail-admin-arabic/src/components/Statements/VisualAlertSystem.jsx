@@ -128,7 +128,7 @@ const VisualAlertSystem = ({ balance, memberName, memberId }) => {
 
 // Alert Summary Card Component
 export const AlertSummaryCard = ({ statistics }) => {
-  const { totalMembers, compliantMembers, nonCompliantMembers } = statistics;
+  const { totalMembers, compliantMembers } = statistics;
   const complianceRate = totalMembers > 0 ? (compliantMembers / totalMembers) * 100 : 0;
 
   return (

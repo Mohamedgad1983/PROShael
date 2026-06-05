@@ -3,7 +3,7 @@
  * Features: Windowing, lazy rendering, smooth scrolling, mobile optimization
  */
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React,{ useCallback,useEffect,useMemo,useRef,useState } from 'react';
 import { useMobile } from '../../hooks/useMobile';
 import performanceMonitor from '../../utils/performanceMonitor';
 
@@ -27,7 +27,7 @@ const VirtualScrollList = ({
   errorComponent: ErrorComponent,
   error = null
 }) => {
-  const { device, viewport } = useMobile();
+  const { device } = useMobile();
   const containerRef = useRef(null);
   const scrollElementRef = useRef(null);
   const observerRef = useRef(null);
@@ -37,7 +37,7 @@ const VirtualScrollList = ({
   // Virtual scrolling state
   const [scrollTop, setScrollTop] = useState(0);
   const [isScrolling, setIsScrolling] = useState(false);
-  const [itemHeights, setItemHeights] = useState(new Map());
+  const [, setItemHeights] = useState(new Map());
 
   // Performance monitoring
   const renderMonitor = useRef(null);

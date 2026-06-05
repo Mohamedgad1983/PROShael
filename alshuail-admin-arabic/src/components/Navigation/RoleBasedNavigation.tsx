@@ -3,24 +3,12 @@
  * Displays navigation items based on user's role
  */
 
-import React, { memo } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { useRole, UserRole, ROLE_DISPLAY_NAMES } from '../../contexts/RoleContext';
 import {
-  HomeIcon,
-  UsersIcon,
-  CurrencyDollarIcon,
-  ChartBarIcon,
-  CalendarIcon,
-  HeartIcon,
-  ScaleIcon,
-  CogIcon,
-  DocumentTextIcon,
-  UserCircleIcon,
-  LockClosedIcon,
-  GlobeAltIcon,
-  AcademicCapIcon
+AcademicCapIcon,CalendarIcon,ChartBarIcon,CogIcon,CurrencyDollarIcon,DocumentTextIcon,HeartIcon,HomeIcon,LockClosedIcon,ScaleIcon,UserCircleIcon,UsersIcon
 } from '@heroicons/react/24/outline';
+import React from 'react';
+import { Link,useLocation } from 'react-router-dom';
+import { ROLE_DISPLAY_NAMES,useRole,UserRole } from '../../contexts/RoleContext';
 
 // Navigation items configuration
 const NAVIGATION_ITEMS: Record<string, {

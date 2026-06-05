@@ -1,8 +1,9 @@
 // @ts-nocheck
-import React, { memo,  useState, useEffect } from 'react';
 import axios from 'axios';
+import React,{ memo,useEffect,useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { API_BASE_URL } from '../../utils/apiConfig';
 import { logger } from '../../utils/logger';
 
 interface NewsItem {
@@ -22,11 +23,12 @@ const NewsWidget = () => {
     const [unreadCount, setUnreadCount] = useState(0);
     const [loading, setLoading] = useState(true);
 
-    const API_URL = process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001/api' : 'https://api.alshailfund.com/api');
+    const API_URL = API_BASE_URL;
 
     useEffect(() => {
         fetchLatestNews();
         fetchUnreadCount();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- preserve existing one-time legacy load behavior
     }, []);
 
     const fetchLatestNews = async () => {

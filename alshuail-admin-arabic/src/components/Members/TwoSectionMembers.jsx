@@ -1,34 +1,24 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React,{ useCallback,useEffect,useRef,useState } from 'react';
 import { memberService } from '../../services/memberService';
-import PremiumRegistration from '../Registration/PremiumRegistration';
-import CompactAddMember from './CompactAddMember';
-import ArabicSelect from './ArabicSelect';
-import HijriDateInput from './HijriDateInput';
 import { logger } from '../../utils/logger';
+import ArabicSelect from './ArabicSelect';
+import CompactAddMember from './CompactAddMember';
+import HijriDateInput from './HijriDateInput';
 
-import './TwoSectionMembers.css';
 import {
-  MagnifyingGlassIcon,
-  UserPlusIcon,
-  ArrowDownTrayIcon,
-  ArrowUpTrayIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  EyeIcon,
-  PencilIcon,
-  TrashIcon,
-  XMarkIcon,
-  AdjustmentsHorizontalIcon,
-  ArrowLeftIcon,
-  KeyIcon
+AdjustmentsHorizontalIcon,ArrowDownTrayIcon,ArrowLeftIcon,ArrowUpTrayIcon,
+ChevronLeftIcon,
+ChevronRightIcon,
+EyeIcon,KeyIcon,MagnifyingGlassIcon,PencilIcon,
+TrashIcon,UserPlusIcon,XMarkIcon
 } from '@heroicons/react/24/outline';
+import './TwoSectionMembers.css';
 
 const TwoSectionMembers = () => {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
-  const [showAddMember, setShowAddMember] = useState(false);
   const [currentView, setCurrentView] = useState('list'); // 'list' or 'add'
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
@@ -47,7 +37,8 @@ const TwoSectionMembers = () => {
   });
   const [initialLoad, setInitialLoad] = useState(true); // Track initial load
   const membersCache = useRef(new Map()); // Cache for loaded pages
-  const [isSearching, setIsSearching] = useState(false); // Track search state
+  const [, setIsSearching] = useState(false); // Track search state
+  const queryStateRef = useRef({ pagination, searchQuery, filters });
 
   // Get current user role
   const getUserRole = () => {
@@ -79,56 +70,25 @@ const TwoSectionMembers = () => {
     // return role === 'super_admin' || role === 'admin';
   };
 
-  // Load members only on initial mount
   useEffect(() => {
-    loadMembers(false, true);
-  }, []);
+    queryStateRef.current = { pagination, searchQuery, filters };
+  }, [pagination, searchQuery, filters]);
 
-  // Load members when filters change (NOT search or pagination)
-  useEffect(() => {
-    if (!initialLoad) {
-      // Reset to page 1 and load when filters change
-      setPagination(prev => ({ ...prev, page: 1 }));
-      loadMembers();
-    }
-  }, [filters]);
+  const loadMembers = useCallback(async (_isPagination = false, isInitial = false, isSearch = false) => {
+    const {
+      pagination: currentPagination,
+      searchQuery: currentSearchQuery,
+      filters: currentFilters
+    } = queryStateRef.current;
 
-  // Load members when limit changes
-  useEffect(() => {
-    if (!initialLoad) {
-      loadMembers();
-    }
-  }, [pagination.limit]);
-
-  // Debounced search - only search after user stops typing for 300ms
-  useEffect(() => {
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-
-    if (!initialLoad) {
-      setIsSearching(true);
-      searchTimeoutRef.current = setTimeout(() => {
-        loadMembers(false, false, true);
-      }, 300); // Reduced to 300ms for faster response
-    }
-
-    return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
-    };
-  }, [searchQuery]);
-
-  const loadMembers = async (isPagination = false, isInitial = false, isSearch = false) => {
     logger.debug('🔍 Loading members...');
     logger.debug('API Base URL:', { baseURL: memberService.baseURL });
     logger.debug('Auth Token:', { token: localStorage.getItem('token') ? 'Present' : 'Missing' });
 
     // Check cache first - include limit in cache key
-    const cacheKey = `${pagination.page}-${pagination.limit}-${searchQuery}-${JSON.stringify(filters)}`;
+    const cacheKey = `${currentPagination.page}-${currentPagination.limit}-${currentSearchQuery}-${JSON.stringify(currentFilters)}`;
     if (!isInitial && !isSearch && membersCache.current.has(cacheKey)) {
-      logger.debug('✅ Using cached data for page', { page: pagination.page });
+      logger.debug('✅ Using cached data for page', { page: currentPagination.page });
       const cachedData = membersCache.current.get(cacheKey);
       setMembers(cachedData.members);
       setPagination(prev => ({
@@ -153,28 +113,28 @@ const TwoSectionMembers = () => {
       const searchFilters = {};
 
       // Add search query if present
-      if (searchQuery.trim()) {
-        searchFilters.search = searchQuery.trim();
+      if (currentSearchQuery.trim()) {
+        searchFilters.search = currentSearchQuery.trim();
       }
 
       // Only add filter values that are not empty strings
-      if (filters.status) {
-        searchFilters.status = filters.status;
+      if (currentFilters.status) {
+        searchFilters.status = currentFilters.status;
       }
-      if (filters.profile_completed) {
-        searchFilters.profile_completed = filters.profile_completed;
+      if (currentFilters.profile_completed) {
+        searchFilters.profile_completed = currentFilters.profile_completed;
       }
-      if (filters.social_security_beneficiary) {
-        searchFilters.social_security_beneficiary = filters.social_security_beneficiary;
+      if (currentFilters.social_security_beneficiary) {
+        searchFilters.social_security_beneficiary = currentFilters.social_security_beneficiary;
       }
 
       logger.debug('📤 Sending request with filters:', { searchFilters });
-      logger.debug('Page:', { page: pagination.page, limit: pagination.limit });
+      logger.debug('Page:', { page: currentPagination.page, limit: currentPagination.limit });
 
       const response = await memberService.getMembersList(
         searchFilters,
-        pagination.page,
-        pagination.limit
+        currentPagination.page,
+        currentPagination.limit
       );
 
       logger.debug('✅ API Response received:', { response });
@@ -226,15 +186,48 @@ const TwoSectionMembers = () => {
       setIsSearching(false);
       logger.debug('✅ Loading complete');
     }
-  };
+  }, []);
 
-  const getMockMembers = () => [
-    { id: 1, full_name: 'محمد أحمد الشعيل', phone: '0501234567', status: 'active', email: 'mohamed@example.com', profile_completed: true },
-    { id: 2, full_name: 'فاطمة عبدالله العنزي', phone: '0512345678', status: 'active', email: 'fatima@example.com', profile_completed: true },
-    { id: 3, full_name: 'عبدالرحمن سعود الشعيل', phone: '0523456789', status: 'inactive', email: 'abdulrahman@example.com', profile_completed: false },
-    { id: 4, full_name: 'نورة محمد العنزي', phone: '0534567890', status: 'active', email: 'noura@example.com', profile_completed: true },
-    { id: 5, full_name: 'خالد فيصل الشعيل', phone: '0545678901', status: 'active', email: 'khalid@example.com', profile_completed: false }
-  ];
+  // Load members only on initial mount
+  useEffect(() => {
+    loadMembers(false, true);
+  }, [loadMembers]);
+
+  // Load members when filters change (NOT search or pagination)
+  useEffect(() => {
+    if (!initialLoad) {
+      // Reset to page 1 and load when filters change
+      setPagination(prev => ({ ...prev, page: 1 }));
+      loadMembers();
+    }
+  }, [filters, initialLoad, loadMembers]);
+
+  // Load members when limit changes
+  useEffect(() => {
+    if (!initialLoad) {
+      loadMembers();
+    }
+  }, [initialLoad, loadMembers, pagination.limit]);
+
+  // Debounced search - only search after user stops typing for 300ms
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    if (!initialLoad) {
+      setIsSearching(true);
+      searchTimeoutRef.current = setTimeout(() => {
+        loadMembers(false, false, true);
+      }, 300); // Reduced to 300ms for faster response
+    }
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [initialLoad, loadMembers, searchQuery]);
 
   const handleSearch = useCallback((e) => {
     setSearchQuery(e.target.value);
@@ -357,7 +350,7 @@ const TwoSectionMembers = () => {
     // The useEffect will trigger loadMembers when limit changes
   };
 
-  const handleMemberAdded = (newMember) => {
+  const handleMemberAdded = () => {
     setCurrentView('list');
     loadMembers();
   };
@@ -431,7 +424,7 @@ const TwoSectionMembers = () => {
     if (!editingMember) return;
 
     const confirmed = window.confirm(
-      `هل أنت متأكد من إعادة تعيين كلمة المرور للعضو ${editingMember.full_name}؟ سيتم تعيين كلمة المرور إلى 123456`
+      `هل أنت متأكد من إعادة تعيين كلمة المرور للعضو ${editingMember.full_name}؟ سيتم إصدار كلمة مرور مؤقتة فريدة`
     );
     if (!confirmed) return;
 
@@ -449,7 +442,7 @@ const TwoSectionMembers = () => {
       const data = await response.json();
 
       if (data.success) {
-        alert('تم إعادة تعيين كلمة المرور بنجاح');
+        alert(`تم إصدار كلمة مرور مؤقتة بنجاح: ${data.temporaryPassword || 'راجع السجل'}`);
       } else {
         alert(data.message || 'فشل إعادة تعيين كلمة المرور');
       }

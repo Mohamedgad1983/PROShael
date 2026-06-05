@@ -1,31 +1,21 @@
-import React, { memo,  useState, useEffect } from 'react';
 import {
-  PlusIcon,
-  BellIcon,
-  ChartBarIcon,
-  UsersIcon,
-  EyeIcon,
-  ClockIcon,
-  EnvelopeOpenIcon,
-  ExclamationTriangleIcon,
-  FunnelIcon
+BellIcon,
+ChartBarIcon,ClockIcon,
+EnvelopeOpenIcon,
+ExclamationTriangleIcon,EyeIcon,FunnelIcon,PlusIcon,UsersIcon
 } from '@heroicons/react/24/outline';
-import NotificationsList from './NotificationsList';
-import CreateNotificationModal from './CreateNotificationModal';
-import NotificationFilters from './NotificationFilters';
-import NotificationBadge from './NotificationBadge';
-import {
-  Notification,
-  NotificationFormData,
-  NotificationFilters as INotificationFilters,
-  NotificationStatistics,
-  GroupInfo,
-  RoleInfo
-} from './types';
+import React,{ memo,useState } from 'react';
 import { ARABIC_LABELS } from '../../constants/arabic';
-import { formatArabicNumber, formatArabicPercentage, getRelativeTimeArabic } from '../../utils/arabic';
-import { useResponsive, getTouchStyles, getResponsiveGridStyles, getResponsiveSpacing } from '../../utils/responsive';
-import { useStaggeredAnimation, injectAnimationKeyframes } from '../../utils/animations';
+import { injectAnimationKeyframes,useStaggeredAnimation } from '../../utils/animations';
+import { formatArabicNumber,formatArabicPercentage } from '../../utils/arabic';
+import { getResponsiveGridStyles,getResponsiveSpacing,getTouchStyles,useResponsive } from '../../utils/responsive';
+import CreateNotificationModal from './CreateNotificationModal';
+import NotificationBadge from './NotificationBadge';
+import NotificationFilters from './NotificationFilters';
+import NotificationsList from './NotificationsList';
+import {
+GroupInfo,Notification,NotificationFilters as INotificationFilters,NotificationFormData,NotificationStatistics,RoleInfo
+} from './types';
 
 import { logger } from '../../utils/logger';
 
@@ -174,7 +164,6 @@ const NotificationsCenter: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
   const [filters, setFilters] = useState<INotificationFilters>({});
   const [currentPage, setCurrentPage] = useState(1);
   const [showFilters, setShowFilters] = useState(false);
@@ -669,11 +658,11 @@ const NotificationsCenter: React.FC = () => {
           <NotificationsList
             notifications={paginatedNotifications}
             onView={(notification) => {
-              setSelectedNotification(notification);
+              logger.debug('Viewing notification', { notificationId: notification.id });
               // Could open a details modal here
             }}
             onEdit={(notification) => {
-              setSelectedNotification(notification);
+              logger.debug('Editing notification', { notificationId: notification.id });
               setShowCreateModal(true);
             }}
             onDelete={handleDeleteNotification}
@@ -691,7 +680,6 @@ const NotificationsCenter: React.FC = () => {
           isOpen={showCreateModal}
           onClose={() => {
             setShowCreateModal(false);
-            setSelectedNotification(null);
           }}
           onSubmit={handleCreateNotification}
           isLoading={loading}

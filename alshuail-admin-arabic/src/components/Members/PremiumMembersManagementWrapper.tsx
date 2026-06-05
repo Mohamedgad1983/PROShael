@@ -5,8 +5,8 @@
  * Includes advanced features like analytics and bulk operations
  */
 
-import React, { useCallback } from 'react';
-import UnifiedMembersManagement, { MEMBERS_VARIANTS } from './UnifiedMembersManagement';
+import React,{ useCallback } from 'react';
+import UnifiedMembersManagement,{ MEMBERS_VARIANTS } from './UnifiedMembersManagement';
 
 export interface PremiumMembersManagementProps {
   onMemberSelect?: (memberId: string) => void;
@@ -40,17 +40,7 @@ const PremiumMembersManagement: React.FC<PremiumMembersManagementProps> = ({
     }
   }, [onMemberSelect]);
 
-  const handleMemberUpdate = useCallback((member: any) => {
-    if (onMemberUpdate) {
-      onMemberUpdate(member.id, member);
-    }
-  }, [onMemberUpdate]);
 
-  const handleMemberDelete = useCallback((member: any) => {
-    if (onMemberDelete) {
-      onMemberDelete(member.id);
-    }
-  }, [onMemberDelete]);
 
   return (
     <UnifiedMembersManagement

@@ -1,28 +1,13 @@
-﻿import React, {  useState, useEffect , useCallback } from 'react';
 import {
-  CreditCardIcon,
-  CheckCircleIcon,
-  ClockIcon,
-  ExclamationTriangleIcon,
-  PlusIcon,
-  MagnifyingGlassIcon,
-  FunnelIcon,
-  ArrowPathIcon,
-  ChartBarIcon,
-  CalendarDaysIcon,
-  BanknotesIcon,
-  UserGroupIcon,
-  DocumentTextIcon,
-  XMarkIcon,
-  ChevronDownIcon,
-  UserIcon
+ArrowPathIcon,BanknotesIcon,CalendarDaysIcon,ChartBarIcon,CheckCircleIcon,ChevronDownIcon,ClockIcon,DocumentTextIcon,ExclamationTriangleIcon,MagnifyingGlassIcon,PlusIcon,UserGroupIcon,UserIcon,XMarkIcon
 } from '@heroicons/react/24/outline';
-import { CheckIcon, SparklesIcon } from '@heroicons/react/24/solid';
+import { CheckIcon,SparklesIcon } from '@heroicons/react/24/solid';
+import React,{ useEffect,useMemo,useState } from 'react';
+import { logger } from '../../utils/logger';
 import FlexiblePaymentInput from './FlexiblePaymentInput';
 import PaymentConfirmationModal from './PaymentConfirmationModal';
-import { Member, PaymentConfirmationData, PaymentState } from './types';
-import { formatCurrency, generateTransactionId, createPaymentSummary } from './utils';
-import { logger } from '../../utils/logger';
+import { Member,PaymentConfirmationData,PaymentState } from './types';
+import { generateTransactionId } from './utils';
 
 import './Subscriptions.css';
 
@@ -76,7 +61,7 @@ const Subscriptions: React.FC = () => {
   ]);
 
   // Sample data for subscription plans
-  const subscriptionPlans: SubscriptionPlan[] = [
+  const subscriptionPlans: SubscriptionPlan[] = useMemo(() => [
     {
       id: '1',
       name: 'Basic Plan',
@@ -120,10 +105,10 @@ const Subscriptions: React.FC = () => {
       ],
       color: '#10B981'
     }
-  ];
+  ], []);
 
   // Sample subscription data
-  const sampleSubscriptions: Subscription[] = [
+  const sampleSubscriptions: Subscription[] = useMemo(() => [
     {
       id: '1',
       memberId: 'M001',
@@ -159,7 +144,7 @@ const Subscriptions: React.FC = () => {
       lastPayment: new Date('2024-09-01'),
       nextPayment: new Date('2024-10-01')
     }
-  ];
+  ], []);
 
   useEffect(() => {
     // Simulate loading data
@@ -167,22 +152,9 @@ const Subscriptions: React.FC = () => {
       setSubscriptions(sampleSubscriptions);
       setIsLoading(false);
     }, 1500);
-  }, []);
+  }, [sampleSubscriptions]);
 
   const getStatusBadge = (status: Subscription['status']) => {
-  // Performance optimized event handlers
-  const handleRefresh = useCallback(() => {
-    // Refresh logic here
-  }, []);
-
-  const handleFilterChange = useCallback((filterType, value) => {
-    // Filter logic here
-  }, []);
-
-  const handlePageChange = useCallback((page) => {
-    // Pagination logic here
-  }, []);
-
     const statusConfig = {
       active: { label: 'نشط', className: 'status-active', icon: CheckCircleIcon },
       pending: { label: 'قيد الانتظار', className: 'status-pending', icon: ClockIcon },
@@ -423,7 +395,7 @@ const Subscriptions: React.FC = () => {
         {subscriptionPlans.map(plan => (
           <div
             key={plan.id}
-            className={`subscription-plan-card ${plan.isPopular ? 'popular' : ''}`}
+            className={`subscription-plan-card ${plan.isPopular ? 'popular' : ''} ${selectedPlan?.id === plan.id ? 'selected' : ''}`}
             onClick={() => setSelectedPlan(plan)}
           >
             {plan.isPopular && (

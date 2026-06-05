@@ -1,4 +1,4 @@
-import React, { memo,  useState, useEffect } from 'react';
+import React,{ memo,useEffect,useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 
 import { logger } from '../../utils/logger';
@@ -18,6 +18,7 @@ const ReportsDashboard = ({ dateFilter, financialSummary, onRefresh }) => {
 
   useEffect(() => {
     fetchAnalytics();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- preserve existing one-time legacy load behavior
   }, [dateFilter]);
 
   const fetchAnalytics = async () => {
@@ -70,7 +71,7 @@ const ReportsDashboard = ({ dateFilter, financialSummary, onRefresh }) => {
     return icons[category] || '📋';
   };
 
-  const getCategoryColor = (category, index) => {
+  const getCategoryColor = (_category, index) => {
     const colors = [
       '#667eea', '#764ba2', '#f093fb', '#f5576c',
       '#4facfe', '#00f2fe', '#43e97b', '#38f9d7',
@@ -292,7 +293,7 @@ const ReportsDashboard = ({ dateFilter, financialSummary, onRefresh }) => {
           <h3>الاتجاهات الشهرية</h3>
           {analytics.monthlyTrends && analytics.monthlyTrends.length > 0 ? (
             <div className="trends-chart">
-              {analytics.monthlyTrends.map((trend, index) => (
+              {analytics.monthlyTrends.map((trend) => (
                 <div key={trend.month} className="trend-item">
                   <div className="trend-month">{trend.month_name_ar}</div>
                   <div className="trend-values">

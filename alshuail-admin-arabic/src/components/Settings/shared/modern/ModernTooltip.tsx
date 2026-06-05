@@ -17,7 +17,7 @@
  * @date 2025-11-13
  */
 
-import React, { memo,  ReactNode, useState, useRef, useEffect } from 'react';
+import React,{ memo,ReactNode,useCallback,useEffect,useRef,useState } from 'react';
 import { getTheme } from '../../modernDesignSystem';
 
 // ============================================================================
@@ -160,7 +160,7 @@ export const ModernTooltip: React.FC<ModernTooltipProps> = ({
   // POSITION CALCULATION
   // ========================================================================
 
-  const calculatePosition = () => {
+  const calculatePosition = useCallback(() => {
     if (!wrapperRef.current || !tooltipRef.current) return;
 
     const triggerRect = wrapperRef.current.getBoundingClientRect();
@@ -225,7 +225,7 @@ export const ModernTooltip: React.FC<ModernTooltipProps> = ({
     }
 
     setPosition({ top, left });
-  };
+  }, [arrow, placement]);
 
   // ========================================================================
   // VISIBILITY CONTROL
@@ -280,7 +280,7 @@ export const ModernTooltip: React.FC<ModernTooltipProps> = ({
         window.removeEventListener('scroll', handleUpdate, true);
       };
     }
-  }, [visible, placement]);
+  }, [visible, calculatePosition]);
 
   // Cleanup timeouts
   useEffect(() => {

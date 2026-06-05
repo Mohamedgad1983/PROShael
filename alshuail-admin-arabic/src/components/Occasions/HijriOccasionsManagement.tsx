@@ -1,35 +1,13 @@
-﻿import React, {  useState, useEffect , useCallback } from 'react';
 import {
-  CalendarIcon,
-  CalendarDaysIcon,
-  UsersIcon,
-  SparklesIcon,
-  HeartIcon,
-  GiftIcon,
-  CakeIcon,
-  PlusIcon,
-  EyeIcon,
-  PencilIcon,
-  TrashIcon,
-  MagnifyingGlassIcon,
-  FunnelIcon,
-  ChartBarIcon,
-  CheckCircleIcon,
-  ClockIcon,
-  ExclamationCircleIcon,
-  BellIcon,
-  ShareIcon,
-  CameraIcon,
-  MapPinIcon,
-  UserGroupIcon,
-  XMarkIcon,
-  StarIcon,
-  MoonIcon,
-  SunIcon
+BellIcon,CakeIcon,CalendarDaysIcon,CalendarIcon,ChartBarIcon,
+CheckCircleIcon,
+ClockIcon,
+ExclamationCircleIcon,EyeIcon,GiftIcon,HeartIcon,MagnifyingGlassIcon,MapPinIcon,MoonIcon,PencilIcon,PlusIcon,ShareIcon,SparklesIcon,UserGroupIcon,UsersIcon,XMarkIcon
 } from '@heroicons/react/24/outline';
-import { HijriDateDisplay, HijriDateFilter, HijriCalendarWidget } from '../Common/HijriDateDisplay';
-import { formatHijriDate, formatDualDate, getIslamicOccasion } from '../../utils/hijriDateUtils';
+import React,{ useEffect,useMemo,useState } from 'react';
+import { getIslamicOccasion } from '../../utils/hijriDateUtils';
 import { logger } from '../../utils/logger';
+import { HijriDateDisplay,HijriDateFilter } from '../Common/HijriDateDisplay';
 
 import '../../styles/ultra-premium-islamic-design.css';
 
@@ -57,17 +35,14 @@ interface Occasion {
 }
 
 const HijriOccasionsManagement: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('overview');
   const [occasions, setOccasions] = useState<Occasion[]>([]);
-  const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedOccasion, setSelectedOccasion] = useState<Occasion | null>(null);
 
   // Mock data with dates
-  const mockOccasions: Occasion[] = [
+  const mockOccasions: Occasion[] = useMemo(() => [
     {
       id: 1,
       title: 'عيد ميلاد أحمد الشعيل',
@@ -128,27 +103,14 @@ const HijriOccasionsManagement: React.FC = () => {
       rsvpDeadline: '2024-05-01',
       notificationSent: false
     }
-  ];
+  ], []);
 
   useEffect(() => {
     setOccasions(mockOccasions);
-  }, []);
+  }, [mockOccasions]);
 
   // Helper functions
   const getOccasionTypeInfo = (type: string) => {
-  // Performance optimized event handlers
-  const handleRefresh = useCallback(() => {
-    // Refresh logic here
-  }, []);
-
-  const handleFilterChange = useCallback((filterType, value) => {
-    // Filter logic here
-  }, []);
-
-  const handlePageChange = useCallback((page) => {
-    // Pagination logic here
-  }, []);
-
     const types: Record<string, any> = {
       birthday: { label: 'عيد ميلاد', icon: CakeIcon, color: '#FF3B30', gradient: 'from-red-500 to-pink-500' },
       wedding: { label: 'زفاف', icon: HeartIcon, color: '#FF2D92', gradient: 'from-pink-500 to-rose-500' },
@@ -518,7 +480,6 @@ const HijriOccasionsManagement: React.FC = () => {
     const typeInfo = getOccasionTypeInfo(occasion.type);
     const statusInfo = getStatusInfo(occasion.status);
     const TypeIcon = typeInfo.icon;
-    const StatusIcon = statusInfo.icon;
 
     const attendancePercentage = (occasion.attendees / occasion.maxAttendees) * 100;
     const budgetPercentage = (occasion.spent / occasion.budget) * 100;

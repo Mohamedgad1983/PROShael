@@ -1,34 +1,10 @@
-import React, { memo,  useState, useEffect, useCallback, useMemo } from 'react';
-import { memberService } from '../../services/memberService';
 import {
-  MagnifyingGlassIcon,
-  FunnelIcon,
-  UserGroupIcon,
-  UserIcon,
-  CheckCircleIcon,
-  ClockIcon,
-  ShieldCheckIcon,
-  ArrowDownTrayIcon,
-  PaperAirplaneIcon,
-  PlusIcon,
-  EyeIcon,
-  PencilIcon,
-  TrashIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  AdjustmentsHorizontalIcon,
-  XMarkIcon,
-  DocumentArrowDownIcon,
-  ChatBubbleBottomCenterTextIcon,
-  UsersIcon,
-  StarIcon,
-  PhoneIcon,
-  EnvelopeIcon,
-  CalendarDaysIcon,
-  MapPinIcon,
-  BanknotesIcon
+AdjustmentsHorizontalIcon,BanknotesIcon,CalendarDaysIcon,ChatBubbleBottomCenterTextIcon,CheckCircleIcon,ChevronLeftIcon,
+ChevronRightIcon,DocumentArrowDownIcon,EnvelopeIcon,EyeIcon,MagnifyingGlassIcon,PencilIcon,PhoneIcon,PlusIcon,TrashIcon,UserGroupIcon,XMarkIcon
 } from '@heroicons/react/24/outline';
-import { CheckCircleIcon as CheckCircleIconSolid, StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
+import { CheckCircleIcon as CheckCircleIconSolid,StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
+import React,{ memo,useCallback,useEffect,useMemo,useState } from 'react';
+import { memberService } from '../../services/memberService';
 import { logger } from '../../utils/logger';
 
 import '../../styles/apple-design-system.css';
@@ -111,6 +87,7 @@ const AppleMembersManagement: React.FC = () => {
 
   useEffect(() => {
     loadMembers();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- preserve existing one-time legacy load behavior
   }, [filters, pagination.page, searchQuery, sortBy, sortOrder]);
 
   // Data loading functions

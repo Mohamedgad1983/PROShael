@@ -1,31 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
 import {
-  HomeIcon,
-  UsersIcon,
-  CreditCardIcon,
-  CalendarDaysIcon,
-  HeartIcon,
-  ScaleIcon,
-  BellIcon,
-  ChartBarIcon,
-  Bars3Icon,
-  XMarkIcon,
-  PlusIcon,
-  ArrowTrendingUpIcon,
-  ArrowTrendingDownIcon,
-  SparklesIcon,
-  BanknotesIcon,
-  ClockIcon,
-  CheckCircleIcon,
-  ExclamationCircleIcon,
-  MagnifyingGlassIcon,
-  CogIcon,
-  UserCircleIcon,
-  PhotoIcon,
-  FolderIcon,
-  DocumentIcon
+ArrowTrendingDownIcon,ArrowTrendingUpIcon,BanknotesIcon,Bars3Icon,BellIcon,CalendarDaysIcon,ChartBarIcon,CheckCircleIcon,ClockIcon,CreditCardIcon,DocumentIcon,ExclamationCircleIcon,HeartIcon,HomeIcon,MagnifyingGlassIcon,ScaleIcon,SparklesIcon,UsersIcon,XMarkIcon
 } from '@heroicons/react/24/outline';
-import { StarIcon } from '@heroicons/react/24/solid';
+import React,{ useEffect,useMemo,useState } from 'react';
 import { logger } from '../../utils/logger';
 
 import '../../styles/apple-design-system.css';

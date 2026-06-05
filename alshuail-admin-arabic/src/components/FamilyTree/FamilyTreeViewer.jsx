@@ -1,9 +1,8 @@
-import React, { memo,  useState } from 'react';
 import {
-  UsersIcon,
-  ChartBarIcon,
-  UserGroupIcon
+ChartBarIcon,
+UserGroupIcon,UsersIcon
 } from '@heroicons/react/24/outline';
+import React,{ memo,useState } from 'react';
 
 /**
  * FamilyTreeViewer Component

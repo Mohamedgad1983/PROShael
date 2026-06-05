@@ -1,6 +1,6 @@
-import React, { memo,  useState, useEffect } from 'react';
-import { toHijri, toGregorian } from 'hijri-converter';
 import { CalendarDaysIcon } from '@heroicons/react/24/outline';
+import { toGregorian,toHijri } from 'hijri-converter';
+import React,{ memo,useEffect,useState } from 'react';
 
 const SimpleHijriDatePicker = ({ value, onChange, required = false, label = "التاريخ" }) => {
   const [hijriDay, setHijriDay] = useState('');

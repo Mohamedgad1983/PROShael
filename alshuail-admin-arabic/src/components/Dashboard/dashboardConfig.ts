@@ -7,7 +7,7 @@
  * const config = getDashboardConfig('apple');
  */
 
-import { DashboardConfig, DashboardVariant } from './UnifiedDashboard';
+import { DashboardConfig,DashboardVariant } from './UnifiedDashboard';
 
 // Color schemes for different variants
 export const COLOR_SCHEMES = {

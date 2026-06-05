@@ -6,36 +6,25 @@
  * @date 2025-11-13
  */
 
-import React, { memo,  useState, useRef, useEffect } from 'react';
 import {
-  UserIcon,
-  PhotoIcon,
-  XMarkIcon,
-  CheckCircleIcon,
-  ExclamationCircleIcon,
-  InformationCircleIcon,
-  EyeIcon,
-  EyeSlashIcon,
-  LockClosedIcon,
-  PencilIcon
+CheckCircleIcon,
+ExclamationCircleIcon,EyeIcon,
+EyeSlashIcon,InformationCircleIcon,LockClosedIcon,
+PencilIcon,PhotoIcon,
+XMarkIcon
 } from '@heroicons/react/24/outline';
 import axios from 'axios';
+import React,{ memo,useEffect,useRef,useState } from 'react';
 import { useRole } from '../../contexts/RoleContext';
-import {
-  ModernCard,
-  ModernButton,
-  ModernInput,
-  ModernSwitch,
-  ModernBadge,
-  ModernDivider,
-  ModernSkeleton,
-  ModernTooltip
-} from './shared/modern';
 import { getTheme } from './modernDesignSystem';
+import {
+ModernBadge,ModernButton,ModernCard,ModernDivider,ModernInput,ModernSkeleton,ModernSwitch,ModernTooltip
+} from './shared/modern';
 
+import { API_ORIGIN } from '../../utils/apiConfig';
 import { logger } from '../../utils/logger';
 
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+const API_BASE = API_ORIGIN;
 
 interface Message {
   type: 'success' | 'error' | 'info' | 'warning';
@@ -937,7 +926,7 @@ const ProfileSettings: React.FC = () => {
           }}>
             <ModernSwitch
               checked={notificationPreferences.email_notifications}
-              onChange={(checked) => handleNotificationToggle('email_notifications')}
+              onChange={() => handleNotificationToggle('email_notifications')}
               disabled={savingNotifications}
               label="إشعارات البريد الإلكتروني"
               description="استقبل التنبيهات المهمة عبر البريد الإلكتروني"
@@ -949,7 +938,7 @@ const ProfileSettings: React.FC = () => {
 
             <ModernSwitch
               checked={notificationPreferences.push_notifications}
-              onChange={(checked) => handleNotificationToggle('push_notifications')}
+              onChange={() => handleNotificationToggle('push_notifications')}
               disabled={savingNotifications}
               label="إشعارات المتصفح"
               description="استقبل تنبيهات فورية في المتصفح"
@@ -961,7 +950,7 @@ const ProfileSettings: React.FC = () => {
 
             <ModernSwitch
               checked={notificationPreferences.member_updates}
-              onChange={(checked) => handleNotificationToggle('member_updates')}
+              onChange={() => handleNotificationToggle('member_updates')}
               disabled={savingNotifications}
               label="تحديثات الأعضاء"
               description="إشعارات عند تغيير حالة الأعضاء أو معلوماتهم"
@@ -973,7 +962,7 @@ const ProfileSettings: React.FC = () => {
 
             <ModernSwitch
               checked={notificationPreferences.financial_alerts}
-              onChange={(checked) => handleNotificationToggle('financial_alerts')}
+              onChange={() => handleNotificationToggle('financial_alerts')}
               disabled={savingNotifications}
               label="التنبيهات المالية"
               description="إشعارات المعاملات المالية والمدفوعات"
@@ -985,7 +974,7 @@ const ProfileSettings: React.FC = () => {
 
             <ModernSwitch
               checked={notificationPreferences.system_updates}
-              onChange={(checked) => handleNotificationToggle('system_updates')}
+              onChange={() => handleNotificationToggle('system_updates')}
               disabled={savingNotifications}
               label="تحديثات النظام"
               description="إشعارات الصيانة والتحديثات الجديدة"

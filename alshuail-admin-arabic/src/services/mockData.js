@@ -22,7 +22,7 @@ const generateKuwaitPhone = () => {
 };
 
 // Generate email from Arabic name
-const generateEmail = (name) => {
+const generateEmail = () => {
   const englishNames = [
     'ahmed', 'fatima', 'mohammed', 'aisha', 'abdullah',
     'nora', 'khalid', 'hind', 'saad', 'maryam',
@@ -173,7 +173,6 @@ mockDatabase.subscriptions = mockDatabase.members
       endDate.setMonth(endDate.getMonth() + plan.duration_months);
     }
 
-    const statuses = ['active', 'expired', 'cancelled', 'suspended'];
     let status = 'active';
 
     // Set realistic status based on end date
@@ -198,7 +197,7 @@ mockDatabase.subscriptions = mockDatabase.members
   });
 
 // Generate Payments based on subscriptions
-mockDatabase.subscriptions.forEach((subscription, subIndex) => {
+mockDatabase.subscriptions.forEach((subscription) => {
   const plan = mockDatabase.plans.find(p => p.id === subscription.plan_id);
   const startDate = new Date(subscription.start_date);
   const endDate = subscription.end_date ? new Date(subscription.end_date) : new Date('2025-12-31');

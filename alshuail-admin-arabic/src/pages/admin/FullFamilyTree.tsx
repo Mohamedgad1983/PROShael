@@ -1,9 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { 
-  Users, Search, RefreshCw, ChevronDown, ChevronRight,
-  User, Phone, CreditCard, ZoomIn, ZoomOut, Maximize2,
-  TreeDeciduous, Crown, Download, Filter, X, Info
-} from 'lucide-react';
+import { ChevronDown,ChevronRight,CreditCard,Crown,Filter,Info,Maximize2,Phone,RefreshCw,Search,TreeDeciduous,User,Users,X,ZoomIn,ZoomOut } from 'lucide-react';
+import React,{ useCallback,useEffect,useMemo,useState } from 'react';
 import { API_BASE_URL } from '../../utils/apiConfig';
 import './FullFamilyTree.css';
 
@@ -24,18 +20,10 @@ interface Member {
   children?: Member[];
 }
 
-interface Branch {
-  id: string;
-  branch_name: string;
-  branch_name_ar?: string;
-  memberCount: number;
-}
-
 // API_BASE_URL imported from utils/apiConfig
 
 const FullFamilyTree: React.FC = () => {
   const [allMembers, setAllMembers] = useState<Member[]>([]);
-  const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -48,14 +36,14 @@ const FullFamilyTree: React.FC = () => {
   const [showAllExpanded, setShowAllExpanded] = useState(false);
 
   // Get auth token
-  const getAuthToken = () => {
+  const getAuthToken = useCallback(() => {
     return sessionStorage.getItem('token') || 
            localStorage.getItem('token') || 
            localStorage.getItem('authToken');
-  };
+  }, []);
 
   // Fetch data
-  const fetchData = async (endpoint: string) => {
+  const fetchData = useCallback(async (endpoint: string) => {
     const token = getAuthToken();
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       headers: {
@@ -69,7 +57,7 @@ const FullFamilyTree: React.FC = () => {
     }
     
     return response.json();
-  };
+  }, [getAuthToken]);
 
   // Load all members
   const loadData = useCallback(async () => {
@@ -85,61 +73,17 @@ const FullFamilyTree: React.FC = () => {
         setAllMembers(membersRes);
       }
       
-      // Fetch branches
-      try {
-        const branchesRes = await fetchData('/tree/branches');
-        if (branchesRes.success && branchesRes.data) {
-          setBranches(branchesRes.data);
-        }
-      } catch (e) {
-        console.log('Branches endpoint not available');
-      }
-      
     } catch (err) {
       console.error('Error loading data:', err);
       setError('فشل في تحميل البيانات. تأكد من تسجيل الدخول.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetchData]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
-
-  // Build tree structure from flat list
-  const treeData = useMemo(() => {
-    if (!allMembers.length) return [];
-
-    // Create a map for quick lookup
-    const memberMap = new Map<string, Member>();
-    allMembers.forEach(m => {
-      memberMap.set(m.id, { ...m, children: [] });
-    });
-
-    // Build tree by assigning children to parents
-    const roots: Member[] = [];
-    
-    memberMap.forEach(member => {
-      if (member.parent_member_id && memberMap.has(member.parent_member_id)) {
-        const parent = memberMap.get(member.parent_member_id)!;
-        if (!parent.children) parent.children = [];
-        parent.children.push(member);
-      } else {
-        // This is a root node (no parent or parent not in system)
-        roots.push(member);
-      }
-    });
-
-    // Sort roots by tribal section
-    roots.sort((a, b) => {
-      const sectionA = a.tribal_section || 'zzz';
-      const sectionB = b.tribal_section || 'zzz';
-      return sectionA.localeCompare(sectionB, 'ar');
-    });
-
-    return roots;
-  }, [allMembers]);
 
   // Group members by tribal section
   const membersBySection = useMemo(() => {
@@ -206,70 +150,6 @@ const FullFamilyTree: React.FC = () => {
   // Format currency
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US').format(amount || 0) + ' ر.س';
-  };
-
-  // Render tree node recursively
-  const renderTreeNode = (member: Member, level: number = 0) => {
-    const hasChildren = member.children && member.children.length > 0;
-    const isExpanded = expandedNodes.has(member.id);
-    
-    // Check if this member matches search
-    const matchesSearch = !searchQuery || 
-      member.full_name_ar?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      member.membership_number?.includes(searchQuery);
-
-    if (searchQuery && !matchesSearch && !hasChildren) {
-      return null;
-    }
-
-    return (
-      <div key={member.id} className="tree-node" style={{ marginRight: level * 24 }}>
-        <div 
-          className={`node-card ${selectedMember?.id === member.id ? 'selected' : ''} ${matchesSearch && searchQuery ? 'highlighted' : ''}`}
-          onClick={() => setSelectedMember(member)}
-        >
-          {hasChildren && (
-            <button 
-              className="expand-btn"
-              onClick={(e) => { e.stopPropagation(); toggleNode(member.id); }}
-            >
-              {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-            </button>
-          )}
-          
-          <div className="node-avatar">
-            {member.photo_url ? (
-              <img src={member.photo_url} alt={member.full_name_ar} />
-            ) : (
-              <User size={20} />
-            )}
-          </div>
-          
-          <div className="node-info">
-            <span className="node-name">{member.full_name_ar}</span>
-            <span className="node-id">{member.membership_number}</span>
-          </div>
-          
-          <div className="node-balance">
-            {formatCurrency(member.current_balance)}
-          </div>
-          
-          <span className={`node-status status-${member.status}`}>
-            {member.status === 'active' ? '●' : '○'}
-          </span>
-          
-          {hasChildren && (
-            <span className="children-count">{member.children!.length}</span>
-          )}
-        </div>
-        
-        {hasChildren && isExpanded && (
-          <div className="node-children">
-            {member.children!.map(child => renderTreeNode(child, level + 1))}
-          </div>
-        )}
-      </div>
-    );
   };
 
   // Render section view

@@ -158,5 +158,48 @@ module.exports = {
       return webpackConfig;
     }
   },
+  devServer: (devServerConfig) => {
+    const {
+      onBeforeSetupMiddleware,
+      onAfterSetupMiddleware,
+      https,
+      ...patchedConfig
+    } = devServerConfig;
+
+    if (https !== undefined) {
+      patchedConfig.server = https
+        ? {
+            type: 'https',
+            options: typeof https === 'object' ? https : {}
+          }
+        : 'http';
+    }
+
+    if (onBeforeSetupMiddleware || onAfterSetupMiddleware) {
+      const existingSetupMiddlewares = patchedConfig.setupMiddlewares;
+
+      patchedConfig.setupMiddlewares = (middlewares, devServer) => {
+        if (!devServer) {
+          return middlewares;
+        }
+
+        if (onBeforeSetupMiddleware) {
+          onBeforeSetupMiddleware(devServer);
+        }
+
+        const nextMiddlewares = existingSetupMiddlewares
+          ? existingSetupMiddlewares(middlewares, devServer)
+          : middlewares;
+
+        if (onAfterSetupMiddleware) {
+          onAfterSetupMiddleware(devServer);
+        }
+
+        return nextMiddlewares;
+      };
+    }
+
+    return patchedConfig;
+  },
   // PostCSS configuration is now handled by postcss.config.js
 };

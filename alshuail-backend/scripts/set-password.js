@@ -1,10 +1,15 @@
 import bcrypt from 'bcryptjs';
 
 async function setPassword() {
-  const password = 'Admin@123';
+  const password = process.env.PASSWORD_TO_HASH || process.argv[2];
+  if (!password || password.length < 8) {
+    console.error('Usage: PASSWORD_TO_HASH="..." node scripts/set-password.js');
+    process.exit(1);
+  }
+
   const saltRounds = 10;
 
-  console.log('Generating hash for password:', password);
+  console.log('Generating password hash...');
   const hash = await bcrypt.hash(password, saltRounds);
   console.log('Generated hash:', hash);
 

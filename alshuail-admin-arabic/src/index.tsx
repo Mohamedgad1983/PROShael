@@ -5,10 +5,10 @@ import './force-include-access-control';
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import './index.css';
 import App from './App';
+import './index.css';
 import reportWebVitals from './reportWebVitals';
-import { registerServiceWorker, initPerformanceMonitoring } from './utils/performance';
+import { initPerformanceMonitoring } from './utils/performance';
 
 import { logger } from './utils/logger';
 

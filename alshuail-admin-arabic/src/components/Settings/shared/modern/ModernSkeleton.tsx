@@ -15,7 +15,7 @@
  * @date 2025-11-13
  */
 
-import React, { HTMLAttributes } from 'react';
+import React,{ HTMLAttributes } from 'react';
 import { getTheme } from '../../modernDesignSystem';
 
 // ============================================================================

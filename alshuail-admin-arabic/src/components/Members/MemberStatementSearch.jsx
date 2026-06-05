@@ -1,7 +1,7 @@
-import React, { memo,  useState, useCallback, useRef } from 'react';
-import './MemberStatementSearch.css';
-import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+import React,{ memo,useCallback,useRef,useState } from 'react';
+import './MemberStatementSearch.css';
 
 const MemberStatementSearch = () => {
   const [searchType, setSearchType] = useState('phone'); // phone, name, memberId
@@ -91,6 +91,7 @@ const MemberStatementSearch = () => {
 
       setLoading(false);
     }, 500);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- preserve existing one-time legacy load behavior
   }, [searchType, searchQuery]);
 
   const generatePDF = async () => {

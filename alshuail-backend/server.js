@@ -74,6 +74,28 @@ log.info('Environment Check on Start:', {
 
 const app = express();
 const PORT = config.port;
+const DB_CHECK_TIMEOUT_MS = Number.parseInt(process.env.DB_CHECK_TIMEOUT_MS || '5000', 10);
+
+const runDatabaseCheck = async () => {
+  let timeoutId;
+  try {
+    return await Promise.race([
+      testConnection(),
+      new Promise((resolve) => {
+        timeoutId = setTimeout(() => {
+          log.error('[Startup] Database connection check timed out', {
+            timeoutMs: DB_CHECK_TIMEOUT_MS
+          });
+          resolve(false);
+        }, DB_CHECK_TIMEOUT_MS);
+      })
+    ]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+};
 
 // Trust proxy - required for express-rate-limit behind Nginx/reverse proxy
 // This allows correct IP identification from X-Forwarded-For header
@@ -107,26 +129,56 @@ if (!fs.existsSync(newsUploadsDir)) {
 // that don't exist here.
 const uploadStaticDir = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
 app.use('/uploads', express.static(uploadStaticDir));
-log.info('Static uploads served from: ' + uploadStaticDir);
+app.use('/api/uploads', express.static(uploadStaticDir));
+log.info(`Static uploads served from: ${uploadStaticDir}`);
 
 app.use(helmet({
   crossOriginResourcePolicy: false,
 }));
 
+const configuredCorsOrigins = (config.frontend.corsOrigin || '')
+  .split(',')
+  .map(origin => origin.trim())
+  .filter(Boolean);
+
+const allowedOrigins = [
+  'https://alshuail-admin.pages.dev',
+  'https://alshuail-admin-main.pages.dev',
+  'https://alshailfund.com',
+  'https://www.alshailfund.com',
+  'https://app.alshailfund.com',
+  'http://localhost:3002',
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://127.0.0.1:5500',
+  config.frontend.url,
+  ...configuredCorsOrigins
+].filter(Boolean);
+
+const isAllowedOrigin = (origin) => {
+  if (!origin) {
+    return true;
+  }
+
+  let hostname = '';
+  try {
+    hostname = new URL(origin).hostname;
+  } catch {
+    return false;
+  }
+
+  return allowedOrigins.includes(origin) ||
+    hostname === 'alshailfund.com' ||
+    hostname.endsWith('.alshailfund.com') ||
+    hostname === 'alshuail-admin.pages.dev' ||
+    hostname.endsWith('.alshuail-admin.pages.dev') ||
+    hostname === 'alshuail-admin-main.pages.dev' ||
+    hostname.endsWith('.alshuail-admin-main.pages.dev');
+};
+
 // Enhanced CORS configuration for production
 const corsOptions = {
   origin: function(origin, callback) {
-    const allowedOrigins = [
-      'https://alshuail-admin.pages.dev',
-      'https://alshuail-admin-main.pages.dev',
-      'https://alshailfund.com',
-      'https://www.alshailfund.com',
-      'http://localhost:3002',
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://127.0.0.1:5500'
-    ];
-
     // Log origin for debugging
     if (config.isProduction) {
       log.debug(`[CORS] Request from origin: ${origin || 'no-origin'}`);
@@ -139,16 +191,12 @@ const corsOptions = {
 
     // In production, check allowed origins
     if (config.isProduction) {
-      if (allowedOrigins.includes(origin) ||
-          origin.includes('alshuail-admin.pages.dev') ||
-          origin.includes('alshailfund.com') ||
-          origin === config.frontend.url) {
+      if (isAllowedOrigin(origin)) {
         log.info(`[CORS] ✓ Allowed origin: ${origin}`);
         return callback(null, true);
       } else {
         log.warn(`[CORS] ✗ Blocked origin: ${origin}`);
-        // Still allow for now to prevent blocking
-        return callback(null, true);
+        return callback(new Error('Not allowed by CORS'));
       }
     }
 
@@ -177,8 +225,7 @@ app.use(cors(corsOptions));
 // Additional CORS headers for extra safety
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  if (origin && (origin.includes('alshuail-admin.pages.dev') ||
-          origin.includes('alshailfund.com') || origin.includes('localhost'))) {
+  if (origin && (!config.isProduction || isAllowedOrigin(origin))) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
   }
@@ -296,7 +343,9 @@ app.use('/api/initiatives-enhanced', initiativesEnhancedRoutes);
 app.use('/api/news', newsRoutes);
 app.use('/api/diyas', diyasRoutes);
 app.use('/api/notifications', notificationsRoutes);
-app.use('/api/test', testRoutes);
+if (!config.isProduction) {
+  app.use('/api/test', testRoutes);
+}
 app.use('/api/expenses', expensesRoutes);
 app.use('/api/reports', financialReportsRoutes);
 app.use('/api/settings', settingsRoutes);
@@ -377,8 +426,7 @@ app.get('/api/health', async (req, res) => {
 
   // Test database connection
   try {
-    const { testConnection } = await import('./src/config/database.js');
-    health.checks.database = await testConnection();
+    health.checks.database = await runDatabaseCheck();
   } catch (error) {
     log.error('Health check DB error:', { message: error.message });
     health.checks.database = false;
@@ -392,25 +440,27 @@ app.get('/api/health', async (req, res) => {
   res.json(health);
 });
 
-// Simple test endpoint that always works
-app.get('/api/test', (req, res) => {
-  res.json({
-    success: true,
-    message: 'API is working!',
-    timestamp: new Date().toISOString(),
-    headers: {
-      origin: req.headers.origin || 'no-origin',
-      authorization: req.headers.authorization ? 'present' : 'missing'
-    }
+if (!config.isProduction) {
+  // Simple test endpoint that always works in non-production environments.
+  app.get('/api/test', (req, res) => {
+    res.json({
+      success: true,
+      message: 'API is working!',
+      timestamp: new Date().toISOString(),
+      headers: {
+        origin: req.headers.origin || 'no-origin',
+        authorization: req.headers.authorization ? 'present' : 'missing'
+      }
+    });
   });
-});
+}
 
 // Debug endpoint for troubleshooting
 app.get('/api/debug/env', (req, res) => {
-  // Only in development or with special header
-  if (config.isProduction &&
-      req.headers['x-debug-token'] !== 'alshuail-debug-2024') {
-    return res.status(403).json({ error: 'Forbidden' });
+  const debugEnabled = !config.isProduction && config.debug.enabled;
+
+  if (!debugEnabled) {
+    return res.status(404).json({ error: 'Not found' });
   }
 
   res.json({
@@ -443,7 +493,7 @@ const startServer = async () => {
 
   // Test database connection
   log.info('🔍 Testing database connection...');
-  const dbConnected = await testConnection();
+  const dbConnected = await runDatabaseCheck();
 
   if (!dbConnected) {
     log.error('⚠️  WARNING: Database connection could not be verified');
@@ -466,7 +516,9 @@ const startServer = async () => {
     log.info('═══════════════════════════════════════');
     log.info(`📡 API Server: http://localhost:${PORT}`);
     log.info(`💚 Health Check: http://localhost:${PORT}/api/health`);
-    log.info(`🧪 Test Endpoint: http://localhost:${PORT}/api/test`);
+    if (!config.isProduction) {
+      log.info(`🧪 Test Endpoint: http://localhost:${PORT}/api/test`);
+    }
     log.info(`📊 Dashboard: http://localhost:3002`);
     log.info('\n📌 Production URLs:');
     log.info(`   API: https://api.alshailfund.com`);

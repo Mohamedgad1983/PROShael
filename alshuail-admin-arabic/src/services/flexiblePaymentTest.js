@@ -4,9 +4,9 @@
  * Tests all aspects of the flexible payment validation and subscription system
  */
 
+import apiHandlers from './apiHandlers.js';
 import PaymentValidationService from './paymentValidationService.js';
 import subscriptionService from './subscriptionService.js';
-import apiHandlers from './apiHandlers.js';
 
 // ====================
 // TEST UTILITIES
@@ -438,8 +438,10 @@ export const getTestData = () => {
   };
 };
 
-export default {
+const flexiblePaymentTestExports = {
   runAllTests,
   getTestData,
   testResults
 };
+
+export default flexiblePaymentTestExports;

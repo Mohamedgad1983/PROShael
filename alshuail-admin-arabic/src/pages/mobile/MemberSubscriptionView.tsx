@@ -1,6 +1,7 @@
 // @ts-nocheck
-import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import React,{ useCallback,useEffect,useMemo,useState } from 'react';
+import { API_ORIGIN } from '../../utils/apiConfig';
 import { logger } from '../../utils/logger';
 
 import './MemberSubscriptionView.css';
@@ -37,18 +38,13 @@ const MemberSubscriptionView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showPayModal, setShowPayModal] = useState(false);
 
-  const API_BASE = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
+  const API_BASE = API_ORIGIN;
   const token = localStorage.getItem('token');
-  const axiosConfig = {
+  const axiosConfig = useMemo(() => ({
     headers: { Authorization: `Bearer ${token}` }
-  };
+  }), [token]);
 
-  useEffect(() => {
-    fetchSubscription();
-    fetchPaymentHistory();
-  }, []);
-
-  const fetchSubscription = async () => {
+  const fetchSubscription = useCallback(async () => {
     try {
       const { data } = await axios.get(`${API_BASE}/api/subscriptions/member/subscription`, axiosConfig);
       setSubscription(data.subscription);
@@ -57,16 +53,21 @@ const MemberSubscriptionView: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [API_BASE, axiosConfig]);
 
-  const fetchPaymentHistory = async () => {
+  const fetchPaymentHistory = useCallback(async () => {
     try {
       const { data } = await axios.get(`${API_BASE}/api/subscriptions/member/subscription/payments?limit=10`, axiosConfig);
       setPayments(data.payments);
     } catch (error) {
       logger.error('فشل في تحميل السجل:', { error });
     }
-  };
+  }, [API_BASE, axiosConfig]);
+
+  useEffect(() => {
+    fetchSubscription();
+    fetchPaymentHistory();
+  }, [fetchSubscription, fetchPaymentHistory]);
 
   if (loading) {
     return (
@@ -97,7 +98,7 @@ const MemberSubscriptionView: React.FC = () => {
             </p>
             <ul style={{ textAlign: 'right', fontSize: '0.9rem', color: 'rgba(255,255,255,0.7)', marginBottom: '1.5rem' }}>
               <li>قم بتسجيل الخروج</li>
-              <li>سجل دخول كعضو: 0555555555 / 123456</li>
+              <li>سجل دخول كعضو باستخدام كلمة مرور مؤقتة من الإدارة أو رمز التحقق</li>
               <li>أو استخدم لوحة تحكم المسؤول لعرض جميع الاشتراكات</li>
             </ul>
             <button

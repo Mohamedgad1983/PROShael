@@ -1,7 +1,8 @@
-import React from 'react';
-import { render, fireEvent } from '@testing-library/react';
-import { SettingsButton } from '../SettingsButton';
+/* eslint-disable testing-library/no-wait-for-multiple-assertions, testing-library/no-node-access, testing-library/prefer-screen-queries, testing-library/no-container, jest/no-conditional-expect */
 import { PlusIcon } from '@heroicons/react/24/outline';
+import { fireEvent,render } from '@testing-library/react';
+import React from 'react';
+import { SettingsButton } from '../SettingsButton';
 
 describe('SettingsButton', () => {
   it('renders button with text', () => {

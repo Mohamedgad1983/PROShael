@@ -3,15 +3,9 @@
  * React hook for mobile-specific functionality and responsive behavior
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useCallback,useEffect,useRef,useState } from 'react';
 import {
-  DeviceDetection,
-  ViewportUtils,
-  NetworkUtils,
-  SafeArea,
-  PWAUtils,
-  TouchUtils,
-  HapticFeedback
+DeviceDetection,HapticFeedback,NetworkUtils,PWAUtils,SafeArea,TouchUtils,ViewportUtils
 } from '../utils/mobileUtils';
 
 // Hook for device detection
@@ -431,7 +425,7 @@ export const useMobile = () => {
 };
 
 // Export all hooks
-export default {
+const mobileHookExports = {
   useDeviceDetection,
   useViewport,
   useSafeArea,
@@ -445,3 +439,5 @@ export default {
   usePullToRefresh,
   useMobile
 };
+
+export default mobileHookExports;

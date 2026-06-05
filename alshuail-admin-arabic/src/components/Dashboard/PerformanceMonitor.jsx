@@ -1,12 +1,8 @@
-import React, { useState, useEffect, useCallback, memo } from 'react';
 import {
-  ChartBarIcon,
-  ClockIcon,
-  ServerIcon,
-  DocumentTextIcon,
-  ExclamationTriangleIcon,
-  CheckCircleIcon
+ChartBarIcon,CheckCircleIcon,ClockIcon,DocumentTextIcon,
+ExclamationTriangleIcon,ServerIcon
 } from '@heroicons/react/24/outline';
+import React,{ memo,useEffect,useState } from 'react';
 
 // Web Vitals metrics collection
 const PerformanceMonitor = memo(() => {
@@ -65,12 +61,10 @@ const PerformanceMonitor = memo(() => {
       fidObserver.observe({ entryTypes: ['first-input'] });
 
       // Observe Cumulative Layout Shift
-      let clsValue = 0;
       const clsObserver = new PerformanceObserver((entryList) => {
         for (const entry of entryList.getEntries()) {
           if (!entry.hadRecentInput) {
-            clsValue += entry.value;
-            setMetrics(prev => ({ ...prev, CLS: clsValue }));
+            setMetrics(prev => ({ ...prev, CLS: (prev.CLS || 0) + entry.value }));
           }
         }
       });

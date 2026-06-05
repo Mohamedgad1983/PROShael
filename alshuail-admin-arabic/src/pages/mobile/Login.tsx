@@ -1,9 +1,10 @@
 // @ts-nocheck
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { EyeIcon,EyeSlashIcon,LockClosedIcon,PhoneIcon } from '@heroicons/react/24/outline';
 import { motion } from 'framer-motion';
-import { PhoneIcon, LockClosedIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
-import { isBiometricAvailable, authenticateBiometric, getBiometricType } from '../../utils/biometricAuth.jsx';
+import React,{ useEffect,useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { API_ORIGIN } from '../../utils/apiConfig';
+import { authenticateBiometric,getBiometricType,isBiometricAvailable } from '../../utils/biometricAuth.jsx';
 import { logger } from '../../utils/logger';
 
 import '../../styles/mobile/Login.css';
@@ -39,7 +40,7 @@ const MobileLogin = () => {
     setError('');
 
     try {
-      const API_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
+      const API_URL = API_ORIGIN;
 
       const response = await fetch(`${API_URL}/api/auth/mobile-login`, {
         method: 'POST',
@@ -245,7 +246,7 @@ const MobileLogin = () => {
         {/* Help Text */}
         <div className="help-section">
           <p className="help-text">
-            🔒 كلمة المرور الافتراضية: <strong>123456</strong>
+            🔒 استخدم كلمة المرور المؤقتة المرسلة من الإدارة
           </p>
           <p className="help-subtext">
             ستُطلب منك تغييرها عند أول دخول

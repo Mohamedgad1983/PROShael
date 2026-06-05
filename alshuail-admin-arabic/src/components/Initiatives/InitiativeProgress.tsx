@@ -1,14 +1,10 @@
-import React, { memo } from 'react';
 import {
-  ChartBarIcon,
-  UsersIcon,
-  ClockIcon,
-  CurrencyDollarIcon,
-  TrophyIcon,
-  HeartIcon
+ChartBarIcon,ClockIcon,
+CurrencyDollarIcon,HeartIcon,TrophyIcon,UsersIcon
 } from '@heroicons/react/24/outline';
-import { Initiative, Contribution, InitiativeProgress as IInitiativeProgress } from './types';
+import React,{ memo } from 'react';
 import { CURRENCY } from '../../constants/arabic';
+import { Contribution,Initiative,InitiativeProgress as IInitiativeProgress } from './types';
 
 interface InitiativeProgressProps {
   initiative: Initiative;

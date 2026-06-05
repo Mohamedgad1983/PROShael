@@ -3,7 +3,7 @@
  * Features: Shimmer animations, mobile-specific layouts, Arabic RTL support
  */
 
-import React, { memo } from 'react';
+import React from 'react';
 import '../../styles/skeleton-loaders.css';
 
 // Base skeleton component with shimmer effect
@@ -291,7 +291,7 @@ export const SkeletonProvider = ({ loading, skeleton, children, fallback = null 
   return children;
 };
 
-export default {
+const skeletonLoaderExports = {
   MobileDashboardSkeleton,
   MemberListSkeleton,
   PaymentCardSkeleton,
@@ -307,3 +307,5 @@ export default {
   FullPageSkeleton,
   SkeletonProvider
 };
+
+export default skeletonLoaderExports;

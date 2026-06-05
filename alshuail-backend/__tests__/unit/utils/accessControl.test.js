@@ -61,6 +61,14 @@ describe('Access Control Utilities', () => {
       test('should return true for super_admin role', () => {
         expect(hasFinancialAccess('super_admin')).toBe(true);
       });
+
+      test('should return true for admin role', () => {
+        expect(hasFinancialAccess('admin')).toBe(true);
+      });
+
+      test('should return true for operational_manager role', () => {
+        expect(hasFinancialAccess('operational_manager')).toBe(true);
+      });
     });
 
     describe('with restricted roles', () => {
@@ -70,10 +78,6 @@ describe('Access Control Utilities', () => {
 
       test('should return false for family_head role', () => {
         expect(hasFinancialAccess('family_head')).toBe(false);
-      });
-
-      test('should return false for admin role', () => {
-        expect(hasFinancialAccess('admin')).toBe(false);
       });
 
       test('should return false for viewer role', () => {
@@ -221,22 +225,25 @@ describe('Access Control Utilities', () => {
       'super_admin',
       'financial_manager',
       'admin',
+      'operational_manager',
       'family_head',
       'member',
       'viewer',
       'editor'
     ];
 
-    test('should have exactly 2 roles with financial access', () => {
+    test('should have exactly 4 roles with financial access', () => {
       const accessibleRoles = roles.filter(role => hasFinancialAccess(role));
-      expect(accessibleRoles).toHaveLength(2);
+      expect(accessibleRoles).toHaveLength(4);
       expect(accessibleRoles).toContain('financial_manager');
       expect(accessibleRoles).toContain('super_admin');
+      expect(accessibleRoles).toContain('admin');
+      expect(accessibleRoles).toContain('operational_manager');
     });
 
-    test('should deny access to 5 roles', () => {
+    test('should deny access to 4 roles', () => {
       const deniedRoles = roles.filter(role => !hasFinancialAccess(role));
-      expect(deniedRoles).toHaveLength(5);
+      expect(deniedRoles).toHaveLength(4);
     });
   });
 

@@ -1,15 +1,8 @@
-import React, { memo,  useState } from 'react';
 import {
-  XMarkIcon,
-  LightBulbIcon,
-  CalendarIcon,
-  MapPinIcon,
-  CurrencyDollarIcon,
-  UsersIcon,
-  TagIcon,
-  ChartBarIcon
+LightBulbIcon,XMarkIcon
 } from '@heroicons/react/24/outline';
-import { ARABIC_LABELS, CURRENCY } from '../../constants/arabic';
+import React,{ memo,useState } from 'react';
+import { ARABIC_LABELS,CURRENCY } from '../../constants/arabic';
 
 interface CreateInitiativeModalProps {
   isOpen: boolean;

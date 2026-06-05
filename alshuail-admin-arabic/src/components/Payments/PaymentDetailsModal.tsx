@@ -1,33 +1,15 @@
-import React, { memo,  useState } from 'react';
 import {
-  XMarkIcon,
-  UserIcon,
-  BanknotesIcon,
-  CalendarIcon,
-  DocumentTextIcon,
-  ClockIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  ArrowPathIcon,
-  PrinterIcon,
-  DocumentArrowDownIcon,
-  TagIcon,
-  BuildingLibraryIcon,
-  CreditCardIcon,
-  DevicePhoneMobileIcon,
-  ExclamationTriangleIcon,
-  InformationCircleIcon
+ArrowPathIcon,BanknotesIcon,
+CalendarIcon,CheckCircleIcon,ClockIcon,DocumentArrowDownIcon,DocumentTextIcon,ExclamationTriangleIcon,PrinterIcon,TagIcon,UserIcon,XCircleIcon,XMarkIcon
 } from '@heroicons/react/24/outline';
+import React,{ memo,useState } from 'react';
 import { ARABIC_LABELS } from '../../constants/arabic';
-import { PaymentDetailsModalProps, PaymentAction, PaymentHistoryEntry } from './types';
+import { PaymentAction,PaymentDetailsModalProps,PaymentHistoryEntry } from './types';
 import {
-  formatCurrency,
-  formatDate,
-  formatDateTime,
-  toArabicNumerals,
-  getPaymentStatusColor,
-  getPaymentCategoryColor,
-  getPaymentMethodIcon
+formatCurrency,
+formatDate,
+formatDateTime,
+getPaymentMethodIcon
 } from './utils';
 
 const PaymentDetailsModal: React.FC<PaymentDetailsModalProps> = ({

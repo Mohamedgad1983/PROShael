@@ -1,33 +1,16 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React,{ useCallback,useEffect,useState } from 'react';
 import { memberService } from '../../services/memberService';
-import PremiumImportMembers from './PremiumImportMembers';
+import { logger } from '../../utils/logger';
 import PremiumRegistration from '../Registration/PremiumRegistration';
 import PremiumExportMembers from './PremiumExportMembers';
-import { logger } from '../../utils/logger';
+import PremiumImportMembers from './PremiumImportMembers';
 
-import './AppleDesignSystem.css';
 import {
-  MagnifyingGlassIcon,
-  FunnelIcon,
-  UserGroupIcon,
-  UserIcon,
-  CheckCircleIcon,
-  ClockIcon,
-  ShieldCheckIcon,
-  ArrowDownTrayIcon,
-  PaperAirplaneIcon,
-  PlusIcon,
-  EyeIcon,
-  PencilIcon,
-  TrashIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  SparklesIcon,
-  AdjustmentsHorizontalIcon,
-  DocumentArrowDownIcon,
-  BellIcon,
-  ArrowLeftIcon
+AdjustmentsHorizontalIcon,ArrowDownTrayIcon,ArrowLeftIcon,BellIcon,CheckCircleIcon,ChevronLeftIcon,
+ChevronRightIcon,ClockIcon,DocumentArrowDownIcon,EyeIcon,FunnelIcon,MagnifyingGlassIcon,PencilIcon,PlusIcon,ShieldCheckIcon,SparklesIcon,TrashIcon,UserGroupIcon,
+UserIcon
 } from '@heroicons/react/24/outline';
+import './AppleDesignSystem.css';
 
 const EnhancedMembersManagement = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -57,6 +40,7 @@ const EnhancedMembersManagement = () => {
 
   useEffect(() => {
     loadMembers();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- preserve existing one-time legacy load behavior
   }, [filters, pagination.page, searchQuery]);
 
   const loadStatistics = async () => {
@@ -157,11 +141,6 @@ const EnhancedMembersManagement = () => {
     }
   };
 
-  const handleMemberAdded = (newMember) => {
-    setShowPremiumRegistration(false);
-    loadMembers();
-    loadStatistics();
-  };
 
   const handlePageChange = (newPage) => {
     setPagination(prev => ({ ...prev, page: newPage }));

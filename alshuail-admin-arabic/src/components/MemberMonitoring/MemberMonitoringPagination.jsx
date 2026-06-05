@@ -1,5 +1,5 @@
-import React, { memo, useCallback } from 'react';
-import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { ChevronLeftIcon,ChevronRightIcon } from '@heroicons/react/24/outline';
+import React,{ memo,useCallback } from 'react';
 
 const MemberMonitoringPagination = memo(({
   currentPage,

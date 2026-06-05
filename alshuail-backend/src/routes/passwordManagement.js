@@ -5,6 +5,7 @@ import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { requireSuperAdmin } from '../middleware/superAdminAuth.js';
+import { generateTemporaryPassword } from '../utils/passwordPolicy.js';
 
 const router = express.Router();
 
@@ -229,7 +230,7 @@ router.post('/reset', authenticateToken, requireSuperAdmin, passwordManagementLi
 
 /**
  * POST /api/password-management/reset-to-default
- * Reset a member's password back to temporary "123456" (superadmin only)
+ * Issue a unique temporary password for a member (superadmin only)
  * Used when member forgets their personal password
  */
 router.post('/reset-to-default', authenticateToken, requireSuperAdmin, passwordManagementLimiter, async (req, res) => {
@@ -262,21 +263,23 @@ router.post('/reset-to-default', authenticateToken, requireSuperAdmin, passwordM
 
     const member = memberResult.rows[0];
 
-    // Pre-computed bcrypt hash of "123456" with 12 rounds
-    const defaultPasswordHash = '$2b$12$OJ5iRDohKqpP2Ne/6XBstO7qeikbJxltZ/vvfrCycWBPpGX5vws/O';
+    const temporaryPassword = generateTemporaryPassword();
+    const salt = await bcrypt.genSalt(BCRYPT_SALT_ROUNDS);
+    const temporaryPasswordHash = await bcrypt.hash(temporaryPassword, salt);
 
     // Reset password and set forced change flags
     await query(
       `UPDATE members SET
         password_hash = $1,
+        must_change_password = true,
         requires_password_change = true,
         is_first_login = true,
-        has_password = false,
+        has_password = true,
         login_attempts = 0,
         account_locked_until = NULL,
         updated_at = NOW()
       WHERE id = $2`,
-      [defaultPasswordHash, memberId]
+      [temporaryPasswordHash, memberId]
     );
 
     // Log to audit_logs
@@ -292,7 +295,7 @@ router.post('/reset-to-default', authenticateToken, requireSuperAdmin, passwordM
             reset_by: 'superadmin',
             admin_email: req.superAdmin.email,
             member_name: member.full_name,
-            reason: 'Admin reset to temporary password'
+            reason: 'Admin issued unique temporary password'
           })
         ]
       );
@@ -300,7 +303,7 @@ router.post('/reset-to-default', authenticateToken, requireSuperAdmin, passwordM
       log.error('[ResetToDefault] Failed to create audit log:', auditError);
     }
 
-    log.info('[ResetToDefault] Member password reset to default', {
+    log.info('[ResetToDefault] Member temporary password issued', {
       adminId: req.superAdmin.id,
       memberId: member.id,
       memberName: member.full_name
@@ -308,13 +311,15 @@ router.post('/reset-to-default', authenticateToken, requireSuperAdmin, passwordM
 
     res.json({
       success: true,
-      message: 'تم إعادة تعيين كلمة المرور بنجاح',
-      message_en: 'Password reset to default successfully',
+      message: 'تم إصدار كلمة مرور مؤقتة بنجاح',
+      message_en: 'Temporary password issued successfully',
       member: {
         id: member.id,
         name: member.full_name,
         phone: member.phone
-      }
+      },
+      temporaryPassword,
+      note: 'Temporary password is shown once and must be changed by the member'
     });
   } catch (error) {
     log.error('[ResetToDefault] Unexpected error:', error);

@@ -15,46 +15,33 @@ let mockSupabaseState = {
   shouldError: false
 };
 
-// Create mock supabase that can be controlled per test
-const createMockSupabase = () => ({
-  from: jest.fn().mockReturnThis(),
-  select: jest.fn().mockReturnThis(),
-  order: jest.fn().mockReturnThis(),
-  range: jest.fn(function(start, end) {
-    // Simulate batch fetching behavior
-    if (mockSupabaseState.shouldError) {
-      return Promise.resolve({
-        data: null,
-        error: { message: 'Database connection timeout' },
-        count: null
-      });
-    }
+const mockQuery = jest.fn(async () => {
+  if (mockSupabaseState.shouldError) {
+    throw new Error('Database connection timeout');
+  }
 
-    // If batches are defined, return the current batch
-    if (mockSupabaseState.batches.length > 0) {
-      const batchData = mockSupabaseState.batches[mockSupabaseState.currentBatch] || [];
-      mockSupabaseState.currentBatch++;
-      return Promise.resolve({
-        data: batchData,
-        error: null,
-        count: mockSupabaseState.count
-      });
-    }
+  if (mockSupabaseState.error) {
+    throw new Error(mockSupabaseState.error.message || 'Database error');
+  }
 
-    // Default behavior
-    return Promise.resolve({
-      data: mockSupabaseState.data,
-      error: mockSupabaseState.error,
-      count: mockSupabaseState.count
-    });
-  })
+  if (mockSupabaseState.batches.length > 0) {
+    const batchData = mockSupabaseState.batches[mockSupabaseState.currentBatch] || [];
+    mockSupabaseState.currentBatch++;
+    return {
+      rows: batchData,
+      rowCount: batchData?.length || 0
+    };
+  }
+
+  return {
+    rows: mockSupabaseState.data,
+    rowCount: mockSupabaseState.data?.length || 0
+  };
 });
 
-const mockSupabase = createMockSupabase();
-
 // Mock modules BEFORE importing the controller
-jest.unstable_mockModule('../../../src/config/database.js', () => ({
-  supabase: mockSupabase
+jest.unstable_mockModule('../../../src/services/database.js', () => ({
+  query: mockQuery
 }));
 
 jest.unstable_mockModule('../../../src/utils/logger.js', () => ({
@@ -302,10 +289,9 @@ describe('Members Monitoring Controller Unit Tests', () => {
       await getAllMembersForMonitoring(req, res);
 
       expect(log.error).toHaveBeenCalledWith(
-        expect.stringContaining('Error fetching members batch'),
+        expect.stringContaining('Failed to fetch all members for monitoring'),
         expect.objectContaining({
-          error: expect.any(String),
-          page: expect.any(Number)
+          error: expect.any(String)
         })
       );
     });
@@ -341,13 +327,9 @@ describe('Members Monitoring Controller Unit Tests', () => {
     });
 
     test('should fallback to Arabic error message when error.message is falsy (line 57)', async () => {
-      // Modify mock to return error with undefined message
-      const originalRange = mockSupabase.range;
-      mockSupabase.range = jest.fn(() => Promise.resolve({
-        data: null,
-        error: { message: null }, // Error with falsy message
-        count: null
-      }));
+      mockQuery.mockImplementationOnce(async () => {
+        throw new Error();
+      });
 
       const req = createMockRequest();
       const res = createMockResponse();
@@ -361,9 +343,6 @@ describe('Members Monitoring Controller Unit Tests', () => {
           error: 'فشل في جلب بيانات الأعضاء للمراقبة'
         })
       );
-
-      // Restore original
-      mockSupabase.range = originalRange;
     });
   });
 
@@ -485,7 +464,7 @@ describe('Members Monitoring Controller Unit Tests', () => {
       await getAllMembersForMonitoring(req, res);
 
       expect(log.info).toHaveBeenCalledWith(
-        expect.stringContaining('All members fetched for monitoring'),
+        expect.stringContaining('All members fetched and transformed for monitoring'),
         expect.objectContaining({
           totalMembers: expect.any(Number)
         })

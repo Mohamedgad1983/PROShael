@@ -1,26 +1,14 @@
-import React, { useState, useEffect, useCallback, memo } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
-import LoadingSpinner from '../Common/LoadingSpinner';
-import { logger } from '../../utils/logger';
 import {
-  CheckCircleIcon,
-  XCircleIcon,
-  ClockIcon,
-  EyeIcon,
-  MagnifyingGlassIcon,
-  FunnelIcon,
-  ArrowPathIcon,
-  DocumentTextIcon,
-  BanknotesIcon,
-  UserIcon,
-  CalendarIcon,
-  ExclamationTriangleIcon
+ArrowPathIcon,BanknotesIcon,CheckCircleIcon,ClockIcon,DocumentTextIcon,ExclamationTriangleIcon,EyeIcon,FunnelIcon,MagnifyingGlassIcon,UserIcon,XCircleIcon
 } from '@heroicons/react/24/outline';
 import {
-  CheckCircleIcon as CheckCircleSolidIcon,
-  XCircleIcon as XCircleSolidIcon,
-  ClockIcon as ClockSolidIcon
+CheckCircleIcon as CheckCircleSolidIcon,ClockIcon as ClockSolidIcon,XCircleIcon as XCircleSolidIcon
 } from '@heroicons/react/24/solid';
+import React,{ memo,useCallback,useEffect,useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import { API_ORIGIN } from '../../utils/apiConfig';
+import { logger } from '../../utils/logger';
+import LoadingSpinner from '../Common/LoadingSpinner';
 
 // Types
 interface BankTransfer {
@@ -151,9 +139,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: str
   }
 };
 
-const API_BASE_URL = typeof window !== 'undefined' && window.location.hostname === 'localhost'
-  ? 'http://localhost:3001'
-  : 'https://api.alshailfund.com';
+const API_BASE_URL = API_ORIGIN;
 
 // Utility functions
 const formatAmount = (amount: number): string => {

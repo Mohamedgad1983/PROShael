@@ -4,11 +4,8 @@
  * This is the primary service that the frontend components should use
  */
 
-import subscriptionService from './subscriptionService.js';
-import paymentService from './paymentService.js';
-import analyticsService from './analyticsService.js';
 import apiHandlers from './apiHandlers.js';
-import { mockDatabase, getMockStats } from './mockData.js';
+import { getMockStats,mockDatabase } from './mockData.js';
 
 import { logger } from '../utils/logger';
 

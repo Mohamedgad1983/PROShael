@@ -1,32 +1,20 @@
-import React, { memo,  useState, useEffect } from 'react';
 import {
-  PlusIcon,
-  LightBulbIcon,
-  FunnelIcon,
-  MagnifyingGlassIcon,
-  ChartBarIcon,
-  CurrencyDollarIcon,
-  UsersIcon,
-  ClockIcon
+ChartBarIcon,ClockIcon,CurrencyDollarIcon,FunnelIcon,LightBulbIcon,MagnifyingGlassIcon,PlusIcon,UsersIcon
 } from '@heroicons/react/24/outline';
-import InitiativeCard from './InitiativeCard';
+import React,{ memo,useState } from 'react';
+import { ARABIC_LABELS } from '../../constants/arabic';
+import { injectAnimationKeyframes,useStaggeredAnimation } from '../../utils/animations';
+import { formatArabicCurrency,formatArabicNumber } from '../../utils/arabic';
+import { getResponsiveGridStyles,getResponsiveSpacing,getTouchStyles,useResponsive } from '../../utils/responsive';
 import ContributionModal from './ContributionModal';
 import CreateInitiativeModal from './CreateInitiativeModal';
+import InitiativeCard from './InitiativeCard';
 import InitiativeCategories from './InitiativeCategories';
 import InitiativeProgress from './InitiativeProgress';
 import {
-  Initiative,
-  Contribution,
-  ContributionFormData,
-  InitiativeCategory,
-  InitiativeFilters,
-  InitiativeStatistics
+Contribution,
+ContributionFormData,Initiative,InitiativeCategory,InitiativeStatistics
 } from './types';
-import { ARABIC_LABELS, CURRENCY } from '../../constants/arabic';
-import { formatArabicNumber, formatArabicCurrency, formatArabicPercentage } from '../../utils/arabic';
-import { apiService } from '../../services/api';
-import { useResponsive, getTouchStyles, getResponsiveGridStyles, getResponsiveSpacing } from '../../utils/responsive';
-import { useStaggeredAnimation, injectAnimationKeyframes } from '../../utils/animations';
 
 import { logger } from '../../utils/logger';
 
@@ -210,9 +198,6 @@ const InitiativesOverview: React.FC = () => {
     }
   };
 
-  const formatAmount = (amount: number): string => {
-    return formatArabicNumber(amount);
-  };
 
   const containerStyle: React.CSSProperties = {
     padding: getResponsiveSpacing(breakpoint, { xs: '16px', sm: '20px', md: '24px' }),
@@ -611,7 +596,7 @@ const InitiativesOverview: React.FC = () => {
                   onView={(initiative) => {
                     setSelectedInitiative(initiative);
                   }}
-                  onEdit={(initiative) => {
+                  onEdit={() => {
                     // Handle edit
                   }}
                 />

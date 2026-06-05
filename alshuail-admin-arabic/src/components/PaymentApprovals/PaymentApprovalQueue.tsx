@@ -2,21 +2,14 @@
 // awaiting approval. Mirrors the UX of ApprovalQueue.jsx (member registrations)
 // but for the payments table.
 
-import React, { useEffect, useMemo, useState } from 'react';
 import {
-  CheckCircleIcon,
-  XCircleIcon,
-  ClockIcon,
-  PhoneIcon,
-  IdentificationIcon,
-  BanknotesIcon,
-  MagnifyingGlassIcon,
-  DocumentMagnifyingGlassIcon
+BanknotesIcon,CheckCircleIcon,ClockIcon,DocumentMagnifyingGlassIcon,IdentificationIcon,MagnifyingGlassIcon,PhoneIcon,XCircleIcon
 } from '@heroicons/react/24/outline';
+import React,{ useEffect,useMemo,useState } from 'react';
 import {
-  paymentApprovalService,
-  PendingPayment,
-  PendingPaymentsStats
+paymentApprovalService,
+PendingPayment,
+PendingPaymentsStats
 } from '../../services/paymentApproval.service';
 
 const CATEGORY_LABELS: Record<string, string> = {

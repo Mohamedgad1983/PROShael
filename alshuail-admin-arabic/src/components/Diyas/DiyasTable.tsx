@@ -1,16 +1,9 @@
-import React, { memo,  useState } from 'react';
 import {
-  EyeIcon,
-  PencilSquareIcon,
-  CalendarIcon,
-  CurrencyDollarIcon,
-  UserIcon,
-  ExclamationTriangleIcon,
-  ChevronUpDownIcon,
-  FunnelIcon
+CalendarIcon,ChevronUpDownIcon,ExclamationTriangleIcon,EyeIcon,FunnelIcon,PencilSquareIcon,UserIcon
 } from '@heroicons/react/24/outline';
-import { Diya, DiyaStatus, DiyaPriority, DiyaCaseType } from './types';
+import React,{ memo,useState } from 'react';
 import { CURRENCY } from '../../constants/arabic';
+import { Diya,DiyaCaseType,DiyaPriority,DiyaStatus } from './types';
 
 interface DiyasTableProps {
   diyas: Diya[];

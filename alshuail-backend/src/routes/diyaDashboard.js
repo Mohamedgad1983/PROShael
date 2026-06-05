@@ -6,8 +6,12 @@
 import express from 'express';
 import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
+import { authenticateToken, authorize } from '../middleware/auth.js';
 
 const router = express.Router();
+const financialManagers = ['super_admin', 'admin', 'financial_manager', 'occasions_initiatives_diyas_admin'];
+
+router.use(authenticateToken, authorize(financialManagers));
 
 /**
  * GET /api/diya/dashboard

@@ -5,7 +5,7 @@
 # ================================
 # Stage 1: Build Dependencies
 # ================================
-FROM node:18-alpine AS dependencies
+FROM node:20-alpine AS dependencies
 
 # Set working directory
 WORKDIR /app
@@ -25,12 +25,12 @@ RUN apk add --no-cache \
 COPY package*.json ./
 
 # Install all dependencies (including devDependencies for build)
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci --omit=dev && npm cache clean --force
 
 # ================================
 # Stage 2: Production Runtime
 # ================================
-FROM node:18-alpine AS production
+FROM node:20-alpine AS production
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \

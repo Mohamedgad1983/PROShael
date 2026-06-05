@@ -22,9 +22,7 @@ import {
   X, 
   HelpCircle,
   Share2,
-  ChevronLeft,
   RefreshCw,
-  Filter,
   CalendarDays,
   PartyPopper,
   Heart,
@@ -203,13 +201,6 @@ const Events = () => {
           return e
         }))
 
-        // Show feedback
-        const messages = {
-          confirmed: 'تم تأكيد حضورك ✅',
-          pending: 'تم تحديد حضورك كمحتمل ⏳',
-          declined: 'تم إلغاء حضورك ❌'
-        }
-        // Toast or alert
       }
     } catch (err) {
       console.error('RSVP error:', err)

@@ -4,7 +4,7 @@
  * Measures phase duration and re-render causes
  */
 
-import React, { memo,  Profiler, ProfilerOnRenderCallback } from 'react';
+import React,{ memo,Profiler } from 'react';
 
 import { logger } from '../../../utils/logger';
 

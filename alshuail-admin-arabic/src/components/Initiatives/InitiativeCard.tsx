@@ -1,19 +1,14 @@
-import React, { memo } from 'react';
 import {
-  HeartIcon,
-  CalendarIcon,
-  ClockIcon,
-  MapPinIcon,
-  UsersIcon,
-  CurrencyDollarIcon,
-  ExclamationTriangleIcon,
-  TagIcon
+CalendarIcon,
+ClockIcon,CurrencyDollarIcon,
+ExclamationTriangleIcon,HeartIcon,MapPinIcon,TagIcon,UsersIcon
 } from '@heroicons/react/24/outline';
-import { Initiative, InitiativeCategory } from './types';
-import { ARABIC_LABELS, CURRENCY } from '../../constants/arabic';
-import { formatArabicNumber, formatArabicCurrency, formatArabicDate, formatArabicPercentage, getUpcomingTimeArabic } from '../../utils/arabic';
-import { useResponsive, getTouchStyles, getResponsiveSpacing } from '../../utils/responsive';
-import { useAnimation, getHoverStyles, getPressStyles } from '../../utils/animations';
+import React,{ memo } from 'react';
+import { ARABIC_LABELS } from '../../constants/arabic';
+import { useAnimation } from '../../utils/animations';
+import { formatArabicCurrency,formatArabicDate,formatArabicNumber,formatArabicPercentage } from '../../utils/arabic';
+import { getResponsiveSpacing,getTouchStyles,useResponsive } from '../../utils/responsive';
+import { Initiative,InitiativeCategory } from './types';
 
 interface InitiativeCardProps {
   initiative: Initiative;
@@ -98,7 +93,7 @@ const InitiativeCard: React.FC<InitiativeCardProps> = ({
   onView,
   onEdit
 }) => {
-  const { isMobile, isTablet, breakpoint } = useResponsive();
+  const { isMobile, breakpoint } = useResponsive();
   const { animationStyles } = useAnimation('fadeIn', true, { duration: 400 });
 
   const categoryColor = getCategoryColor(initiative.category);

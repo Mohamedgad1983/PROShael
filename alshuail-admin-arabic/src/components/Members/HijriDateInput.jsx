@@ -1,5 +1,5 @@
-import React, { memo,  useState, useEffect } from 'react';
-import { toHijri, toGregorian } from 'hijri-converter';
+import { toGregorian,toHijri } from 'hijri-converter';
+import React,{ memo,useEffect,useState } from 'react';
 
 import { logger } from '../../utils/logger';
 

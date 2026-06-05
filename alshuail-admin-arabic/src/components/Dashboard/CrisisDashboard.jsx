@@ -1,9 +1,9 @@
-import React, { memo,  useState, useEffect } from 'react';
+import React,{ memo,useState } from 'react';
+import { Bar,BarChart,CartesianGrid,Cell,Pie,PieChart,ResponsiveContainer,Tooltip,XAxis,YAxis } from 'recharts';
 import './CrisisDashboard.css';
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const CrisisDashboard = () => {
-  const [dashboardData, setDashboardData] = useState({
+  const [dashboardData] = useState({
     // Overall Statistics
     totalMembers: 288,
     compliantMembers: 28,

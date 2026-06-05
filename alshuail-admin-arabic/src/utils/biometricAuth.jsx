@@ -8,7 +8,7 @@ export const getBiometricType = () => {
   return 'البصمة';
 };
 
-export const registerBiometric = async (userId, userName) => {
+export const registerBiometric = async (_userId) => {
   return { success: false, error: 'قريباً' };
 };
 

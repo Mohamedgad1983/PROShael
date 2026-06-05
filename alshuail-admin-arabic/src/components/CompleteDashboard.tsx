@@ -1,33 +1,12 @@
-import React, { memo,  useState, useEffect } from 'react';
 import {
-  HomeIcon,
-  UsersIcon,
-  CreditCardIcon,
-  BanknotesIcon,
-  LightBulbIcon,
-  CalendarIcon,
-  ScaleIcon,
-  DocumentTextIcon,
-  CogIcon,
-  Bars3Icon,
-  XMarkIcon,
-  ChartBarIcon,
-  UserGroupIcon,
-  ClockIcon,
-  ArrowTrendingUpIcon
+ArrowTrendingUpIcon,BanknotesIcon,Bars3Icon,CalendarIcon,ChartBarIcon,ClockIcon,CogIcon,CreditCardIcon,DocumentTextIcon,HomeIcon,LightBulbIcon,ScaleIcon,UserGroupIcon,UsersIcon,XMarkIcon
 } from '@heroicons/react/24/outline';
-import { Line, Doughnut } from 'react-chartjs-2';
 import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement,
+ArcElement,CategoryScale,Chart as ChartJS,Legend,LinearScale,LineElement,PointElement,Title,
+Tooltip
 } from 'chart.js';
+import React,{ useState } from 'react';
+import { Doughnut,Line } from 'react-chartjs-2';
 import FinancialReportsSimple from './Reports/FinancialReportsSimple';
 
 ChartJS.register(
@@ -375,7 +354,6 @@ const CompleteDashboard: React.FC<{ onLogout: () => void }> = ({ onLogout }) => 
   const [activeSection, setActiveSection] = useState('dashboard');
 
   const renderContent = () => {
-    const currentSection = menuItems.find(item => item.id === activeSection);
 
     switch(activeSection) {
       case 'dashboard':

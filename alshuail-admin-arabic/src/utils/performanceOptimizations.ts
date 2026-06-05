@@ -171,7 +171,7 @@ export function useAsync<T>(
     if (immediate) {
       execute();
     }
-  }, [execute, immediate, ...dependencies]);
+  }, [execute, immediate, dependencies]);
 
   return { execute, status, value, error };
 }
@@ -278,7 +278,7 @@ export class PerformanceMonitor {
   }
 }
 
-export default {
+const performanceOptimizationExports = {
   createMemoComponent,
   deepPropsEqual,
   shallowPropsEqual,
@@ -292,3 +292,5 @@ export default {
   useVisibility,
   PerformanceMonitor,
 };
+
+export default performanceOptimizationExports;

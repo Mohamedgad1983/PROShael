@@ -1,34 +1,17 @@
-import React, { memo,  useState, useEffect } from 'react';
 import {
-  ChartBarIcon,
-  CreditCardIcon,
-  UsersIcon,
-  CalendarIcon,
-  ArrowTrendingUpIcon,
-  ClockIcon,
-  BanknotesIcon,
-  PlusIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  ExclamationTriangleIcon,
-  SparklesIcon,
-  EyeIcon,
-  PencilIcon,
-  TrashIcon,
-  FunnelIcon,
-  MagnifyingGlassIcon
+ArrowTrendingUpIcon,BanknotesIcon,CalendarIcon,ChartBarIcon,CheckCircleIcon,ClockIcon,CreditCardIcon,ExclamationTriangleIcon,EyeIcon,MagnifyingGlassIcon,PencilIcon,PlusIcon,SparklesIcon,TrashIcon,UsersIcon,XCircleIcon
 } from '@heroicons/react/24/outline';
+import React,{ memo,useEffect,useState } from 'react';
 // CSS styles are inline
 
 const AppleSubscriptionsManagement = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [subscriptions, setSubscriptions] = useState([]);
   const [plans, setPlans] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
-  const [showPlanModal, setShowPlanModal] = useState(false);
-  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const [, setShowPlanModal] = useState(false);
+  const [, setShowSubscriptionModal] = useState(false);
 
   // Mock data for demonstration
   const mockPlans = [
@@ -98,6 +81,7 @@ const AppleSubscriptionsManagement = () => {
     // Load mock data
     setPlans(mockPlans);
     setSubscriptions(mockSubscriptions);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- preserve existing one-time legacy load behavior
   }, []);
 
   // Helper functions

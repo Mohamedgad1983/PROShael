@@ -1,25 +1,7 @@
-import React, { useState, useEffect } from 'react';
 import {
-  HomeIcon,
-  UsersIcon,
-  CreditCardIcon,
-  CalendarDaysIcon,
-  HeartIcon,
-  ScaleIcon,
-  BellIcon,
-  ChartBarIcon,
-  Bars3Icon,
-  XMarkIcon,
-  PlusIcon,
-  ArrowTrendingUpIcon,
-  ArrowTrendingDownIcon,
-  SparklesIcon,
-  BanknotesIcon,
-  ClockIcon,
-  CheckCircleIcon,
-  ExclamationCircleIcon
+ArrowTrendingUpIcon,BanknotesIcon,Bars3Icon,BellIcon,CalendarDaysIcon,CheckCircleIcon,ClockIcon,CreditCardIcon,ExclamationCircleIcon,HeartIcon,HomeIcon,ScaleIcon,SparklesIcon,UsersIcon,XMarkIcon
 } from '@heroicons/react/24/outline';
-import { StarIcon } from '@heroicons/react/24/solid';
+import React,{ useEffect,useState } from 'react';
 
 import { logger } from '../../utils/logger';
 
@@ -75,11 +57,6 @@ interface QuickAction {
   count: string | null;
 }
 
-interface DashboardState {
-  sidebarOpen: boolean;
-  activeSection: string;
-  mounted: boolean;
-}
 
 const AlShuailDashboard: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);

@@ -68,11 +68,6 @@ interface HijriDate {
   dayNameEn: string;
 }
 
-interface GregorianDate {
-  year: number;
-  month: number;
-  day: number;
-}
 
 /**
  * Convert Gregorian date to Hijri
@@ -260,11 +255,11 @@ export function generateHijriCalendar(year: number, month: number) {
  */
 export function parseHijriDate(dateString: string): HijriDate | null {
   // Parse various formats: "1445-01-15", "15/1/1445", "15 محرم 1445"
-  const numericPattern = /(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/;
+  const numericPattern = /(\d{1,2})[-/](\d{1,2})[-/](\d{4})/;
   const match = dateString.match(numericPattern);
 
   if (match) {
-    const [_, day, month, year] = match;
+    const [, day, month, year] = match;
     return {
       year: parseInt(year),
       month: parseInt(month),
@@ -384,7 +379,7 @@ export function isValidHijriDate(year: number, month: number, day: number): bool
 /**
  * Get prayer times for a given date
  */
-export function getPrayerTimes(date: Date, latitude: number = 24.7136, longitude: number = 46.6753) {
+export function getPrayerTimes(_latitude: number = 24.7136, _longitude: number = 46.6753) {
   // Simplified prayer time calculation for Riyadh
   // In production, use a proper prayer times API or library
   const times = {
@@ -402,7 +397,7 @@ export function getPrayerTimes(date: Date, latitude: number = 24.7136, longitude
 /**
  * Export all utilities
  */
-export default {
+const hijriDateSystemExports = {
   HIJRI_MONTHS,
   ARABIC_DAYS,
   ISLAMIC_OCCASIONS,
@@ -421,3 +416,5 @@ export default {
   isValidHijriDate,
   getPrayerTimes
 };
+
+export default hijriDateSystemExports;

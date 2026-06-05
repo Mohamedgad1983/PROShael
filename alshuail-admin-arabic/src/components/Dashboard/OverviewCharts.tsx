@@ -1,5 +1,5 @@
 import React from 'react';
-import { Line, Doughnut, Pie } from 'react-chartjs-2';
+import { Doughnut,Line,Pie } from 'react-chartjs-2';
 import styles from './styles';
 
 interface OverviewChartsProps {
@@ -70,8 +70,6 @@ const OverviewCharts: React.FC<OverviewChartsProps> = ({ revenueData, memberDist
                         return data.labels.map((label: string, i: number) => {
                           const dataset = data.datasets[0];
                           const value = dataset.data[i];
-                          const total = dataset.data.reduce((a: number, b: number) => a + b, 0);
-                          const percentage = ((value / total) * 100).toFixed(1);
                           const formattedValue = (value / 1000).toFixed(0);
                           return {
                             text: `${label}: ${formattedValue}k SAR`,

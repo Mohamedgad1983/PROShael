@@ -5,7 +5,7 @@
  * Shows when member count increases or decreases with smooth animations
  */
 
-import React, { memo,  useEffect, useState } from 'react';
+import React,{ memo,useEffect,useState } from 'react';
 
 interface MemberCountToastProps {
     show: boolean;

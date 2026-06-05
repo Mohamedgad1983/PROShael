@@ -1,6 +1,6 @@
-import React, { memo } from 'react';
-import './ExpenseVoucher.css';
+import React,{ memo } from 'react';
 import logo from '../../assets/logo.svg';
+import './ExpenseVoucher.css';
 
 const ExpenseVoucher = ({ expense, onClose }) => {
   const handlePrint = () => {

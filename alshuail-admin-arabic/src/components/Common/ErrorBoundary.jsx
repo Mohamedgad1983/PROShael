@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React,{ Component } from 'react';
 
 import { logger } from '../../utils/logger';
 
@@ -13,7 +13,7 @@ class ErrorBoundary extends Component {
     };
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError() {
     // Update state so the next render will show the fallback UI
     return {
       hasError: true,
@@ -50,7 +50,6 @@ class ErrorBoundary extends Component {
 
   render() {
     if (this.state.hasError) {
-      const { children } = this.props;
       const { error, errorId } = this.state;
 
       return (

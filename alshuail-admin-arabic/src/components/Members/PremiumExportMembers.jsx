@@ -1,24 +1,8 @@
-import React, { memo,  useState, useEffect } from 'react';
 import {
-  ArrowDownTrayIcon,
-  DocumentTextIcon,
-  TableCellsIcon,
-  DocumentArrowDownIcon,
-  FunnelIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  UsersIcon,
-  CalendarIcon,
-  ShieldCheckIcon,
-  SparklesIcon,
-  CloudArrowDownIcon,
-  DocumentChartBarIcon,
-  ClipboardDocumentCheckIcon,
-  AdjustmentsHorizontalIcon,
-  MagnifyingGlassIcon,
-  ChevronRightIcon,
-  CheckIcon
+AdjustmentsHorizontalIcon,CalendarIcon,CheckCircleIcon,CheckIcon,ChevronRightIcon,ClipboardDocumentCheckIcon,CloudArrowDownIcon,DocumentArrowDownIcon,DocumentChartBarIcon,DocumentTextIcon,FunnelIcon,MagnifyingGlassIcon,ShieldCheckIcon,
+SparklesIcon,TableCellsIcon,UsersIcon
 } from '@heroicons/react/24/outline';
+import React,{ memo,useEffect,useState } from 'react';
 import { memberService } from '../../services/memberService';
 import { logger } from '../../utils/logger';
 
@@ -100,6 +84,7 @@ const PremiumExportMembers = () => {
   useEffect(() => {
     loadPreview();
     loadStatistics();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- preserve existing one-time legacy load behavior
   }, [filters, selectedFields]);
 
   const loadStatistics = async () => {

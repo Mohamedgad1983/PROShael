@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { formatHijri } from '../../utils/hijriDate.js';
-import { toHijri, toGregorian } from 'hijri-converter';
-import SimpleHijriDatePicker from '../../components/Common/SimpleHijriDatePicker';
+import React,{ useCallback,useEffect,useRef,useState } from 'react';
 import { HijriDateInput } from '../../components/Common/HijriDateInput';
-import useActiveMemberCount from '../../hooks/useActiveMemberCount';
 import MemberCountToast from '../../components/Common/MemberCountToast';
+import SimpleHijriDatePicker from '../../components/Common/SimpleHijriDatePicker';
+import useActiveMemberCount from '../../hooks/useActiveMemberCount';
+import { API_BASE_URL } from '../../utils/apiConfig';
+import { formatHijri } from '../../utils/hijriDate.js';
 import { logger } from '../../utils/logger';
 
 import '../../styles/SelectFix.css';
@@ -94,11 +94,7 @@ const NewsManagement = () => {
         publish_date: ''
     });
 
-    const API_URL = (process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.alshailfund.com')) + '/api';
-
-    useEffect(() => {
-        fetchNews();
-    }, [selectedCategory]);
+    const API_URL = API_BASE_URL;
 
     // Debug: Log formData changes
     useEffect(() => {
@@ -108,7 +104,7 @@ const NewsManagement = () => {
         });
     }, [formData.category, formData.priority]);
 
-    const fetchNews = async () => {
+    const fetchNews = useCallback(async () => {
         try {
             const token = localStorage.getItem('token');
             const params = selectedCategory !== 'all' ? { category: selectedCategory } : {};
@@ -123,7 +119,11 @@ const NewsManagement = () => {
             setNews([]);
             setLoading(false);
         }
-    };
+    }, [API_URL, selectedCategory]);
+
+    useEffect(() => {
+        fetchNews();
+    }, [fetchNews]);
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -284,15 +284,6 @@ const NewsManagement = () => {
             general: 'bg-gray-500'
         };
         return colors[category] || 'bg-gray-500';
-    };
-
-    const getPriorityColor = (priority: string) => {
-        const colors: Record<string, string> = {
-            high: 'text-red-600',
-            normal: 'text-gray-600',
-            low: 'text-gray-400'
-        };
-        return colors[priority] || 'text-gray-600';
     };
 
     // Filter news by Hijri date range (using Gregorian conversion for comparison)

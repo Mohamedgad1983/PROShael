@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { CheckCircleIcon,EyeIcon,EyeSlashIcon,LockClosedIcon,XCircleIcon } from '@heroicons/react/24/outline';
 import { motion } from 'framer-motion';
-import { LockClosedIcon, EyeIcon, EyeSlashIcon, CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
+import React,{ useState } from 'react';
+import { useLocation,useNavigate } from 'react-router-dom';
+import { API_ORIGIN } from '../../utils/apiConfig';
 import './ChangePassword.css';
 
 const ChangePassword = () => {
@@ -38,11 +39,11 @@ const ChangePassword = () => {
   const validatePassword = (password) => {
     const errors = [];
     if (password.length < 8) errors.push('8 أحرف على الأقل');
-    // Make other requirements optional - just length is required
-    // if (!/[A-Z]/.test(password)) errors.push('حرف كبير');
-    // if (!/[a-z]/.test(password)) errors.push('حرف صغير');
-    // if (!/[0-9]/.test(password)) errors.push('رقم');
-    // if (!/[@$!%*?&#]/.test(password)) errors.push('رمز خاص');
+    if (!/[A-Z]/.test(password)) errors.push('حرف كبير');
+    if (!/[a-z]/.test(password)) errors.push('حرف صغير');
+    if (!/[0-9]/.test(password)) errors.push('رقم');
+    if (!/[@$!%*?&#]/.test(password)) errors.push('رمز خاص');
+    if (password === '123456') errors.push('كلمة مرور مختلفة عن الافتراضية القديمة');
     return errors;
   };
 
@@ -68,7 +69,7 @@ const ChangePassword = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const API_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
+      const API_URL = API_ORIGIN;
 
       const response = await fetch(`${API_URL}/api/auth/change-password`, {
         method: 'POST',
@@ -77,7 +78,7 @@ const ChangePassword = () => {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          current_password: isFirstLogin ? '123456' : currentPassword,
+          current_password: currentPassword,
           new_password: newPassword
         })
       });

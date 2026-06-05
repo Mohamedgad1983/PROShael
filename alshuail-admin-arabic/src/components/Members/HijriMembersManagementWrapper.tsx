@@ -5,8 +5,8 @@
  * Includes Hijri calendar and Islamic date support
  */
 
-import React, { useCallback } from 'react';
-import UnifiedMembersManagement, { MEMBERS_VARIANTS } from './UnifiedMembersManagement';
+import React,{ useCallback } from 'react';
+import UnifiedMembersManagement,{ MEMBERS_VARIANTS } from './UnifiedMembersManagement';
 
 export interface HijriMembersManagementProps {
   onMemberSelect?: (memberId: string) => void;
@@ -38,17 +38,7 @@ const HijriMembersManagement: React.FC<HijriMembersManagementProps> = ({
     }
   }, [onMemberSelect]);
 
-  const handleMemberUpdate = useCallback((member: any) => {
-    if (onMemberUpdate) {
-      onMemberUpdate(member.id, member);
-    }
-  }, [onMemberUpdate]);
 
-  const handleMemberDelete = useCallback((member: any) => {
-    if (onMemberDelete) {
-      onMemberDelete(member.id);
-    }
-  }, [onMemberDelete]);
 
   return (
     <UnifiedMembersManagement

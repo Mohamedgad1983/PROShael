@@ -1,30 +1,17 @@
-import React, { memo,  useState, useEffect, useCallback } from 'react';
+import React,{ memo,useCallback,useEffect,useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { logger } from '../../utils/logger';
+import ErrorDisplay from '../Common/ErrorDisplay';
 import HijriDateFilter from '../Common/HijriDateFilter';
+import LoadingSpinner from '../Common/LoadingSpinner';
 import ExpenseManagement from './ExpenseManagement';
 import ReportsDashboard from './ReportsDashboard';
-import ErrorDisplay from '../Common/ErrorDisplay';
-import LoadingSpinner from '../Common/LoadingSpinner';
-import { logger } from '../../utils/logger';
 
 import './FinancialReports.css';
 
 const FinancialReports = () => {
   // Use auth context with proper error handling
   const { user, token, hasPermission } = useAuth();
-
-  // Verify authentication is available
-  if (!user || !token) {
-    return (
-      <div className="financial-reports-container" dir="rtl">
-        <div className="access-denied glass-morphism">
-          <div className="access-denied-icon">🔒</div>
-          <h2>مطلوب تسجيل الدخول</h2>
-          <p>يرجى تسجيل الدخول للوصول إلى التقارير المالية</p>
-        </div>
-      </div>
-    );
-  }
 
   const [activeTab, setActiveTab] = useState('dashboard');
   const [dateFilter, setDateFilter] = useState({
@@ -41,21 +28,11 @@ const FinancialReports = () => {
   });
   const [error, setError] = useState(null);
 
-  // Check if user has financial management permissions
-  useEffect(() => {
-    if (!hasPermission('manage_finances') && !hasPermission('view_finances')) {
-      setError('ليس لديك صلاحية للوصول إلى التقارير المالية');
-    }
-  }, [user, hasPermission]);
-
-  // Fetch financial summary when component mounts or date filter changes
-  useEffect(() => {
-    if (hasPermission('view_finances') || hasPermission('manage_finances')) {
-      fetchFinancialSummary();
-    }
-  }, [dateFilter, hasPermission]);
-
   const fetchFinancialSummary = useCallback(async (isRetry = false) => {
+    if (!token || (!hasPermission('view_finances') && !hasPermission('manage_finances'))) {
+      return;
+    }
+
     setLoading(true);
     if (!isRetry) {
       setError(null);
@@ -125,6 +102,28 @@ const FinancialReports = () => {
       setLoading(false);
     }
   }, [dateFilter, token, hasPermission]);
+
+  // Check if user has financial management permissions
+  useEffect(() => {
+    if (!user || !token) {
+      return;
+    }
+
+    if (!hasPermission('manage_finances') && !hasPermission('view_finances')) {
+      setError('ليس لديك صلاحية للوصول إلى التقارير المالية');
+    }
+  }, [user, token, hasPermission]);
+
+  // Fetch financial summary when component mounts or date filter changes
+  useEffect(() => {
+    if (!user || !token) {
+      return;
+    }
+
+    if (hasPermission('view_finances') || hasPermission('manage_finances')) {
+      fetchFinancialSummary();
+    }
+  }, [user, token, hasPermission, fetchFinancialSummary]);
 
   const handleDateFilterChange = (filter) => {
     setDateFilter(prevFilter => ({
@@ -210,6 +209,19 @@ const FinancialReports = () => {
       setLoading(false);
     }
   };
+
+  // Verify authentication is available
+  if (!user || !token) {
+    return (
+      <div className="financial-reports-container" dir="rtl">
+        <div className="access-denied glass-morphism">
+          <div className="access-denied-icon">🔒</div>
+          <h2>مطلوب تسجيل الدخول</h2>
+          <p>يرجى تسجيل الدخول للوصول إلى التقارير المالية</p>
+        </div>
+      </div>
+    );
+  }
 
   if (error && !hasPermission('view_finances') && !hasPermission('manage_finances')) {
     return (

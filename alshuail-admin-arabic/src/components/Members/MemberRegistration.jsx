@@ -1,20 +1,11 @@
-import React, { memo,  useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React,{ memo,useCallback,useEffect,useRef,useState } from 'react';
+import { useNavigate,useParams } from 'react-router-dom';
 import { memberService } from '../../services/memberService';
 import { logger } from '../../utils/logger';
 
 import {
-  UserIcon,
-  PhoneIcon,
-  IdentificationIcon,
-  CalendarDaysIcon,
-  BuildingOfficeIcon,
-  EnvelopeIcon,
-  CameraIcon,
-  CheckCircleIcon,
-  ExclamationTriangleIcon,
-  ArrowLeftIcon,
-  ClockIcon
+ArrowLeftIcon,BuildingOfficeIcon,CalendarDaysIcon,CameraIcon,
+CheckCircleIcon,ClockIcon,EnvelopeIcon,ExclamationTriangleIcon,IdentificationIcon,PhoneIcon,UserIcon
 } from '@heroicons/react/24/outline';
 
 const MemberRegistration = () => {
@@ -46,18 +37,7 @@ const MemberRegistration = () => {
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
 
-  // Verify token and load member data on component mount
-  useEffect(() => {
-    verifyToken();
-    return () => {
-      // Cleanup camera stream
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-      }
-    };
-  }, [token]);
-
-  const verifyToken = async () => {
+  const verifyToken = useCallback(async () => {
     if (!token) {
       setError('رمز التسجيل مفقود');
       setLoading(false);
@@ -74,7 +54,18 @@ const MemberRegistration = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
+
+  // Verify token and load member data on component mount
+  useEffect(() => {
+    verifyToken();
+    return () => {
+      // Cleanup camera stream
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [verifyToken]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -273,7 +264,7 @@ const MemberRegistration = () => {
     setError('');
 
     try {
-      const response = await memberService.completeProfile(token, formData);
+      await memberService.completeProfile(token, formData);
       setSuccess(true);
 
       // Redirect to success page or login after 3 seconds

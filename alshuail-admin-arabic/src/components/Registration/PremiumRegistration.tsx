@@ -1,32 +1,9 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
 import {
-  UserIcon,
-  PhoneIcon,
-  EnvelopeIcon,
-  IdentificationIcon,
-  CalendarDaysIcon,
-  MapPinIcon,
-  HomeIcon,
-  UserGroupIcon,
-  BriefcaseIcon,
-  AcademicCapIcon,
-  HeartIcon,
-  ShieldCheckIcon,
-  DocumentTextIcon,
-  PhotoIcon,
-  CheckCircleIcon,
-  ExclamationCircleIcon,
-  ArrowRightIcon,
-  SparklesIcon,
-  StarIcon,
-  CheckIcon,
-  BanknotesIcon,
-  GlobeAltIcon,
-  DevicePhoneMobileIcon,
-  CreditCardIcon,
-  BuildingOfficeIcon
+AcademicCapIcon,ArrowRightIcon,BanknotesIcon,BriefcaseIcon,BuildingOfficeIcon,CalendarDaysIcon,CheckCircleIcon,CheckIcon,CreditCardIcon,DevicePhoneMobileIcon,DocumentTextIcon,EnvelopeIcon,ExclamationCircleIcon,GlobeAltIcon,HeartIcon,HomeIcon,IdentificationIcon,MapPinIcon,PhoneIcon,PhotoIcon,ShieldCheckIcon,SparklesIcon,UserGroupIcon,UserIcon
 } from '@heroicons/react/24/outline';
-import { CheckCircleIcon as CheckCircleIconSolid, StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
+import { CheckCircleIcon as CheckCircleIconSolid,StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
+import React,{ useEffect,useRef,useState } from 'react';
+import { API_ORIGIN } from '../../utils/apiConfig';
 import { logger } from '../../utils/logger';
 
 import './PremiumRegistration.css';
@@ -275,7 +252,7 @@ const PremiumRegistration: React.FC = () => {
 
     try {
       // API call to submit the form
-      const response = await fetch(`${process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.alshailfund.com')}/api/members/register`, {
+      const response = await fetch(`${API_ORIGIN}/api/members/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

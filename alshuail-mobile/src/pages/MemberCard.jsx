@@ -11,7 +11,7 @@
  */
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowRight, Download, Share2, QrCode, Image, FileText, CheckCircle } from 'lucide-react'
+import { ArrowRight, Share2, QrCode, Image, FileText, CheckCircle } from 'lucide-react'
 import { useAuth } from '../App'
 
 const MemberCard = () => {
@@ -183,13 +183,6 @@ const MemberCard = () => {
       
       // Create a simple PDF with the card image
       // Using a basic approach without external libraries
-      const pdfWidth = 210 // A4 width in mm
-      const pdfHeight = 297 // A4 height in mm
-      const cardWidth = 160 // Card width in mm
-      const cardHeight = 100 // Card height in mm
-      const marginLeft = (pdfWidth - cardWidth) / 2
-      const marginTop = 40
-
       // Create PDF content
       const pdfContent = `
         <html>

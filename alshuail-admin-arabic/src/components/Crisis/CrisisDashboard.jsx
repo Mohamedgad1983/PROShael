@@ -1,7 +1,11 @@
-import React, { memo,  useState, useEffect } from 'react';
+import React,{ memo,useEffect,useState } from 'react';
+import { API_ORIGIN } from '../../utils/apiConfig';
 import { logger } from '../../utils/logger';
 
 import './CrisisDashboard.css';
+
+const ALLOW_MOCK_FALLBACK = process.env.NODE_ENV === 'development' &&
+  process.env.REACT_APP_ENABLE_MOCK_FALLBACK === 'true';
 
 const CrisisDashboard = () => {
   const [crisisData, setCrisisData] = useState(null);
@@ -11,8 +15,7 @@ const CrisisDashboard = () => {
   const [filterStatus, setFilterStatus] = useState('all'); // all, insufficient, sufficient
   const [refreshing, setRefreshing] = useState(false);
 
-  // Use hostname detection for local vs production environments
-  const API_URL = process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.alshailfund.com');
+  const API_URL = API_ORIGIN;
 
   // Log on component mount to debug
   logger.debug('🚀 Crisis Dashboard Component Mounted');
@@ -39,9 +42,9 @@ const CrisisDashboard = () => {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        credentials: 'omit' // Don't send credentials for testing
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token') || localStorage.getItem('alshuail_token') || ''}`
+        }
       });
 
       // Log response details
@@ -154,7 +157,7 @@ const CrisisDashboard = () => {
       // Check for specific error types
       if (err.name === 'TypeError' && err.message.includes('Failed to fetch')) {
         logger.error('❌ NETWORK ERROR: Cannot connect to backend!');
-        logger.error('  - Make sure backend is running on http://localhost:3001');
+        logger.error('  - Make sure backend API is reachable', { apiUrl: API_URL });
         logger.error('  - Run: cd alshuail-backend && npm run dev');
         setError('لا يمكن الاتصال بالخادم - تأكد من تشغيل الخادم على المنفذ 3001');
       } else if (err.message.includes('JSON')) {
@@ -163,9 +166,12 @@ const CrisisDashboard = () => {
         setError(err.message || 'فشل في تحميل بيانات الأزمة');
       }
 
-      // Use mock data as fallback
-      logger.debug('📊 Using mock data as fallback');
-      setCrisisData(generateMockData());
+      if (ALLOW_MOCK_FALLBACK) {
+        logger.debug('📊 Using mock data as fallback');
+        setCrisisData(generateMockData());
+      } else {
+        setCrisisData(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -216,6 +222,7 @@ const CrisisDashboard = () => {
     // Auto-refresh every 30 seconds
     const interval = setInterval(fetchCrisisData, 30000);
     return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- preserve existing one-time legacy load behavior
   }, []);
 
   // Manual refresh
@@ -282,9 +289,13 @@ const CrisisDashboard = () => {
             onClick={async () => {
               logger.debug('🧪 Testing direct fetch...');
               try {
-                const testUrl = 'http://localhost:3001/api/crisis/dashboard';
+                const testUrl = `${API_URL}/api/crisis/dashboard`;
                 logger.debug('Testing URL:', { testUrl });
-                const resp = await fetch(testUrl);
+                const resp = await fetch(testUrl, {
+                  headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token') || localStorage.getItem('alshuail_token') || ''}`
+                  }
+                });
                 const text = await resp.text();
                 logger.debug('Response headers:', { headers: resp.headers });
                 logger.debug('Response text (first 200 chars);:', text.substring(0, 200));

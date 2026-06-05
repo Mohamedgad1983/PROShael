@@ -4,15 +4,18 @@
   "description": "Al-Shuail Family Admin Dashboard Backend API",
   "main": "server.js",
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "start": "node --env-file=.env.production server.js",
     "dev": "node --watch server.js",
-    "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest",
-    "test:watch": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --watch",
-    "test:ci": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --ci --coverage --maxWorkers=2",
-    "test:coverage": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --coverage",
-    "test:unit": "cross-env NODE_OPTIONS=--experimental-vm-modules jest __tests__/unit",
-    "test:integration": "cross-env NODE_OPTIONS=--experimental-vm-modules jest __tests__/integration",
+    "test": "node scripts/run-jest.mjs",
+    "test:watch": "node scripts/run-jest.mjs --watch",
+    "test:ci": "node scripts/run-jest.mjs --ci --coverage --maxWorkers=2",
+    "test:coverage": "node scripts/run-jest.mjs --coverage",
+    "test:unit": "node scripts/run-jest.mjs __tests__/unit",
+    "test:integration": "node scripts/run-jest.mjs --config jest.integration.config.js",
     "lint": "eslint . --ext .js,.mjs --format=stylish",
     "lint:fix": "eslint . --ext .js,.mjs --fix",
     "security-audit": "npm audit --audit-level=moderate",
@@ -77,15 +80,20 @@
     "winston": "^3.11.0"
   },
   "devDependencies": {
+    "@babel/core": "^7.29.7",
+    "@babel/preset-env": "^7.29.7",
     "@jest/globals": "^30.2.0",
+    "babel-jest": "^30.4.1",
     "c8": "^8.0.1",
-    "cross-env": "^10.1.0",
     "eslint": "^8.57.0",
     "husky": "^9.1.7",
     "jest": "^30.2.0",
     "nodemon": "^3.0.1",
     "redis": "^5.10.0",
     "supertest": "^7.1.4"
+  },
+  "overrides": {
+    "uuid": "$uuid"
   },
   "author": "Al-Shuail",
   "license": "MIT"

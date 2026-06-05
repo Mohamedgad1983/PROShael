@@ -1,44 +1,18 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
 import { toHijri } from 'hijri-converter';
-import { logger } from '../../utils/logger';
+import React,{ useCallback,useEffect,useMemo,useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 import { apiService } from '../../services/api';
+import { logger } from '../../utils/logger';
 
 import {
-  BanknotesIcon,
-  ChartBarIcon,
-  ArrowTrendingUpIcon,
-  ClockIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  MagnifyingGlassIcon,
-  DocumentTextIcon,
-  ArrowDownTrayIcon,
-  PlusIcon,
-  EyeIcon,
-  PencilIcon,
-  ShieldExclamationIcon,
-  CurrencyDollarIcon,
-  ReceiptPercentIcon,
-  WalletIcon,
-  UserGroupIcon,
-  ArrowsRightLeftIcon
+ArrowDownTrayIcon,ArrowsRightLeftIcon,ArrowTrendingUpIcon,BanknotesIcon,
+ChartBarIcon,CheckCircleIcon,ClockIcon,CurrencyDollarIcon,DocumentTextIcon,EyeIcon,MagnifyingGlassIcon,PencilIcon,PlusIcon,ReceiptPercentIcon,ShieldExclamationIcon,UserGroupIcon,WalletIcon,XCircleIcon
 } from '@heroicons/react/24/outline';
 
+const ALLOW_MOCK_FALLBACK = process.env.NODE_ENV === 'development' &&
+  process.env.REACT_APP_ENABLE_MOCK_FALLBACK === 'true';
+
 const PaymentsTracking = () => {
-  // Performance optimized event handlers
-  const handleRefresh = useCallback(() => {
-    // Refresh logic here
-  }, []);
-
-  const handleFilterChange = useCallback((filterType, value) => {
-    // Filter logic here
-  }, []);
-
-  const handlePageChange = useCallback((page) => {
-    // Pagination logic here
-  }, []);
-
   const { user, canAccessModule } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [payments, setPayments] = useState([]);
@@ -51,12 +25,10 @@ const PaymentsTracking = () => {
     member_id: '',
     is_on_behalf: ''
   });
-  const [selectedPayment, setSelectedPayment] = useState(null);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
 
   // Mock payment data
-  const mockPayments = [
+  const mockPayments = useMemo(() => [
     {
       id: 1,
       payment_id: 'PAY-2024-001',
@@ -157,15 +129,9 @@ const PaymentsTracking = () => {
       receipt_url: '/receipts/PAY-2024-005.pdf',
       notes: 'تم الدفع بواسطة stc pay'
     }
-  ];
+  ], []);
 
-  useEffect(() => {
-    if (canAccessModule('financial')) {
-      loadPaymentsData();
-    }
-  }, [filters, dateRange]);
-
-  const loadPaymentsData = async () => {
+  const loadPaymentsData = useCallback(async () => {
     setLoading(true);
     try {
       // Build query params
@@ -173,6 +139,8 @@ const PaymentsTracking = () => {
       if (filters.status) params.append('status', filters.status);
       if (filters.payment_type) params.append('category', filters.payment_type);
       if (filters.is_on_behalf) params.append('is_on_behalf', filters.is_on_behalf);
+      if (dateRange.start) params.append('start_date', dateRange.start);
+      if (dateRange.end) params.append('end_date', dateRange.end);
       params.append('limit', '100');
 
       const data = await apiService.request(`/api/payments?${params.toString()}`);
@@ -209,12 +177,17 @@ const PaymentsTracking = () => {
       setPayments(paymentsData);
     } catch (error) {
       logger.error('Error loading payments data:', { error });
-      // Fallback to mock data if API fails
-      setPayments(mockPayments);
+      setPayments(ALLOW_MOCK_FALLBACK ? mockPayments : []);
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters, dateRange, mockPayments]);
+
+  useEffect(() => {
+    if (canAccessModule('financial')) {
+      loadPaymentsData();
+    }
+  }, [canAccessModule, loadPaymentsData]);
 
   // RBAC Access Control
   if (!canAccessModule('financial')) {
@@ -341,18 +314,6 @@ const PaymentsTracking = () => {
       case 'diya': return 'دية';
       case 'occasion': return 'مناسبة';
       case 'initiative': return 'مبادرة';
-      default: return 'أخرى';
-    }
-  };
-
-  const getPaymentMethodText = (method) => {
-    switch (method) {
-      case 'bank_transfer': return 'تحويل بنكي';
-      case 'credit_card': return 'بطاقة ائتمان';
-      case 'cash': return 'نقداً';
-      case 'stc_pay': return 'STC Pay';
-      case 'apple_pay': return 'Apple Pay';
-      case 'mada': return 'مدى';
       default: return 'أخرى';
     }
   };
@@ -544,7 +505,7 @@ const PaymentsTracking = () => {
           {/* Action Buttons */}
           <div className="flex gap-2">
             <button
-              onClick={() => setShowPaymentModal(true)}
+              onClick={() => logger.debug('Opening payment creation modal')}
               className="flex-1 premium-btn flex items-center justify-center gap-2"
             >
               <PlusIcon className="w-5 h-5" />
@@ -668,7 +629,7 @@ const PaymentsTracking = () => {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => {setSelectedPayment(payment); setShowPaymentModal(true);}}
+                        onClick={() => logger.debug('Viewing payment', { paymentId: payment.id })}
                         className="p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors duration-200"
                         title="عرض التفاصيل"
                       >

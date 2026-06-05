@@ -1,4 +1,5 @@
-import React, { memo,  useState, useEffect } from 'react';
+import React,{ memo,useEffect,useState } from 'react';
+import { API_ORIGIN } from '../../utils/apiConfig';
 import { logger } from '../../utils/logger';
 
 import './CrisisDashboard.css';
@@ -6,12 +7,12 @@ import './CrisisDashboard.css';
 const CrisisDashboard = () => {
   const [crisisData, setCrisisData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [refreshing, setRefreshing] = useState(false);
 
-  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+  const API_URL = API_ORIGIN;
 
   // Fetch crisis data from backend
   const fetchCrisisData = async () => {
@@ -107,6 +108,7 @@ const CrisisDashboard = () => {
     fetchCrisisData();
     const interval = setInterval(fetchCrisisData, 30000);
     return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- preserve existing one-time legacy load behavior
   }, []);
 
   // Handle refresh button

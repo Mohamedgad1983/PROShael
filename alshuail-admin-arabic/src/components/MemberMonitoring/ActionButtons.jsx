@@ -1,12 +1,7 @@
-import React, { memo,  useState } from 'react';
 import {
-  BellIcon,
-  PauseIcon,
-  ChatBubbleBottomCenterTextIcon,
-  EnvelopeIcon,
-  DevicePhoneMobileIcon,
-  ChevronDownIcon
+BellIcon,ChatBubbleBottomCenterTextIcon,ChevronDownIcon,DevicePhoneMobileIcon,EnvelopeIcon,PauseIcon
 } from '@heroicons/react/24/outline';
+import React,{ memo,useState } from 'react';
 
 const ActionButtons = ({ member, userRole, onSuspend, onNotify }) => {
   const [showNotifyMenu, setShowNotifyMenu] = useState(false);

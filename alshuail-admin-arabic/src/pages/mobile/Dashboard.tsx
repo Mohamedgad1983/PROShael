@@ -1,21 +1,24 @@
 // @ts-nocheck
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import axios from 'axios';
-import '../../styles/mobile/Dashboard.css';
+import { motion } from 'framer-motion';
+import React,{ useEffect,useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getDashboardData } from '../../services/mobileApi';
+import '../../styles/mobile/Dashboard.css';
 
+import { API_ORIGIN } from '../../utils/apiConfig';
 import { logger } from '../../utils/logger';
 
 // API Configuration
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.alshailfund.com';
+const API_BASE_URL = API_ORIGIN;
+const ALLOW_MOCK_FALLBACK = process.env.NODE_ENV === 'development' &&
+  process.env.REACT_APP_ENABLE_MOCK_FALLBACK === 'true';
 
 const MobileDashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [balance, setBalance] = useState<any>(null);
-  const [loading, setLoading] = useState(false); // Start false to show sample data immediately
+  const [loading, setLoading] = useState(true);
   const [profileCompletion, setProfileCompletion] = useState(65);
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState({
@@ -30,9 +33,9 @@ const MobileDashboard = () => {
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    // Always load sample data first for immediate display
-    setSampleData();
-    // Then fetch real data to override
+    if (ALLOW_MOCK_FALLBACK) {
+      setSampleData();
+    }
     fetchDashboardData();
 
     // Fetch notifications when component mounts
@@ -62,8 +65,9 @@ const MobileDashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      // Don't show loading spinner, sample data is already showing
-      // setLoading(true); // Removed to keep sample data visible
+      if (!ALLOW_MOCK_FALLBACK) {
+        setLoading(true);
+      }
 
       // Get user data from localStorage first
       const userData = localStorage.getItem('user');
@@ -93,7 +97,6 @@ const MobileDashboard = () => {
       }
     } catch (error) {
       logger.error('Error fetching dashboard data:', { error });
-      // Keep sample data visible on error
     } finally {
       setLoading(false);
     }
@@ -143,8 +146,9 @@ const MobileDashboard = () => {
       const token = localStorage.getItem('token');
 
       if (!token) {
-        logger.debug('[Notifications] No token found, using sample data');
-        loadSampleNotifications();
+        if (ALLOW_MOCK_FALLBACK) {
+          loadSampleNotifications();
+        }
         return;
       }
 
@@ -174,8 +178,9 @@ const MobileDashboard = () => {
       logger.error('[Notifications] Fetch error:', { error });
       setNotificationError(error.message);
 
-      // Fallback to sample data on error
-      loadSampleNotifications();
+      if (ALLOW_MOCK_FALLBACK) {
+        loadSampleNotifications();
+      }
     } finally {
       setNotificationLoading(false);
     }
@@ -370,11 +375,11 @@ const MobileDashboard = () => {
   }
 
   // Calculate balance data
-  const currentBalance = balance?.current || balance?.current_balance || user?.balance || 5000;
-  const requiredBalance = balance?.target || balance?.required_amount || 3000;
+  const currentBalance = balance?.current || balance?.current_balance || user?.balance || 0;
+  const requiredBalance = balance?.target || balance?.required_amount || 0;
   const isCompliant = currentBalance >= requiredBalance;
-  const paid2025 = balance?.paid_2025 || 2500;
-  const paidPrevious = balance?.paid_previous || 2500;
+  const paid2025 = balance?.paid_2025 || 0;
+  const paidPrevious = balance?.paid_previous || 0;
   const extraBalance = currentBalance - requiredBalance;
 
   // Profile completion fields
@@ -396,8 +401,8 @@ const MobileDashboard = () => {
             {user?.full_name ? user.full_name.charAt(0) : 'أ'}
           </div>
           <div className="user-info">
-            <div className="user-name">{user?.full_name || 'أحمد محمد الشعيل'}</div>
-            <div className="membership-number">#{user?.membership_number || 'SH-10001'}</div>
+            <div className="user-name">{user?.full_name || 'عضو'}</div>
+            <div className="membership-number">{user?.membership_number ? `#${user.membership_number}` : ''}</div>
           </div>
         </div>
         <div className="header-actions">

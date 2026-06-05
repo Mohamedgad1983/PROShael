@@ -1,10 +1,11 @@
 // routes/familyTree.js
 import express from 'express';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, authorize } from '../middleware/auth.js';
 import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
 
 const router = express.Router();
+const treeManagers = ['super_admin', 'admin', 'family_tree_admin'];
 
 // GET /api/family-tree/member/:memberId
 // Get family tree data for a specific member
@@ -340,7 +341,7 @@ router.get('/visualization/:memberId', authenticateToken, async (req, res) => {
 
 // POST /api/family-tree/relationship
 // Add a new family relationship
-router.post('/relationship', authenticateToken, async (req, res) => {
+router.post('/relationship', authenticateToken, authorize(treeManagers), async (req, res) => {
   try {
     const {
       member_from,
@@ -418,7 +419,7 @@ router.post('/relationship', authenticateToken, async (req, res) => {
 
 // PUT /api/family-tree/relationship/:id
 // Update a family relationship
-router.put('/relationship/:id', authenticateToken, async (req, res) => {
+router.put('/relationship/:id', authenticateToken, authorize(treeManagers), async (req, res) => {
   try {
     const { id } = req.params;
     const updates = req.body;
@@ -465,7 +466,7 @@ router.put('/relationship/:id', authenticateToken, async (req, res) => {
 
 // DELETE /api/family-tree/relationship/:id
 // Soft delete a relationship
-router.delete('/relationship/:id', authenticateToken, async (req, res) => {
+router.delete('/relationship/:id', authenticateToken, authorize(treeManagers), async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -805,7 +806,7 @@ router.post('/add-child', authenticateToken, async (req, res) => {
 //                 ancestors, pass the id of the topmost one so the new
 //                 ancestor becomes the parent of THAT one.
 //   - phone     : optional, stored on the member record
-router.post('/add-ancestor', authenticateToken, async (req, res) => {
+router.post('/add-ancestor', authenticateToken, authorize(treeManagers), async (req, res) => {
   try {
     const { full_name, child_id, phone } = req.body;
 

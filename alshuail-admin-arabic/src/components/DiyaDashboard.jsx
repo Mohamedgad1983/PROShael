@@ -1,12 +1,17 @@
-import React, { memo,  useState, useEffect } from 'react';
-import styled, { keyframes } from 'styled-components';
-import { FaCoins, FaUsers, FaCheckCircle, FaDownload, FaSearch, FaTimes } from 'react-icons/fa';
-import * as XLSX from 'xlsx';
+import React,{ memo,useEffect,useState } from 'react';
+import { FaCheckCircle,FaCoins,FaDownload,FaSearch,FaTimes,FaUsers } from 'react-icons/fa';
+import styled,{ keyframes } from 'styled-components';
 
+import { API_ORIGIN } from '../utils/apiConfig';
+import { exportJsonToExcel } from '../utils/excelExport';
 import { logger } from '../utils/logger';
 
 // API Configuration
-const API_URL = process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.alshailfund.com');
+const API_URL = API_ORIGIN;
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token') || localStorage.getItem('alshuail_token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
 
 // Animations
 const fadeIn = keyframes`
@@ -319,7 +324,9 @@ const DiyaDashboard = () => {
 
   const fetchDiyaDashboard = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/diya/dashboard`);
+      const response = await fetch(`${API_URL}/api/diya/dashboard`, {
+        headers: getAuthHeaders()
+      });
       const data = await response.json();
       if (data.success) {
         setDiyaCases(data.data);
@@ -334,7 +341,9 @@ const DiyaDashboard = () => {
   const fetchContributors = async (activityId) => {
     setModalLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/diya/${activityId}/contributors`);
+      const response = await fetch(`${API_URL}/api/diya/${activityId}/contributors`, {
+        headers: getAuthHeaders()
+      });
       const data = await response.json();
       if (data.success) {
         setContributors(data.data);
@@ -364,18 +373,16 @@ const DiyaDashboard = () => {
   );
 
   const exportToExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(filteredContributors.map(c => ({
+    const rows = filteredContributors.map(c => ({
       'رقم العضوية': c.membership_number,
       'الاسم': c.member_name,
       'الفخذ': c.tribal_section,
       'المبلغ': c.amount,
       'تاريخ المساهمة': c.contribution_date,
       'طريقة الدفع': c.payment_method
-    })));
+    }));
 
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'المساهمين');
-    XLSX.writeFile(wb, `${selectedCase?.title_ar}_contributors.xlsx`);
+    exportJsonToExcel(rows, 'المساهمين', `${selectedCase?.title_ar}_contributors.xlsx`);
   };
 
   const formatCurrency = (amount) => {

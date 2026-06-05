@@ -2,13 +2,13 @@
  * SettingsCard Storybook Stories
  */
 
-import type { Meta, StoryObj } from '@storybook/react';
-import { SettingsCard } from './SettingsCard';
+import type { Meta,StoryObj } from '@storybook/react';
+import { useState } from 'react';
 import { SettingsButton } from './SettingsButton';
+import { SettingsCard } from './SettingsCard';
 import { SettingsInput } from './SettingsInput';
 import { SettingsSelect } from './SettingsSelect';
 import { StatusBadge } from './StatusBadge';
-import { useState } from 'react';
 
 const meta: Meta<typeof SettingsCard> = {
   title: 'Settings/SettingsCard',
@@ -18,6 +18,52 @@ const meta: Meta<typeof SettingsCard> = {
 
 export default meta;
 type Story = StoryObj<typeof SettingsCard>;
+
+const CardWithFormRender = () => {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [role, setRole] = useState('');
+
+  return (
+    <SettingsCard>
+      <div style={{ padding: '24px' }}>
+        <h3 style={{ margin: '0 0 20px 0', fontSize: '20px', fontWeight: '600' }}>
+          معلومات المستخدم
+        </h3>
+        <SettingsInput
+          label="الاسم الكامل"
+          value={name}
+          onChange={setName}
+          placeholder="أدخل الاسم"
+          required
+        />
+        <SettingsInput
+          label="البريد الإلكتروني"
+          type="email"
+          value={email}
+          onChange={setEmail}
+          placeholder="example@domain.com"
+          required
+        />
+        <SettingsSelect
+          label="الدور"
+          value={role}
+          onChange={setRole}
+          placeholder="اختر الدور"
+          options={[
+            { value: 'admin', label: 'مسؤول' },
+            { value: 'user', label: 'مستخدم' },
+            { value: 'guest', label: 'ضيف' }
+          ]}
+        />
+        <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
+          <SettingsButton variant="primary">حفظ</SettingsButton>
+          <SettingsButton variant="secondary">إلغاء</SettingsButton>
+        </div>
+      </div>
+    </SettingsCard>
+  );
+};
 
 // Basic Card with Text
 export const BasicCard: Story = {
@@ -37,51 +83,7 @@ export const BasicCard: Story = {
 
 // Card with Form Elements
 export const CardWithForm: Story = {
-  render: () => {
-    const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
-    const [role, setRole] = useState('');
-
-    return (
-      <SettingsCard>
-        <div style={{ padding: '24px' }}>
-          <h3 style={{ margin: '0 0 20px 0', fontSize: '20px', fontWeight: '600' }}>
-            معلومات المستخدم
-          </h3>
-          <SettingsInput
-            label="الاسم الكامل"
-            value={name}
-            onChange={setName}
-            placeholder="أدخل الاسم"
-            required
-          />
-          <SettingsInput
-            label="البريد الإلكتروني"
-            type="email"
-            value={email}
-            onChange={setEmail}
-            placeholder="example@domain.com"
-            required
-          />
-          <SettingsSelect
-            label="الدور"
-            value={role}
-            onChange={setRole}
-            placeholder="اختر الدور"
-            options={[
-              { value: 'admin', label: 'مسؤول' },
-              { value: 'user', label: 'مستخدم' },
-              { value: 'guest', label: 'ضيف' }
-            ]}
-          />
-          <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
-            <SettingsButton variant="primary">حفظ</SettingsButton>
-            <SettingsButton variant="secondary">إلغاء</SettingsButton>
-          </div>
-        </div>
-      </SettingsCard>
-    );
-  }
+  render: CardWithFormRender
 };
 
 // Card with Status Information

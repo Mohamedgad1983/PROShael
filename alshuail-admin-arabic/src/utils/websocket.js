@@ -137,7 +137,7 @@ class WebSocketClient {
   /**
    * Handle WebSocket open event
    */
-  handleOpen(event) {
+  handleOpen(_event) {
     this.log('Connected successfully');
     this.isConnected = true;
     this.reconnectAttempts = 0;
@@ -274,7 +274,7 @@ class WebSocketClient {
   /**
    * Handle heartbeat messages
    */
-  handleHeartbeat(data) {
+  handleHeartbeat(_data) {
     // Respond to server heartbeat
     this.send({ type: 'heartbeat-response', timestamp: new Date().toISOString() });
   }

@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React,{ createContext,useCallback,useContext,useEffect,useState } from 'react';
 
 import { logger } from '../utils/logger';
 
@@ -22,7 +22,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  const persistSession = (tokenValue, userData) => {
+  const persistSession = useCallback((tokenValue, userData) => {
     if (!tokenValue || !userData) {
       return;
     }
@@ -42,9 +42,9 @@ export const AuthProvider = ({ children }) => {
     if (userData.role) {
       localStorage.setItem('userRole', userData.role);
     }
-  };
+  }, []);
 
-  const clearSession = () => {
+  const clearSession = useCallback(() => {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user_data');
     localStorage.removeItem('token');
@@ -55,11 +55,11 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setToken(null);
     setIsAuthenticated(false);
-  };
+  }, []);
 
 
 
-  const checkAuthStatus = async () => {
+  const checkAuthStatus = useCallback(async () => {
     setLoading(true);
     try {
       const storedToken = localStorage.getItem('token') || localStorage.getItem('auth_token');
@@ -124,7 +124,7 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [clearSession, persistSession]);
 
   useEffect(() => {
     checkAuthStatus();
@@ -137,7 +137,7 @@ export const AuthProvider = ({ children }) => {
     }, 30 * 60 * 1000); // 30 minutes
 
     return () => clearInterval(interval);
-  }, [isAuthenticated]);
+  }, [isAuthenticated, checkAuthStatus]);
 
   const authenticate = async (endpoint, payload) => {
     setLoading(true);
@@ -381,7 +381,6 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
-
 
 
 

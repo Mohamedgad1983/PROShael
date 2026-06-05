@@ -18,7 +18,6 @@ import {
   Check,
   AlertCircle,
   Upload,
-  Image,
   X,
   User,
   Users,

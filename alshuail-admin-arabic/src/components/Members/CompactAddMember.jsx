@@ -1,19 +1,10 @@
-import React, { memo,  useState } from 'react';
-import './CompactAddMember.css';
+import React,{ memo,useState } from 'react';
 import memberService from '../../services/memberService';
 import { logger } from '../../utils/logger';
+import './CompactAddMember.css';
 
 import {
-  UserIcon,
-  PhoneIcon,
-  EnvelopeIcon,
-  IdentificationIcon,
-  HomeIcon,
-  BriefcaseIcon,
-  CheckCircleIcon,
-  PhotoIcon,
-  DocumentIcon,
-  XMarkIcon
+CheckCircleIcon,DocumentIcon,HomeIcon,IdentificationIcon,PhotoIcon,UserIcon,XMarkIcon
 } from '@heroicons/react/24/outline';
 
 const CompactAddMember = ({ onMemberAdded }) => {
@@ -43,8 +34,6 @@ const CompactAddMember = ({ onMemberAdded }) => {
   const [success, setSuccess] = useState(false);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [idDocPreview, setIdDocPreview] = useState(null);
-  const [photoFile, setPhotoFile] = useState(null);
-  const [idDocFile, setIdDocFile] = useState(null);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -68,7 +57,6 @@ const CompactAddMember = ({ onMemberAdded }) => {
         setErrors(prev => ({ ...prev, photo: 'حجم الصورة يجب أن يكون أقل من 5 ميجابايت' }));
         return;
       }
-      setPhotoFile(file);
       const reader = new FileReader();
       reader.onload = (event) => {
         setPhotoPreview(event.target.result);
@@ -85,7 +73,6 @@ const CompactAddMember = ({ onMemberAdded }) => {
         setErrors(prev => ({ ...prev, idDoc: 'حجم الملف يجب أن يكون أقل من 10 ميجابايت' }));
         return;
       }
-      setIdDocFile(file);
       const reader = new FileReader();
       reader.onload = (event) => {
         setIdDocPreview(event.target.result);
@@ -96,12 +83,10 @@ const CompactAddMember = ({ onMemberAdded }) => {
   };
 
   const removePhoto = () => {
-    setPhotoFile(null);
     setPhotoPreview(null);
   };
 
   const removeIdDoc = () => {
-    setIdDocFile(null);
     setIdDocPreview(null);
   };
 

@@ -1,8 +1,9 @@
 // @ts-nocheck
-import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
+import React,{ useCallback,useEffect,useRef,useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { API_BASE_URL } from '../../utils/apiConfig';
 import { logger } from '../../utils/logger';
 
 const News = () => {
@@ -15,14 +16,9 @@ const News = () => {
     const [unreadCount, setUnreadCount] = useState(0);
     const observer = useRef();
 
-    const API_URL = process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001/api' : 'https://api.alshailfund.com/api');
+    const API_URL = API_BASE_URL;
 
-    // Fetch unread count
-    useEffect(() => {
-        fetchUnreadCount();
-    }, []);
-
-    const fetchUnreadCount = async () => {
+    const fetchUnreadCount = useCallback(async () => {
         try {
             const token = localStorage.getItem('token');
             const memberId = localStorage.getItem('memberId');
@@ -34,10 +30,10 @@ const News = () => {
         } catch (error) {
             logger.error('Error fetching unread count:', { error });
         }
-    };
+    }, [API_URL]);
 
     // Fetch news with pagination
-    const fetchNews = async (pageNum = 1, isRefresh = false) => {
+    const fetchNews = useCallback(async (pageNum = 1, isRefresh = false) => {
         try {
             const token = localStorage.getItem('token');
             const response = await axios.get(`${API_URL}/news`, {
@@ -61,12 +57,17 @@ const News = () => {
             setLoading(false);
             setRefreshing(false);
         }
-    };
+    }, [API_URL]);
+
+    // Fetch unread count
+    useEffect(() => {
+        fetchUnreadCount();
+    }, [fetchUnreadCount]);
 
     // Initial load
     useEffect(() => {
         fetchNews(1);
-    }, []);
+    }, [fetchNews]);
 
     // Pull to refresh
     const handleRefresh = useCallback(() => {
@@ -74,7 +75,7 @@ const News = () => {
         setPage(1);
         fetchNews(1, true);
         fetchUnreadCount();
-    }, []);
+    }, [fetchNews, fetchUnreadCount]);
 
     // Infinite scroll - last element observer
     const lastNewsElementRef = useCallback(node => {
@@ -92,7 +93,7 @@ const News = () => {
         });
 
         if (node) observer.current.observe(node);
-    }, [loading, hasMore]);
+    }, [loading, hasMore, fetchNews]);
 
     // Track view when news is clicked
     const handleNewsClick = async (newsItem) => {

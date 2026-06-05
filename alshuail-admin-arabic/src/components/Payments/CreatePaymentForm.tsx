@@ -1,19 +1,12 @@
-import React, { memo,  useState, useEffect } from 'react';
 import {
-  XMarkIcon,
-  UserIcon,
-  BanknotesIcon,
-  CalendarIcon,
-  DocumentTextIcon,
-  ExclamationTriangleIcon,
-  CheckCircleIcon,
-  CreditCardIcon,
-  BuildingLibraryIcon,
-  DevicePhoneMobileIcon
+BanknotesIcon, BuildingLibraryIcon,
+CalendarIcon,CheckCircleIcon,CreditCardIcon,DevicePhoneMobileIcon,DocumentTextIcon,
+ExclamationTriangleIcon,UserIcon,XMarkIcon
 } from '@heroicons/react/24/outline';
+import React,{ memo,useEffect,useState } from 'react';
 import { ARABIC_LABELS } from '../../constants/arabic';
-import { CreatePaymentFormProps, PaymentFormData, PaymentCategory, PaymentMethod, PaymentType, PaymentValidation } from './types';
-import { validatePaymentForm, formatCurrency, toArabicNumerals, generatePaymentReference } from './utils';
+import { CreatePaymentFormProps,PaymentCategory,PaymentFormData,PaymentMethod,PaymentValidation } from './types';
+import { formatCurrency,validatePaymentForm } from './utils';
 
 import { logger } from '../../utils/logger';
 
@@ -119,19 +112,6 @@ const CreatePaymentForm: React.FC<CreatePaymentFormProps> = ({
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const getPaymentMethodIcon = (method: PaymentMethod) => {
-    const icons = {
-      cash: BanknotesIcon,
-      bank_transfer: BuildingLibraryIcon,
-      credit_card: CreditCardIcon,
-      debit_card: CreditCardIcon,
-      digital_wallet: DevicePhoneMobileIcon,
-      app_payment: DevicePhoneMobileIcon,
-      check: DocumentTextIcon
-    };
-    return icons[method];
   };
 
   if (!isOpen) return null;

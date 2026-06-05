@@ -1,19 +1,12 @@
 // Approval Queue Component - File 06 Integration
-import React, { memo,  useState, useEffect } from 'react';
 import {
-  CheckCircleIcon,
-  XCircleIcon,
-  ClockIcon,
-  UserGroupIcon,
-  PhoneIcon,
-  IdentificationIcon,
-  ChevronDownIcon,
-  ChevronUpIcon,
-  MagnifyingGlassIcon
+CheckCircleIcon,ChevronDownIcon,
+ChevronUpIcon,ClockIcon,IdentificationIcon,MagnifyingGlassIcon,PhoneIcon,UserGroupIcon,XCircleIcon
 } from '@heroicons/react/24/outline';
+import React,{ memo,useEffect,useState } from 'react';
 import { approvalService } from '../../services/approval.service';
-import { validateGCCPhone, formatPhoneNumber } from '../../utils/validators';
-import { REGISTRATION_STATUS, STATUS_NAMES_AR } from '../../utils/constants';
+import { STATUS_NAMES_AR } from '../../utils/constants';
+import { formatPhoneNumber } from '../../utils/validators';
 
 import { logger } from '../../utils/logger';
 

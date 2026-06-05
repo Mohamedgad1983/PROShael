@@ -1,31 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
 import {
-  HomeIcon,
-  UsersIcon,
-  CreditCardIcon,
-  CurrencyDollarIcon,
-  CalendarDaysIcon,
-  HeartIcon,
-  ScaleIcon,
-  BellIcon,
-  DocumentTextIcon,
-  Cog6ToothIcon,
-  PlusIcon,
-  MagnifyingGlassIcon
+BellIcon,CalendarDaysIcon,Cog6ToothIcon,CreditCardIcon,
+CurrencyDollarIcon,DocumentTextIcon,HeartIcon,HomeIcon,MagnifyingGlassIcon,PlusIcon,ScaleIcon,UsersIcon
 } from '@heroicons/react/24/outline';
-import { Line } from 'react-chartjs-2';
 import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  ChartOptions
+CategoryScale,Chart as ChartJS,ChartOptions,Legend,LinearScale,LineElement,PointElement,Title,
+Tooltip
 } from 'chart.js';
+import React,{ useEffect,useState } from 'react';
+import { Line } from 'react-chartjs-2';
+import { useAuth } from '../../contexts/AuthContext';
 import MembersManager from '../Members/MembersManager';
 import './CompleteDashboard.css';
 
@@ -95,7 +78,7 @@ interface DashboardData {
 // =================================================================
 
 const AlShuailCorrectedDashboard: React.FC = () => {
-  const { user, logout, hasRole } = useAuth();
+  const { user, logout } = useAuth();
   const [activeSection, setActiveSection] = useState('dashboard');
   const [dashboardData, setDashboardData] = useState<DashboardData>({
     subscriptions: 0,
@@ -108,15 +91,7 @@ const AlShuailCorrectedDashboard: React.FC = () => {
   });
 
   // Hijri months for proper Arabic calendar support
-  const hijriMonths = [
-    'محرم', 'صفر', 'ربيع الأول', 'ربيع الثاني', 'جمادى الأولى', 'جمادى الثانية',
-    'رجب', 'شعبان', 'رمضان', 'شوال', 'ذو القعدة', 'ذو الحجة'
-  ];
 
-  const gregorianMonths = [
-    'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-    'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
-  ];
 
   // Correct navigation items based on Al-Shuail family requirements
   const navigationItems: NavigationItem[] = [

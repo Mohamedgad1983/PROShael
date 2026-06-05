@@ -420,7 +420,7 @@ export default PaymentValidationService;
 
 // Named exports for convenience
 export {
-  PaymentValidationService
+PaymentValidationService
 };
 
 // Utility exports

@@ -1,23 +1,13 @@
 // @ts-nocheck
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import {
-  UserCircleIcon,
-  PhoneIcon,
-  IdentificationIcon,
-  UserGroupIcon,
-  CalendarIcon,
-  ArrowRightOnRectangleIcon,
-  Cog6ToothIcon,
-  LockClosedIcon,
-  WalletIcon,
-  CheckCircleIcon,
-  ExclamationTriangleIcon
+ArrowRightOnRectangleIcon,CalendarIcon,CheckCircleIcon,Cog6ToothIcon,ExclamationTriangleIcon,IdentificationIcon,LockClosedIcon,PhoneIcon,UserCircleIcon,UserGroupIcon,WalletIcon
 } from '@heroicons/react/24/outline';
+import { motion } from 'framer-motion';
+import React,{ useEffect,useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import BottomNav from '../../components/mobile/BottomNav';
+import { getMemberBalance,getMemberProfile } from '../../services/mobileApi';
 import '../../styles/mobile/Profile.css';
-import { getMemberProfile, getMemberBalance } from '../../services/mobileApi';
 import { formatBothCalendars } from '../../utils/hijriDate';
 
 import { logger } from '../../utils/logger';

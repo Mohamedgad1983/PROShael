@@ -1,7 +1,8 @@
-import React, { memo,  useState, useRef, useEffect } from 'react';
+import React,{ memo,useEffect,useRef,useState } from 'react';
 // @ts-ignore
 import ExpenseManagement from './ExpenseManagement';
 
+import { API_BASE_URL } from '../../utils/apiConfig';
 import { logger } from '../../utils/logger';
 
 // Hijri date conversion helper
@@ -49,15 +50,18 @@ const FinancialReportsSimple: React.FC = () => {
     setCurrentHijriDate(getHijriDate());
   }, []);
 
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('token') || localStorage.getItem('alshuail_token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
   // Export to PDF
   const handleExportPDF = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:3001/api/reports/forensic?format=pdf&report_type=comprehensive_forensic', {
+      const response = await fetch(`${API_BASE_URL}/reports/forensic?format=pdf&report_type=comprehensive_forensic`, {
         method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token') || 'mock-token'}`,
-        }
+        headers: getAuthHeaders()
       });
 
       if (response.ok) {
@@ -86,11 +90,9 @@ const FinancialReportsSimple: React.FC = () => {
   const handleExportExcel = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:3001/api/reports/forensic?format=excel&report_type=comprehensive_forensic', {
+      const response = await fetch(`${API_BASE_URL}/reports/forensic?format=excel&report_type=comprehensive_forensic`, {
         method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token') || 'mock-token'}`,
-        }
+        headers: getAuthHeaders()
       });
 
       if (response.ok) {

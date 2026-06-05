@@ -1,5 +1,5 @@
-import React from 'react';
 import { BellIcon } from '@heroicons/react/24/outline';
+import React from 'react';
 
 interface NotificationBadgeProps {
   count: number;
@@ -90,7 +90,7 @@ const NotificationBadge: React.FC<NotificationBadgeProps> = ({
     animation: count > 0 ? 'notification-pulse 2s infinite' : 'none'
   };
 
-  const pulseStyle = React.useMemo(() => {
+  React.useEffect(() => {
     const style = document.createElement('style');
     style.textContent = `
       @keyframes notification-pulse {
@@ -105,10 +105,10 @@ const NotificationBadge: React.FC<NotificationBadgeProps> = ({
       }
     `;
     document.head.appendChild(style);
-    return () => document.head.removeChild(style);
+    return () => {
+      document.head.removeChild(style);
+    };
   }, []);
-
-  // pulseStyle is applied directly in the JSX
 
   const handleClick = () => {
     if (onClick) {

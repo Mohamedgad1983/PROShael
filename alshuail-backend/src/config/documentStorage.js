@@ -116,9 +116,9 @@ const getFullPath = (filePath) => {
  * @returns {string} Public URL
  */
 const getPublicUrl = (filePath) => {
-  // In production, files are served via nginx at /uploads/
-  // In development, Express serves them at /api/uploads/
-  const baseUrl = process.env.UPLOAD_URL || '/api/uploads';
+  // Files are served by Express/Nginx at /uploads. The backend also keeps
+  // /api/uploads as a compatibility alias for older stored URLs.
+  const baseUrl = process.env.UPLOAD_URL || '/uploads';
   return `${baseUrl}/${BUCKET_NAME}/${filePath}`;
 };
 

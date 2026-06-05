@@ -1,16 +1,10 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React,{ useEffect,useMemo,useRef,useState } from 'react';
+import { API_ORIGIN } from '../../utils/apiConfig';
 import { logger } from '../../utils/logger';
 
 import {
-  MagnifyingGlassIcon,
-  FunnelIcon,
-  ExclamationTriangleIcon,
-  BellIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  CheckCircleIcon,
-  ArrowDownTrayIcon,
-  DocumentArrowDownIcon
+ArrowDownTrayIcon,BellIcon,CheckCircleIcon,ChevronLeftIcon,
+ChevronRightIcon,DocumentArrowDownIcon,ExclamationTriangleIcon,FunnelIcon,MagnifyingGlassIcon
 } from '@heroicons/react/24/outline';
 import './MemberMonitoringDashboard.css';
 
@@ -44,7 +38,6 @@ const MemberMonitoringDashboard = () => {
   const [balanceRangeFrom, setBalanceRangeFrom] = useState('');
   const [balanceRangeTo, setBalanceRangeTo] = useState('');
   const [balanceCategory, setBalanceCategory] = useState('all'); // all, compliant, non-compliant, critical, excellent
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   // Pagination States
   const [currentPage, setCurrentPage] = useState(1);
@@ -56,8 +49,7 @@ const MemberMonitoringDashboard = () => {
   const [selectedMember, setSelectedMember] = useState(null);
   const [suspendConfirmStep, setSuspendConfirmStep] = useState(1);
 
-  // API Configuration - Use environment variable or fallback to production
-  const API_URL = process.env.REACT_APP_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.alshailfund.com');
+  const API_URL = API_ORIGIN;
 
   // Tribal Sections (الفخذ)
   const tribalSections = [
@@ -136,7 +128,7 @@ const MemberMonitoringDashboard = () => {
         data = await response.json();
         logger.debug('✅ API Response received:', {
           hasData: !!data,
-          hasDataProp: !!(data && data.data);,
+          hasDataProp: !!(data && data.data),
           hasMembers: !!(data && data.members),
           isArray: Array.isArray(data)
         });
@@ -454,7 +446,6 @@ const MemberMonitoringDashboard = () => {
   // Render Action Buttons based on permissions and balance
   const renderActionButtons = (member) => {
     const hasPermission = canPerformActions();
-    const needsAction = member.balance < 3000;
 
     // No actions for compliant members - show "---"
     if (member.balance >= 3000) {
@@ -553,10 +544,6 @@ const MemberMonitoringDashboard = () => {
   };
 
   // Handle Notify Action
-  const handleNotify = async (member) => {
-    setSelectedMember(member);
-    setShowNotifyModal(true);
-  };
 
   // Send notification through specific channel
   const sendNotificationToMember = async (member, channel) => {
@@ -723,6 +710,7 @@ const MemberMonitoringDashboard = () => {
   // Initial Load
   useEffect(() => {
     fetchMembers();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- preserve existing one-time legacy load behavior
   }, []);
 
   return (

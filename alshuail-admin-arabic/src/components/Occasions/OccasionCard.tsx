@@ -1,17 +1,14 @@
-import React, { memo } from 'react';
 import {
-  CalendarIcon,
-  ClockIcon,
-  MapPinIcon,
-  UsersIcon,
-  TagIcon,
-  StarIcon
+CalendarIcon,
+ClockIcon,
+MapPinIcon,StarIcon,TagIcon,UsersIcon
 } from '@heroicons/react/24/outline';
-import { Occasion, OccasionType } from './types';
+import React,{ memo } from 'react';
 import { ARABIC_LABELS } from '../../constants/arabic';
-import { formatArabicDate, formatArabicTime, formatArabicNumber, getUpcomingTimeArabic } from '../../utils/arabic';
-import { useResponsive, getTouchStyles, getResponsiveSpacing } from '../../utils/responsive';
-import { useAnimation, getHoverStyles, getPressStyles } from '../../utils/animations';
+import { useAnimation } from '../../utils/animations';
+import { formatArabicDate,formatArabicNumber,formatArabicTime,getUpcomingTimeArabic } from '../../utils/arabic';
+import { getResponsiveSpacing,getTouchStyles,useResponsive } from '../../utils/responsive';
+import { Occasion,OccasionType } from './types';
 
 interface OccasionCardProps {
   occasion: Occasion;
@@ -95,7 +92,7 @@ const OccasionCard: React.FC<OccasionCardProps> = ({
   onView,
   onRSVP
 }) => {
-  const { isMobile, isTablet, breakpoint } = useResponsive();
+  const { isMobile, breakpoint } = useResponsive();
   const { animationStyles } = useAnimation('fadeIn', true, { duration: 400 });
 
   const typeColor = getOccasionTypeColor(occasion.type);

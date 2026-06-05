@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React,{ useState } from 'react';
+import { API_ORIGIN } from '../../utils/apiConfig';
 import { logger } from '../../utils/logger';
 
 import './LoginPage.css';
@@ -17,7 +18,7 @@ const EmailLoginPage = ({ onLogin = () => {} }) => {
     setError('');
 
     try {
-      const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://api.alshailfund.com';
+      const API_URL = API_ORIGIN;
       const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: {

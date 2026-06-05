@@ -1,14 +1,8 @@
-import React, { memo,  useState, useEffect } from 'react';
 import {
-  CalendarIcon,
-  BanknotesIcon,
-  ChevronDownIcon,
-  ChevronRightIcon,
-  UserIcon,
-  CheckCircleIcon,
-  ClockIcon,
-  XCircleIcon
+BanknotesIcon,CalendarIcon,CheckCircleIcon,ChevronDownIcon,
+ChevronRightIcon,ClockIcon,UserIcon,XCircleIcon
 } from '@heroicons/react/24/outline';
+import React,{ memo,useEffect,useState } from 'react';
 import './HijriGroupedPayments.css';
 
 const HijriGroupedPayments = ({ payments = [], onPaymentClick }) => {

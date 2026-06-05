@@ -1,14 +1,10 @@
-import React, { memo,  useState, useMemo } from 'react';
 import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  CalendarDaysIcon,
-  ClockIcon,
-  MapPinIcon,
-  UsersIcon
+CalendarDaysIcon,ChevronLeftIcon,
+ChevronRightIcon,ClockIcon
 } from '@heroicons/react/24/outline';
-import { CalendarEvent, Occasion } from './types';
-import { ARABIC_LABELS, HIJRI_MONTHS } from '../../constants/arabic';
+import React,{ memo,useState } from 'react';
+import { ARABIC_LABELS,HIJRI_MONTHS } from '../../constants/arabic';
+import { Occasion } from './types';
 
 interface OccasionsCalendarProps {
   occasions: Occasion[];
@@ -33,13 +29,6 @@ const OccasionsCalendar: React.FC<OccasionsCalendarProps> = ({
     return `${date.getDate()} ${hijriMonth} ${hijriYear}`;
   };
 
-  const formatGregorianDate = (date: Date): string => {
-    return new Intl.DateTimeFormat('ar-SA', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    }).format(date);
-  };
 
   const getMonthData = () => {
     const year = currentDate.getFullYear();
@@ -200,17 +189,6 @@ const OccasionsCalendar: React.FC<OccasionsCalendarProps> = ({
     gap: '1px'
   };
 
-  const dayCellStyle: React.CSSProperties = {
-    minHeight: '80px',
-    padding: '4px',
-    borderRadius: '8px',
-    background: 'rgba(255, 255, 255, 0.3)',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    position: 'relative',
-    display: 'flex',
-    flexDirection: 'column'
-  };
 
   const dayNumberStyle: React.CSSProperties = {
     fontSize: '14px',
@@ -220,12 +198,6 @@ const OccasionsCalendar: React.FC<OccasionsCalendarProps> = ({
     padding: '4px'
   };
 
-  const eventDotStyle: React.CSSProperties = {
-    width: '6px',
-    height: '6px',
-    borderRadius: '3px',
-    margin: '1px'
-  };
 
   const eventItemStyle: React.CSSProperties = {
     fontSize: '10px',

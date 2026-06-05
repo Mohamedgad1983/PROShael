@@ -39,9 +39,11 @@ jobs:
         PORT=5001
         NODE_ENV=test
         JWT_SECRET=${{ secrets.JWT_SECRET || 'test-jwt-secret-key-for-ci' }}
-        SUPABASE_URL=${{ secrets.SUPABASE_URL || 'https://test.supabase.co' }}
-        SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY || 'test-anon-key' }}
-        SUPABASE_SERVICE_KEY=${{ secrets.SUPABASE_SERVICE_KEY || 'test-service-key' }}
+        CSRF_SECRET=${{ secrets.CSRF_SECRET || 'test-csrf-secret-key-for-ci' }}
+        DB_HOST=localhost
+        DB_PORT=5432
+        DB_NAME=alshuail_db
+        DB_USER=alshuail
         EOF
 
     - name: Run Tests with Coverage
@@ -113,7 +115,7 @@ jobs:
     - name: Run ESLint
       run: |
         cd alshuail-backend
-        npm run lint || true
+        npm run lint
 
   build:
     name: Build Check

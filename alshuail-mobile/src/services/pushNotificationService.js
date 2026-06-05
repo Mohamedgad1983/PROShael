@@ -14,26 +14,36 @@ import api from '../utils/api'
 
 // Firebase configuration
 const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyDV_8GEXglt-rnftvs37GaTKGKbUIth5yA",
-  authDomain: "i-o-s-shaael-gqra2n-ef788.firebaseapp.com",
-  projectId: "i-o-s-shaael-gqra2n-ef788",
-  storageBucket: "i-o-s-shaael-gqra2n-ef788.firebasestorage.app",
-  messagingSenderId: "384257332256",
-  appId: "1:384257332256:web:11d2543409f62f655ad845"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 }
 
 // VAPID Key for web push
-const VAPID_KEY = 'BFOJB7exHm1YgARigl7e85CMVkkZJnAEgoM7oHVdFefgjZGYdO8a4tsstug1jJ7TwiXpCtm5pdrCsPD6Eriv0S4'
+const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY
+const REQUIRED_FIREBASE_CONFIG_KEYS = ['apiKey', 'authDomain', 'projectId', 'messagingSenderId', 'appId']
 
 let firebaseApp = null
 let messaging = null
 let isInitialized = false
+
+const isFirebaseConfigured = () => {
+  return REQUIRED_FIREBASE_CONFIG_KEYS.every((key) => Boolean(FIREBASE_CONFIG[key])) && Boolean(VAPID_KEY)
+}
 
 /**
  * Initialize Firebase
  */
 const initializeFirebase = () => {
   if (isInitialized) return true
+
+  if (!isFirebaseConfigured()) {
+    console.warn('Firebase push notifications are not configured')
+    return false
+  }
 
   try {
     firebaseApp = initializeApp(FIREBASE_CONFIG)
@@ -51,7 +61,7 @@ const initializeFirebase = () => {
  * Check if push notifications are supported
  */
 export const isPushSupported = () => {
-  return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
+  return isFirebaseConfigured() && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
 }
 
 /**
@@ -115,6 +125,10 @@ export const registerServiceWorker = async () => {
  * Get FCM token for push notifications
  */
 export const getFCMToken = async () => {
+  if (!isFirebaseConfigured()) {
+    return { success: false, error: 'إعدادات الإشعارات غير مهيأة', reason: 'firebase_not_configured' }
+  }
+
   if (!isPushSupported()) {
     return { success: false, error: 'غير مدعوم' }
   }
@@ -238,6 +252,11 @@ export const setupForegroundHandler = (callback) => {
 export const setupPushNotifications = async (memberId = null) => {
   console.log('🔔 Setting up push notifications...')
 
+  if (!isFirebaseConfigured()) {
+    console.warn('Push notifications skipped because Firebase config is missing')
+    return { success: false, error: 'إعدادات الإشعارات غير مهيأة', reason: 'firebase_not_configured' }
+  }
+
   // Check support
   if (!isPushSupported()) {
     console.warn('Push notifications not supported on this device')
@@ -322,5 +341,6 @@ export default {
   setupForegroundHandler,
   setupPushNotifications,
   isNotificationsEnabled,
+  isFirebaseConfigured,
   showTestNotification
 }

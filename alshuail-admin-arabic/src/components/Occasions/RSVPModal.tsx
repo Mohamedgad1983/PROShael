@@ -1,14 +1,10 @@
-import React, { memo,  useState, useEffect } from 'react';
 import {
-  XMarkIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  QuestionMarkCircleIcon,
-  UsersIcon,
-  ChatBubbleLeftIcon
+ChatBubbleLeftIcon,CheckCircleIcon,QuestionMarkCircleIcon,
+UsersIcon,XCircleIcon,XMarkIcon
 } from '@heroicons/react/24/outline';
-import { Occasion, RSVP, RSVPStatus } from './types';
+import React,{ memo,useEffect,useState } from 'react';
 import { ARABIC_LABELS } from '../../constants/arabic';
+import { Occasion,RSVP,RSVPStatus } from './types';
 
 interface RSVPModalProps {
   isOpen: boolean;

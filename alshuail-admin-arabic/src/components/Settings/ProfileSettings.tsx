@@ -3,26 +3,23 @@
  * Allows users to manage their profile information and avatar
  */
 
-import React, { memo,  useState, useRef, useEffect } from 'react';
-import { UserIcon, PhotoIcon, XMarkIcon, CheckCircleIcon, ExclamationCircleIcon, EyeIcon, EyeSlashIcon, LockClosedIcon } from '@heroicons/react/24/outline';
+import { CheckCircleIcon,ExclamationCircleIcon,EyeIcon,EyeSlashIcon,LockClosedIcon,PhotoIcon,XMarkIcon } from '@heroicons/react/24/outline';
 import axios from 'axios';
+import React,{ useCallback,useEffect,useRef,useState } from 'react';
 import { useRole } from '../../contexts/RoleContext';
+import { API_ORIGIN } from '../../utils/apiConfig';
 import { logger } from '../../utils/logger';
 
 import {
-  SettingsCard,
-  SettingsButton,
-  SettingsInput
+SettingsButton,SettingsCard,SettingsInput
 } from './shared';
 import {
-  COLORS,
-  SPACING,
-  TYPOGRAPHY,
-  BORDER_RADIUS,
-  commonStyles
+BORDER_RADIUS,COLORS,
+SPACING,
+TYPOGRAPHY
 } from './sharedStyles';
 
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+const API_BASE = API_ORIGIN;
 
 interface Message {
   type: 'success' | 'error' | 'info';
@@ -144,13 +141,9 @@ const ProfileSettings: React.FC = () => {
   const [changingPassword, setChangingPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState<'weak' | 'medium' | 'strong' | null>(null);
 
-  // Fetch user profile and notifications on mount
-  useEffect(() => {
-    fetchUserProfile();
-    fetchNotificationPreferences();
-  }, []);
+  const userProfile = user as (typeof user & { name?: string; full_name?: string; phone?: string }) | null;
 
-  const fetchNotificationPreferences = async () => {
+  const fetchNotificationPreferences = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(`${API_BASE}/api/user/profile/notifications`, {
@@ -163,7 +156,7 @@ const ProfileSettings: React.FC = () => {
     } catch (error) {
       logger.error('Failed to fetch notification preferences:', { error });
     }
-  };
+  }, []);
 
   const handleNotificationToggle = async (key: keyof typeof notificationPreferences) => {
     const newValue = !notificationPreferences[key];
@@ -204,7 +197,7 @@ const ProfileSettings: React.FC = () => {
     }
   };
 
-  const fetchUserProfile = async () => {
+  const fetchUserProfile = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(`${API_BASE}/api/user/profile`, {
@@ -212,12 +205,13 @@ const ProfileSettings: React.FC = () => {
       });
 
       if (response.data.success) {
-        setAvatarUrl(response.data.data.avatar_url);
+        const profile = response.data.data || {};
+        setAvatarUrl(profile.avatar_url);
         // Initialize form data and original data
         const profileData = {
-          full_name: response.data.data.full_name || '',
-          email: response.data.data.email || '',
-          phone: response.data.data.phone || ''
+          full_name: profile.full_name || userProfile?.name || userProfile?.full_name || '',
+          email: profile.email || userProfile?.email || '',
+          phone: profile.phone || userProfile?.phone || ''
         };
         setFormData(profileData);
         setOriginalData(profileData);
@@ -225,7 +219,13 @@ const ProfileSettings: React.FC = () => {
     } catch (error) {
       logger.error('Failed to fetch profile:', { error });
     }
-  };
+  }, [userProfile]);
+
+  // Fetch user profile and notifications on mount
+  useEffect(() => {
+    fetchUserProfile();
+    fetchNotificationPreferences();
+  }, [fetchNotificationPreferences, fetchUserProfile]);
 
   // Handle edit mode toggle
   const handleEditModeToggle = () => {
@@ -761,16 +761,16 @@ const ProfileSettings: React.FC = () => {
                   حذف الصورة
                 </SettingsButton>
               )}
+
+              <input
+                type="file"
+                ref={fileInputRef}
+                style={{ display: 'none' }}
+                accept="image/png,image/jpeg,image/jpg,image/webp"
+                onChange={handleFileChange}
+              />
             </div>
           </div>
-
-          <input
-            type="file"
-            ref={fileInputRef}
-            style={{ display: 'none' }}
-            accept="image/png,image/jpeg,image/jpg,image/webp"
-            onChange={handleFileChange}
-          />
         </div>
 
         {/* Messages */}
@@ -1223,4 +1223,3 @@ const ProfileSettings: React.FC = () => {
 };
 
 export default ProfileSettings;
-

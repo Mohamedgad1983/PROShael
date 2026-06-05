@@ -178,7 +178,7 @@ describe('Payments Controller Unit Tests', () => {
 
       test('should handle missing authorization header', () => {
         const authorization = null;
-        let userId = null;
+        const userId = null;
 
         if (authorization) {
           // Extract token

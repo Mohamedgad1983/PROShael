@@ -1147,7 +1147,7 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'لأول مرة؟ كلمة المرور الافتراضية: 123456',
+                  'لأول مرة؟ استخدم كلمة المرور المؤقتة المرسلة من الإدارة أو تسجيل الدخول برمز التحقق',
                   style: GoogleFonts.cairo(
                     fontSize: 12,
                     color: Colors.blue.shade700,

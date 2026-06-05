@@ -1,33 +1,17 @@
-import React, { memo,  useState, useEffect, useMemo, useCallback } from 'react';
+import React,{ memo,useCallback,useEffect,useMemo,useState } from 'react';
 // Optimized imports - only what's actually used
 import {
-  HandRaisedIcon,
-  ScaleIcon,
-  UsersIcon,
-  BanknotesIcon,
-  CalendarIcon,
-  ClockIcon,
-  CheckCircleIcon,
-  ExclamationTriangleIcon,
-  PlusIcon,
-  EyeIcon,
-  MagnifyingGlassIcon,
-  DocumentTextIcon,
-  CurrencyDollarIcon,
-  UserGroupIcon,
-  ShieldExclamationIcon,
-  XMarkIcon,
-  DocumentArrowDownIcon,
-  ArrowDownTrayIcon
+ArrowDownTrayIcon,BanknotesIcon,
+CalendarIcon,CheckCircleIcon,ClockIcon,CurrencyDollarIcon,DocumentArrowDownIcon,DocumentTextIcon,ExclamationTriangleIcon,EyeIcon,HandRaisedIcon,MagnifyingGlassIcon,PlusIcon,ScaleIcon,ShieldExclamationIcon,UserGroupIcon,UsersIcon,XMarkIcon
 } from '@heroicons/react/24/outline';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import * as XLSX from 'xlsx';
+import { API_BASE_URL } from '../../utils/apiConfig';
+import { exportAoAToExcel } from '../../utils/excelExport';
+import { getDaysUntil,isOverdue } from '../../utils/hijriDateUtils';
+import { logger } from '../../utils/logger';
 import { HijriDateDisplay } from '../Common/HijriDateDisplay';
 import { HijriDateInput } from '../Common/HijriDateInput';
-import { isOverdue, getDaysUntil } from '../../utils/hijriDateUtils';
-import { logger } from '../../utils/logger';
-import { API_BASE_URL } from '../../utils/apiConfig';
 
 import '../../styles/ultra-premium-islamic-design.css';
 
@@ -383,10 +367,7 @@ const HijriDiyasManagement: React.FC = () => {
       ])
     ];
 
-    const ws = XLSX.utils.aoa_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'المساهمون');
-    XLSX.writeFile(wb, `مساهمو-${selectedDiya.title}.xlsx`);
+    exportAoAToExcel(data, 'المساهمون', `مساهمو-${selectedDiya.title}.xlsx`);
   };
 
   // Handle items per page change
@@ -569,7 +550,7 @@ const HijriDiyasManagement: React.FC = () => {
   };
 
   // Hijri date filtering logic (using Gregorian conversion for comparison)
-  const filterDiyasByHijriDate = (diyasToFilter: Diya[]) => {
+  const filterDiyasByHijriDate = useCallback((diyasToFilter: Diya[]) => {
     if (!fromGregorianDate && !toGregorianDate) return diyasToFilter;
 
     return diyasToFilter.filter(diya => {
@@ -583,7 +564,7 @@ const HijriDiyasManagement: React.FC = () => {
       if (toGregorianDate && itemDateStr > toGregorianDate) return false;
       return true;
     });
-  };
+  }, [fromGregorianDate, toGregorianDate]);
 
   // Clear date filters
   const clearDateFilters = () => {
@@ -594,7 +575,7 @@ const HijriDiyasManagement: React.FC = () => {
   };
 
   // Apply filtering (memoized)
-  const filteredDiyas = useMemo(() => filterDiyasByHijriDate(diyas), [diyas, fromGregorianDate, toGregorianDate]);
+  const filteredDiyas = useMemo(() => filterDiyasByHijriDate(diyas), [diyas, filterDiyasByHijriDate]);
 
   // Calculate statistics (memoized to prevent recalculation on every render)
   const statistics = useMemo(() => ({
@@ -611,8 +592,6 @@ const HijriDiyasManagement: React.FC = () => {
     const priorityInfo = getPriorityInfo(diya.priority);
     const categoryInfo = getCategoryInfo(diya.category);
     const CategoryIcon = categoryInfo.icon;
-    const StatusIcon = statusInfo.icon;
-
     const progressPercentage = (diya.collectedAmount / diya.totalAmount) * 100;
     const daysLeft = getDaysUntil(diya.deadline);
     const isUrgent = diya.status === 'urgent' || daysLeft < 7;

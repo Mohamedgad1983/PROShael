@@ -1,39 +1,14 @@
-﻿import React, {  useState, useEffect , useCallback } from 'react';
 import {
-  HomeIcon,
-  UsersIcon,
-  CreditCardIcon,
-  CurrencyDollarIcon,
-  CalendarDaysIcon,
-  HeartIcon,
-  ScaleIcon,
-  BellIcon,
-  DocumentTextIcon,
-  Cog6ToothIcon,
-  PlusIcon,
-  MagnifyingGlassIcon,
-  PencilIcon,
-  TrashIcon,
-  XMarkIcon,
-  CheckIcon,
-  EyeIcon,
-  PhoneIcon,
-  EnvelopeIcon,
-  MapPinIcon,
-  StarIcon
+BellIcon,CalendarDaysIcon,CheckIcon,Cog6ToothIcon,CreditCardIcon,
+CurrencyDollarIcon,DocumentTextIcon,EnvelopeIcon,EyeIcon,HeartIcon,HomeIcon,MagnifyingGlassIcon,MapPinIcon,PencilIcon,PhoneIcon,PlusIcon,ScaleIcon,StarIcon,TrashIcon,UsersIcon,XMarkIcon
 } from '@heroicons/react/24/outline';
+import React,{ useCallback,useEffect,useState } from 'react';
 import { Line } from 'react-chartjs-2';
 import { logger } from '../../utils/logger';
 
 import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
+CategoryScale,Chart as ChartJS,Legend,LinearScale,LineElement,PointElement,Title,
+Tooltip
 } from 'chart.js';
 
 ChartJS.register(
@@ -151,12 +126,7 @@ const AlShuailPremiumDashboard: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    fetchMembers();
-    fetchDashboardData();
-  }, []);
-
-  const fetchMembers = async () => {
+  const fetchMembers = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:5000/api/members', {
@@ -187,12 +157,12 @@ const AlShuailPremiumDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback((totalMembers = 0) => {
     setDashboardData({
       subscriptions: 0,
-      totalMembers: members.length,
+      totalMembers,
       monthlyRevenue: [1200, 1900, 3000, 2500, 3200, 3500],
       occasions: [
         { id: 1, title: 'اجتماع عائلي شهري', date_gregorian: '2025-09-20', date_hijri: '27 صفر 1447', type: 'meeting' },
@@ -211,22 +181,14 @@ const AlShuailPremiumDashboard: React.FC = () => {
         { id: 2, member: 'فاطمة الشعيل', amount: 1000, date: '2025-09-14', date_hijri: '21 صفر 1447' }
       ]
     });
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchMembers();
+    fetchDashboardData();
+  }, [fetchMembers, fetchDashboardData]);
 
   const formatDate = (gregorianDate: string, hijriDate: string) => {
-  // Performance optimized event handlers
-  const handleRefresh = useCallback(() => {
-    // Refresh logic here
-  }, []);
-
-  const handleFilterChange = useCallback((filterType, value) => {
-    // Filter logic here
-  }, []);
-
-  const handlePageChange = useCallback((page) => {
-    // Pagination logic here
-  }, []);
-
     return (
       <div className="text-sm">
         <div className="text-gray-900">{hijriDate}</div>

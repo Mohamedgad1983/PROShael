@@ -1,30 +1,10 @@
-import React, { memo, useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  DocumentIcon,
-  DocumentTextIcon,
-  IdentificationIcon,
-  AcademicCapIcon,
-  HeartIcon,
-  FolderIcon,
-  FolderOpenIcon,
-  MagnifyingGlassIcon,
-  ArrowDownTrayIcon,
-  EyeIcon,
-  TrashIcon,
-  XMarkIcon,
-  ExclamationTriangleIcon,
-  FunnelIcon,
-  ArrowPathIcon,
-  UserIcon,
-  UserCircleIcon,
-  CalendarDaysIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  ChevronDownIcon,
-  BanknotesIcon,
-  HomeModernIcon
+AcademicCapIcon,ArrowDownTrayIcon,ArrowPathIcon,BanknotesIcon,ChevronDownIcon,ChevronLeftIcon,DocumentIcon,
+DocumentTextIcon,ExclamationTriangleIcon,EyeIcon,FolderIcon,
+FolderOpenIcon,FunnelIcon,HeartIcon,HomeModernIcon,IdentificationIcon,MagnifyingGlassIcon,TrashIcon,UserCircleIcon,UserIcon,XMarkIcon
 } from '@heroicons/react/24/outline';
 import { DocumentIcon as DocumentIconSolid } from '@heroicons/react/24/solid';
+import React,{ memo,useCallback,useEffect,useMemo,useState } from 'react';
 import { memberService } from '../../services/memberService';
 import { logger } from '../../utils/logger';
 
@@ -109,7 +89,6 @@ const MemberDocuments: React.FC = () => {
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const itemsPerPage = 20;
 
@@ -192,7 +171,6 @@ const MemberDocuments: React.FC = () => {
         const docs = Array.isArray(response.data) ? response.data : (response.documents || []);
         setDocuments(docs);
         setTotalCount(response.total || docs.length);
-        setTotalPages(Math.ceil((response.total || docs.length) / itemsPerPage));
         setCurrentPage(page);
       } else {
         throw new Error(response.error || 'Failed to fetch documents');

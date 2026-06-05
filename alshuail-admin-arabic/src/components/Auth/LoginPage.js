@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React,{ useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import logo from '../../assets/logo.svg';
 import { useAuth } from '../../contexts/AuthContext';
 import './LoginPage.css';
-import logo from '../../assets/logo.svg';
 
 import { logger } from '../../utils/logger';
 
@@ -197,7 +197,7 @@ const LoginPage = ({ onLogin = () => {} }) => {
             <small>
               <strong>بيانات تجريبية:</strong><br />
               الهاتف: +96550123456<br />
-              كلمة المرور: 123456<br />
+              كلمة المرور: كلمة مرور مؤقتة من الإدارة<br />
               <span style={{ fontSize: '11px', opacity: 0.8 }}>
                 يمكن اختيار أي دور وظيفي للتجربة
               </span>

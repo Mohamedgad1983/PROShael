@@ -1,11 +1,9 @@
+import { API_ORIGIN } from '../utils/apiConfig';
 import { logger } from '../utils/logger';
 
 class APIService {
   constructor() {
-    // Always use production URL in production
-    this.baseURL = window.location.hostname === 'localhost'
-      ? 'http://localhost:3001'
-      : 'https://api.alshailfund.com';
+    this.baseURL = API_ORIGIN;
 
     // Cache for successful responses
     this.cache = new Map();
@@ -14,6 +12,8 @@ class APIService {
     // Request retry configuration
     this.maxRetries = 3;
     this.retryDelay = 1000; // 1 second
+    this.allowMockFallback = process.env.NODE_ENV === 'development' &&
+      process.env.REACT_APP_ENABLE_MOCK_FALLBACK === 'true';
 
     logger.debug('🔧 API Service initialized with baseURL:', { baseURL: this.baseURL });
   }
@@ -143,8 +143,8 @@ class APIService {
           return cached;
         }
 
-        // Return mock data as last resort
-        const mockData = this.getMockData(endpoint);
+        // Mock data must be explicitly enabled for local development only.
+        const mockData = this.allowMockFallback ? this.getMockData(endpoint) : null;
         if (mockData) {
           logger.warn('🎭 Using mock data as fallback for:', { endpoint });
           return mockData;
@@ -230,6 +230,10 @@ class APIService {
   }
 
   getMockData(endpoint) {
+    if (!this.allowMockFallback) {
+      return null;
+    }
+
     const mockData = {
       '/api/dashboard/stats': {
         success: true,

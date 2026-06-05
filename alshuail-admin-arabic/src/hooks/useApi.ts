@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback,useEffect,useMemo,useState } from 'react';
 import { apiService } from '../services/api.js';
 
 import { logger } from '../utils/logger';
@@ -169,7 +169,7 @@ export const useMembers = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchMembers = async (showLoading = true) => {
+  const fetchMembers = useCallback(async (showLoading = true) => {
     try {
       if (showLoading) {
         setLoading(true);
@@ -187,19 +187,17 @@ export const useMembers = () => {
       logger.error('❌ Members fetch failed:', { errorMessage });
       setError(`فشل في تحميل بيانات الأعضاء: ${errorMessage}`);
       // Don't clear members data on error, keep existing data
-      if (members.length === 0) {
-        setMembers([]);
-      }
+      setMembers((prev) => (prev.length === 0 ? [] : prev));
     } finally {
       if (showLoading) {
         setLoading(false);
       }
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchMembers();
-  }, []);
+  }, [fetchMembers]);
 
   return { members, loading, error, refetch: () => fetchMembers(false) };
 };
@@ -208,11 +206,13 @@ export const usePayments = (filters: PaymentFilters = {}) => {
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const filtersKey = JSON.stringify(filters);
+  const stableFilters = useMemo<PaymentFilters>(() => JSON.parse(filtersKey), [filtersKey]);
 
-  const fetchPayments = async () => {
+  const fetchPayments = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await typedApiService.getPayments(filters);
+      const response = await typedApiService.getPayments(stableFilters);
       setPayments(extractData(response, []));
       setError(null);
     } catch (err) {
@@ -221,11 +221,11 @@ export const usePayments = (filters: PaymentFilters = {}) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [stableFilters]);
 
   useEffect(() => {
     fetchPayments();
-  }, [JSON.stringify(filters)]);
+  }, [fetchPayments]);
 
   return { payments, loading, error, refetch: fetchPayments };
 };

@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 
 /**
- * Reset admin@alshuail.com password to Admin@123456
+ * Reset admin@alshuail.com password.
+ *
+ * Usage: ADMIN_RESET_PASSWORD="..." node scripts/reset-admin-password.js
+ *    or: node scripts/reset-admin-password.js --password="..."
  */
 
 import pkg from 'pg';
@@ -11,8 +14,19 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const PASSWORD = 'Admin@123456';
 const EMAIL = 'admin@alshuail.com';
+
+function getPassword() {
+  const passwordArg = process.argv.find((arg) => arg.startsWith('--password='));
+  const password = process.env.ADMIN_RESET_PASSWORD || passwordArg?.split('=')[1];
+
+  if (!password || password.length < 8) {
+    console.error('ADMIN_RESET_PASSWORD or --password must be at least 8 characters.');
+    process.exit(1);
+  }
+
+  return password;
+}
 
 async function resetPassword() {
   const client = new Client({
@@ -24,12 +38,14 @@ async function resetPassword() {
   });
 
   try {
+    const password = getPassword();
+
     console.log('🔗 Connecting to database...');
     await client.connect();
     console.log('✅ Connected\n');
 
     console.log('🔐 Generating new password hash...');
-    const passwordHash = await bcrypt.hash(PASSWORD, 10);
+    const passwordHash = await bcrypt.hash(password, 10);
     console.log('✅ Hash generated\n');
 
     console.log('👤 Updating admin password...');
@@ -46,7 +62,7 @@ async function resetPassword() {
     console.log('✅ Password updated successfully!\n');
     console.log('📋 Login Credentials:');
     console.log(`   Email: ${EMAIL}`);
-    console.log(`   Password: ${PASSWORD}`);
+    console.log('   Password: configured from operator input');
     console.log(`   URL: https://alshailfund.com/admin/login`);
     console.log('\n🎉 You can now login!');
 

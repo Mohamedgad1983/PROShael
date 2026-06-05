@@ -20,9 +20,9 @@
  * @date 2025-11-13
  */
 
-import React, { memo,  SelectHTMLAttributes, ReactNode, useState, useRef, useEffect } from 'react';
+import { CheckIcon,ChevronDownIcon,MagnifyingGlassIcon,XMarkIcon } from '@heroicons/react/24/outline';
+import React,{ memo,ReactNode,SelectHTMLAttributes,useEffect,useRef,useState } from 'react';
 import { getTheme } from '../../modernDesignSystem';
-import { ChevronDownIcon, XMarkIcon, MagnifyingGlassIcon, CheckIcon } from '@heroicons/react/24/outline';
 
 // ============================================================================
 // TYPES
@@ -193,12 +193,11 @@ export const ModernSelect: React.FC<ModernSelectProps> = ({
   isRTL = true,
   style = {},
   className = '',
-  emptyMessage = 'No options available',
-  ...rest
-}) => {
+  emptyMessage = 'No options available'}) => {
   const theme = getTheme(isDarkMode, isRTL);
   const selectRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const listboxId = useRef(`modern-select-${Math.random().toString(36).slice(2, 9)}`).current;
 
   // State
   const [isOpen, setIsOpen] = useState(false);
@@ -515,7 +514,7 @@ export const ModernSelect: React.FC<ModernSelectProps> = ({
       return Object.entries(groupedOptions).map(([group, opts]) => (
         <div key={group}>
           <div style={groupLabelStyles}>{group}</div>
-          {opts.map((opt, idx) => {
+          {opts.map((opt) => {
             const globalIndex = filteredOptions.findIndex(o => o.value === opt.value);
             return (
               <div
@@ -590,6 +589,7 @@ export const ModernSelect: React.FC<ModernSelectProps> = ({
         onKeyDown={handleKeyDown}
         tabIndex={disabled ? -1 : 0}
         role="combobox"
+        aria-controls={listboxId}
         aria-expanded={isOpen}
         aria-haspopup="listbox"
         aria-label={label}
@@ -615,7 +615,7 @@ export const ModernSelect: React.FC<ModernSelectProps> = ({
         </div>
       </div>
 
-      <div style={dropdownStyles} role="listbox">
+      <div id={listboxId} style={dropdownStyles} role="listbox">
         {searchable && (
           <div style={{ position: 'relative' }}>
             <MagnifyingGlassIcon

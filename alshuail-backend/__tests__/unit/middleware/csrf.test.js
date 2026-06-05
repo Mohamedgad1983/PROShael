@@ -199,7 +199,7 @@ describe('CSRF Middleware Unit Tests', () => {
   describe('Validate CSRF Token', () => {
     test('should skip validation for GET requests', () => {
       const req = createMockRequest({ method: 'GET' });
-      let nextCalled = false;
+      const nextCalled = false;
 
       const validateCSRFToken = (r) => {
         if (['GET', 'HEAD', 'OPTIONS'].includes(r.method)) {

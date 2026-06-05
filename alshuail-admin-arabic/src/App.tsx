@@ -1,17 +1,17 @@
-import React, { Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React,{ Suspense } from 'react';
+import { BrowserRouter as Router,Navigate,Route,Routes } from 'react-router-dom';
 import './App.css';
+import logo from './assets/logo.svg';
+import AppleRegistrationForm from './components/Members/AppleRegistrationForm';
+import MemberRegistration from './components/Members/MemberRegistration';
+import PremiumRegistration from './components/Registration/PremiumRegistration';
+import StyledDashboard from './components/StyledDashboard';
+import { AuthProvider } from './contexts/AuthContext';
+import { RoleProvider } from './contexts/RoleContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import './styles/modern-login.css';
 import './styles/theme.css';
-import StyledDashboard from './components/StyledDashboard';
-import MemberRegistration from './components/Members/MemberRegistration';
-import AppleRegistrationForm from './components/Members/AppleRegistrationForm';
-import PremiumRegistration from './components/Registration/PremiumRegistration';
-import { RoleProvider } from './contexts/RoleContext';
-import { AuthProvider } from './contexts/AuthContext';
-import { ThemeProvider } from './contexts/ThemeContext';
-import { AdminRoute, MemberRoute, PublicRoute } from './utils/RouteGuard';
-import logo from './assets/logo.svg';
+import { AdminRoute,MemberRoute } from './utils/RouteGuard';
 import { showToast } from './utils/toast';
 
 import { logger } from './utils/logger';
@@ -28,9 +28,6 @@ const MobileNotifications = React.lazy(() => import('./pages/mobile/Notification
 const MemberSubscriptionView = React.lazy(() => import('./pages/mobile/MemberSubscriptionView'));
 
 // Admin Pages (lazy-loaded)
-const SubscriptionDashboard = React.lazy(() => import('./pages/admin/SubscriptionDashboard'));
-const NewsManagement = React.lazy(() => import('./pages/admin/NewsManagement'));
-const InitiativesManagement = React.lazy(() => import('./pages/admin/InitiativesManagement'));
 const InitiativeReport = React.lazy(() => import('./pages/admin/InitiativeReport'));
 
 // Member Pages - News & Initiatives (lazy-loaded)
@@ -59,17 +56,14 @@ const AdminDashboard: React.FC = () => {
     role: 'super_admin' // Default to super admin for admin login
   });
   // Check localStorage for existing session
-  const [isLoggedIn, setIsLoggedIn] = React.useState(() => {
+  React.useEffect(() => {
     const savedSession = localStorage.getItem('isLoggedIn');
     const isLogged = savedSession === 'true';
 
-    // If already logged in, redirect to dashboard
     if (isLogged && window.location.pathname === '/login') {
       window.location.href = '/admin/dashboard';
     }
-
-    return isLogged;
-  });
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -124,21 +118,6 @@ const AdminDashboard: React.FC = () => {
         type: 'error'
       });
     }
-  };
-
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    setFormData({ email: '', password: '', role: 'super_admin' });
-    // Clear all auth data from localStorage
-    localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('userEmail');
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user_data');
-
-    // Redirect to login page
-    window.location.href = '/login';
   };
 
   // Don't show dashboard here - let routes handle it

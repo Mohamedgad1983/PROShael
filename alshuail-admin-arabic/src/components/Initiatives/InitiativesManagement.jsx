@@ -1,54 +1,17 @@
-﻿import React, {  useState, useEffect , useCallback } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
 import { toHijri } from 'hijri-converter';
+import React,{ useEffect,useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 import { logger } from '../../utils/logger';
 
 import {
-  HandRaisedIcon,
-  HeartIcon,
-  UserGroupIcon,
-  CurrencyDollarIcon,
-  ChartBarIcon,
-  TrendingUpIcon,
-  ClockIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  ExclamationTriangleIcon,
-  SparklesIcon,
-  MagnifyingGlassIcon,
-  FunnelIcon,
-  PlusIcon,
-  EyeIcon,
-  PencilIcon,
-  TrashIcon,
-  ShareIcon,
-  CalendarIcon,
-  MapPinIcon,
-  DocumentTextIcon,
-  PhotoIcon,
-  BellIcon,
-  GiftIcon,
-  ShieldExclamationIcon,
-  AcademicCapIcon,
-  BuildingLibraryIcon,
-  // MedicalBag, // This icon doesn't exist, commenting out
-  HomeIcon,
-  StarIcon
-} from '@heroicons/react/24/outline';
+AcademicCapIcon,
+BuildingLibraryIcon,CalendarIcon,ChartBarIcon,CheckCircleIcon,ClockIcon,CurrencyDollarIcon,ExclamationTriangleIcon,EyeIcon,GiftIcon,HandRaisedIcon,
+HeartIcon,MagnifyingGlassIcon,MapPinIcon,PencilIcon,PlusIcon,ShareIcon,ShieldExclamationIcon,SparklesIcon,StarIcon,UserGroupIcon} from '@heroicons/react/24/outline';
 
 const InitiativesManagement = () => {
   // Performance optimized event handlers
-  const handleRefresh = useCallback(() => {
-    // Refresh logic here
-  }, []);
 
-  const handleFilterChange = useCallback((filterType, value) => {
-    // Filter logic here
-  }, []);
 
-  const handlePageChange = useCallback((page) => {
-    // Pagination logic here
-  }, []);
 
   const { user, canAccessModule } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
@@ -61,9 +24,9 @@ const InitiativesManagement = () => {
     priority: '',
     funding_status: ''
   });
-  const [selectedInitiative, setSelectedInitiative] = useState(null);
-  const [showInitiativeModal, setShowInitiativeModal] = useState(false);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [, setSelectedInitiative] = useState(null);
+  const [, setShowInitiativeModal] = useState(false);
+  const [, setShowCreateModal] = useState(false);
 
   // Mock initiatives data
   const mockInitiatives = [
@@ -218,6 +181,7 @@ const InitiativesManagement = () => {
     if (canAccessModule('initiatives')) {
       loadInitiativesData();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- preserve existing one-time legacy load behavior
   }, [filters]);
 
   const loadInitiativesData = async () => {
@@ -282,32 +246,7 @@ const InitiativesManagement = () => {
     return matchesSearch && matchesStatus && matchesCategory && matchesPriority && matchesFunding;
   });
 
-  const formatHijriDate = (gregorianDate) => {
-    try {
-      const date = new Date(gregorianDate);
-      const hijriDate = toHijri(date.getFullYear(), date.getMonth() + 1, date.getDate());
-      return `${hijriDate.hy}/${hijriDate.hm}/${hijriDate.hd} هـ`;
-    } catch (error) {
-      return gregorianDate;
-    }
-  };
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'active':
-        return <CheckCircleIcon className="w-5 h-5 text-green-500" />;
-      case 'planning':
-        return <ClockIcon className="w-5 h-5 text-yellow-500" />;
-      case 'completed':
-        return <CheckCircleIcon className="w-5 h-5 text-blue-500" />;
-      case 'paused':
-        return <ExclamationTriangleIcon className="w-5 h-5 text-orange-500" />;
-      case 'cancelled':
-        return <XCircleIcon className="w-5 h-5 text-red-500" />;
-      default:
-        return <ClockIcon className="w-5 h-5 text-gray-500" />;
-    }
-  };
 
   const getStatusText = (status) => {
     switch (status) {

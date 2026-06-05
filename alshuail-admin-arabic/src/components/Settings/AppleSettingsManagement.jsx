@@ -1,58 +1,14 @@
-﻿import React, {  useState, useEffect , useCallback } from 'react';
 import {
-  Cog6ToothIcon,
-  UserIcon,
-  ShieldCheckIcon,
-  BellIcon,
-  PaintBrushIcon,
-  GlobeAltIcon,
-  CircleStackIcon,
-  CloudIcon,
-  DevicePhoneMobileIcon,
-  ComputerDesktopIcon,
-  KeyIcon,
-  EyeIcon,
-  EyeSlashIcon,
-  DocumentTextIcon,
-  ChartBarIcon,
-  UsersIcon,
-  CurrencyDollarIcon,
-  CalendarIcon,
-  PhotoIcon,
-  LanguageIcon,
-  ClockIcon,
-  MapPinIcon,
-  EnvelopeIcon,
-  PhoneIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  ExclamationTriangleIcon,
-  ArrowDownTrayIcon,
-  ArrowUpTrayIcon,
-  TrashIcon,
-  PencilIcon,
-  PlusIcon,
-  InformationCircleIcon,
-  SparklesIcon,
-  SunIcon,
-  MoonIcon,
-  StarIcon
+ArrowDownTrayIcon,
+ArrowUpTrayIcon,BellIcon,CheckCircleIcon,CircleStackIcon,ClockIcon,CloudIcon,Cog6ToothIcon,DocumentTextIcon,ExclamationTriangleIcon,EyeIcon,InformationCircleIcon,KeyIcon,PaintBrushIcon,PencilIcon,PhotoIcon,ShieldCheckIcon,SparklesIcon,TrashIcon,UserIcon
 } from '@heroicons/react/24/outline';
+import React,{ useState } from 'react';
 // CSS styles are inline
 
 const AppleSettingsManagement = () => {
   // Performance optimized event handlers
-  const handleRefresh = useCallback(() => {
-    // Refresh logic here
-  }, []);
 
-  const handleFilterChange = useCallback((filterType, value) => {
-    // Filter logic here
-  }, []);
 
-  const handlePageChange = useCallback((page) => {
-    // Pagination logic here
-  }, []);
 
   const [activeTab, setActiveTab] = useState('general');
   const [settings, setSettings] = useState({
@@ -105,7 +61,7 @@ const AppleSettingsManagement = () => {
     }
   });
 
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [, setShowPasswordModal] = useState(false);
   const [loading, setLoading] = useState(false);
 
   // Settings tabs

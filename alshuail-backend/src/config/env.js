@@ -13,6 +13,7 @@
 
 import dotenv from 'dotenv';
 import winston from 'winston';
+import crypto from 'crypto';
 
 // Minimal logger for config module (cannot import from logger.js due to circular dependency)
 const configLogger = winston.createLogger({
@@ -34,7 +35,8 @@ dotenv.config();
  *       Database connection uses DB_* variables via pgQueryBuilder
  */
 const REQUIRED_PRODUCTION_VARS = [
-  'JWT_SECRET'
+  'JWT_SECRET',
+  'CSRF_SECRET'
   // DB_HOST, DB_NAME, DB_USER, DB_PASSWORD are used by pgQueryBuilder.js
   // but have sensible defaults for development
 ];
@@ -111,6 +113,11 @@ const isProduction = nodeEnv === 'production';
 const isDevelopment = nodeEnv === 'development';
 const isTest = nodeEnv === 'test';
 
+const developmentSecret = (key) => crypto
+  .createHash('sha256')
+  .update(`${key}:${nodeEnv}:${process.cwd()}`)
+  .digest('hex');
+
 // Validate before exporting
 validateEnvironment(isProduction);
 
@@ -144,7 +151,7 @@ export const config = {
 
   // JWT Configuration
   jwt: {
-    secret: getString('JWT_SECRET', isDevelopment ? 'alshuail-dev-secret-2024-very-long-and-secure' : ''),
+    secret: getString('JWT_SECRET', isProduction ? '' : developmentSecret('JWT_SECRET')),
     adminTtl: getString('ADMIN_JWT_TTL', '7d'),
     memberTtl: getString('MEMBER_JWT_TTL', '30d'),
     secretKey: getString('SECRET_KEY') || getString('JWT_SECRET'), // Legacy support
@@ -174,7 +181,13 @@ export const config = {
 
   // CSRF Configuration
   csrf: {
-    secret: getString('CSRF_SECRET', isDevelopment ? 'alshuail-csrf-secret-dev-2024' : 'alshuail-csrf-secret-2025-secure-key'),
+    secret: getString('CSRF_SECRET', isProduction ? '' : developmentSecret('CSRF_SECRET')),
+  },
+
+  // Debug endpoints are disabled in production unless both values are set.
+  debug: {
+    enabled: getBoolean('ENABLE_DEBUG_ENDPOINT', isDevelopment || isTest),
+    token: getString('DEBUG_TOKEN', ''),
   },
 
   // Testing Configuration
@@ -229,7 +242,7 @@ if (isProduction) {
     configLogger.warn('REDIS_URL not configured. Caching will be disabled.');
   }
   if (!config.frontend.corsOrigin) {
-    configLogger.warn('CORS_ORIGIN not configured. Using permissive CORS settings.');
+    configLogger.warn('CORS_ORIGIN not configured. Built-in production origins will be used.');
   }
   if (!config.firebase.enabled) {
     configLogger.warn('Firebase credentials not configured. Push notifications will be disabled.');
