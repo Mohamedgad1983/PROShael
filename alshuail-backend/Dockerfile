@@ -5,21 +5,24 @@
 # ================================
 # Stage 1: Build Dependencies
 # ================================
-FROM node:20-alpine AS dependencies
+FROM node:20-bookworm-slim AS dependencies
 
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies for native modules
-RUN apk add --no-cache \
-    python3 \
-    make \
-    g++ \
-    cairo-dev \
-    jpeg-dev \
-    pango-dev \
-    giflib-dev \
-    librsvg-dev
+# Install system dependencies for native modules such as canvas.
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        python3 \
+        make \
+        g++ \
+        pkg-config \
+        libcairo2-dev \
+        libjpeg-dev \
+        libpango1.0-dev \
+        libgif-dev \
+        librsvg2-dev && \
+    rm -rf /var/lib/apt/lists/*
 
 # Copy package files
 COPY package*.json ./
@@ -30,24 +33,27 @@ RUN npm ci --omit=dev && npm cache clean --force
 # ================================
 # Stage 2: Production Runtime
 # ================================
-FROM node:20-alpine AS production
+FROM node:20-bookworm-slim AS production
 
 # Create non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S alshuail -u 1001
+RUN groupadd --gid 1001 nodejs && \
+    useradd --uid 1001 --gid nodejs --shell /usr/sbin/nologin --create-home alshuail
 
 # Set working directory
 WORKDIR /app
 
 # Install runtime system dependencies
-RUN apk add --no-cache \
-    cairo \
-    jpeg \
-    pango \
-    giflib \
-    librsvg \
-    tzdata \
-    curl
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        libcairo2 \
+        libjpeg62-turbo \
+        libpango-1.0-0 \
+        libpangocairo-1.0-0 \
+        libgif7 \
+        librsvg2-2 \
+        tzdata \
+        curl && \
+    rm -rf /var/lib/apt/lists/*
 
 # Set timezone for proper Islamic calendar calculations
 ENV TZ=Asia/Riyadh
