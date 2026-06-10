@@ -205,6 +205,19 @@ export const config = {
     otpAuthEnabled: getBoolean('OTP_AUTH_ENABLED', true),
   },
 
+  // Payment Gateway (Moyasar)
+  paymentGateway: {
+    enabled: getBoolean('PAYMENT_GATEWAY_ENABLED', false),
+    iosEnabled: getBoolean('IOS_PAYMENT_GATEWAY_ENABLED', false),
+    provider: getString('PAYMENT_GATEWAY_PROVIDER', 'moyasar').toLowerCase(),
+    currency: getString('PAYMENT_GATEWAY_CURRENCY', 'SAR').toUpperCase(),
+    moyasar: {
+      publishableKey: getString('MOYASAR_PUBLISHABLE_KEY', ''),
+      secretKey: getString('MOYASAR_SECRET_KEY', ''),
+      webhookSecret: getString('MOYASAR_WEBHOOK_SECRET', ''),
+    },
+  },
+
   // Firebase Cloud Messaging (Push Notifications)
   firebase: {
     projectId: getString('FIREBASE_PROJECT_ID'),
@@ -233,7 +246,7 @@ export const config = {
 
 // Log configuration on startup (non-sensitive info only)
 if (isDevelopment) {
-  configLogger.info(`Environment Configuration Loaded: env=${config.env} port=${config.port} db=${config.database.url ? 'DATABASE_URL' : 'DB_* variables'} postgresHost=${config.postgres.host} jwtConfigured=${!!config.jwt.secret} redisEnabled=${config.redis.enabled} frontendUrl=${config.frontend.url} firebaseEnabled=${config.firebase.enabled} twilioEnabled=${config.twilio.enabled} ultramsgEnabled=${config.ultramsg.enabled} passwordAuthEnabled=${config.featureFlags.passwordAuthEnabled}`);
+  configLogger.info(`Environment Configuration Loaded: env=${config.env} port=${config.port} db=${config.database.url ? 'DATABASE_URL' : 'DB_* variables'} postgresHost=${config.postgres.host} jwtConfigured=${!!config.jwt.secret} redisEnabled=${config.redis.enabled} frontendUrl=${config.frontend.url} firebaseEnabled=${config.firebase.enabled} twilioEnabled=${config.twilio.enabled} ultramsgEnabled=${config.ultramsg.enabled} passwordAuthEnabled=${config.featureFlags.passwordAuthEnabled} paymentGatewayEnabled=${config.paymentGateway.enabled} paymentGatewayProvider=${config.paymentGateway.provider}`);
 }
 
 // Warn about missing optional but recommended variables
