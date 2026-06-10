@@ -1,0 +1,4 @@
+[submodule "AlShuailFund/AlShuailFund"]
+	path = AlShuailFund/AlShuailFund
+	url = https://github.com/Mohamedgad1983/AlShuailFund-iOS.git
+	branch = main

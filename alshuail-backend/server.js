@@ -297,6 +297,7 @@ app.use('/api', (req, res, next) => {
     '/api/auth/password/verify-otp',
     '/api/auth/password/reset-password',
     '/api/auth/password/face-id-login',
+    '/api/payments/gateway/',
     '/api/health',
     '/api/csrf-token',
     '/api/csrf-token/validate'

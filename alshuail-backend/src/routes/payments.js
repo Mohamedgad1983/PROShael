@@ -37,6 +37,11 @@ import {
   getPendingPayments,
   getPendingPaymentsStats
 } from '../controllers/paymentsController.js';
+import {
+  createGatewaySession,
+  handleMoyasarWebhook,
+  verifyGatewaySession,
+} from '../controllers/paymentGatewayController.js';
 import { requireRole } from '../middleware/rbacMiddleware.js';
 import {
   validatePaymentInitiation,
@@ -73,6 +78,13 @@ const router = express.Router();
 // swallowed by the dynamic :id route. Admin-only.
 router.get('/pending',       requireRole(['super_admin', 'financial_manager']), getPendingPayments);
 router.get('/pending/stats', requireRole(['super_admin', 'financial_manager']), getPendingPaymentsStats);
+
+// iOS payment gateway (Moyasar). These routes intentionally sit before the
+// generic /:id route family. The session/verify endpoints are member-auth
+// protected; the webhook is authenticated with Moyasar's shared secret.
+router.post('/gateway/session', requireRole(['member']), createGatewaySession);
+router.post('/gateway/session/:paymentId/verify', requireRole(['member']), verifyGatewaySession);
+router.post('/gateway/moyasar/webhook', handleMoyasarWebhook);
 
 // Basic CRUD Operations - require financial access
 router.get('/', cacheMiddleware(300), requireRole(['super_admin', 'financial_manager']), getAllPayments);
