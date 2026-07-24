@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
+import '../../utils/num_utils.dart';
 import 'package:provider/provider.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
@@ -62,13 +63,13 @@ class _InitiativesScreenState extends State<InitiativesScreen> {
   }
 
   String _formatCurrency(dynamic amount) {
-    final num = (amount ?? 0).toDouble();
+    final num = asDouble(amount);
     return NumberFormat('#,##0', 'ar').format(num);
   }
 
   double _calculateProgress(Map<String, dynamic> initiative) {
-    final target = (initiative['target_amount'] ?? 0).toDouble();
-    final current = (initiative['current_amount'] ?? initiative['collected_amount'] ?? 0).toDouble();
+    final target = asDouble(initiative['target_amount']);
+    final current = asDouble(initiative['current_amount'] ?? initiative['collected_amount']);
     if (target <= 0) return 0;
     return (current / target).clamp(0.0, 1.0);
   }
@@ -203,8 +204,8 @@ class _InitiativesScreenState extends State<InitiativesScreen> {
     final progress = _calculateProgress(initiative);
     final isActive = (initiative['status'] ?? initiative['collection_status']) == 'active' ||
                      (initiative['status'] ?? initiative['collection_status']) == 'جارية';
-    final target = (initiative['target_amount'] ?? 0).toDouble();
-    final current = (initiative['current_amount'] ?? initiative['collected_amount'] ?? 0).toDouble();
+    final target = asDouble(initiative['target_amount']);
+    final current = asDouble(initiative['current_amount'] ?? initiative['collected_amount']);
     
     return Container(
       margin: const EdgeInsets.only(bottom: 16),

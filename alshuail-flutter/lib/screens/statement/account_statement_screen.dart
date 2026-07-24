@@ -1,6 +1,7 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../utils/num_utils.dart';
 import '../../config/app_theme.dart';
 import '../../services/storage_service.dart';
 
@@ -104,23 +105,23 @@ class _AccountStatementScreenState extends State<AccountStatementScreen> {
   double get _totalSubscriptions {
     return _transactions
         .where((t) => t['type'] == 'subscription')
-        .fold(0.0, (sum, t) => sum + (t['amount'] as double));
+        .fold(0.0, (sum, t) => sum + asDouble(t['amount']));
   }
 
   double get _totalInitiatives {
     return _transactions
         .where((t) => t['type'] == 'initiative')
-        .fold(0.0, (sum, t) => sum + (t['amount'] as double));
+        .fold(0.0, (sum, t) => sum + asDouble(t['amount']));
   }
 
   double get _totalDiya {
     return _transactions
         .where((t) => t['type'] == 'diya')
-        .fold(0.0, (sum, t) => sum + (t['amount'] as double));
+        .fold(0.0, (sum, t) => sum + asDouble(t['amount']));
   }
 
   double get _totalAmount {
-    return _transactions.fold(0.0, (sum, t) => sum + (t['amount'] as double));
+    return _transactions.fold(0.0, (sum, t) => sum + asDouble(t['amount']));
   }
 
   void _downloadPDF() {

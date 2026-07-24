@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
+import '../../utils/num_utils.dart';
 import 'package:provider/provider.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
@@ -64,7 +65,7 @@ class _PaymentsScreenState extends State<PaymentsScreen> with SingleTickerProvid
   }
 
   String _formatCurrency(dynamic amount) {
-    final num = (amount ?? 0).toDouble();
+    final num = asDouble(amount);
     return NumberFormat('#,##0', 'ar').format(num);
   }
 

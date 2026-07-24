@@ -3,6 +3,7 @@ import '../services/auth_service.dart';
 import '../services/storage_service.dart';
 import '../services/api_service.dart';
 import '../services/biometric_service.dart';
+import '../utils/num_utils.dart';
 
 enum AuthStatus {
   initial,
@@ -34,7 +35,7 @@ class AuthProvider extends ChangeNotifier {
   String get userPhone => _user?['phone'] ?? '';
   String get membershipId => _user?['membership_id'] ?? _user?['membershipNumber'] ?? '';
   String get branchName => _user?['branch_name'] ?? _user?['branchName'] ?? '';
-  double get balance => (_user?['balance'] ?? _user?['current_balance'] ?? 0).toDouble();
+  double get balance => asDouble(_user?['balance'] ?? _user?['current_balance']);
   String get userId => _user?['id'] ?? _user?['member_id'] ?? '';
   
   AuthProvider() {
