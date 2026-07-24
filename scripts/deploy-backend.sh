@@ -47,8 +47,12 @@ if ! git pull --ff-only origin main; then
 fi
 echo "==> Now at: $(git rev-parse --short HEAD)"
 
-echo "==> Install backend deps (prod only)"
-( cd "$BACKEND" && npm install --omit=dev --no-audit --no-fund )
+echo "==> Install backend deps (only when package.json / lock changed)"
+if git diff --quiet "$PREV" HEAD -- alshuail-backend/package.json alshuail-backend/package-lock.json; then
+  echo "    deps unchanged — skipping install"
+else
+  ( cd "$BACKEND" && npm install --omit=dev --no-audit --no-fund )
+fi
 
 echo "==> Restart $PM2_APP"
 pm2 restart "$PM2_APP" --update-env
