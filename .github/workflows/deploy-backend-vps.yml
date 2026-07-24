@@ -4,11 +4,13 @@ name: Deploy Backend to VPS
 #
 # PREREQUISITES (one-time):
 #   1. Add repository secrets: VPS_SSH_KEY (private key), VPS_HOST, VPS_USER.
-#   2. Reconcile the VPS git history with origin/main. Production currently
-#      carries local-only commits, so `git pull --ff-only` (used below) will
-#      FAIL until the VPS branch fast-forwards cleanly from origin/main. This
-#      is intentional: a failed deploy is safer than a silent merge or an
-#      overwrite of production-only state.
+#   2. Ensure the VPS `alshuail-backend/.env` has the [PROD REQUIRED] vars
+#      JWT_SECRET and CSRF_SECRET set — the server FAILS TO START without them
+#      (this step preflights that before restarting).
+#   3. The VPS git history must fast-forward cleanly from origin/main. If it
+#      carries local-only commits, `git pull --ff-only` (used below) FAILS by
+#      design: a failed deploy is safer than a silent merge or an overwrite of
+#      production-only state.
 #
 # Trigger it from the Actions tab (workflow_dispatch). It never runs on push.
 
@@ -48,6 +50,13 @@ jobs:
             "RESTART_ONLY='${RESTART_ONLY}' bash -s" <<'REMOTE'
           set -euo pipefail
           cd /var/www/PROShael
+          # Preflight: [PROD REQUIRED] env vars — a missing one crashes boot.
+          for v in JWT_SECRET CSRF_SECRET; do
+            if ! grep -qE "^${v}=." alshuail-backend/.env; then
+              echo "::error::${v} missing/empty in alshuail-backend/.env — server will not boot"
+              exit 1
+            fi
+          done
           if [ "${RESTART_ONLY}" != "true" ]; then
             git fetch origin
             # --ff-only: fail loudly if the VPS history has diverged instead of
