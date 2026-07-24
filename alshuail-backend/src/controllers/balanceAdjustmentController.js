@@ -19,7 +19,7 @@
  * - financial_manager: Can make balance adjustments
  */
 
-import { query } from '../services/database.js';
+import { query, getClient } from '../services/database.js';
 import { log } from '../utils/logger.js';
 
 // Business constants
@@ -33,6 +33,7 @@ const MIN_ADJUSTMENT_YEAR = CURRENT_YEAR - 5; // Allow adjustments for past 5 ye
  * POST /api/balance-adjustments
  */
 export const adjustBalance = async (req, res) => {
+  let client;
   try {
     const {
       member_id,
@@ -97,13 +98,20 @@ export const adjustBalance = async (req, res) => {
       });
     }
 
-    // Get current member data
-    const memberResult = await query(
-      'SELECT id, full_name, membership_number, balance, payment_2021, payment_2022, payment_2023, payment_2024, payment_2025 FROM members WHERE id = $1',
+    // Run all balance mutations in a single transaction so the member balance,
+    // subscription row, and both audit rows commit together or not at all.
+    // FOR UPDATE locks the member row against concurrent adjustments.
+    client = await getClient();
+    await client.query('BEGIN');
+
+    // Get current member data (locked)
+    const memberResult = await client.query(
+      'SELECT id, full_name, membership_number, balance, payment_2021, payment_2022, payment_2023, payment_2024, payment_2025 FROM members WHERE id = $1 FOR UPDATE',
       [member_id]
     );
 
     if (!memberResult.rows || memberResult.rows.length === 0) {
+      await client.query('ROLLBACK');
       log.error('Balance adjustment: Member not found', { member_id });
       return res.status(404).json({
         success: false,
@@ -167,14 +175,14 @@ export const adjustBalance = async (req, res) => {
 
     memberUpdateValues.push(member_id);
 
-    // Start transaction: Update member balance
-    await query(
+    // Update member balance
+    await client.query(
       `UPDATE members SET ${memberUpdateFields.join(', ')} WHERE id = $${paramIndex}`,
       memberUpdateValues
     );
 
     // Update subscription if exists
-    const subscriptionResult = await query(
+    const subscriptionResult = await client.query(
       'SELECT id, current_balance FROM subscriptions WHERE member_id = $1',
       [member_id]
     );
@@ -185,7 +193,7 @@ export const adjustBalance = async (req, res) => {
       const nextPaymentDue = new Date();
       nextPaymentDue.setMonth(nextPaymentDue.getMonth() + monthsPaidAhead);
 
-      await query(
+      await client.query(
         `UPDATE subscriptions
          SET current_balance = $1,
              months_paid_ahead = $2,
@@ -205,7 +213,7 @@ export const adjustBalance = async (req, res) => {
     }
 
     // Create audit record
-    const auditResult = await query(
+    const auditResult = await client.query(
       `INSERT INTO balance_adjustments (
         member_id, adjustment_type, amount, previous_balance, new_balance,
         target_year, target_month, reason, notes, adjusted_by,
@@ -233,7 +241,7 @@ export const adjustBalance = async (req, res) => {
     const adjustment = auditResult.rows[0];
 
     // Also log to financial_audit_trail for comprehensive tracking
-    await query(
+    await client.query(
       `INSERT INTO financial_audit_trail (
         user_id, operation, resource_type, resource_id,
         previous_value, new_value, metadata, ip_address
@@ -249,6 +257,8 @@ export const adjustBalance = async (req, res) => {
         req.ip
       ]
     );
+
+    await client.query('COMMIT');
 
     log.info('Balance adjustment successful', {
       member_id,
@@ -278,6 +288,9 @@ export const adjustBalance = async (req, res) => {
     });
 
   } catch (error) {
+    if (client) {
+      await client.query('ROLLBACK').catch(() => {});
+    }
     log.error('Balance adjustment error', { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
@@ -285,6 +298,10 @@ export const adjustBalance = async (req, res) => {
       message_en: 'Failed to adjust balance',
       details: error.message
     });
+  } finally {
+    if (client) {
+      client.release();
+    }
   }
 };
 
@@ -503,59 +520,73 @@ export const bulkRestoreBalances = async (req, res) => {
           continue;
         }
 
-        // Update member balance
-        await query(
-          `UPDATE members
-           SET balance = $1, updated_at = $2
-           WHERE id = $3`,
-          [calculatedBalance, new Date().toISOString(), member.id]
-        );
+        // Persist this member's three writes atomically so a mid-way failure
+        // never leaves the member balance updated without its audit row.
+        const memberClient = await getClient();
+        try {
+          await memberClient.query('BEGIN');
 
-        // Update subscription
-        const monthsPaidAhead = Math.floor(calculatedBalance / MONTHLY_SUBSCRIPTION);
-        const nextPaymentDue = new Date();
-        nextPaymentDue.setMonth(nextPaymentDue.getMonth() + monthsPaidAhead);
+          // Update member balance
+          await memberClient.query(
+            `UPDATE members
+             SET balance = $1, updated_at = $2
+             WHERE id = $3`,
+            [calculatedBalance, new Date().toISOString(), member.id]
+          );
 
-        await query(
-          `UPDATE subscriptions
-           SET current_balance = $1,
-               months_paid_ahead = $2,
-               next_payment_due = $3,
-               status = $4,
-               updated_at = $5
-           WHERE member_id = $6`,
-          [
-            calculatedBalance,
-            monthsPaidAhead,
-            nextPaymentDue.toISOString(),
-            calculatedBalance >= 0 ? 'active' : 'overdue',
-            new Date().toISOString(),
-            member.id
-          ]
-        );
+          // Update subscription
+          const monthsPaidAhead = Math.floor(calculatedBalance / MONTHLY_SUBSCRIPTION);
+          const nextPaymentDue = new Date();
+          nextPaymentDue.setMonth(nextPaymentDue.getMonth() + monthsPaidAhead);
 
-        // Create audit record
-        await query(
-          `INSERT INTO balance_adjustments (
-            member_id, adjustment_type, amount, previous_balance, new_balance,
-            target_year, reason, notes, adjusted_by, adjusted_by_email,
-            adjusted_by_role, ip_address
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
-          [
-            member.id,
-            'bulk_restore',
-            calculatedBalance,
-            previousBalance,
-            calculatedBalance,
-            restore_year || null,
-            reason,
-            `Bulk restore from yearly payment fields${restore_year ? ` (year ${restore_year})` : ' (all years)'}`,
-            req.user.id,
-            req.user.email,
-            req.user.role,
-            req.ip
-          ]
-        );
+          await memberClient.query(
+            `UPDATE subscriptions
+             SET current_balance = $1,
+                 months_paid_ahead = $2,
+                 next_payment_due = $3,
+                 status = $4,
+                 updated_at = $5
+             WHERE member_id = $6`,
+            [
+              calculatedBalance,
+              monthsPaidAhead,
+              nextPaymentDue.toISOString(),
+              calculatedBalance >= 0 ? 'active' : 'overdue',
+              new Date().toISOString(),
+              member.id
+            ]
+          );
+
+          // Create audit record
+          await memberClient.query(
+            `INSERT INTO balance_adjustments (
+              member_id, adjustment_type, amount, previous_balance, new_balance,
+              target_year, reason, notes, adjusted_by, adjusted_by_email,
+              adjusted_by_role, ip_address
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+            [
+              member.id,
+              'bulk_restore',
+              calculatedBalance,
+              previousBalance,
+              calculatedBalance,
+              restore_year || null,
+              reason,
+              `Bulk restore from yearly payment fields${restore_year ? ` (year ${restore_year})` : ' (all years)'}`,
+              req.user.id,
+              req.user.email,
+              req.user.role,
+              req.ip
+            ]
+          );
+
+          await memberClient.query('COMMIT');
+        } catch (txErr) {
+          await memberClient.query('ROLLBACK').catch(() => {});
+          throw txErr;
+        } finally {
+          memberClient.release();
+        }
 
         results.success.push({
           member_id: member.id,

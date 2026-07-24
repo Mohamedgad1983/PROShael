@@ -241,6 +241,20 @@ const limiter = rateLimit({
 });
 app.use('/api', limiter);
 
+// Strict per-IP limiter for authentication surfaces (login, OTP, password).
+// Far tighter than the global limiter to blunt brute-force and OTP-send abuse.
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 50, // per IP across auth/otp/password endpoints
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: 'Too many authentication attempts, please try again later',
+    messageAr: 'محاولات دخول كثيرة جداً، الرجاء المحاولة لاحقاً'
+  }
+});
+
 // Configure JSON parsing with UTF-8 support for Arabic text
 // Cookie parser for CSRF tokens
 app.use(cookieParser());
@@ -281,7 +295,7 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', authLimiter, authRoutes);
 
 // CSRF token endpoint (must be before CSRF validation)
 app.use('/api', csrfRoutes);
@@ -376,7 +390,7 @@ app.use('/api/device-tokens', deviceTokenRoutes);
 app.use('/api/multi-role', multiRoleManagementRoutes);
 
 // Password Management APIs - Superadmin password creation and reset
-app.use('/api/password-management', passwordManagementRoutes);
+app.use('/api/password-management', authLimiter, passwordManagementRoutes);
 
 // User Profile APIs - Profile info and avatar management
 app.use('/api/user/profile', profileRoutes);
@@ -388,7 +402,7 @@ app.use('/api/notifications/push', pushNotificationsRoutes);
 app.use('/api/audit', auditRoutes);
 
 // OTP Authentication APIs - WhatsApp OTP for mobile login
-app.use('/api/otp', otpRoutes);
+app.use('/api/otp', authLimiter, otpRoutes);
 
 // Expense Categories APIs - Dynamic expense category management
 app.use('/api/expense-categories', expenseCategoriesRoutes);

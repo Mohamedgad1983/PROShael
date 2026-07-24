@@ -1,4 +1,4 @@
-import { query } from '../services/database.js';
+import { query, getClient } from '../services/database.js';
 import { log } from '../utils/logger.js';
 import { config } from '../config/env.js';
 import { HijriDateManager } from '../utils/hijriDateUtils.js';
@@ -646,18 +646,26 @@ export const getMemberDiyas = async (req, res) => {
  * External diyas stay in the diya section.
  */
 export const transferDiyaToExpense = async (req, res) => {
+  let client;
   try {
     const { id } = req.params;
     const userId = req.user?.id;
     const { notes } = req.body;
 
-    // Step 1: Get the diya activity
-    const { rows: activityRows } = await query(
-      'SELECT * FROM activities WHERE id = $1',
+    // Transfer runs in a transaction: lock the activity row so two concurrent
+    // transfers cannot both pass the "already transferred" check (double-spend),
+    // and so the expense insert + activity update commit together or not at all.
+    client = await getClient();
+    await client.query('BEGIN');
+
+    // Step 1: Get the diya activity (locked for update)
+    const { rows: activityRows } = await client.query(
+      'SELECT * FROM activities WHERE id = $1 FOR UPDATE',
       [id]
     );
 
     if (!activityRows || activityRows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({
         success: false,
         error: 'قضية الدية غير موجودة'
@@ -668,6 +676,7 @@ export const transferDiyaToExpense = async (req, res) => {
 
     // Step 2: Check if already transferred
     if (diya.status === 'transferred_to_expense') {
+      await client.query('ROLLBACK');
       return res.status(400).json({
         success: false,
         error: 'هذه الدية تم نقلها بالفعل إلى المصروفات'
@@ -692,6 +701,7 @@ export const transferDiyaToExpense = async (req, res) => {
     const expenseAmount = Number(diya.target_amount) || totalCollected;
 
     if (expenseAmount <= 0) {
+      await client.query('ROLLBACK');
       return res.status(400).json({
         success: false,
         error: 'مبلغ الدية يجب أن يكون أكبر من صفر'
@@ -717,7 +727,7 @@ export const transferDiyaToExpense = async (req, res) => {
     // Step 5: Create expense record
     const transferNotes = `دية داخلية منقولة من قسم الديات - ${diya.title_ar || diya.title_en || 'بدون عنوان'}${notes ? ' | ' + notes : ''}`;
 
-    const { rows: expenseRows } = await query(
+    const { rows: expenseRows } = await client.query(
       `INSERT INTO expenses (
         expense_category, title_ar, title_en, description_ar, amount, currency,
         expense_date, paid_to, payment_method, notes,
@@ -756,10 +766,12 @@ export const transferDiyaToExpense = async (req, res) => {
     );
 
     // Step 6: Mark the original diya activity as transferred
-    await query(
+    await client.query(
       "UPDATE activities SET status = 'transferred_to_expense', notes = COALESCE(notes, '') || $1 WHERE id = $2",
       [`\n[تم نقلها إلى المصروفات بتاريخ ${new Date().toLocaleDateString('ar-SA')} - رقم المصروف: ${expenseRows[0]?.id}]`, id]
     );
+
+    await client.query('COMMIT');
 
     log.info('Diya transferred to expense', {
       diyaId: id,
@@ -779,12 +791,19 @@ export const transferDiyaToExpense = async (req, res) => {
       message_en: `Diya transferred to expenses successfully. Amount: ${expenseAmount} SAR`
     });
   } catch (error) {
+    if (client) {
+      await client.query('ROLLBACK').catch(() => {});
+    }
     log.error('Error transferring diya to expense', { error: error.message, diyaId: req.params.id });
     res.status(500).json({
       success: false,
       error: 'فشل في نقل الدية إلى المصروفات',
       message: config.isDevelopment ? error.message : undefined
     });
+  } finally {
+    if (client) {
+      client.release();
+    }
   }
 };
 
@@ -808,21 +827,18 @@ export const bulkTransferDiyasToExpenses = async (req, res) => {
     const errors = [];
 
     for (const diyaId of diya_ids) {
+      const diyaClient = await getClient();
       try {
-        // Simulate the request for each diya
-        const mockReq = {
-          params: { id: diyaId },
-          user: { id: userId },
-          body: { notes }
-        };
+        await diyaClient.query('BEGIN');
 
-        // Get the diya
-        const { rows: activityRows } = await query(
-          'SELECT * FROM activities WHERE id = $1',
+        // Get the diya (locked for update to prevent concurrent double-transfer)
+        const { rows: activityRows } = await diyaClient.query(
+          'SELECT * FROM activities WHERE id = $1 FOR UPDATE',
           [diyaId]
         );
 
         if (!activityRows || activityRows.length === 0) {
+          await diyaClient.query('ROLLBACK');
           errors.push({ id: diyaId, error: 'غير موجودة' });
           continue;
         }
@@ -830,12 +846,14 @@ export const bulkTransferDiyasToExpenses = async (req, res) => {
         const diya = activityRows[0];
 
         if (diya.status === 'transferred_to_expense') {
+          await diyaClient.query('ROLLBACK');
           errors.push({ id: diyaId, error: 'تم نقلها مسبقاً' });
           continue;
         }
 
         const expenseAmount = Number(diya.target_amount) || Number(diya.current_amount) || 0;
         if (expenseAmount <= 0) {
+          await diyaClient.query('ROLLBACK');
           errors.push({ id: diyaId, error: 'المبلغ صفر' });
           continue;
         }
@@ -850,7 +868,7 @@ export const bulkTransferDiyasToExpenses = async (req, res) => {
 
         const transferNotes = `دية داخلية منقولة - ${diya.title_ar || ''}${notes ? ' | ' + notes : ''}`;
 
-        const { rows: expenseRows } = await query(
+        const { rows: expenseRows } = await diyaClient.query(
           `INSERT INTO expenses (
             expense_category, title_ar, title_en, description_ar, amount, currency,
             expense_date, paid_to, payment_method, notes,
@@ -881,10 +899,12 @@ export const bulkTransferDiyasToExpenses = async (req, res) => {
           ]
         );
 
-        await query(
+        await diyaClient.query(
           "UPDATE activities SET status = 'transferred_to_expense' WHERE id = $1",
           [diyaId]
         );
+
+        await diyaClient.query('COMMIT');
 
         results.push({
           diya_id: diyaId,
@@ -893,7 +913,10 @@ export const bulkTransferDiyasToExpenses = async (req, res) => {
           title: diya.title_ar
         });
       } catch (err) {
+        await diyaClient.query('ROLLBACK').catch(() => {});
         errors.push({ id: diyaId, error: err.message });
+      } finally {
+        diyaClient.release();
       }
     }
 
