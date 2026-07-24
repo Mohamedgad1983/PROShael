@@ -4,12 +4,15 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { randomBytes } from 'crypto';
 import jwt from 'jsonwebtoken';
 
 // Use real database credentials from .env
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://oneiggrfzagqjbkdinin.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-const JWT_SECRET = process.env.JWT_SECRET || 'alshuail-super-secure-jwt-secret-key-2024-production-ready-32chars';
+// Never hardcode a real signing secret here. When JWT_SECRET is unset (local
+// runs), use a random per-process value so no production secret is committed.
+const JWT_SECRET = process.env.JWT_SECRET || randomBytes(32).toString('hex');
 
 // Create test database client with service role (full access)
 export const testDb = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {

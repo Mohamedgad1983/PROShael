@@ -388,8 +388,9 @@ class _LoginScreenState extends State<LoginScreen> {
     return '$mins:${secs.toString().padLeft(2, '0')}';
   }
   
-  // Demo login for testing
+  // Demo login for testing — debug builds only, never in release.
   void _handleDemoLogin() {
+    if (!kDebugMode) return;
     final demoUser = {
       'id': 'demo-001',
       'membership_id': 'SH-0001',
@@ -763,19 +764,20 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
 
-        const SizedBox(height: 24),
-
-        // Demo login
-        TextButton(
-          onPressed: _handleDemoLogin,
-          child: Text(
-            '🧪 دخول تجريبي (للمعاينة)',
-            style: GoogleFonts.cairo(
-              fontSize: 13,
-              color: AppTheme.textMuted,
+        // Demo login — rendered only in debug builds, never in release.
+        if (kDebugMode) ...[
+          const SizedBox(height: 24),
+          TextButton(
+            onPressed: _handleDemoLogin,
+            child: Text(
+              '🧪 دخول تجريبي (للمعاينة)',
+              style: GoogleFonts.cairo(
+                fontSize: 13,
+                color: AppTheme.textMuted,
+              ),
             ),
           ),
-        ),
+        ],
       ],
     );
   }

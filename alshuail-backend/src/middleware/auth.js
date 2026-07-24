@@ -3,6 +3,21 @@ import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
 import { config } from '../config/env.js';
 
+// Endpoints intentionally reachable without a token (read-only dashboard data).
+// Matched against the request PATH ONLY, with query string stripped and
+// full path-segment boundaries. This prevents a crafted query string such as
+// `?x=dashboard/stats` from spoofing the check and bypassing authentication on
+// any other route (previously an `originalUrl.includes()` substring match).
+const PUBLIC_READONLY_PATTERNS = [
+  /(^|\/)member-monitoring(\/|$)/,
+  /(^|\/)dashboard\/stats(\/|$)/
+];
+
+const isPublicReadonlyPath = (req) => {
+  const pathname = (req.originalUrl || req.url || '').split('?')[0];
+  return PUBLIC_READONLY_PATTERNS.some((pattern) => pattern.test(pathname));
+};
+
 // Export both names for compatibility
 // eslint-disable-next-line require-await
 export const authenticate = async (req, res, next) => {
@@ -15,7 +30,7 @@ export const authenticate = async (req, res, next) => {
     if (!token) {
       log.debug('No token provided');
       // Allow access without token for read-only dashboard endpoints
-      if (req.originalUrl.includes('member-monitoring') || req.originalUrl.includes('dashboard/stats')) {
+      if (isPublicReadonlyPath(req)) {
         log.info('Allowing public access to read-only dashboard endpoint');
         req.user = { id: 'public-access', role: 'viewer' };
         return next();
@@ -46,7 +61,7 @@ export const authenticate = async (req, res, next) => {
 
         if (err.name === 'JsonWebTokenError') {
           // Allow access even with malformed token for read-only dashboard endpoints
-          if (req.originalUrl.includes('member-monitoring') || req.originalUrl.includes('dashboard/stats')) {
+          if (isPublicReadonlyPath(req)) {
             log.info('Allowing public access with malformed token for read-only endpoint');
             req.user = { id: 'public-access', role: 'viewer' };
             return next();
