@@ -68,6 +68,10 @@ backups/
 *.tar.gz
 *.tgz
 
+# Legacy / bloat directories — kept locally, never tracked
+archive/
+builds/
+
 # Screenshots and images (keep only necessary ones)
 *.png
 *.jpg
