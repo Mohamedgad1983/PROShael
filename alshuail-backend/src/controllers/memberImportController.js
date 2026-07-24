@@ -141,7 +141,7 @@ export const importMembersFromExcel = async (req, res) => {
     // Create import batch record
     batchId = uuidv4();
     await query(
-      `INSERT INTO excel_import_batches (id, filename, total_records, status)
+      `INSERT INTO excel_import_batches (id, file_name, total_rows, status)
        VALUES ($1, $2, $3, $4)`,
       [batchId, req.file.originalname, jsonData.length, 'processing']
     );
@@ -278,10 +278,10 @@ export const importMembersFromExcel = async (req, res) => {
     const batchStatus = failedImports > 0 ? 'completed_with_errors' : 'completed';
     await query(
       `UPDATE excel_import_batches
-       SET successful_imports = $1,
-           failed_imports = $2,
+       SET successful_rows = $1,
+           failed_rows = $2,
            status = $3,
-           error_details = $4,
+           error_log = $4,
            completed_at = $5
        WHERE id = $6`,
       [
@@ -316,7 +316,7 @@ export const importMembersFromExcel = async (req, res) => {
       await query(
         `UPDATE excel_import_batches
          SET status = $1,
-             error_details = $2,
+             error_log = $2,
              completed_at = $3
          WHERE id = $4`,
         ['failed', JSON.stringify([{ error: error.message }]), new Date().toISOString(), batchId]
