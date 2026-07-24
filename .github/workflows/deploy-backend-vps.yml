@@ -74,11 +74,18 @@ jobs:
             cd alshuail-backend
           fi
           pm2 restart alshuail-backend --update-env
-          sleep 3
-          if curl -fsS http://localhost:5001/api/health >/dev/null; then
+          # Health check with retries — the backend takes ~6-8s to boot, so a
+          # single 3s check gives false failures.
+          code=000
+          for i in $(seq 1 10); do
+            sleep 4
+            code="$(curl -s -m 5 http://localhost:5001/api/health -o /dev/null -w '%{http_code}' || true)"
+            [ "$code" = "200" ] && break
+          done
+          if [ "$code" = "200" ]; then
             echo "Deploy OK: backend healthy"
           else
-            echo "::error::Health check failed after restart"
+            echo "::error::Health check failed after restart (last code: $code)"
             exit 1
           fi
           REMOTE
