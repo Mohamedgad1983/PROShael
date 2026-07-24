@@ -52,3 +52,19 @@ token key (`token` vs `alshuail_token`).
 ## 4. Dead admin components (safe deletions — done separately)
 The genuinely unreferenced dashboard variants / demo services are handled in the
 build-gated deletion pass (verified 0 references + admin build passes).
+
+## 5. Consolidate the two PG pools / remove pgQueryBuilder
+`src/config/pgQueryBuilder.js` opens a second `pg.Pool` (the app's real one is
+`src/services/database.js`), so each backend instance holds ~2× the connections.
+It is NOT dead: `config/database.js` wraps it as `supabase` and `server.js`
+imports `testConnection` from `config/database.js`, so its pool loads at startup.
+Its buggy embedded-`select()` FK handling was the source of the historical
+`members.members_family_branch_id_fkey does not exist` errors, but that path is
+now dormant (family-tree uses raw SQL).
+
+**How to do it safely:** add a `testConnection` (`SELECT 1` via the pool) to
+`src/services/database.js`, point `server.js` at it, confirm nothing else imports
+`config/database.js` (only its unused `supabase` export remains), then delete
+`config/database.js` + `pgQueryBuilder.js`. Deploy via the health-gated script
+and verify the startup DB check still passes. This also closes the audit's
+"two pools / connection exhaustion" finding.
