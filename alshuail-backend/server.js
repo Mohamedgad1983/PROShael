@@ -61,6 +61,27 @@ import cookieParser from 'cookie-parser';
 import csrfRoutes from './src/routes/csrf.js';
 import { validateCSRFToken } from './src/middleware/csrf.js';
 
+// ─── Global safety net: keep the API alive on unhandled async errors ───
+// Node 20 terminates the process on an unhandled promise rejection by default,
+// which turned a single un-caught DB/async error into a full crash-loop
+// (pm2 recorded ~71k exit-1 restarts over 8 months). Log with full detail so
+// the underlying bug stays visible and fixable, but do NOT exit — a logged
+// error beats taking the whole API down. Synchronous startup failures (e.g. a
+// missing module) are unaffected and still fail fast before this runs.
+process.on('unhandledRejection', (reason, promise) => {
+  log.error('Unhandled promise rejection (process kept alive)', {
+    reason: reason instanceof Error ? { message: reason.message, stack: reason.stack } : reason,
+    promise: String(promise)
+  });
+});
+
+process.on('uncaughtException', (err) => {
+  log.error('Uncaught exception (process kept alive)', {
+    message: err?.message,
+    stack: err?.stack
+  });
+});
+
 // Environment check with Winston logging
 log.info('Environment Check on Start:', {
   DATABASE_URL: config.database.url ? '✓ Loaded' : '✗ Missing',
