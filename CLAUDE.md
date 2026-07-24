@@ -714,8 +714,9 @@ Migrations cover: password auth system, member balance system, suspension/super 
 ### GitHub Actions Workflows (.github/workflows/)
 | Workflow | Purpose |
 |----------|---------|
-| backend-ci-cd.yml | Quality gates → Build/Docker → Integration tests → Deploy to Railway |
+| backend-ci-cd.yml | Quality gates → Build/Docker → Integration tests (no auto-deploy) |
 | cloudflare-pages-deploy.yml | Admin dashboard → Build → Deploy to Cloudflare Pages |
+| deploy-backend-vps.yml | Manual (workflow_dispatch) backend deploy to the VPS: ff-only pull + pm2 restart + health check |
 | frontend-ci-cd.yml | Frontend build and deploy pipeline |
 | tests.yml | General testing workflow |
 
@@ -727,7 +728,7 @@ Migrations cover: password auth system, member balance system, suspension/super 
 | Ultramsg | WhatsApp OTP delivery | ULTRAMSG_INSTANCE_ID, ULTRAMSG_TOKEN |
 | Firebase | Push notifications (FCM) | Firebase service account JSON |
 | Cloudflare | Admin dashboard hosting + CDN | Wrangler CLI |
-| Railway | Backend hosting (alternative) | render.yaml / railway config |
+| VPS (PM2 + Nginx) | Backend hosting (self-hosted) | 213.199.62.185; deploy-backend-vps.yml |
 
 ## Environment Variables
 
