@@ -4,6 +4,7 @@ const mockQuery = jest.fn();
 const mockGetClient = jest.fn();
 const mockAllocateSequence = jest.fn();
 const mockRecordStatusChange = jest.fn();
+const mockRunAll = jest.fn();
 
 jest.unstable_mockModule('../../../src/services/database.js', () => ({
   query: mockQuery,
@@ -21,8 +22,21 @@ jest.unstable_mockModule('../../../src/services/notificationService.js', () => (
 jest.unstable_mockModule('../../../src/services/sequenceGenerator.js', () => ({
   allocateSequence: mockAllocateSequence,
 }));
+jest.unstable_mockModule('../../../src/services/eligibilityChecker.js', () => ({
+  checkSubscriptionsPaid: jest.fn(),
+  checkProfileComplete: jest.fn(),
+  runAll: mockRunAll,
+}));
 
-const { createLoanRequest, validateRequestPayload } = await import('../../../src/services/loanService.js');
+const {
+  checkLoanEligibility,
+  createLoanRequest,
+  validateRequestPayload,
+} = await import('../../../src/services/loanService.js');
+const {
+  FAMILY_FINANCING_TERMS_AR,
+  FAMILY_FINANCING_TERMS_VERSION,
+} = await import('../../../src/services/familyFinancingPolicy.js');
 
 const payload = {
   applicant_name: 'اختبار سياسة التمويل',
@@ -32,11 +46,13 @@ const payload = {
   monthly_salary: '10000',
   monthly_obligations: '1000',
   requested_item_amount: '6000',
+  terms_version: FAMILY_FINANCING_TERMS_VERSION,
 };
 
 describe('loan creation fixed financing policy', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockRunAll.mockResolvedValue({ ok: true });
     mockQuery.mockResolvedValue({
       rows: [{
         id: 1,
@@ -44,6 +60,7 @@ describe('loan creation fixed financing policy', () => {
         max_loan_amount: 10000,
         max_dbr: 0.5,
         allowed_employment_types: 'government',
+        enabled: true,
         financing_tiers: [
           { principal: 3000, fee: 500 },
           { principal: 6000, fee: 800 },
@@ -55,6 +72,18 @@ describe('loan creation fixed financing policy', () => {
       formatted: '2026-0001',
       year: 2026,
       sequenceInYear: 1,
+    });
+  });
+
+  test('eligibility publishes the exact versioned acknowledgment to the app', async () => {
+    const result = await checkLoanEligibility('member-1');
+
+    expect(result).toMatchObject({
+      ok: true,
+      settings: {
+        terms_version: FAMILY_FINANCING_TERMS_VERSION,
+        terms_text_ar: FAMILY_FINANCING_TERMS_AR,
+      },
     });
   });
 
@@ -78,10 +107,14 @@ describe('loan creation fixed financing policy', () => {
     expect(insertParameters[11]).toBe(6800); // loan_amount / displayed total
     expect(insertParameters[14]).toBe(800);  // financing_fee_amount
     expect(insertParameters[15]).toBe(6800); // total_repayment_amount
-    expect(JSON.parse(insertParameters[16])).toMatchObject({
+    const termsSnapshot = JSON.parse(insertParameters[16]);
+    expect(termsSnapshot).toMatchObject({
       principal: 6000,
       fee: 800,
       total: 6800,
+      terms_version: FAMILY_FINANCING_TERMS_VERSION,
+      terms_text_ar: FAMILY_FINANCING_TERMS_AR,
+      early_settlement_via_app: true,
     });
     expect(client.query).toHaveBeenCalledWith('COMMIT');
     expect(mockRecordStatusChange).toHaveBeenCalledTimes(1);

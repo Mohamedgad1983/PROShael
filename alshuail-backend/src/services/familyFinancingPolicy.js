@@ -10,6 +10,18 @@ export const FAMILY_FINANCING_TIERS = Object.freeze([
   Object.freeze({ principal: 10000, fee: 1400 }),
 ]);
 
+/**
+ * Versioned Arabic acknowledgment shown to the applicant before submission.
+ *
+ * The version is sent to the mobile app and returned with the request so the
+ * exact accepted wording can be preserved in financing_terms_snapshot.
+ */
+export const FAMILY_FINANCING_TERMS_VERSION = 'family_financing_terms_ar_v2_2026-08-02';
+
+export const FAMILY_FINANCING_TERMS_AR = `أقر أنا المتقدم بالطلب بصحة ودقة كافة البيانات والمرفقات المزودة أعلاه، كما أقر بموافقتي على تحويل طلبي إلى (مؤسسة بروز الريادة) لإتمام إجراءات شراء السلعة بالتقسيط والتوثيق عبر منصة ناجز.
+وعليه، ألتزم باستلام السلعة فور جهوزيتها، أو توكيل من ينوب عني للاستلام بموجب البيانات المحددة في هذا الطلب، مع إخلاء مسؤولية صندوق الشعيل فور تسليم السلعة لي أو للنائب المحدد من قبلي.
+كما ألتزم بسداد مبلغ التمويل ورسوم البرنامج حسب جدول الأقساط الذي تعتمده الإدارة، بحد أقصى 12 شهراً، مع إمكانية السداد المبكر لكامل المبلغ المتبقي عبر التطبيق.`;
+
 const asMoney = (value) => Math.round(Number(value) * 100) / 100;
 
 export function normalizeFamilyFinancingTiers(rawTiers) {

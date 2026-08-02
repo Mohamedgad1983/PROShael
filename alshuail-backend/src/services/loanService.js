@@ -34,6 +34,8 @@ import {
   runAll,
 } from './eligibilityChecker.js';
 import {
+  FAMILY_FINANCING_TERMS_AR,
+  FAMILY_FINANCING_TERMS_VERSION,
   FAMILY_FINANCING_TIERS,
   normalizeFamilyFinancingTiers,
   resolveFamilyFinancingTier,
@@ -217,6 +219,8 @@ export async function checkLoanEligibility(memberId) {
       max_dbr: Number(settings.max_dbr),
       allowed_employment_types: String(settings.allowed_employment_types || 'government').split(','),
       financing_tiers: normalizeFamilyFinancingTiers(settings.financing_tiers),
+      terms_version: FAMILY_FINANCING_TERMS_VERSION,
+      terms_text_ar: FAMILY_FINANCING_TERMS_AR,
     },
   };
 }
@@ -380,6 +384,8 @@ export async function createLoanRequest({ memberId, payload }) {
     const requestedItemAmount = requestedItemAmountFromPayload(payload);
     const tier = resolveFamilyFinancingTier(requestedItemAmount, settings.financing_tiers);
     const effectiveMultiplier = Math.round((tier.total / tier.principal) * 10_000) / 10_000;
+    const submittedTermsVersion = String(payload.terms_version || '').trim();
+    const acceptedCurrentTerms = submittedTermsVersion === FAMILY_FINANCING_TERMS_VERSION;
 
     const insert = await client.query(
       `INSERT INTO loan_requests (
@@ -416,6 +422,11 @@ export async function createLoanRequest({ memberId, payload }) {
           principal: tier.principal,
           fee: tier.fee,
           total: tier.total,
+          terms_version: acceptedCurrentTerms
+            ? FAMILY_FINANCING_TERMS_VERSION
+            : 'legacy_unversioned',
+          terms_text_ar: acceptedCurrentTerms ? FAMILY_FINANCING_TERMS_AR : null,
+          early_settlement_via_app: acceptedCurrentTerms,
         }),
         LOAN_STATUS.SUBMITTED,
       ]

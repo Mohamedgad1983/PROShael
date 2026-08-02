@@ -1,5 +1,7 @@
 import { describe, expect, test } from '@jest/globals';
 import {
+  FAMILY_FINANCING_TERMS_AR,
+  FAMILY_FINANCING_TERMS_VERSION,
   FAMILY_FINANCING_TIERS,
   normalizeFamilyFinancingTiers,
   resolveFamilyFinancingTier,
@@ -22,5 +24,14 @@ describe('family financing fee policy', () => {
     expect(normalizeFamilyFinancingTiers('not-json')).toEqual(FAMILY_FINANCING_TIERS);
     expect(normalizeFamilyFinancingTiers([{ principal: 0, fee: -1 }]))
       .toEqual(FAMILY_FINANCING_TIERS);
+  });
+
+  test('keeps the complete base acknowledgment and app settlement clause versioned', () => {
+    expect(FAMILY_FINANCING_TERMS_VERSION).toBe('family_financing_terms_ar_v2_2026-08-02');
+    expect(FAMILY_FINANCING_TERMS_AR).toContain('مؤسسة بروز الريادة');
+    expect(FAMILY_FINANCING_TERMS_AR).toContain('ألتزم باستلام السلعة فور جهوزيتها');
+    expect(FAMILY_FINANCING_TERMS_AR).toContain('إخلاء مسؤولية صندوق الشعيل');
+    expect(FAMILY_FINANCING_TERMS_AR).toContain('السداد المبكر لكامل المبلغ المتبقي عبر التطبيق');
+    expect(FAMILY_FINANCING_TERMS_AR).not.toContain('Apple Pay');
   });
 });
