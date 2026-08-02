@@ -33,9 +33,13 @@ import {
   checkProfileComplete,
   runAll,
 } from './eligibilityChecker.js';
+import {
+  FAMILY_FINANCING_TIERS,
+  normalizeFamilyFinancingTiers,
+  resolveFamilyFinancingTier,
+} from './familyFinancingPolicy.js';
 
 // ─── constants ────────────────────────────────────────────────────────────────
-const ITEM_PRICE_MULTIPLIER_FALLBACK = 1.15;
 
 export const LOAN_STATUS = Object.freeze({
   DRAFT:                  'draft',
@@ -163,11 +167,11 @@ export async function getLoanSettings() {
   if (rows.length === 0) {
     return {
       admin_fee_rate: 0,
-      min_loan_amount: 1000,
+      min_loan_amount: 3000,
       max_loan_amount: 10000,
       max_dbr: 0.50,
       allowed_employment_types: 'government',
-      item_price_multiplier: ITEM_PRICE_MULTIPLIER_FALLBACK,
+      financing_tiers: FAMILY_FINANCING_TIERS,
       enabled: true,
     };
   }
@@ -187,8 +191,8 @@ export async function checkLoanEligibility(memberId) {
     return {
       ok: false,
       code: 'LOAN_DISABLED',
-      message: 'خدمة طلبات السلف غير متاحة حالياً',
-      message_en: 'Loan service is currently disabled',
+      message: 'خدمة التمويل العائلي غير متاحة حالياً',
+      message_en: 'Family financing is currently disabled',
     };
   }
 
@@ -202,8 +206,8 @@ export async function checkLoanEligibility(memberId) {
   return {
     ok: true,
     code: 'ELIGIBLE',
-    message: 'يمكنك التقديم على طلب سلفة',
-    message_en: 'You can apply for a loan',
+    message: 'يمكنك التقديم على التمويل العائلي',
+    message_en: 'You can apply for family financing',
     settings: {
       min_loan_amount: Number(settings.min_loan_amount),
       max_loan_amount: Number(settings.max_loan_amount),
@@ -212,15 +216,9 @@ export async function checkLoanEligibility(memberId) {
       admin_fee_rate: 0,
       max_dbr: Number(settings.max_dbr),
       allowed_employment_types: String(settings.allowed_employment_types || 'government').split(','),
+      financing_tiers: normalizeFamilyFinancingTiers(settings.financing_tiers),
     },
   };
-}
-
-function getItemPriceMultiplier(settings) {
-  const multiplier = Number(settings.item_price_multiplier);
-  return Number.isFinite(multiplier) && multiplier > 1
-    ? multiplier
-    : ITEM_PRICE_MULTIPLIER_FALLBACK;
 }
 
 function requestedItemAmountFromPayload(payload) {
@@ -237,11 +235,6 @@ function applicantNameFromPayload(payload) {
   )
     .trim()
     .replace(/\s+/g, ' ');
-}
-
-function calculateTotalItemValue(requestedItemAmount, settings) {
-  const multiplier = getItemPriceMultiplier(settings);
-  return Math.round((Number(requestedItemAmount) * multiplier) * 100) / 100;
 }
 
 // ─── validation ───────────────────────────────────────────────────────────────
@@ -328,6 +321,16 @@ export async function validateRequestPayload(payload) {
     };
   }
 
+  try {
+    resolveFamilyFinancingTier(requestedItemAmount, settings.financing_tiers);
+  } catch (error) {
+    return {
+      code: error.code || 'INVALID_FINANCING_TIER',
+      message: error.message,
+      message_en: 'Choose an approved financing tier: 3,000, 6,000, or 10,000 SAR',
+    };
+  }
+
   // Debt-burden ratio: obligations as a fraction of GROSS salary.
   if (obligations / salary > Number(settings.max_dbr)) {
     return {
@@ -375,7 +378,8 @@ export async function createLoanRequest({ memberId, payload }) {
       applicantName = (m.full_name_ar || m.full_name || '').trim();
     }
     const requestedItemAmount = requestedItemAmountFromPayload(payload);
-    const totalItemValue = calculateTotalItemValue(requestedItemAmount, settings);
+    const tier = resolveFamilyFinancingTier(requestedItemAmount, settings.financing_tiers);
+    const effectiveMultiplier = Math.round((tier.total / tier.principal) * 10_000) / 10_000;
 
     const insert = await client.query(
       `INSERT INTO loan_requests (
@@ -385,6 +389,7 @@ export async function createLoanRequest({ memberId, payload }) {
          employment_type,
          monthly_salary, monthly_obligations, requested_item_amount, loan_amount,
          admin_fee_rate, item_price_multiplier,
+         financing_fee_amount, total_repayment_amount, financing_terms_snapshot,
          terms_accepted_at,
          status
        ) VALUES (
@@ -394,8 +399,9 @@ export async function createLoanRequest({ memberId, payload }) {
          $8,
          $9, $10, $11, $12,
          $13, $14,
+         $15, $16, $17,
          NOW(),
-         $15
+         $18
        )
        RETURNING *`,
       [
@@ -403,8 +409,14 @@ export async function createLoanRequest({ memberId, payload }) {
         memberId,
         applicantName, String(payload.national_id), payload.date_of_birth,
         String(payload.employment_type),
-        Number(payload.monthly_salary), Number(payload.monthly_obligations), requestedItemAmount, totalItemValue,
-        0, getItemPriceMultiplier(settings),
+        Number(payload.monthly_salary), Number(payload.monthly_obligations), requestedItemAmount, tier.total,
+        0, effectiveMultiplier,
+        tier.fee, tier.total, JSON.stringify({
+          policy: 'fixed_family_financing_tiers_v1',
+          principal: tier.principal,
+          fee: tier.fee,
+          total: tier.total,
+        }),
         LOAN_STATUS.SUBMITTED,
       ]
     );

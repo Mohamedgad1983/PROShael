@@ -80,7 +80,8 @@ export const getEligibility = async (req, res) => {
 export const listMyLoans = async (req, res) => {
   try {
     const { rows } = await query(
-      `SELECT id, sequence_number, status, loan_amount, admin_fee_amount,
+      `SELECT id, sequence_number, status, requested_item_amount, loan_amount,
+              admin_fee_amount, financing_fee_amount, total_repayment_amount,
               created_at, updated_at, rejection_reason
        FROM loan_requests
        WHERE member_id = $1
@@ -160,12 +161,16 @@ export const createLoan = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: `تم استلام طلبك برقم ${created.sequence_number}`,
+      message: `تم استلام طلب التمويل العائلي برقم ${created.sequence_number}`,
       data: { ...created, attachments_count: docsAttached },
     });
   } catch (err) {
     log.error('[loans] createLoan', { error: err.message, stack: err.stack });
-    return res.status(500).json({ success: false, error: 'فشل إنشاء الطلب', detail: err.message });
+    return res.status(500).json({
+      success: false,
+      code: 'LOAN_CREATE_FAILED',
+      error: 'تعذر إرسال طلب التمويل حالياً، يرجى المحاولة مرة أخرى',
+    });
   }
 };
 
