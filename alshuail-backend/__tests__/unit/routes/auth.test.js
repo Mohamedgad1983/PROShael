@@ -493,7 +493,7 @@ describe('Auth Routes Unit Tests', () => {
       name: member.full_name,
       phone: member.phone,
       membershipId: member.membership_number,
-      avatar: null,
+      avatar: member.profile_image_url || member.photo_url || null,
       role: 'member',
       balance: member.balance || 0,
       minimumBalance: 3000
@@ -505,6 +505,7 @@ describe('Auth Routes Unit Tests', () => {
         full_name: 'محمد الشعيل',
         phone: '0501234567',
         membership_number: 'SH001',
+        profile_image_url: '/api/uploads/member-123/profile.jpg',
         balance: 2500
       };
 
@@ -517,7 +518,7 @@ describe('Auth Routes Unit Tests', () => {
       expect(response.balance).toBe(2500);
       expect(response.minimumBalance).toBe(3000);
       expect(response.role).toBe('member');
-      expect(response.avatar).toBeNull();
+      expect(response.avatar).toBe('/api/uploads/member-123/profile.jpg');
     });
 
     test('should default balance to 0', () => {

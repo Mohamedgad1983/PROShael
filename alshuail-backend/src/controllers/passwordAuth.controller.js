@@ -18,6 +18,7 @@ import {
     LEGACY_DEFAULT_PASSWORD,
     validateStrongPassword
 } from '../utils/passwordPolicy.js';
+import { resolveMemberProfileImage } from '../utils/memberProfileImage.js';
 
 // Constants
 const SALT_ROUNDS = 12;
@@ -228,7 +229,7 @@ export const loginWithPassword = async (req, res) => {
         const { rows: memberRows } = await query(
             `SELECT id, phone, full_name_ar, full_name_en, role, password_hash, has_password,
                     is_active, failed_login_attempts, locked_until, must_change_password,
-                    current_balance, membership_number, email, family_branch_id
+                    current_balance, membership_number, email, family_branch_id, profile_image_url, photo_url
              FROM members WHERE phone = $1`,
             [normalizedPhone]
         );
@@ -338,7 +339,7 @@ export const loginWithPassword = async (req, res) => {
                 role: member.role,
                 balance: member.current_balance ? String(member.current_balance) : "0",
                 membershipId: member.membership_number || null,
-                avatar: null
+                avatar: resolveMemberProfileImage(member)
             },
             mustChangePassword: !!member.must_change_password
         });
@@ -582,7 +583,9 @@ export const verifyOTP = async (req, res) => {
 
         // Get member details
         const { rows: memberRows } = await query(
-            'SELECT id, phone, full_name_ar, full_name_en, role, has_password FROM members WHERE id = $1',
+            `SELECT id, phone, full_name_ar, full_name_en, role, has_password,
+                    current_balance, membership_number, profile_image_url, photo_url
+             FROM members WHERE id = $1`,
             [otpRecord.member_id]
         );
         const member = memberRows[0];
@@ -614,7 +617,7 @@ export const verifyOTP = async (req, res) => {
                 role: member.role,
                 balance: member.current_balance ? String(member.current_balance) : "0",
                 membershipId: member.membership_number || null,
-                avatar: null
+                avatar: resolveMemberProfileImage(member)
             },
             requiresPasswordSetup: !member.has_password
         });
@@ -827,7 +830,7 @@ export const loginWithFaceId = async (req, res) => {
         // Get member
         const { rows: memberRows } = await query(
             `SELECT id, phone, full_name_ar, full_name_en, role, face_id_token, has_face_id, is_active,
-                    current_balance, membership_number
+                    current_balance, membership_number, profile_image_url, photo_url
              FROM members WHERE id = $1`,
             [memberId]
         );
@@ -891,7 +894,7 @@ export const loginWithFaceId = async (req, res) => {
                 role: member.role,
                 balance: member.current_balance ? String(member.current_balance) : "0",
                 membershipId: member.membership_number || null,
-                avatar: null
+                avatar: resolveMemberProfileImage(member)
             }
         });
 

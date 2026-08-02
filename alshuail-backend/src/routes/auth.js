@@ -6,6 +6,7 @@ import { log } from '../utils/logger.js';
 import { setAuthCookie, clearAuthCookie } from '../middleware/cookie-auth.js';
 import { config } from '../config/env.js';
 import { LEGACY_DEFAULT_PASSWORD } from '../utils/passwordPolicy.js';
+import { resolveMemberProfileImage } from '../utils/memberProfileImage.js';
 
 const router = express.Router();
 
@@ -371,7 +372,10 @@ async function authenticateMember(phone, password) {
 
     for (const phoneVariant of phoneVariants) {
       const result = await query(
-        'SELECT id, full_name, phone, membership_number, membership_status, password_hash, temp_password, balance, requires_password_change, is_first_login FROM members WHERE phone = $1',
+        `SELECT id, full_name, phone, membership_number, membership_status, password_hash,
+                temp_password, balance, requires_password_change, is_first_login,
+                profile_image_url, photo_url
+         FROM members WHERE phone = $1`,
         [phoneVariant]
       );
 
@@ -479,7 +483,7 @@ const buildMemberResponse = (member) => ({
   name: member.full_name,
   phone: member.phone,
   membershipId: member.membership_number,
-  avatar: null,
+  avatar: resolveMemberProfileImage(member),
   role: 'member',
   balance: member.balance || 0,
   minimumBalance: 3000  // Default minimum balance for all members
@@ -879,7 +883,9 @@ router.post('/biometric-login', async (req, res) => {
 
     // Look up the member
     const result = await query(
-      'SELECT id, membership_number, full_name_ar, full_name_en, phone, branch_name, current_balance, membership_status, profile_image_url FROM members WHERE id = $1',
+      `SELECT id, membership_number, full_name_ar, full_name_en, phone, branch_name,
+              current_balance, membership_status, profile_image_url, photo_url
+       FROM members WHERE id = $1`,
       [memberId]
     );
 
@@ -927,7 +933,9 @@ router.post('/biometric-login', async (req, res) => {
         branch_name: member.branch_name,
         balance: member.current_balance || 0,
         status: member.membership_status,
-        profile_image: member.profile_image_url
+        avatar: resolveMemberProfileImage(member),
+        profile_image: resolveMemberProfileImage(member),
+        profile_image_url: resolveMemberProfileImage(member)
       },
       message: 'تم تسجيل الدخول بنجاح'
     });
