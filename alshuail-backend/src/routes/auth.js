@@ -374,7 +374,7 @@ async function authenticateMember(phone, password) {
       const result = await query(
         `SELECT id, full_name, phone, membership_number, membership_status, password_hash,
                 temp_password, balance, requires_password_change, is_first_login,
-                profile_image_url, photo_url
+                profile_image_url
          FROM members WHERE phone = $1`,
         [phoneVariant]
       );
@@ -884,7 +884,7 @@ router.post('/biometric-login', async (req, res) => {
     // Look up the member
     const result = await query(
       `SELECT id, membership_number, full_name_ar, full_name_en, phone, branch_name,
-              current_balance, membership_status, profile_image_url, photo_url
+              current_balance, membership_status, profile_image_url
        FROM members WHERE id = $1`,
       [memberId]
     );

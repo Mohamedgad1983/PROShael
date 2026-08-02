@@ -493,7 +493,7 @@ describe('Auth Routes Unit Tests', () => {
       name: member.full_name,
       phone: member.phone,
       membershipId: member.membership_number,
-      avatar: member.profile_image_url || member.photo_url || null,
+      avatar: member.profile_image_url || null,
       role: 'member',
       balance: member.balance || 0,
       minimumBalance: 3000

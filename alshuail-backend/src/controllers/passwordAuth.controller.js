@@ -229,7 +229,7 @@ export const loginWithPassword = async (req, res) => {
         const { rows: memberRows } = await query(
             `SELECT id, phone, full_name_ar, full_name_en, role, password_hash, has_password,
                     is_active, failed_login_attempts, locked_until, must_change_password,
-                    current_balance, membership_number, email, family_branch_id, profile_image_url, photo_url
+                    current_balance, membership_number, email, family_branch_id, profile_image_url
              FROM members WHERE phone = $1`,
             [normalizedPhone]
         );
@@ -584,7 +584,7 @@ export const verifyOTP = async (req, res) => {
         // Get member details
         const { rows: memberRows } = await query(
             `SELECT id, phone, full_name_ar, full_name_en, role, has_password,
-                    current_balance, membership_number, profile_image_url, photo_url
+                    current_balance, membership_number, profile_image_url
              FROM members WHERE id = $1`,
             [otpRecord.member_id]
         );
@@ -830,7 +830,7 @@ export const loginWithFaceId = async (req, res) => {
         // Get member
         const { rows: memberRows } = await query(
             `SELECT id, phone, full_name_ar, full_name_en, role, face_id_token, has_face_id, is_active,
-                    current_balance, membership_number, profile_image_url, photo_url
+                    current_balance, membership_number, profile_image_url
              FROM members WHERE id = $1`,
             [memberId]
         );

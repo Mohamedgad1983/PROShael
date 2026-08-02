@@ -1,8 +1,8 @@
 /**
  * Resolve the canonical member photo written by the mobile upload endpoint.
- * `photo_url` is retained only as a fallback for older imported records.
+ * The production members table stores this value in `profile_image_url`.
  */
 export function resolveMemberProfileImage(member) {
-  const value = member?.profile_image_url || member?.photo_url || null;
+  const value = member?.profile_image_url || null;
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
