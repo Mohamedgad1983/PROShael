@@ -228,6 +228,77 @@ export const createGatewaySession = async (req, res) => {
   }
 };
 
+export const cancelGatewaySession = async (req, res) => {
+  try {
+    const localPaymentId = req.params.paymentId;
+    const { rows } = await query(
+      `SELECT id, payer_id, beneficiary_id, status
+         FROM payments
+        WHERE id = $1
+          AND gateway_provider = 'moyasar'
+        LIMIT 1`,
+      [localPaymentId]
+    );
+
+    const localPayment = rows[0];
+    if (!localPayment) {
+      return res.status(404).json({
+        success: false,
+        error: 'لم يتم العثور على جلسة الدفع',
+      });
+    }
+
+    if (
+      req.user?.role === 'member' &&
+      localPayment.payer_id !== req.user.id &&
+      localPayment.beneficiary_id !== req.user.id
+    ) {
+      return res.status(403).json({
+        success: false,
+        error: 'ليس لديك الصلاحية للوصول إلى جلسة الدفع',
+      });
+    }
+
+    if (localPayment.status === 'cancelled') {
+      return res.json({
+        success: true,
+        data: { payment_id: localPayment.id, status: localPayment.status },
+      });
+    }
+
+    if (localPayment.status !== 'pending') {
+      return res.status(409).json({
+        success: false,
+        error: 'لا يمكن إلغاء جلسة دفع تمت معالجتها',
+      });
+    }
+
+    const { rows: updatedRows } = await query(
+      `UPDATE payments
+          SET status = 'cancelled',
+              gateway_status = 'cancelled',
+              gateway_response = COALESCE(gateway_response, '{}'::jsonb)
+                || jsonb_build_object('local_cancelled_at', NOW()),
+              updated_at = NOW()
+        WHERE id = $1
+          AND status = 'pending'
+      RETURNING id, status`,
+      [localPaymentId]
+    );
+
+    return res.json({
+      success: true,
+      data: updatedRows[0] || { payment_id: localPayment.id, status: 'cancelled' },
+    });
+  } catch (error) {
+    log.error('cancelGatewaySession failed', { error: error.message });
+    return res.status(500).json({
+      success: false,
+      error: 'فشل في إلغاء جلسة الدفع الإلكتروني',
+    });
+  }
+};
+
 export const verifyGatewaySession = async (req, res) => {
   try {
     if (!isMoyasarEnabledForIos()) {

@@ -38,6 +38,7 @@ import {
   getPendingPaymentsStats
 } from '../controllers/paymentsController.js';
 import {
+  cancelGatewaySession,
   createGatewaySession,
   handleMoyasarWebhook,
   verifyGatewaySession,
@@ -84,6 +85,7 @@ router.get('/pending/stats', requireRole(['super_admin', 'financial_manager']), 
 // protected; the webhook is authenticated with Moyasar's shared secret.
 router.post('/gateway/session', requireRole(['member']), createGatewaySession);
 router.post('/gateway/session/:paymentId/verify', requireRole(['member']), verifyGatewaySession);
+router.delete('/gateway/session/:paymentId', requireRole(['member']), cancelGatewaySession);
 router.post('/gateway/moyasar/webhook', handleMoyasarWebhook);
 
 // Basic CRUD Operations - require financial access
