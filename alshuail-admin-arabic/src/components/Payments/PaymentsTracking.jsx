@@ -3,10 +3,10 @@ import React,{ useCallback,useEffect,useMemo,useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiService } from '../../services/api';
 import { logger } from '../../utils/logger';
-import { getPaymentDatePreset } from '../../utils/paymentDateRange';
+import PaymentDateFilter from './PaymentDateFilter';
 
 import {
-ArrowDownTrayIcon,ArrowPathIcon,ArrowsRightLeftIcon,ArrowTrendingUpIcon,BanknotesIcon,CalendarDaysIcon,
+ArrowDownTrayIcon,ArrowsRightLeftIcon,ArrowTrendingUpIcon,BanknotesIcon,
 ChartBarIcon,CheckCircleIcon,ClockIcon,CurrencyDollarIcon,DocumentTextIcon,EyeIcon,MagnifyingGlassIcon,PencilIcon,PlusIcon,ReceiptPercentIcon,ShieldExclamationIcon,UserGroupIcon,WalletIcon,XCircleIcon
 } from '@heroicons/react/24/outline';
 
@@ -521,65 +521,12 @@ const PaymentsTracking = () => {
         </div>
 
         {/* Payment received date range */}
-        <div className="border-t border-gray-100 mt-4 pt-4">
-          <div className="flex flex-col xl:flex-row xl:items-end gap-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1">
-              <div>
-                <label htmlFor="payment-start-date" className="block text-sm font-medium text-gray-700 mb-2">من تاريخ الوصول</label>
-                <input
-                  id="payment-start-date"
-                  type="date"
-                  dir="ltr"
-                  value={dateRange.start}
-                  max={dateRange.end || undefined}
-                  onChange={(e) => {
-                    const start = e.target.value;
-                    setDateRange((current) => ({
-                      start,
-                      end: current.end && start && current.end < start ? start : current.end
-                    }));
-                  }}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                />
-              </div>
-              <div>
-                <label htmlFor="payment-end-date" className="block text-sm font-medium text-gray-700 mb-2">إلى تاريخ الوصول</label>
-                <input
-                  id="payment-end-date"
-                  type="date"
-                  dir="ltr"
-                  value={dateRange.end}
-                  min={dateRange.start || undefined}
-                  onChange={(e) => {
-                    const end = e.target.value;
-                    setDateRange((current) => ({
-                      start: current.start && end && current.start > end ? end : current.start,
-                      end
-                    }));
-                  }}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                />
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button type="button" onClick={() => setDateRange(getPaymentDatePreset('today'))} className="px-3 py-2.5 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 text-sm font-semibold">اليوم</button>
-              <button type="button" onClick={() => setDateRange(getPaymentDatePreset('last7'))} className="px-3 py-2.5 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 text-sm font-semibold">آخر 7 أيام</button>
-              <button type="button" onClick={() => setDateRange(getPaymentDatePreset('month'))} className="px-3 py-2.5 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 text-sm font-semibold">هذا الشهر</button>
-              <button
-                type="button"
-                onClick={() => setDateRange({ start: '', end: '' })}
-                disabled={!dateRange.start && !dateRange.end}
-                className="inline-flex items-center gap-1 px-3 py-2.5 rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-40 text-sm font-semibold"
-              >
-                <ArrowPathIcon className="w-4 h-4" />
-                مسح التاريخ
-              </button>
-            </div>
-          </div>
-          <p className="mt-3 text-xs text-gray-500 inline-flex items-center gap-1">
-            <CalendarDaysIcon className="w-4 h-4 text-blue-500" />
-            الفلترة حسب وقت وصول الدفعة إلى النظام بتوقيت الكويت، واليوم الأخير مشمول بالكامل.
-          </p>
+        <div className="mt-3 border-t border-slate-100 pt-3">
+          <PaymentDateFilter
+            value={dateRange}
+            onApply={setDateRange}
+            resultCount={filteredPayments.length}
+          />
         </div>
       </div>
 

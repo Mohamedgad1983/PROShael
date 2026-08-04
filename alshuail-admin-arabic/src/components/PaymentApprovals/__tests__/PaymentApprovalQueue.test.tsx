@@ -41,13 +41,17 @@ describe('PaymentApprovalQueue date filters', () => {
   test('sends an inclusive custom received-date range to list and stats APIs', async () => {
     render(<PaymentApprovalQueue />);
     await waitFor(() => expect(mockedService.getPendingPayments).toHaveBeenCalled());
+    const initialCalls = mockedService.getPendingPayments.mock.calls.length;
 
+    fireEvent.click(screen.getByRole('button', { name: 'مخصص' }));
     fireEvent.change(screen.getByLabelText('من تاريخ الوصول'), {
       target: { value: '2026-08-01' }
     });
     fireEvent.change(screen.getByLabelText('إلى تاريخ الوصول'), {
       target: { value: '2026-08-04' }
     });
+    expect(mockedService.getPendingPayments).toHaveBeenCalledTimes(initialCalls);
+    fireEvent.click(screen.getByRole('button', { name: /تطبيق الفترة/ }));
 
     await waitFor(() => expect(mockedService.getPendingPayments).toHaveBeenLastCalledWith({
       category: undefined,
@@ -65,7 +69,7 @@ describe('PaymentApprovalQueue date filters', () => {
     render(<PaymentApprovalQueue />);
     await waitFor(() => expect(mockedService.getPendingPayments).toHaveBeenCalled());
 
-    fireEvent.click(screen.getByRole('button', { name: 'آخر 7 أيام' }));
+    fireEvent.click(screen.getByRole('button', { name: '7 أيام' }));
     const expected = getPaymentDatePreset('last7');
 
     await waitFor(() => expect(mockedService.getPendingPayments).toHaveBeenLastCalledWith({
@@ -74,7 +78,7 @@ describe('PaymentApprovalQueue date filters', () => {
       end_date: expected.end
     }));
 
-    fireEvent.click(screen.getByRole('button', { name: /مسح التاريخ/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'الكل' }));
     await waitFor(() => expect(mockedService.getPendingPayments).toHaveBeenLastCalledWith({
       category: undefined,
       start_date: undefined,

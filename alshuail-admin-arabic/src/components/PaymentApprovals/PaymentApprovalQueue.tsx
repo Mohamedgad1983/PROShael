@@ -3,16 +3,17 @@
 // but for the payments table.
 
 import {
-ArrowPathIcon,BanknotesIcon,CalendarDaysIcon,CheckCircleIcon,ClockIcon,DocumentMagnifyingGlassIcon,IdentificationIcon,MagnifyingGlassIcon,PhoneIcon,XCircleIcon
+BanknotesIcon,CalendarDaysIcon,CheckCircleIcon,ClockIcon,DocumentMagnifyingGlassIcon,IdentificationIcon,MagnifyingGlassIcon,PhoneIcon,XCircleIcon
 } from '@heroicons/react/24/outline';
 import React,{ useCallback,useEffect,useMemo,useState } from 'react';
+import PaymentDateFilter from '../Payments/PaymentDateFilter';
 import {
 paymentApprovalService,
 PendingPayment,
 PendingPaymentFilters,
 PendingPaymentsStats
 } from '../../services/paymentApproval.service';
-import { formatPaymentReceivedAt,getPaymentDatePreset } from '../../utils/paymentDateRange';
+import { formatPaymentReceivedAt } from '../../utils/paymentDateRange';
 
 const CATEGORY_LABELS: Record<string, string> = {
   subscription: 'اشتراك',
@@ -108,26 +109,6 @@ const PaymentApprovalQueue: React.FC = () => {
     );
   }, [pending, searchQuery]);
 
-  const applyDatePreset = (preset: 'today' | 'last7' | 'month') => {
-    setDateRange(getPaymentDatePreset(preset));
-  };
-
-  const updateStartDate = (start: string) => {
-    setDateRange((current) => ({
-      start,
-      end: current.end && start && current.end < start ? start : current.end
-    }));
-  };
-
-  const updateEndDate = (end: string) => {
-    setDateRange((current) => ({
-      start: current.start && end && current.start > end ? end : current.start,
-      end
-    }));
-  };
-
-  const hasDateFilter = Boolean(dateRange.start || dateRange.end);
-
   return (
     <div className="p-6" dir="rtl">
       <div className="mb-6">
@@ -166,8 +147,8 @@ const PaymentApprovalQueue: React.FC = () => {
       )}
 
       {/* Filters */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm mb-4">
-        <div className="flex flex-col lg:flex-row gap-3">
+      <div className="mb-4 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+        <div className="flex flex-col gap-2.5 lg:flex-row">
           <div className="relative flex-1">
             <MagnifyingGlassIcon className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
@@ -175,14 +156,14 @@ const PaymentApprovalQueue: React.FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="ابحث بالاسم أو رقم العضوية أو رقم المرجع..."
-              className="w-full pr-10 pl-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="h-10 w-full rounded-lg border border-slate-300 bg-white ps-10 pe-4 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
             />
           </div>
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
             aria-label="فئة الدفعة"
-            className="px-4 py-2.5 border border-gray-300 rounded-xl bg-white lg:min-w-44"
+            className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200 lg:min-w-44"
           >
             <option value="">كل الفئات</option>
             <option value="subscription">اشتراك</option>
@@ -192,66 +173,13 @@ const PaymentApprovalQueue: React.FC = () => {
           </select>
         </div>
 
-        <div className="border-t border-gray-100 mt-4 pt-4">
-          <div className="flex flex-col xl:flex-row xl:items-end gap-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1">
-              <div>
-                <label htmlFor="pending-payment-start-date" className="block text-sm font-semibold text-gray-700 mb-1.5">
-                  من تاريخ الوصول
-                </label>
-                <input
-                  id="pending-payment-start-date"
-                  type="date"
-                  dir="ltr"
-                  value={dateRange.start}
-                  max={dateRange.end || undefined}
-                  onChange={(e) => updateStartDate(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-xl bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                />
-              </div>
-              <div>
-                <label htmlFor="pending-payment-end-date" className="block text-sm font-semibold text-gray-700 mb-1.5">
-                  إلى تاريخ الوصول
-                </label>
-                <input
-                  id="pending-payment-end-date"
-                  type="date"
-                  dir="ltr"
-                  value={dateRange.end}
-                  min={dateRange.start || undefined}
-                  onChange={(e) => updateEndDate(e.target.value)}
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-xl bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button type="button" onClick={() => applyDatePreset('today')} className="px-3 py-2.5 rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 text-sm font-semibold">
-                اليوم
-              </button>
-              <button type="button" onClick={() => applyDatePreset('last7')} className="px-3 py-2.5 rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 text-sm font-semibold">
-                آخر 7 أيام
-              </button>
-              <button type="button" onClick={() => applyDatePreset('month')} className="px-3 py-2.5 rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 text-sm font-semibold">
-                هذا الشهر
-              </button>
-              <button
-                type="button"
-                onClick={() => setDateRange({ start: '', end: '' })}
-                disabled={!hasDateFilter}
-                className="inline-flex items-center gap-1 px-3 py-2.5 rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-40 text-sm font-semibold"
-              >
-                <ArrowPathIcon className="w-4 h-4" />
-                مسح التاريخ
-              </button>
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center justify-between gap-2 mt-3 text-xs text-gray-500">
-            <span className="inline-flex items-center gap-1">
-              <CalendarDaysIcon className="w-4 h-4 text-indigo-500" />
-              الفلترة حسب وقت وصول الدفعة من التطبيق بتوقيت الكويت
-            </span>
-            <span>{filtered.length.toLocaleString('en-US')} نتيجة ظاهرة</span>
-          </div>
+        <div className="mt-2.5 border-t border-slate-100 pt-2.5">
+          <PaymentDateFilter
+            value={dateRange}
+            onApply={setDateRange}
+            resultCount={filtered.length}
+            loading={loading}
+          />
         </div>
       </div>
 
