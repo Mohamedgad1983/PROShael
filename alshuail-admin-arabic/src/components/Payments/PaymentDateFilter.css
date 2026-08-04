@@ -58,26 +58,23 @@ button.payment-date-filter__preset--active[type="button"]:hover {
   font-weight: 700 !important;
 }
 
-.payment-date-filter__field-label {
+.payment-date-filter__custom {
+  animation: payment-calendar-reveal 180ms ease-out;
+}
+
+.payment-date-filter__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.payment-date-filter__hint {
+  margin: 0 !important;
   color: #64748b !important;
-  font-size: 11px !important;
-  font-weight: 700 !important;
-}
-
-input.payment-date-filter__date[type="date"] {
-  height: 36px !important;
-  padding: 0 12px !important;
-  border: 1px solid #cbd5e1 !important;
-  border-radius: 8px !important;
-  background: #ffffff !important;
-  color: #1e293b !important;
-  box-shadow: none !important;
-  font-size: 13px !important;
-}
-
-input.payment-date-filter__date[type="date"]:focus {
-  border-color: #64748b !important;
-  box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.22) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
 }
 
 button.payment-date-filter__apply[type="button"] {
@@ -120,7 +117,292 @@ button.payment-date-filter__close[type="button"]:hover {
   color: #0f172a !important;
 }
 
+.payment-calendar {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.75fr) minmax(310px, 1.25fr);
+  gap: 12px;
+  align-items: stretch;
+}
+
+.payment-calendar__fields {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  align-content: start;
+}
+
+button.payment-calendar__field[type="button"] {
+  display: flex;
+  min-height: 66px !important;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 3px;
+  padding: 10px 13px !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 10px !important;
+  background: #ffffff !important;
+  color: #334155 !important;
+  box-shadow: none !important;
+  text-align: start;
+  letter-spacing: 0 !important;
+  transform: none !important;
+}
+
+button.payment-calendar__field[type="button"] > span {
+  color: #64748b !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+
+button.payment-calendar__field[type="button"] > strong {
+  color: #0f172a !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  text-decoration: none !important;
+}
+
+button.payment-calendar__field--active[type="button"] {
+  border-color: #0f172a !important;
+  background: #f8fafc !important;
+  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08) !important;
+}
+
+.payment-calendar__connector {
+  display: none;
+}
+
+.payment-calendar__panel {
+  overflow: hidden;
+  border: 1px solid #dbe4ee;
+  border-radius: 12px;
+  background: #ffffff !important;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+}
+
+.payment-calendar__header {
+  display: grid;
+  grid-template-columns: 32px 1fr 32px;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  border-bottom: 1px solid #eef2f7;
+  background: #f8fafc !important;
+}
+
+.payment-calendar__month {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  color: #0f172a !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+}
+
+.payment-calendar__month span {
+  color: #0f172a !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+}
+
+.payment-calendar__month svg {
+  width: 16px;
+  height: 16px;
+  color: #059669;
+}
+
+button.payment-calendar__nav[type="button"] {
+  display: inline-flex;
+  width: 32px !important;
+  height: 32px !important;
+  align-items: center;
+  justify-content: center;
+  padding: 0 !important;
+  border: 1px solid transparent !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  color: #475569 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+button.payment-calendar__nav[type="button"]:hover {
+  border-color: #cbd5e1 !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+}
+
+button.payment-calendar__nav[type="button"] svg {
+  width: 16px;
+  height: 16px;
+}
+
+.payment-calendar__weekdays,
+.payment-calendar__grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.payment-calendar__weekdays {
+  padding: 7px 8px 3px;
+}
+
+.payment-calendar__weekdays span {
+  color: #94a3b8 !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  text-align: center;
+}
+
+.payment-calendar__grid {
+  gap: 2px;
+  padding: 3px 8px 8px;
+}
+
+button.payment-calendar__day[type="button"] {
+  position: relative;
+  display: inline-flex;
+  min-width: 30px !important;
+  height: 30px !important;
+  align-items: center;
+  justify-content: center;
+  padding: 0 !important;
+  border: 1px solid transparent !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  color: #334155 !important;
+  box-shadow: none !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+  transform: none !important;
+}
+
+button.payment-calendar__day[type="button"]:hover {
+  border-color: #a7f3d0 !important;
+  background: #ecfdf5 !important;
+  color: #047857 !important;
+}
+
+button.payment-calendar__day--outside[type="button"] {
+  color: #cbd5e1 !important;
+}
+
+button.payment-calendar__day--in-range[type="button"] {
+  border-radius: 5px !important;
+  background: #d1fae5 !important;
+  color: #065f46 !important;
+}
+
+button.payment-calendar__day--selected[type="button"],
+button.payment-calendar__day--selected[type="button"]:hover {
+  border-color: #047857 !important;
+  background: #047857 !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 5px rgba(4, 120, 87, 0.22) !important;
+}
+
+button.payment-calendar__day--today[type="button"]::after {
+  position: absolute;
+  bottom: 2px;
+  width: 3px;
+  height: 3px;
+  border-radius: 999px;
+  background: #f59e0b;
+  content: '';
+}
+
+.payment-calendar__footer {
+  display: flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 9px;
+  border-top: 1px solid #eef2f7;
+  background: #f8fafc !important;
+}
+
+.payment-calendar__footer > span {
+  color: #64748b !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+}
+
+button.payment-calendar__clear[type="button"] {
+  display: inline-flex;
+  min-height: 26px !important;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px !important;
+  border: 1px solid transparent !important;
+  border-radius: 7px !important;
+  background: transparent !important;
+  color: #dc2626 !important;
+  box-shadow: none !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0 !important;
+  transform: none !important;
+}
+
+button.payment-calendar__clear[type="button"]:hover {
+  border-color: #fecaca !important;
+  background: #fef2f2 !important;
+}
+
+button.payment-calendar__clear[type="button"] svg {
+  width: 13px;
+  height: 13px;
+}
+
+@keyframes payment-calendar-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 899px) {
+  .payment-calendar {
+    grid-template-columns: 1fr;
+  }
+
+  .payment-calendar__fields {
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+  }
+
+  .payment-calendar__connector {
+    display: inline;
+    color: #94a3b8 !important;
+    font-size: 18px !important;
+  }
+
+  button.payment-calendar__field[type="button"] {
+    min-height: 58px !important;
+  }
+}
+
 @media (max-width: 639px) {
+  .payment-date-filter__actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .payment-calendar__fields {
+    grid-template-columns: 1fr;
+  }
+
+  .payment-calendar__connector {
+    display: none;
+  }
+
   button.payment-date-filter__preset[type="button"] {
     flex: 1 1 auto;
     padding-inline: 10px !important;

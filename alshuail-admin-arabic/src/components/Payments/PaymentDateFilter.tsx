@@ -5,6 +5,7 @@ import {
 } from '@heroicons/react/24/outline';
 import React,{ memo,useEffect,useMemo,useState } from 'react';
 import { getPaymentDatePreset } from '../../utils/paymentDateRange';
+import PaymentCalendar from './PaymentCalendar';
 import './PaymentDateFilter.css';
 
 export interface PaymentDateRange {
@@ -86,20 +87,6 @@ const PaymentDateFilter: React.FC<PaymentDateFilterProps> = ({
     onApply(key === 'all' ? { start: '', end: '' } : getPaymentDatePreset(key));
   };
 
-  const updateStart = (start: string) => {
-    setDraft((current) => ({
-      start,
-      end: current.end && start && current.end < start ? start : current.end
-    }));
-  };
-
-  const updateEnd = (end: string) => {
-    setDraft((current) => ({
-      start: current.start && end && current.start > end ? end : current.start,
-      end
-    }));
-  };
-
   const applyCustomRange = () => {
     onApply(draft);
     setShowCustom(false);
@@ -151,52 +138,32 @@ const PaymentDateFilter: React.FC<PaymentDateFilterProps> = ({
       </div>
 
       {showCustom && (
-        <div className="mt-2.5 flex flex-col gap-2.5 border-t border-slate-200 pt-2.5 sm:flex-row sm:items-end">
-          <label className="flex-1">
-            <span className="payment-date-filter__field-label mb-1 block text-[11px] font-bold text-slate-500">من تاريخ</span>
-            <input
-              type="date"
-              dir="ltr"
-              aria-label="من تاريخ الوصول"
-              value={draft.start}
-              max={draft.end || undefined}
-              onChange={(event) => updateStart(event.target.value)}
-              className="payment-date-filter__date h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-            />
-          </label>
-          <label className="flex-1">
-            <span className="payment-date-filter__field-label mb-1 block text-[11px] font-bold text-slate-500">إلى تاريخ</span>
-            <input
-              type="date"
-              dir="ltr"
-              aria-label="إلى تاريخ الوصول"
-              value={draft.end}
-              min={draft.start || undefined}
-              onChange={(event) => updateEnd(event.target.value)}
-              className="payment-date-filter__date h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-            />
-          </label>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={applyCustomRange}
-              disabled={!draft.start && !draft.end}
-              className="payment-date-filter__apply inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-4 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none"
-            >
-              <CheckIcon className="h-4 w-4" />
-              تطبيق الفترة
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setDraft(value);
-                setShowCustom(false);
-              }}
-              aria-label="إغلاق التاريخ المخصص"
-              className="payment-date-filter__close inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
-            >
-              <XMarkIcon className="h-4 w-4" />
-            </button>
+        <div className="payment-date-filter__custom mt-2.5 border-t border-slate-200 pt-2.5">
+          <PaymentCalendar value={draft} onChange={setDraft} />
+          <div className="payment-date-filter__actions">
+            <p className="payment-date-filter__hint">اختر التاريخين بالضغط على الأيام، بدون كتابة يدوية.</p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={applyCustomRange}
+                disabled={!draft.start && !draft.end}
+                className="payment-date-filter__apply inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-4 text-xs font-bold text-white shadow-sm transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none"
+              >
+                <CheckIcon className="h-4 w-4" />
+                تطبيق الفترة
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setDraft(value);
+                  setShowCustom(false);
+                }}
+                aria-label="إغلاق التاريخ المخصص"
+                className="payment-date-filter__close inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+              >
+                <XMarkIcon className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         </div>
       )}

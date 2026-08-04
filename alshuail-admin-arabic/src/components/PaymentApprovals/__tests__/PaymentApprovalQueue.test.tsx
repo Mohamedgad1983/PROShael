@@ -16,6 +16,20 @@ jest.mock('../../../services/paymentApproval.service', () => ({
 const mockedService = paymentApprovalService as jest.Mocked<typeof paymentApprovalService>;
 
 describe('PaymentApprovalQueue date filters', () => {
+  const accessibleDateFormatter = new Intl.DateTimeFormat('ar-SA-u-ca-gregory', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC'
+  });
+
+  const getCalendarLabel = (value: string, field: 'البداية' | 'النهاية') => {
+    const [year, month, day] = value.split('-').map(Number);
+    const formatted = accessibleDateFormatter.format(new Date(Date.UTC(year, month - 1, day)));
+    return `اختيار ${formatted} كتاريخ ${field}`;
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
     mockedService.getPendingPayments.mockResolvedValue({
@@ -42,26 +56,30 @@ describe('PaymentApprovalQueue date filters', () => {
     render(<PaymentApprovalQueue />);
     await waitFor(() => expect(mockedService.getPendingPayments).toHaveBeenCalled());
     const initialCalls = mockedService.getPendingPayments.mock.calls.length;
+    const today = getPaymentDatePreset('today').start;
+    const [year, month] = today.split('-');
+    const startDate = `${year}-${month}-01`;
+    const endDate = `${year}-${month}-04`;
 
     fireEvent.click(screen.getByRole('button', { name: 'مخصص' }));
-    fireEvent.change(screen.getByLabelText('من تاريخ الوصول'), {
-      target: { value: '2026-08-01' }
-    });
-    fireEvent.change(screen.getByLabelText('إلى تاريخ الوصول'), {
-      target: { value: '2026-08-04' }
-    });
+    expect(screen.queryByLabelText('من تاريخ الوصول')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('تقويم اختيار فترة وصول الدفعات')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('gridcell', { name: getCalendarLabel(startDate, 'البداية') }));
+    fireEvent.click(screen.getByRole('gridcell', { name: getCalendarLabel(endDate, 'النهاية') }));
+
     expect(mockedService.getPendingPayments).toHaveBeenCalledTimes(initialCalls);
     fireEvent.click(screen.getByRole('button', { name: /تطبيق الفترة/ }));
 
     await waitFor(() => expect(mockedService.getPendingPayments).toHaveBeenLastCalledWith({
       category: undefined,
-      start_date: '2026-08-01',
-      end_date: '2026-08-04'
+      start_date: startDate,
+      end_date: endDate
     }));
     expect(mockedService.getPendingStats).toHaveBeenLastCalledWith({
       category: undefined,
-      start_date: '2026-08-01',
-      end_date: '2026-08-04'
+      start_date: startDate,
+      end_date: endDate
     });
   });
 
