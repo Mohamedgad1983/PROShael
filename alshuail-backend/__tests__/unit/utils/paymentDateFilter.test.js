@@ -1,7 +1,8 @@
 import {
   PAYMENT_REPORTING_TIMEZONE,
   appendPaymentReceivedDateFilters,
-  normalizePaymentReceivedDateRange
+  normalizePaymentReceivedDateRange,
+  paymentReceivedDateSelect
 } from '../../../src/utils/paymentDateFilter.js';
 
 describe('paymentDateFilter', () => {
@@ -50,5 +51,12 @@ describe('paymentDateFilter', () => {
     expect(conditions[1]).toContain('>= ($2');
     expect(conditions[2]).toContain("INTERVAL '1 day'");
     expect(conditions[2]).toContain('< (($3');
+  });
+
+  test('serializes the received day as a stable date-only string', () => {
+    const sql = paymentReceivedDateSelect();
+    expect(sql).toContain('TO_CHAR');
+    expect(sql).toContain(`AT TIME ZONE '${PAYMENT_REPORTING_TIMEZONE}'`);
+    expect(sql).toContain("'YYYY-MM-DD'");
   });
 });

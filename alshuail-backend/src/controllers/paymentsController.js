@@ -13,9 +13,9 @@ import {
   deleteFromSupabase as deleteDocumentFile
 } from '../config/documentStorage.js';
 import {
-  PAYMENT_REPORTING_TIMEZONE,
   appendPaymentReceivedDateFilters,
-  normalizePaymentReceivedDateRange
+  normalizePaymentReceivedDateRange,
+  paymentReceivedDateSelect
 } from '../utils/paymentDateFilter.js';
 
 export const getAllPayments = async (req, res) => {
@@ -94,7 +94,7 @@ export const getAllPayments = async (req, res) => {
 
     const { rows: payments } = await query(
       `SELECT p.*,
-        (p.created_at AT TIME ZONE '${PAYMENT_REPORTING_TIMEZONE}')::date AS received_date,
+        ${paymentReceivedDateSelect()} AS received_date,
         json_build_object('full_name', pm.full_name, 'phone', pm.phone) AS payer,
         json_build_object('full_name', bm.full_name, 'phone', bm.phone) AS beneficiary
       FROM payments p
@@ -295,7 +295,7 @@ export const getPendingPayments = async (req, res) => {
          p.reference_number,
          p.notes,
          p.created_at,
-         (p.created_at AT TIME ZONE '${PAYMENT_REPORTING_TIMEZONE}')::date AS received_date,
+         ${paymentReceivedDateSelect()} AS received_date,
          p.updated_at,
          p.receipt_document_id,
          -- Receipt metadata comes from the joined documents_metadata row

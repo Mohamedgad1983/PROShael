@@ -55,6 +55,10 @@ export function normalizePaymentReceivedDateRange(query = {}) {
   return { startDate, endDate };
 }
 
+export function paymentReceivedDateSelect(column = 'p.created_at') {
+  return `TO_CHAR(${column} AT TIME ZONE '${PAYMENT_REPORTING_TIMEZONE}', 'YYYY-MM-DD')`;
+}
+
 /**
  * Adds index-friendly timestamptz boundaries. Kuwait is fixed at UTC+03:00,
  * and PostgreSQL performs the conversion explicitly so the server/session
