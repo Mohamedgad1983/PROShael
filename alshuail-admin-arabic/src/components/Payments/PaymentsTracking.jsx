@@ -3,9 +3,10 @@ import React,{ useCallback,useEffect,useMemo,useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiService } from '../../services/api';
 import { logger } from '../../utils/logger';
+import { getPaymentDatePreset } from '../../utils/paymentDateRange';
 
 import {
-ArrowDownTrayIcon,ArrowsRightLeftIcon,ArrowTrendingUpIcon,BanknotesIcon,
+ArrowDownTrayIcon,ArrowPathIcon,ArrowsRightLeftIcon,ArrowTrendingUpIcon,BanknotesIcon,CalendarDaysIcon,
 ChartBarIcon,CheckCircleIcon,ClockIcon,CurrencyDollarIcon,DocumentTextIcon,EyeIcon,MagnifyingGlassIcon,PencilIcon,PlusIcon,ReceiptPercentIcon,ShieldExclamationIcon,UserGroupIcon,WalletIcon,XCircleIcon
 } from '@heroicons/react/24/outline';
 
@@ -159,7 +160,8 @@ const PaymentsTracking = () => {
         status: payment.status || 'paid',
         transaction_id: payment.transaction_reference,
         description: payment.description || payment.notes || '',
-        payment_date: payment.created_at?.split('T')[0],
+        payment_date: payment.payment_date || payment.received_date || payment.created_at?.split('T')[0],
+        received_date: payment.received_date || payment.created_at?.split('T')[0],
         due_date: payment.due_date,
         hijri_date: payment.hijri_date_string,
         hijri_formatted: payment.hijri_formatted,
@@ -254,10 +256,11 @@ const PaymentsTracking = () => {
       (filters.is_on_behalf === 'true' && payment.is_on_behalf) ||
       (filters.is_on_behalf === 'false' && !payment.is_on_behalf);
 
-    const matchesDateRange = !dateRange.start || !dateRange.end || (
-      payment.payment_date &&
-      payment.payment_date >= dateRange.start &&
-      payment.payment_date <= dateRange.end
+    const receivedDate = payment.received_date || payment.created_at?.split('T')[0];
+    const matchesDateRange = (!dateRange.start && !dateRange.end) || (
+      Boolean(receivedDate) &&
+      (!dateRange.start || receivedDate >= dateRange.start) &&
+      (!dateRange.end || receivedDate <= dateRange.end)
     );
 
     return matchesSearch && matchesStatus && matchesType && matchesMember && matchesOnBehalf && matchesDateRange;
@@ -467,7 +470,7 @@ const PaymentsTracking = () => {
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
             >
               <option value="">جميع الحالات</option>
-              <option value="completed">مكتمل</option>
+              <option value="paid">مكتمل</option>
               <option value="pending">معلق</option>
               <option value="failed">فشل</option>
             </select>
@@ -517,26 +520,66 @@ const PaymentsTracking = () => {
           </div>
         </div>
 
-        {/* Date Range */}
-        <div className="flex gap-4 mt-4">
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">من تاريخ</label>
-            <input
-              type="date"
-              value={dateRange.start}
-              onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-            />
+        {/* Payment received date range */}
+        <div className="border-t border-gray-100 mt-4 pt-4">
+          <div className="flex flex-col xl:flex-row xl:items-end gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1">
+              <div>
+                <label htmlFor="payment-start-date" className="block text-sm font-medium text-gray-700 mb-2">من تاريخ الوصول</label>
+                <input
+                  id="payment-start-date"
+                  type="date"
+                  dir="ltr"
+                  value={dateRange.start}
+                  max={dateRange.end || undefined}
+                  onChange={(e) => {
+                    const start = e.target.value;
+                    setDateRange((current) => ({
+                      start,
+                      end: current.end && start && current.end < start ? start : current.end
+                    }));
+                  }}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                />
+              </div>
+              <div>
+                <label htmlFor="payment-end-date" className="block text-sm font-medium text-gray-700 mb-2">إلى تاريخ الوصول</label>
+                <input
+                  id="payment-end-date"
+                  type="date"
+                  dir="ltr"
+                  value={dateRange.end}
+                  min={dateRange.start || undefined}
+                  onChange={(e) => {
+                    const end = e.target.value;
+                    setDateRange((current) => ({
+                      start: current.start && end && current.start > end ? end : current.start,
+                      end
+                    }));
+                  }}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                />
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => setDateRange(getPaymentDatePreset('today'))} className="px-3 py-2.5 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 text-sm font-semibold">اليوم</button>
+              <button type="button" onClick={() => setDateRange(getPaymentDatePreset('last7'))} className="px-3 py-2.5 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 text-sm font-semibold">آخر 7 أيام</button>
+              <button type="button" onClick={() => setDateRange(getPaymentDatePreset('month'))} className="px-3 py-2.5 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 text-sm font-semibold">هذا الشهر</button>
+              <button
+                type="button"
+                onClick={() => setDateRange({ start: '', end: '' })}
+                disabled={!dateRange.start && !dateRange.end}
+                className="inline-flex items-center gap-1 px-3 py-2.5 rounded-xl bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-40 text-sm font-semibold"
+              >
+                <ArrowPathIcon className="w-4 h-4" />
+                مسح التاريخ
+              </button>
+            </div>
           </div>
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">إلى تاريخ</label>
-            <input
-              type="date"
-              value={dateRange.end}
-              onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-            />
-          </div>
+          <p className="mt-3 text-xs text-gray-500 inline-flex items-center gap-1">
+            <CalendarDaysIcon className="w-4 h-4 text-blue-500" />
+            الفلترة حسب وقت وصول الدفعة إلى النظام بتوقيت الكويت، واليوم الأخير مشمول بالكامل.
+          </p>
         </div>
       </div>
 
@@ -552,7 +595,7 @@ const PaymentsTracking = () => {
                 <th className="px-6 py-4 text-right text-sm font-medium text-gray-500">المبلغ</th>
                 <th className="px-6 py-4 text-right text-sm font-medium text-gray-500">النوع</th>
                 <th className="px-6 py-4 text-right text-sm font-medium text-gray-500">الحالة</th>
-                <th className="px-6 py-4 text-right text-sm font-medium text-gray-500">تاريخ الدفع</th>
+                <th className="px-6 py-4 text-right text-sm font-medium text-gray-500">تاريخ الوصول</th>
                 <th className="px-6 py-4 text-right text-sm font-medium text-gray-500">الإجراءات</th>
               </tr>
             </thead>
@@ -615,15 +658,15 @@ const PaymentsTracking = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    {payment.payment_date ? (
+                    {payment.received_date ? (
                       <div>
-                        <div className="text-sm text-gray-900">{payment.payment_date}</div>
+                        <div className="text-sm text-gray-900" dir="ltr">{payment.received_date}</div>
                         <div className="text-xs text-gray-500">
-                          {payment.hijri_formatted || formatHijriDate(payment.payment_date)}
+                          {payment.hijri_formatted || formatHijriDate(payment.received_date)}
                         </div>
                       </div>
                     ) : (
-                      <span className="text-sm text-gray-400">لم يتم الدفع</span>
+                      <span className="text-sm text-gray-400">غير محدد</span>
                     )}
                   </td>
                   <td className="px-6 py-4">

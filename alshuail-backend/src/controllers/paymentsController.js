@@ -12,6 +12,11 @@ import {
   getSignedUrl as getDocumentUrl,
   deleteFromSupabase as deleteDocumentFile
 } from '../config/documentStorage.js';
+import {
+  PAYMENT_REPORTING_TIMEZONE,
+  appendPaymentReceivedDateFilters,
+  normalizePaymentReceivedDateRange
+} from '../utils/paymentDateFilter.js';
 
 export const getAllPayments = async (req, res) => {
   try {
@@ -22,6 +27,10 @@ export const getAllPayments = async (req, res) => {
       hijri_month,
       hijri_year,
       is_on_behalf,
+      start_date,
+      end_date,
+      date_from,
+      date_to,
       sort_by = 'hijri',
       limit = 50,
       offset = 0
@@ -31,6 +40,13 @@ export const getAllPayments = async (req, res) => {
     const conditions = [];
     const params = [];
     let paramIndex = 1;
+
+    const { startDate, endDate } = normalizePaymentReceivedDateRange({
+      start_date,
+      end_date,
+      date_from,
+      date_to
+    });
 
     if (hijri_month) {
       conditions.push(`p.hijri_month = $${paramIndex++}`);
@@ -58,6 +74,14 @@ export const getAllPayments = async (req, res) => {
       conditions.push(`(p.is_on_behalf IS NULL OR p.is_on_behalf = false)`);
     }
 
+    paramIndex = appendPaymentReceivedDateFilters({
+      conditions,
+      params,
+      paramIndex,
+      startDate,
+      endDate
+    });
+
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     // Determine sort order
@@ -70,6 +94,7 @@ export const getAllPayments = async (req, res) => {
 
     const { rows: payments } = await query(
       `SELECT p.*,
+        (p.created_at AT TIME ZONE '${PAYMENT_REPORTING_TIMEZONE}')::date AS received_date,
         json_build_object('full_name', pm.full_name, 'phone', pm.phone) AS payer,
         json_build_object('full_name', bm.full_name, 'phone', bm.phone) AS beneficiary
       FROM payments p
@@ -98,7 +123,7 @@ export const getAllPayments = async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
       error: error.message || 'فشل في جلب المدفوعات'
     });
@@ -221,15 +246,39 @@ export const getPaymentStats = async (req, res) => {
  */
 export const getPendingPayments = async (req, res) => {
   try {
-    const { category, limit = 100, offset = 0 } = req.query;
+    const {
+      category,
+      start_date,
+      end_date,
+      date_from,
+      date_to,
+      limit = 100,
+      offset = 0
+    } = req.query;
 
     const filters = [`p.status IN ('pending', 'pending_verification')`];
     const params = [];
+    let paramIndex = 1;
+
+    const { startDate, endDate } = normalizePaymentReceivedDateRange({
+      start_date,
+      end_date,
+      date_from,
+      date_to
+    });
 
     if (category) {
       params.push(category);
-      filters.push(`p.category = $${params.length}`);
+      filters.push(`p.category = $${paramIndex++}`);
     }
+
+    paramIndex = appendPaymentReceivedDateFilters({
+      conditions: filters,
+      params,
+      paramIndex,
+      startDate,
+      endDate
+    });
 
     params.push(Number(limit) || 100);
     params.push(Number(offset) || 0);
@@ -246,6 +295,7 @@ export const getPendingPayments = async (req, res) => {
          p.reference_number,
          p.notes,
          p.created_at,
+         (p.created_at AT TIME ZONE '${PAYMENT_REPORTING_TIMEZONE}')::date AS received_date,
          p.updated_at,
          p.receipt_document_id,
          -- Receipt metadata comes from the joined documents_metadata row
@@ -268,7 +318,7 @@ export const getPendingPayments = async (req, res) => {
              AND doc.status = 'active'
       WHERE ${filters.join(' AND ')}
       ORDER BY p.created_at ASC
-      LIMIT $${params.length - 1} OFFSET $${params.length}`,
+      LIMIT $${paramIndex++} OFFSET $${paramIndex}`,
       params
     );
 
@@ -304,9 +354,9 @@ export const getPendingPayments = async (req, res) => {
     });
   } catch (error) {
     log.error('Error fetching pending payments', { error: error.message });
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
-      message: 'فشل في جلب الدفعات المعلقة',
+      message: error.statusCode === 400 ? error.message : 'فشل في جلب الدفعات المعلقة',
       error_code: 'PENDING_FETCH_ERROR'
     });
   }
@@ -318,18 +368,49 @@ export const getPendingPayments = async (req, res) => {
  */
 export const getPendingPaymentsStats = async (req, res) => {
   try {
+    const {
+      category,
+      start_date,
+      end_date,
+      date_from,
+      date_to
+    } = req.query;
+    const filters = [`p.status IN ('pending', 'pending_verification')`];
+    const params = [];
+    let paramIndex = 1;
+    const { startDate, endDate } = normalizePaymentReceivedDateRange({
+      start_date,
+      end_date,
+      date_from,
+      date_to
+    });
+
+    if (category) {
+      filters.push(`p.category = $${paramIndex++}`);
+      params.push(category);
+    }
+
+    appendPaymentReceivedDateFilters({
+      conditions: filters,
+      params,
+      paramIndex,
+      startDate,
+      endDate
+    });
+
     const { rows } = await query(
       `SELECT
          COUNT(*)::int                                              AS total_pending,
-         COALESCE(SUM(amount), 0)                                   AS total_amount,
-         COUNT(DISTINCT payer_id)::int                              AS unique_payers,
-         COUNT(*) FILTER (WHERE category = 'subscription')::int     AS subscription_count,
-         COUNT(*) FILTER (WHERE category = 'initiative')::int       AS initiative_count,
-         COUNT(*) FILTER (WHERE category = 'diya')::int             AS diya_count,
-         COUNT(*) FILTER (WHERE status = 'pending')::int            AS awaiting_action,
-         COUNT(*) FILTER (WHERE status = 'pending_verification')::int AS awaiting_verification
-       FROM payments
-      WHERE status IN ('pending', 'pending_verification')`
+         COALESCE(SUM(p.amount), 0)                                 AS total_amount,
+         COUNT(DISTINCT p.payer_id)::int                            AS unique_payers,
+         COUNT(*) FILTER (WHERE p.category = 'subscription')::int   AS subscription_count,
+         COUNT(*) FILTER (WHERE p.category = 'initiative')::int     AS initiative_count,
+         COUNT(*) FILTER (WHERE p.category = 'diya')::int           AS diya_count,
+         COUNT(*) FILTER (WHERE p.status = 'pending')::int          AS awaiting_action,
+         COUNT(*) FILTER (WHERE p.status = 'pending_verification')::int AS awaiting_verification
+       FROM payments p
+      WHERE ${filters.join(' AND ')}`,
+      params
     );
 
     res.json({
@@ -338,9 +419,9 @@ export const getPendingPaymentsStats = async (req, res) => {
     });
   } catch (error) {
     log.error('Error fetching pending payment stats', { error: error.message });
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
-      message: 'فشل في جلب إحصائيات الدفعات المعلقة',
+      message: error.statusCode === 400 ? error.message : 'فشل في جلب إحصائيات الدفعات المعلقة',
       error_code: 'PENDING_STATS_ERROR'
     });
   }

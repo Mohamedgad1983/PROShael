@@ -50,6 +50,7 @@ export interface PendingPayment {
   reference_number: string | null;
   notes: string | null;
   created_at: string;
+  received_date: string;
   updated_at: string;
   payer_name: string | null;
   payer_phone: string | null;
@@ -79,23 +80,39 @@ export interface PendingPaymentsStats {
   awaiting_verification: number;
 }
 
+export interface PendingPaymentFilters {
+  category?: string;
+  start_date?: string;
+  end_date?: string;
+  limit?: number;
+  offset?: number;
+}
+
+const buildPendingPaymentQuery = (params: PendingPaymentFilters = {}) => {
+  const query = new URLSearchParams();
+  if (params.category) query.append('category', params.category);
+  if (params.start_date) query.append('start_date', params.start_date);
+  if (params.end_date) query.append('end_date', params.end_date);
+  if (params.limit) query.append('limit', String(params.limit));
+  if (params.offset) query.append('offset', String(params.offset));
+  return query.toString();
+};
+
 export const paymentApprovalService = {
-  /** List pending payments, optionally filtered by category. */
-  async getPendingPayments(params: { category?: string; limit?: number; offset?: number } = {}) {
-    const query = new URLSearchParams();
-    if (params.category) query.append('category', params.category);
-    if (params.limit) query.append('limit', String(params.limit));
-    if (params.offset) query.append('offset', String(params.offset));
-    const qs = query.toString();
+  /** List pending payments, optionally filtered by category and received date. */
+  async getPendingPayments(params: PendingPaymentFilters = {}) {
+    const qs = buildPendingPaymentQuery(params);
     const path = qs ? `/payments/pending?${qs}` : '/payments/pending';
     const res = await apiClient.get<{ success: boolean; data: PendingPayment[]; count: number }>(path);
     return res as unknown as { success: boolean; data: PendingPayment[]; count: number };
   },
 
   /** Stats card for the queue top. */
-  async getPendingStats() {
+  async getPendingStats(params: PendingPaymentFilters = {}) {
+    const qs = buildPendingPaymentQuery(params);
+    const path = qs ? `/payments/pending/stats?${qs}` : '/payments/pending/stats';
     const res = await apiClient.get<{ success: boolean; data: PendingPaymentsStats }>(
-      '/payments/pending/stats'
+      path
     );
     return res as unknown as { success: boolean; data: PendingPaymentsStats };
   },

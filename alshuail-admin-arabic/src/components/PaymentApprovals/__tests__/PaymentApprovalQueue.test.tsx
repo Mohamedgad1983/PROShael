@@ -1,0 +1,84 @@
+import { fireEvent,render,screen,waitFor } from '@testing-library/react';
+import React from 'react';
+import { paymentApprovalService } from '../../../services/paymentApproval.service';
+import { getPaymentDatePreset } from '../../../utils/paymentDateRange';
+import PaymentApprovalQueue from '../PaymentApprovalQueue';
+
+jest.mock('../../../services/paymentApproval.service', () => ({
+  paymentApprovalService: {
+    getPendingPayments: jest.fn(),
+    getPendingStats: jest.fn(),
+    approvePayment: jest.fn(),
+    rejectPayment: jest.fn()
+  }
+}));
+
+const mockedService = paymentApprovalService as jest.Mocked<typeof paymentApprovalService>;
+
+describe('PaymentApprovalQueue date filters', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockedService.getPendingPayments.mockResolvedValue({
+      success: true,
+      data: [],
+      count: 0
+    });
+    mockedService.getPendingStats.mockResolvedValue({
+      success: true,
+      data: {
+        total_pending: 0,
+        total_amount: 0,
+        unique_payers: 0,
+        subscription_count: 0,
+        initiative_count: 0,
+        diya_count: 0,
+        awaiting_action: 0,
+        awaiting_verification: 0
+      }
+    });
+  });
+
+  test('sends an inclusive custom received-date range to list and stats APIs', async () => {
+    render(<PaymentApprovalQueue />);
+    await waitFor(() => expect(mockedService.getPendingPayments).toHaveBeenCalled());
+
+    fireEvent.change(screen.getByLabelText('من تاريخ الوصول'), {
+      target: { value: '2026-08-01' }
+    });
+    fireEvent.change(screen.getByLabelText('إلى تاريخ الوصول'), {
+      target: { value: '2026-08-04' }
+    });
+
+    await waitFor(() => expect(mockedService.getPendingPayments).toHaveBeenLastCalledWith({
+      category: undefined,
+      start_date: '2026-08-01',
+      end_date: '2026-08-04'
+    }));
+    expect(mockedService.getPendingStats).toHaveBeenLastCalledWith({
+      category: undefined,
+      start_date: '2026-08-01',
+      end_date: '2026-08-04'
+    });
+  });
+
+  test('applies the last seven Kuwait days preset and can clear it', async () => {
+    render(<PaymentApprovalQueue />);
+    await waitFor(() => expect(mockedService.getPendingPayments).toHaveBeenCalled());
+
+    fireEvent.click(screen.getByRole('button', { name: 'آخر 7 أيام' }));
+    const expected = getPaymentDatePreset('last7');
+
+    await waitFor(() => expect(mockedService.getPendingPayments).toHaveBeenLastCalledWith({
+      category: undefined,
+      start_date: expected.start,
+      end_date: expected.end
+    }));
+
+    fireEvent.click(screen.getByRole('button', { name: /مسح التاريخ/ }));
+    await waitFor(() => expect(mockedService.getPendingPayments).toHaveBeenLastCalledWith({
+      category: undefined,
+      start_date: undefined,
+      end_date: undefined
+    }));
+  });
+});
