@@ -1,6 +1,7 @@
 import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
 import { config } from '../config/env.js';
+import { initiativeProgress } from '../utils/initiativeInput.js';
 
 /**
  * Generate reference number for contribution
@@ -133,8 +134,7 @@ export const getAllInitiatives = async (req, res) => {
       const totalContributed = Number(initiative.current_amount) || 0;
       const contributorsCount = Number(initiative.contributor_count) || 0;
 
-      const progressPercentage = initiative.target_amount ?
-        Math.round((totalContributed / Number(initiative.target_amount)) * 100) : 0;
+      const progressPercentage = initiativeProgress(totalContributed, initiative.target_amount);
 
       // Use collection_end_date if exists, otherwise fall back to end_date
       const endDate = initiative.collection_end_date || initiative.end_date;
@@ -163,7 +163,7 @@ export const getAllInitiatives = async (req, res) => {
         contributor_count: contributorsCount,
         progress_percentage: progressPercentage,
         days_remaining: daysRemaining,
-        is_target_reached: initiative.target_amount ? totalContributed >= Number(initiative.target_amount) : false,
+        is_target_reached: initiative.target_amount ? totalContributed >= Number(initiative.target_amount) : null,
         is_expired: endDate ? new Date(endDate) < new Date() : false
       };
     }) || [];
@@ -278,8 +278,7 @@ export const getInitiativeById = async (req, res) => {
     const pendingAmount = pendingContributions.reduce((sum, c) => sum + Number(c.amount), 0);
     const contributorsCount = new Set(confirmedContributions.map(c => c.member?.id)).size;
 
-    const progressPercentage = initiative.target_amount ?
-      Math.round((totalContributed / Number(initiative.target_amount)) * 100) : 0;
+    const progressPercentage = initiativeProgress(totalContributed, initiative.target_amount);
 
     const daysRemaining = initiative.end_date ?
       Math.ceil((new Date(initiative.end_date) - new Date()) / (1000 * 60 * 60 * 24)) : null;
@@ -301,7 +300,7 @@ export const getInitiativeById = async (req, res) => {
         pending_contributions: pendingContributions.length,
         progress_percentage: progressPercentage,
         days_remaining: daysRemaining,
-        is_target_reached: initiative.target_amount ? totalContributed >= Number(initiative.target_amount) : false,
+        is_target_reached: initiative.target_amount ? totalContributed >= Number(initiative.target_amount) : null,
         is_expired: initiative.end_date ? new Date(initiative.end_date) < new Date() : false,
         remaining_amount: initiative.target_amount ? Math.max(0, Number(initiative.target_amount) - totalContributed) : null
       }
@@ -347,7 +346,17 @@ export const createInitiative = async (req, res) => {
       });
     }
 
-    if (target_amount && Number(target_amount) < 50) {
+    const hasTargetAmount = target_amount !== undefined && target_amount !== null && String(target_amount).trim() !== '';
+    const normalizedTargetAmount = hasTargetAmount ? Number(target_amount) : null;
+
+    if (hasTargetAmount && (!Number.isFinite(normalizedTargetAmount) || normalizedTargetAmount < 0)) {
+      return res.status(400).json({
+        success: false,
+        error: 'المبلغ المستهدف يجب أن يكون رقماً موجباً أو صفراً'
+      });
+    }
+
+    if (normalizedTargetAmount !== null && normalizedTargetAmount > 0 && normalizedTargetAmount < 50) {
       return res.status(400).json({
         success: false,
         error: 'الحد الأدنى للمبلغ المستهدف هو 50 ريال'
@@ -386,7 +395,7 @@ export const createInitiative = async (req, res) => {
       `INSERT INTO activities (title, description, category, target_amount, start_date, end_date, organizer_id, status, current_amount)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 0)
        RETURNING *`,
-      [title, description, category, target_amount ? Number(target_amount) : null, start_date, end_date, organizer_id, status]
+      [title, description, category, normalizedTargetAmount, start_date || null, end_date || null, organizer_id || null, status]
     );
 
     const newInitiative = rows[0];
@@ -673,8 +682,18 @@ export const updateInitiative = async (req, res) => {
       });
     }
 
+    const hasTargetAmount = target_amount !== undefined && target_amount !== null && String(target_amount).trim() !== '';
+    const normalizedTargetAmount = hasTargetAmount ? Number(target_amount) : null;
+
+    if (hasTargetAmount && (!Number.isFinite(normalizedTargetAmount) || normalizedTargetAmount < 0)) {
+      return res.status(400).json({
+        success: false,
+        error: 'المبلغ المستهدف يجب أن يكون رقماً موجباً أو صفراً'
+      });
+    }
+
     // Validate target amount if provided
-    if (target_amount && Number(target_amount) < 50) {
+    if (normalizedTargetAmount !== null && normalizedTargetAmount > 0 && normalizedTargetAmount < 50) {
       return res.status(400).json({
         success: false,
         error: 'الحد الأدنى للمبلغ المستهدف هو 50 ريال'
@@ -702,9 +721,9 @@ export const updateInitiative = async (req, res) => {
     if (title !== undefined) { setClauses.push(`title = $${pIdx++}`); params.push(title); }
     if (description !== undefined) { setClauses.push(`description = $${pIdx++}`); params.push(description); }
     if (category !== undefined) { setClauses.push(`category = $${pIdx++}`); params.push(category); }
-    if (target_amount !== undefined) { setClauses.push(`target_amount = $${pIdx++}`); params.push(target_amount ? Number(target_amount) : null); }
-    if (start_date !== undefined) { setClauses.push(`start_date = $${pIdx++}`); params.push(start_date); }
-    if (end_date !== undefined) { setClauses.push(`end_date = $${pIdx++}`); params.push(end_date); }
+    if (target_amount !== undefined) { setClauses.push(`target_amount = $${pIdx++}`); params.push(normalizedTargetAmount); }
+    if (start_date !== undefined) { setClauses.push(`start_date = $${pIdx++}`); params.push(start_date || null); }
+    if (end_date !== undefined) { setClauses.push(`end_date = $${pIdx++}`); params.push(end_date || null); }
     if (status !== undefined) { setClauses.push(`status = $${pIdx++}`); params.push(status); }
 
     params.push(id);

@@ -20,12 +20,12 @@ import { exportJsonToExcel } from '../../utils/excelExport';
 import { logger } from '../../utils/logger';
 
 interface Initiative {
-    id: number;
+    id: string;
     title_ar?: string;
     title_en?: string;
     description_ar?: string;
     beneficiary_name_ar?: string;
-    target_amount: number;
+    target_amount: number | null;
     current_amount: number;
     status: string;
     min_contribution?: number;
@@ -61,7 +61,7 @@ interface Stats {
     totalDonations: number;
     uniqueDonors: number;
     approvedAmount: number;
-    progressPercentage: string;
+    progressPercentage: number | null;
 }
 
 interface NonContributorStats {
@@ -296,8 +296,13 @@ const InitiativeReport = () => {
         );
     }
 
-    const remaining = initiative.target_amount - initiative.current_amount;
-    const progress = (initiative.current_amount / initiative.target_amount * 100);
+    const hasFinancialTarget = initiative.target_amount !== null && initiative.target_amount > 0;
+    const remaining = hasFinancialTarget
+        ? Math.max(0, initiative.target_amount! - initiative.current_amount)
+        : null;
+    const progress = hasFinancialTarget
+        ? (initiative.current_amount / initiative.target_amount! * 100)
+        : null;
 
     return (
         <div className="container mx-auto px-4 py-8" dir="rtl">
@@ -341,8 +346,10 @@ const InitiativeReport = () => {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
                 <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-xl shadow-lg">
                     <div className="text-sm opacity-90 mb-1">المبلغ المستهدف</div>
-                    <div className="text-3xl font-bold">{initiative.target_amount.toLocaleString('en-US')}</div>
-                    <div className="text-sm opacity-75">ريال سعودي</div>
+                    <div className="text-3xl font-bold">
+                        {hasFinancialTarget ? initiative.target_amount!.toLocaleString('en-US') : 'غير محدد'}
+                    </div>
+                    <div className="text-sm opacity-75">{hasFinancialTarget ? 'ريال سعودي' : 'مبادرة بلا هدف مالي ثابت'}</div>
                 </div>
 
                 <div className="bg-gradient-to-br from-green-500 to-green-600 text-white p-6 rounded-xl shadow-lg">
@@ -353,29 +360,31 @@ const InitiativeReport = () => {
 
                 <div className="bg-gradient-to-br from-orange-500 to-red-600 text-white p-6 rounded-xl shadow-lg">
                     <div className="text-sm opacity-90 mb-1">المبلغ المتبقي</div>
-                    <div className="text-3xl font-bold">{remaining.toLocaleString('en-US')}</div>
-                    <div className="text-sm opacity-75">ريال سعودي</div>
+                    <div className="text-3xl font-bold">{remaining === null ? '—' : remaining.toLocaleString('en-US')}</div>
+                    <div className="text-sm opacity-75">{remaining === null ? 'لا يوجد هدف مالي' : 'ريال سعودي'}</div>
                 </div>
 
                 <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white p-6 rounded-xl shadow-lg">
                     <div className="text-sm opacity-90 mb-1">نسبة الإنجاز</div>
-                    <div className="text-3xl font-bold">{progress.toFixed(1)}%</div>
+                    <div className="text-3xl font-bold">{progress === null ? '—' : `${progress.toFixed(1)}%`}</div>
                     <div className="text-sm opacity-75">{stats?.uniqueDonors || 0} مساهم</div>
                 </div>
             </div>
 
             {/* Progress Bar */}
-            <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-                <h3 className="text-lg font-bold mb-4">التقدم نحو الهدف</h3>
-                <div className="w-full bg-gray-200 rounded-full h-6">
-                    <div
-                        className="bg-gradient-to-r from-green-500 to-blue-600 h-6 rounded-full transition-all duration-500 flex items-center justify-center text-white text-sm font-bold"
-                        style={{ width: `${Math.min(progress, 100)}%` }}
-                    >
-                        {progress.toFixed(1)}%
+            {progress !== null && (
+                <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+                    <h3 className="text-lg font-bold mb-4">التقدم نحو الهدف</h3>
+                    <div className="w-full bg-gray-200 rounded-full h-6">
+                        <div
+                            className="bg-gradient-to-r from-green-500 to-blue-600 h-6 rounded-full transition-all duration-500 flex items-center justify-center text-white text-sm font-bold"
+                            style={{ width: `${Math.min(progress, 100)}%` }}
+                        >
+                            {progress.toFixed(1)}%
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
 
             {/* Tabs */}
             <div className="bg-white rounded-xl shadow-lg overflow-hidden">

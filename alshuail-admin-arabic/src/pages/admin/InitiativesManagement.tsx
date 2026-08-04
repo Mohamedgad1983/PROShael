@@ -7,17 +7,18 @@ import SimpleHijriDatePicker from '../../components/Common/SimpleHijriDatePicker
 import useActiveMemberCount from '../../hooks/useActiveMemberCount';
 
 import { API_BASE_URL } from '../../utils/apiConfig';
+import { buildInitiativePayload, InitiativeFormValues } from '../../utils/initiativeForm';
 import { logger } from '../../utils/logger';
 
 interface Initiative {
-    id: number;
+    id: string;
     title_ar?: string;
     title_en?: string;
     description_ar?: string;
     description_en?: string;
     beneficiary_name_ar?: string;
     beneficiary_name_en?: string;
-    target_amount: number;
+    target_amount: number | null;
     current_amount: number;
     status: string;
     min_contribution?: number;
@@ -42,10 +43,10 @@ const InitiativesManagement = () => {
     const [isEditMode, setIsEditMode] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deletingInitiative, setDeletingInitiative] = useState<Initiative | null>(null);
-    const [deletingInitiativeId, setDeletingInitiativeId] = useState<number | null>(null);
+    const [deletingInitiativeId, setDeletingInitiativeId] = useState<string | null>(null);
     const [showPushModal, setShowPushModal] = useState(false);
     const [previewInitiative, setPreviewInitiative] = useState<Initiative | null>(null);
-    const [pushingInitiativeId, setPushingInitiativeId] = useState<number | null>(null);
+    const [pushingInitiativeId, setPushingInitiativeId] = useState<string | null>(null);
     const [showToast, setShowToast] = useState(false);
 
     // Hijri Date Range Filter
@@ -73,7 +74,7 @@ const InitiativesManagement = () => {
     });
 
     // Form state
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<InitiativeFormValues>({
         title_ar: '', title_en: '', description_ar: '', description_en: '',
         beneficiary_name_ar: '', beneficiary_name_en: '',
         target_amount: '', min_contribution: '', max_contribution: '',
@@ -107,12 +108,13 @@ const InitiativesManagement = () => {
         e.preventDefault();
         try {
             const token = localStorage.getItem('token');
+            const payload = buildInitiativePayload(formData);
 
             if (isEditMode && editingInitiative) {
                 // UPDATE existing initiative
                 await axios.put(
                     `${API_URL}/initiatives-enhanced/${editingInitiative.id}`,
-                    formData,
+                    payload,
                     { headers: { Authorization: `Bearer ${token}` } }
                 );
                 alert('تم تحديث المبادرة بنجاح!');
@@ -120,7 +122,7 @@ const InitiativesManagement = () => {
                 // CREATE new initiative
                 await axios.post(
                     `${API_URL}/initiatives-enhanced`,
-                    formData,
+                    payload,
                     { headers: { Authorization: `Bearer ${token}` } }
                 );
                 alert('تم إنشاء المبادرة بنجاح!');
@@ -136,7 +138,7 @@ const InitiativesManagement = () => {
         }
     };
 
-    const handleStatusChange = async (initiativeId: number, newStatus: string) => {
+    const handleStatusChange = async (initiativeId: string, newStatus: string) => {
         try {
             const token = localStorage.getItem('token');
             await axios.patch(
@@ -151,7 +153,7 @@ const InitiativesManagement = () => {
         }
     };
 
-    const handlePushNotification = async (initiativeId: number) => {
+    const handlePushNotification = async (initiativeId: string) => {
         try {
             const token = localStorage.getItem('token');
             setPushingInitiativeId(initiativeId);
@@ -178,7 +180,7 @@ const InitiativesManagement = () => {
         }
     };
 
-    const handleDeleteInitiative = async (initiativeId: number) => {
+    const handleDeleteInitiative = async (initiativeId: string) => {
         try {
             const token = localStorage.getItem('token');
             setDeletingInitiativeId(initiativeId);
@@ -267,6 +269,8 @@ const InitiativesManagement = () => {
             <div className="flex justify-between items-center mb-8">
                 <h1 className="text-3xl font-bold text-gray-800">إدارة المبادرات</h1>
                 <button
+                    type="button"
+                    aria-label="إنشاء مبادرة جديدة"
                     onClick={() => {
                         setIsEditMode(false);
                         setEditingInitiative(null);
@@ -419,27 +423,38 @@ const InitiativesManagement = () => {
                                 <p className="text-sm text-gray-600 mb-3">المستفيد: {init.beneficiary_name_ar}</p>
                             )}
 
-                            {/* Progress Bar */}
-                            <div className="mb-4">
-                                <div className="flex justify-between text-sm text-gray-600 mb-1">
-                                    <span>التقدم</span>
-                                    <span>{init.target_amount ? ((init.current_amount / init.target_amount) * 100).toFixed(0) : 0}%</span>
+                            {/* Progress is meaningful only when a financial target exists. */}
+                            {init.target_amount !== null && init.target_amount > 0 ? (
+                                <div className="mb-4">
+                                    <div className="flex justify-between text-sm text-gray-600 mb-1">
+                                        <span>التقدم</span>
+                                        <span>{((init.current_amount / init.target_amount) * 100).toFixed(0)}%</span>
+                                    </div>
+                                    <div className="w-full bg-gray-200 rounded-full h-3">
+                                        <div
+                                            className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-500"
+                                            style={{ width: `${Math.min((init.current_amount / init.target_amount * 100), 100)}%` }}
+                                        ></div>
+                                    </div>
+                                    <div className="flex justify-between text-sm mt-2">
+                                        <span className="text-gray-600">
+                                            {(init.current_amount || 0).toLocaleString('en-US')} ر.س
+                                        </span>
+                                        <span className="font-bold">
+                                            {init.target_amount.toLocaleString('en-US')} ر.س
+                                        </span>
+                                    </div>
                                 </div>
-                                <div className="w-full bg-gray-200 rounded-full h-3">
-                                    <div
-                                        className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-500"
-                                        style={{ width: `${init.target_amount ? Math.min((init.current_amount / init.target_amount * 100), 100) : 0}%` }}
-                                    ></div>
+                            ) : (
+                                <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50 p-3">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <span className="font-medium text-blue-800">بدون هدف مالي محدد</span>
+                                        <span className="text-sm text-blue-700">
+                                            محصّل: <bdi>{(init.current_amount || 0).toLocaleString('en-US')} ر.س</bdi>
+                                        </span>
+                                    </div>
                                 </div>
-                                <div className="flex justify-between text-sm mt-2">
-                                    <span className="text-gray-600">
-                                        {(init.current_amount || 0).toLocaleString('en-US')} ر.س
-                                    </span>
-                                    <span className="font-bold">
-                                        {(init.target_amount || 0).toLocaleString('en-US')} ر.س
-                                    </span>
-                                </div>
-                            </div>
+                            )}
 
                             {/* Contribution Limits */}
                             {(init.min_contribution || init.max_contribution) && (
@@ -470,7 +485,7 @@ const InitiativesManagement = () => {
                                             description_en: init.description_en || '',
                                             beneficiary_name_ar: init.beneficiary_name_ar || '',
                                             beneficiary_name_en: init.beneficiary_name_en || '',
-                                            target_amount: String(init.target_amount || ''),
+                                            target_amount: init.target_amount == null ? '' : String(init.target_amount),
                                             min_contribution: String(init.min_contribution || ''),
                                             max_contribution: String(init.max_contribution || ''),
                                             start_date: '',
@@ -580,6 +595,7 @@ const InitiativesManagement = () => {
                                     </label>
                                     <input
                                         type="text"
+                                        aria-label="عنوان المبادرة بالعربية"
                                         value={formData.title_ar}
                                         onChange={(e) => setFormData({ ...formData, title_ar: e.target.value })}
                                         className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -651,17 +667,22 @@ const InitiativesManagement = () => {
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        المبلغ المستهدف *
+                                        المبلغ المستهدف <span className="font-normal text-gray-500">(اختياري)</span>
                                     </label>
                                     <input
                                         type="number"
+                                        aria-label="المبلغ المستهدف الاختياري"
+                                        placeholder="اتركه فارغاً إذا لم يوجد هدف مالي"
+                                        dir="ltr"
                                         value={formData.target_amount}
                                         onChange={(e) => setFormData({ ...formData, target_amount: e.target.value })}
                                         className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                        required
                                         min="0"
                                         step="0.01"
                                     />
+                                    <p className="mt-1 text-xs text-gray-500">
+                                        لا تحتاج لإدخال أي معرّف؛ النظام ينشئ معرّف المبادرة تلقائياً.
+                                    </p>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -669,6 +690,7 @@ const InitiativesManagement = () => {
                                     </label>
                                     <input
                                         type="number"
+                                        dir="ltr"
                                         value={formData.min_contribution}
                                         onChange={(e) => setFormData({ ...formData, min_contribution: e.target.value })}
                                         className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -682,6 +704,7 @@ const InitiativesManagement = () => {
                                     </label>
                                     <input
                                         type="number"
+                                        dir="ltr"
                                         value={formData.max_contribution}
                                         onChange={(e) => setFormData({ ...formData, max_contribution: e.target.value })}
                                         className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -792,7 +815,9 @@ const InitiativesManagement = () => {
                                 <p className="text-blue-800 text-sm mb-2">{previewInitiative.description_ar.substring(0, 150)}...</p>
                             )}
                             <p className="text-blue-700 text-sm">
-                                المبلغ المستهدف: {previewInitiative.target_amount.toLocaleString('en-US')} ر.س
+                                {previewInitiative.target_amount !== null && previewInitiative.target_amount > 0
+                                    ? `المبلغ المستهدف: ${previewInitiative.target_amount.toLocaleString('en-US')} ر.س`
+                                    : 'بدون هدف مالي محدد'}
                             </p>
                         </div>
 

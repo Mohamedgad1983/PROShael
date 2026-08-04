@@ -8,23 +8,33 @@ import express from 'express';
 import { query } from '../services/database.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { log } from '../utils/logger.js';
+import {
+    INITIATIVE_ADMIN_ROLES,
+    INITIATIVE_STATUSES,
+    initiativeProgress,
+    isUuid,
+    normalizeInitiativeInput
+} from '../utils/initiativeInput.js';
 
 const router = express.Router();
 
 // Helper function to check if user is admin
-const isAdmin = async (userId) => {
+const getAdmin = async (userId) => {
+    if (!isUuid(userId)) {
+        return null;
+    }
+
     try {
         const result = await query(
-            `SELECT role FROM users WHERE id = $1`,
-            [userId]
+            `SELECT id, role
+             FROM users
+             WHERE id = $1 AND role = ANY($2::text[])`,
+            [userId, INITIATIVE_ADMIN_ROLES]
         );
-        const user = result.rows[0];
-
-        // Accept both 'admin' and 'super_admin' roles
-        return user?.role === 'admin' || user?.role === 'super_admin';
+        return result.rows[0] || null;
     } catch (error) {
         log.error('Error checking admin status', { error: error.message });
-        return false;
+        return null;
     }
 };
 
@@ -32,16 +42,30 @@ const isAdmin = async (userId) => {
 const adminOnly = async (req, res, next) => {
     const userId = req.user?.id;
     if (!userId) {
-        return res.status(401).json({ error: 'Unauthorized' });
+        return res.status(401).json({ success: false, error: 'يرجى تسجيل الدخول أولاً' });
     }
 
-    const admin = await isAdmin(userId);
+    const admin = await getAdmin(userId);
     if (!admin) {
-        return res.status(403).json({ error: 'Admin access required' });
+        return res.status(403).json({ success: false, error: 'ليس لديك صلاحية إدارة المبادرات' });
     }
 
+    req.adminUser = admin;
     next();
 };
+
+const requireUuidParam = (paramName) => (req, res, next) => {
+    if (!isUuid(req.params[paramName])) {
+        return res.status(400).json({
+            success: false,
+            error: paramName === 'donationId' ? 'معرّف المساهمة غير صالح' : 'معرّف المبادرة غير صالح'
+        });
+    }
+    next();
+};
+
+const initiativeIdRequired = requireUuidParam('id');
+const donationIdRequired = requireUuidParam('donationId');
 
 // ============================================
 // ADMIN ENDPOINTS
@@ -50,33 +74,10 @@ const adminOnly = async (req, res, next) => {
 // 1. CREATE INITIATIVE (Admin Only)
 router.post('/', authenticateToken, adminOnly, async (req, res) => {
     try {
-        const {
-            title_ar,
-            title_en,
-            description_ar,
-            description_en,
-            beneficiary_name_ar,
-            beneficiary_name_en,
-            target_amount,
-            min_contribution,
-            max_contribution,
-            start_date,
-            end_date,
-            status // draft or active
-        } = req.body;
-
-        // Validation
-        if (!title_ar || !target_amount) {
-            return res.status(400).json({ error: 'Title and target amount required' });
+        const { data, errors } = normalizeInitiativeInput(req.body);
+        if (errors.length) {
+            return res.status(400).json({ success: false, error: errors[0], errors });
         }
-
-        if (min_contribution && max_contribution && min_contribution > max_contribution) {
-            return res.status(400).json({ error: 'Min contribution cannot exceed max' });
-        }
-
-        // Convert empty strings to null for date fields
-        const startDate = start_date && start_date.trim() !== '' ? start_date : null;
-        const endDate = end_date && end_date.trim() !== '' ? end_date : null;
 
         const result = await query(
             `INSERT INTO initiatives
@@ -84,32 +85,43 @@ router.post('/', authenticateToken, adminOnly, async (req, res) => {
               target_amount, current_amount, min_contribution, max_contribution, start_date, end_date, status, created_by)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 0, $9, $10, $11, $12, $13, $14)
              RETURNING *`,
-            [title_ar || title_en || 'بدون عنوان', title_ar, title_en, description_ar, description_en,
-             beneficiary_name_ar, beneficiary_name_en, target_amount, min_contribution || 0, max_contribution,
-             startDate, endDate, status || 'draft', req.user.id]
+            [data.title_ar || data.title_en, data.title_ar, data.title_en, data.description_ar, data.description_en,
+             data.beneficiary_name_ar, data.beneficiary_name_en, data.target_amount ?? null,
+             data.min_contribution ?? null, data.max_contribution ?? null,
+             data.start_date ?? null, data.end_date ?? null, data.status, req.adminUser.id]
         );
         const _data = result.rows[0];
 
         res.status(201).json({
-            message: 'Initiative created successfully',
+            success: true,
+            message: 'تم إنشاء المبادرة بنجاح',
             initiative: _data
         });
     } catch (error) {
-        log.error('Create initiative error', { error: error.message });
-        res.status(500).json({ error: error.message });
+        log.error('Create initiative error', { error: error.message, code: error.code });
+        res.status(500).json({ success: false, error: 'تعذر إنشاء المبادرة، يرجى المحاولة مرة أخرى' });
     }
 });
 
 // 2. UPDATE INITIATIVE (Admin Only)
-router.put('/:id', authenticateToken, adminOnly, async (req, res) => {
+router.put('/:id', authenticateToken, adminOnly, initiativeIdRequired, async (req, res) => {
     try {
         const { id } = req.params;
-        const updates = req.body;
+        const { data: updates, errors } = normalizeInitiativeInput(req.body, { partial: true });
+        if (errors.length) {
+            return res.status(400).json({ success: false, error: errors[0], errors });
+        }
 
-        // Don't allow updating current_amount directly (calculated by trigger)
-        delete updates.current_amount;
+        if (Object.keys(updates).length === 0) {
+            return res.status(400).json({ success: false, error: 'لا توجد بيانات صالحة للتحديث' });
+        }
 
-        // Build dynamic UPDATE query
+        if (updates.title_ar !== undefined) {
+            updates.title = updates.title_ar;
+        } else if (updates.title_en) {
+            updates.title = updates.title_en;
+        }
+
         const fields = Object.keys(updates);
         const setClause = fields.map((key, idx) => `${key} = $${idx + 2}`).join(', ');
         const values = Object.values(updates);
@@ -120,17 +132,23 @@ router.put('/:id', authenticateToken, adminOnly, async (req, res) => {
         );
         const _data = result.rows[0];
 
+        if (!_data) {
+            return res.status(404).json({ success: false, error: 'المبادرة غير موجودة' });
+        }
+
         res.json({
-            message: 'Initiative updated successfully',
+            success: true,
+            message: 'تم تحديث المبادرة بنجاح',
             initiative: _data
         });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        log.error('Update initiative error', { error: error.message, code: error.code });
+        res.status(500).json({ success: false, error: 'تعذر تحديث المبادرة، يرجى المحاولة مرة أخرى' });
     }
 });
 
 // 3. DELETE INITIATIVE (Admin Only)
-router.delete('/:id', authenticateToken, adminOnly, async (req, res) => {
+router.delete('/:id', authenticateToken, adminOnly, initiativeIdRequired, async (req, res) => {
     try {
         const { id } = req.params;
 
@@ -155,14 +173,13 @@ router.delete('/:id', authenticateToken, adminOnly, async (req, res) => {
 });
 
 // 4. CHANGE INITIATIVE STATUS (Admin Only)
-router.patch('/:id/status', authenticateToken, adminOnly, async (req, res) => {
+router.patch('/:id/status', authenticateToken, adminOnly, initiativeIdRequired, async (req, res) => {
     try {
         const { id } = req.params;
         const { status, completion_notes } = req.body;
 
-        const validStatuses = ['draft', 'active', 'completed', 'archived'];
-        if (!validStatuses.includes(status)) {
-            return res.status(400).json({ error: 'Invalid status' });
+        if (!INITIATIVE_STATUSES.includes(status)) {
+            return res.status(400).json({ success: false, error: 'حالة المبادرة غير صالحة' });
         }
 
         // Build dynamic SET clause
@@ -175,7 +192,7 @@ router.patch('/:id/status', authenticateToken, adminOnly, async (req, res) => {
             params.push(new Date());
             paramIdx++;
             setClauses.push(`archived_by = $${paramIdx}`);
-            params.push(req.user.id);
+            params.push(req.adminUser.id);
             paramIdx++;
         }
 
@@ -209,6 +226,10 @@ router.get('/admin/all', authenticateToken, adminOnly, async (req, res) => {
     try {
         const { status } = req.query;
 
+        if (status && !INITIATIVE_STATUSES.includes(status)) {
+            return res.status(400).json({ success: false, error: 'حالة المبادرة غير صالحة' });
+        }
+
         let sql = 'SELECT * FROM initiatives';
         const params = [];
 
@@ -228,7 +249,7 @@ router.get('/admin/all', authenticateToken, adminOnly, async (req, res) => {
 });
 
 // 5. GET INITIATIVE DETAILS WITH CONTRIBUTIONS (Admin)
-router.get('/:id/details', authenticateToken, adminOnly, async (req, res) => {
+router.get('/:id/details', authenticateToken, adminOnly, initiativeIdRequired, async (req, res) => {
     try {
         const { id } = req.params;
 
@@ -272,7 +293,7 @@ router.get('/:id/details', authenticateToken, adminOnly, async (req, res) => {
                 totalDonations,
                 uniqueDonors,
                 approvedAmount,
-                progressPercentage: (approvedAmount / initiative.target_amount * 100).toFixed(2)
+                progressPercentage: initiativeProgress(approvedAmount, initiative.target_amount)
             }
         });
     } catch (error) {
@@ -281,7 +302,7 @@ router.get('/:id/details', authenticateToken, adminOnly, async (req, res) => {
 });
 
 // 6. APPROVE DONATION (Admin Only)
-router.patch('/donations/:donationId/approve', authenticateToken, adminOnly, async (req, res) => {
+router.patch('/donations/:donationId/approve', authenticateToken, adminOnly, donationIdRequired, async (req, res) => {
     try {
         const { donationId } = req.params;
 
@@ -290,7 +311,7 @@ router.patch('/donations/:donationId/approve', authenticateToken, adminOnly, asy
              SET approved_by = $1, approval_date = $2
              WHERE id = $3
              RETURNING *`,
-            [req.user.id, new Date(), donationId]
+            [req.adminUser.id, new Date(), donationId]
         );
         const _data = result.rows[0];
 
@@ -310,7 +331,7 @@ router.patch('/donations/:donationId/approve', authenticateToken, adminOnly, asy
 });
 
 // 7. GET NON-CONTRIBUTORS FOR INITIATIVE (Admin Only)
-router.get('/:id/non-contributors', authenticateToken, adminOnly, async (req, res) => {
+router.get('/:id/non-contributors', authenticateToken, adminOnly, initiativeIdRequired, async (req, res) => {
     try {
         const { id } = req.params;
 
@@ -350,7 +371,9 @@ router.get('/:id/non-contributors', authenticateToken, adminOnly, async (req, re
                 totalActiveMembers: allMembers.length,
                 totalContributors: donorIds.size,
                 totalNonContributors: nonContributors.length,
-                contributionRate: ((donorIds.size / allMembers.length) * 100).toFixed(2)
+                contributionRate: allMembers.length > 0
+                    ? ((donorIds.size / allMembers.length) * 100).toFixed(2)
+                    : '0.00'
             }
         });
     } catch (error) {
@@ -363,7 +386,7 @@ router.get('/:id/non-contributors', authenticateToken, adminOnly, async (req, re
 });
 
 // 8. PUSH NOTIFICATION TO NON-CONTRIBUTORS (Admin Only)
-router.post('/:id/notify-non-contributors', authenticateToken, adminOnly, async (req, res) => {
+router.post('/:id/notify-non-contributors', authenticateToken, adminOnly, initiativeIdRequired, async (req, res) => {
     try {
         const { id } = req.params;
 
@@ -418,7 +441,7 @@ router.post('/:id/notify-non-contributors', authenticateToken, adminOnly, async 
               related_id, related_type, icon, action_url, is_read, metadata)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
             [
-                req.user.id,
+                req.adminUser.id,
                 'initiative_reminder',
                 'high',
                 `تم إرسال تذكير لـ ${nonContributors.length} عضو غير مساهم`,
@@ -444,7 +467,9 @@ router.post('/:id/notify-non-contributors', authenticateToken, adminOnly, async 
         res.json({
             message: `تم إرسال تذكير إلى ${nonContributors.length} عضو غير مساهم بنجاح`,
             recipient_count: nonContributors.length,
-            contributionRate: ((donorIds.size / allMembers.length) * 100).toFixed(2)
+            contributionRate: allMembers.length > 0
+                ? ((donorIds.size / allMembers.length) * 100).toFixed(2)
+                : '0.00'
         });
     } catch (error) {
         log.error('[Notify Non-Contributors] Error', { error: error.message });
@@ -456,7 +481,7 @@ router.post('/:id/notify-non-contributors', authenticateToken, adminOnly, async 
 });
 
 // 9. PUSH NOTIFICATION FOR INITIATIVE (Admin Only)
-router.post('/:id/push-notification', authenticateToken, adminOnly, async (req, res) => {
+router.post('/:id/push-notification', authenticateToken, adminOnly, initiativeIdRequired, async (req, res) => {
     try {
         const { id } = req.params;
 
@@ -501,7 +526,7 @@ router.post('/:id/push-notification', authenticateToken, adminOnly, async (req, 
               related_id, related_type, icon, action_url, is_read, metadata)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
             [
-                req.user.id,
+                req.adminUser.id,
                 'initiative_broadcast',
                 'normal',
                 `تم إرسال إشعار لـ ${members.length} عضو`,
@@ -554,7 +579,7 @@ router.get('/active', authenticateToken, async (req, res) => {
         // Calculate progress for each
         const initiativesWithProgress = result.rows.map(init => ({
             ...init,
-            progress_percentage: (parseFloat(init.current_amount) / parseFloat(init.target_amount) * 100).toFixed(2)
+            progress_percentage: initiativeProgress(init.current_amount, init.target_amount)
         }));
 
         res.json({ initiatives: initiativesWithProgress });
@@ -578,7 +603,7 @@ router.get('/previous', authenticateToken, async (req, res) => {
 });
 
 // 9. CONTRIBUTE TO INITIATIVE (Members)
-router.post('/:id/contribute', authenticateToken, async (req, res) => {
+router.post('/:id/contribute', authenticateToken, initiativeIdRequired, async (req, res) => {
     try {
         const { id } = req.params;
         const { amount, payment_method, receipt_url } = req.body;
@@ -610,7 +635,11 @@ router.post('/:id/contribute', authenticateToken, async (req, res) => {
             return res.status(400).json({ error: 'Initiative is not active' });
         }
 
-        const contributionAmount = parseFloat(amount);
+        const contributionAmount = Number(amount);
+
+        if (!Number.isFinite(contributionAmount) || contributionAmount <= 0) {
+            return res.status(400).json({ success: false, error: 'مبلغ المساهمة يجب أن يكون أكبر من صفر' });
+        }
 
         if (initiative.min_contribution && contributionAmount < initiative.min_contribution) {
             return res.status(400).json({
