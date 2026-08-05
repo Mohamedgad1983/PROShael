@@ -10,6 +10,8 @@ import { config } from '../config/env.js';
 import { log } from '../utils/logger.js';
 
 const toMinorUnit = (amount) => Math.round(Number(amount) * 100);
+const SUBSCRIPTION_LIMIT = 3000;
+const GATEWAY_SESSION_TTL_MINUTES = 30;
 
 const generateReferenceNumber = () => {
   const now = new Date();
@@ -57,6 +59,80 @@ const findLatestSubscriptionId = async (memberId) => {
   }
 };
 
+const cleanupExpiredGatewaySessions = async () => {
+  const { rows: expiredSessions } = await query(
+    `SELECT *
+       FROM payments
+      WHERE gateway_provider = 'moyasar'
+        AND status = 'pending'
+        AND gateway_status = 'created'
+        AND created_at < NOW() - ($1::integer * INTERVAL '1 minute')
+      ORDER BY created_at
+      LIMIT 50`,
+    [GATEWAY_SESSION_TTL_MINUTES]
+  );
+
+  let deletedCount = 0;
+  let reconciledCount = 0;
+
+  for (const session of expiredSessions) {
+    try {
+      const providerPayment = await fetchMoyasarPayment(session.gateway_payment_id);
+      await updatePaymentFromMoyasar({ localPayment: session, moyasarPayment: providerPayment });
+      reconciledCount += 1;
+    } catch (error) {
+      if (error.statusCode === 404) {
+        const { rowCount } = await query(
+          `DELETE FROM payments
+            WHERE id = $1
+              AND status = 'pending'
+              AND gateway_status = 'created'`,
+          [session.id]
+        );
+        deletedCount += rowCount;
+      } else {
+        log.warn('Expired Moyasar session could not be reconciled', {
+          paymentId: session.id,
+          gatewayPaymentId: session.gateway_payment_id,
+          error: error.message,
+        });
+      }
+    }
+  }
+
+  if (deletedCount > 0 || reconciledCount > 0) {
+    log.info('Expired Moyasar sessions processed', { deletedCount, reconciledCount });
+  }
+};
+
+const getAvailableSubscriptionAmount = async (memberId) => {
+  const { rows } = await query(
+    `SELECT m.current_balance,
+            COALESCE((
+              SELECT SUM(p.amount)
+                FROM payments p
+               WHERE COALESCE(p.beneficiary_id, p.payer_id) = m.id
+                 AND p.gateway_provider = 'moyasar'
+                 AND p.status = 'pending'
+                 AND p.gateway_status = 'created'
+            ), 0) AS active_gateway_amount
+       FROM members m
+      WHERE m.id = $1
+      LIMIT 1`,
+    [memberId]
+  );
+
+  if (!rows[0]) {
+    const error = new Error('العضو المستفيد غير موجود');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const currentBalance = Math.max(0, Number(rows[0].current_balance) || 0);
+  const activeGatewayAmount = Math.max(0, Number(rows[0].active_gateway_amount) || 0);
+  return Math.max(0, SUBSCRIPTION_LIMIT - currentBalance - activeGatewayAmount);
+};
+
 const updatePaymentFromMoyasar = async ({ localPayment, moyasarPayment }) => {
   const expectedMinor = Number(localPayment.gateway_amount_minor);
   const expectedCurrency = localPayment.gateway_currency || config.paymentGateway.currency || 'SAR';
@@ -73,7 +149,7 @@ const updatePaymentFromMoyasar = async ({ localPayment, moyasarPayment }) => {
     throw error;
   }
 
-  const gatewayStatus = moyasarPayment.status;
+  const gatewayStatus = String(moyasarPayment.status || '').toLowerCase();
   const mappedStatus = localStatusForMoyasarStatus(gatewayStatus);
   const nextStatus = localPayment.status === 'paid' && ['pending', 'failed'].includes(mappedStatus)
     ? localPayment.status
@@ -81,22 +157,23 @@ const updatePaymentFromMoyasar = async ({ localPayment, moyasarPayment }) => {
 
   const { rows } = await query(
     `UPDATE payments
-        SET status = $1,
+        SET status = $1::varchar,
             payment_method = 'moyasar',
-            gateway_status = $2,
+            gateway_status = $2::varchar,
             gateway_response = $3::jsonb,
             gateway_verified_at = NOW(),
             processed_at = CASE
-              WHEN $1 = 'paid' THEN COALESCE(processed_at, NOW())
+              WHEN $1::varchar = 'paid' THEN COALESCE(processed_at, $4::timestamptz, NOW())
               ELSE processed_at
             END,
             updated_at = NOW()
-      WHERE id = $4
+      WHERE id = $5
       RETURNING *`,
     [
       nextStatus,
       gatewayStatus,
       JSON.stringify(moyasarPayment),
+      moyasarPayment.created_at || moyasarPayment.updated_at || null,
       localPayment.id,
     ]
   );
@@ -131,6 +208,26 @@ export const createGatewaySession = async (req, res) => {
       return res.status(400).json({
         success: false,
         error: 'المبلغ غير صحيح',
+      });
+    }
+
+    if (amount % 50 !== 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'مبلغ الاشتراك يجب أن يكون من مضاعفات 50 ريال',
+      });
+    }
+
+    await cleanupExpiredGatewaySessions();
+    const availableAmount = await getAvailableSubscriptionAmount(beneficiaryId);
+    if (amount > availableAmount) {
+      return res.status(409).json({
+        success: false,
+        error: availableAmount > 0
+          ? `الحد المتاح للاشتراك هو ${availableAmount} ريال`
+          : 'رصيد الاشتراك مكتمل ولا يمكن دفع مبلغ إضافي',
+        code: 'SUBSCRIPTION_LIMIT_EXCEEDED',
+        available_amount: availableAmount,
       });
     }
 
@@ -273,22 +370,21 @@ export const cancelGatewaySession = async (req, res) => {
       });
     }
 
-    const { rows: updatedRows } = await query(
-      `UPDATE payments
-          SET status = 'cancelled',
-              gateway_status = 'cancelled',
-              gateway_response = COALESCE(gateway_response, '{}'::jsonb)
-                || jsonb_build_object('local_cancelled_at', NOW()),
-              updated_at = NOW()
+    const { rows: deletedRows } = await query(
+      `DELETE FROM payments
         WHERE id = $1
           AND status = 'pending'
-      RETURNING id, status`,
+          AND gateway_status = 'created'
+      RETURNING id`,
       [localPaymentId]
     );
 
     return res.json({
       success: true,
-      data: updatedRows[0] || { payment_id: localPayment.id, status: 'cancelled' },
+      data: {
+        payment_id: deletedRows[0]?.id || localPayment.id,
+        status: 'cancelled',
+      },
     });
   } catch (error) {
     log.error('cancelGatewaySession failed', { error: error.message });
