@@ -1,6 +1,7 @@
 import React,{ useCallback,useEffect,useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { API_BASE_URL } from '../../utils/apiConfig';
+import { emptyExpenseForm, getExpenseErrorMessage, parseExpenseApiResponse } from '../../utils/expenseApi';
 import { logger } from '../../utils/logger';
 import ErrorDisplay from '../Common/ErrorDisplay';
 import LoadingSpinner from '../Common/LoadingSpinner';
@@ -40,6 +41,8 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
   const [retryCount, setRetryCount] = useState(0);
   const [lastFetchTime, setLastFetchTime] = useState(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingExpenseId, setEditingExpenseId] = useState(null);
+  const [successMessage, setSuccessMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -53,18 +56,7 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
   const [fundBalance, setFundBalance] = useState(null);
   const [balanceExceeded, setBalanceExceeded] = useState(false);
 
-  const [newExpense, setNewExpense] = useState({
-    title_ar: '',
-    title_en: '',
-    description_ar: '',
-    description_en: '',
-    amount: '',
-    category: '',
-    expense_date: new Date().toISOString().split('T')[0],
-    paid_to: '',
-    receipt_image: null,
-    notes: ''
-  });
+  const [newExpense, setNewExpense] = useState(emptyExpenseForm);
 
   const [categories] = useState([
     { value: 'operations', label_ar: 'تشغيلية', label_en: 'Operations' },
@@ -149,11 +141,7 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
 
       clearTimeout(timeoutId);
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      const data = await parseExpenseApiResponse(response);
       if (data.success) {
         setExpenses(data.data?.expenses || data.data || []); // Handle both structures
         setRetryCount(0); // Reset retry count on success
@@ -168,13 +156,13 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
 
       if (error.name === 'AbortError') {
         errorMessage = 'انتهت مهلة الاتصال. يرجى المحاولة مرة أخرى.';
-      } else if (error.message.includes('HTTP 401')) {
+      } else if (error.status === 401) {
         errorMessage = 'انتهت صلاحية جلسة العمل. يرجى تسجيل الدخول مرة أخرى.';
-      } else if (error.message.includes('HTTP 403')) {
+      } else if (error.status === 403) {
         errorMessage = 'ليس لديك صلاحية لعرض المصروفات.';
-      } else if (error.message.includes('HTTP 429')) {
+      } else if (error.status === 429) {
         errorMessage = 'تم تجاوز الحد الأقصى للطلبات. يرجى الانتظار قليلاً.';
-      } else if (error.message.includes('HTTP 5')) {
+      } else if (error.status >= 500) {
         errorMessage = 'خطأ في الخادم. يرجى المحاولة لاحقاً.';
       } else if (error.message) {
         errorMessage = error.message;
@@ -183,7 +171,7 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
       setError({
         message_ar: errorMessage,
         originalError: error,
-        retryable: !error.message.includes('HTTP 401') && !error.message.includes('HTTP 403')
+        retryable: error.status !== 401 && error.status !== 403
       });
     } finally {
       setLoading(false);
@@ -194,18 +182,45 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
     fetchExpenses();
   }, [fetchExpenses]);
 
-  const handleCreateExpense = async (e) => {
+  const resetExpenseForm = () => {
+    setNewExpense(emptyExpenseForm());
+    setEditingExpenseId(null);
+    setShowCreateForm(false);
+  };
+
+  const startEditingExpense = (expense) => {
+    setError(null);
+    setSuccessMessage('');
+    setEditingExpenseId(expense.id);
+    setNewExpense({
+      title_ar: expense.title_ar || '',
+      title_en: expense.title_en || '',
+      description_ar: expense.description_ar || '',
+      description_en: expense.description_en || '',
+      amount: expense.amount ?? '',
+      category: expense.expense_category || expense.category || '',
+      expense_date: expense.expense_date ? String(expense.expense_date).slice(0, 10) : new Date().toISOString().split('T')[0],
+      paid_to: expense.paid_to || '',
+      receipt_image: null,
+      notes: expense.notes || ''
+    });
+    setShowCreateForm(true);
+    window.requestAnimationFrame(() => {
+      document.querySelector('.create-expense-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  };
+
+  const handleSaveExpense = async (e) => {
     e.preventDefault();
 
-    // Validation
-    if (!newExpense.title_ar || !newExpense.amount || !newExpense.category) {
+    if (!newExpense.title_ar?.trim() || !newExpense.amount || !newExpense.category || !newExpense.expense_date || !newExpense.paid_to?.trim()) {
       logger.debug('Validation failed:', {
         title_ar: newExpense.title_ar,
         amount: newExpense.amount,
         category: newExpense.category
       });
       setError({
-        message_ar: 'يرجى ملء جميع الحقول المطلوبة',
+        message_ar: 'يرجى استكمال الحقول المطلوبة: العنوان، المبلغ، الفئة، تاريخ الصرف، والمستفيد',
         retryable: false
       });
       return;
@@ -231,86 +246,79 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
 
     setLoading(true);
     setError(null);
+    setSuccessMessage('');
 
     try {
-      const formData = new FormData();
-      Object.keys(newExpense).forEach(key => {
-        if (newExpense[key] !== null && newExpense[key] !== '') {
-          // Map 'category' to 'expense_category' for backend compatibility
-          const fieldName = key === 'category' ? 'expense_category' : key;
-          formData.append(fieldName, newExpense[key]);
-        }
-      });
+      let requestBody;
+      const headers = { 'Authorization': `Bearer ${token}` };
+
+      if (editingExpenseId) {
+        requestBody = JSON.stringify({
+          title_ar: newExpense.title_ar.trim(),
+          title_en: newExpense.title_en?.trim() || '',
+          description_ar: newExpense.description_ar?.trim() || '',
+          description_en: newExpense.description_en?.trim() || '',
+          amount,
+          expense_category: newExpense.category,
+          expense_date: newExpense.expense_date,
+          paid_to: newExpense.paid_to.trim(),
+          notes: newExpense.notes?.trim() || ''
+        });
+        headers['Content-Type'] = 'application/json';
+      } else {
+        const formData = new FormData();
+        Object.keys(newExpense).forEach(key => {
+          if (newExpense[key] !== null && newExpense[key] !== '') {
+            const fieldName = key === 'category' ? 'expense_category' : key;
+            formData.append(fieldName, newExpense[key]);
+          }
+        });
+        requestBody = formData;
+      }
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s for file upload
 
-      const response = await fetch(`${API_BASE_URL}/expenses`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData,
+      const response = await fetch(`${API_BASE_URL}/expenses${editingExpenseId ? `/${editingExpenseId}` : ''}`, {
+        method: editingExpenseId ? 'PUT' : 'POST',
+        headers,
+        body: requestBody,
         signal: controller.signal
       });
 
       clearTimeout(timeoutId);
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      const data = await parseExpenseApiResponse(response);
       if (data.success) {
-        // Store the created expense for voucher
-        const newExpenseData = {
-          ...newExpense,
-          id: data.data?.id || Date.now(),
-          created_at: new Date().toISOString(),
-          status: 'pending',
-          created_by_name: user?.name || 'المستخدم'
-        };
+        if (!editingExpenseId) {
+          const newExpenseData = {
+            ...newExpense,
+            ...data.data,
+            category: data.data?.expense_category || newExpense.category,
+            id: data.data?.id || Date.now(),
+            created_at: data.data?.created_at || new Date().toISOString(),
+            status: data.data?.status || 'pending',
+            created_by_name: user?.name || 'المستخدم'
+          };
+          setCreatedExpense(newExpenseData);
+          setShowVoucher(true);
+        }
 
-        setCreatedExpense(newExpenseData);
-        setShowVoucher(true);
-
-        setNewExpense({
-          title_ar: '',
-          title_en: '',
-          description_ar: '',
-          description_en: '',
-          amount: '',
-          category: '',
-          expense_date: new Date().toISOString().split('T')[0],
-          paid_to: '',
-          receipt_image: null,
-          notes: ''
-        });
-        setShowCreateForm(false);
+        setSuccessMessage(editingExpenseId ? 'تم تعديل المصروف بنجاح' : 'تم حفظ المصروف بنجاح');
+        resetExpenseForm();
         fetchExpenses(true);
         onExpenseChange && onExpenseChange();
       } else {
         throw new Error(data.message_ar || 'خطأ في إنشاء المصروف');
       }
     } catch (error) {
-      logger.error('Error creating expense:', { error });
-
-      let errorMessage = 'خطأ في الاتصال بالخادم';
-
-      if (error.name === 'AbortError') {
-        errorMessage = 'انتهت مهلة رفع الملف. يرجى المحاولة مرة أخرى.';
-      } else if (error.message.includes('HTTP 413')) {
-        errorMessage = 'برفق الملف مشعش حجم الصورة كبير جداً.';
-      } else if (error.message.includes('HTTP 400')) {
-        errorMessage = 'بيانات غير صحيحة. يرجى التحقق من جميع الحقول.';
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
+      logger.error('Error saving expense:', { error });
+      const errorMessage = getExpenseErrorMessage(error, editingExpenseId ? 'تعذر تعديل المصروف.' : 'تعذر حفظ المصروف.');
 
       setError({
         message_ar: errorMessage,
         originalError: error,
-        retryable: !error.message.includes('HTTP 4')
+        retryable: error.status >= 500 || error.name === 'AbortError'
       });
     } finally {
       setLoading(false);
@@ -339,17 +347,13 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ status: 'approved' }),
+        body: JSON.stringify({ action: 'approve' }),
         signal: controller.signal
       });
 
       clearTimeout(timeoutId);
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      const data = await parseExpenseApiResponse(response);
       if (data.success) {
         fetchExpenses(true);
         onExpenseChange && onExpenseChange();
@@ -363,9 +367,9 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
 
       if (error.name === 'AbortError') {
         errorMessage = 'انتهت مهلة الاتصال. يرجى المحاولة مرة أخرى.';
-      } else if (error.message.includes('HTTP 409')) {
+      } else if (error.status === 409) {
         errorMessage = 'لا يمكن الموافقة على هذا المصروف في الوقت الحالي.';
-      } else if (error.message.includes('HTTP 404')) {
+      } else if (error.status === 404) {
         errorMessage = 'لم يتم العثور على المصروف. قد يكون محذوفاً.';
       } else if (error.message) {
         errorMessage = error.message;
@@ -374,7 +378,7 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
       setError({
         message_ar: errorMessage,
         originalError: error,
-        retryable: !error.message.includes('HTTP 4') || error.name === 'AbortError'
+        retryable: error.status >= 500 || error.name === 'AbortError'
       });
     } finally {
       setLoading(false);
@@ -411,17 +415,13 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ status: 'rejected', rejection_reason: reason.trim() }),
+        body: JSON.stringify({ action: 'reject', notes: reason.trim() }),
         signal: controller.signal
       });
 
       clearTimeout(timeoutId);
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const data = await response.json();
+      const data = await parseExpenseApiResponse(response);
       if (data.success) {
         fetchExpenses(true);
         onExpenseChange && onExpenseChange();
@@ -435,9 +435,9 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
 
       if (error.name === 'AbortError') {
         errorMessage = 'انتهت مهلة الاتصال. يرجى المحاولة مرة أخرى.';
-      } else if (error.message.includes('HTTP 409')) {
+      } else if (error.status === 409) {
         errorMessage = 'لا يمكن رفض هذا المصروف في الوقت الحالي.';
-      } else if (error.message.includes('HTTP 404')) {
+      } else if (error.status === 404) {
         errorMessage = 'لم يتم العثور على المصروف. قد يكون محذوفاً.';
       } else if (error.message) {
         errorMessage = error.message;
@@ -446,7 +446,7 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
       setError({
         message_ar: errorMessage,
         originalError: error,
-        retryable: !error.message.includes('HTTP 4') || error.name === 'AbortError'
+        retryable: error.status >= 500 || error.name === 'AbortError'
       });
     } finally {
       setLoading(false);
@@ -501,7 +501,17 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
           {hasPermission('manage_finances') && (
             <button
               className="create-btn hover-lift ripple-effect"
-              onClick={() => setShowCreateForm(!showCreateForm)}
+              onClick={() => {
+                if (showCreateForm) {
+                  resetExpenseForm();
+                } else {
+                  setEditingExpenseId(null);
+                  setNewExpense(emptyExpenseForm());
+                  setError(null);
+                  setSuccessMessage('');
+                  setShowCreateForm(true);
+                }
+              }}
               disabled={loading}
             >
               <span className="btn-icon">➕</span>
@@ -597,16 +607,17 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
         </div>
       </div>
 
-      {/* Create Expense Form */}
+      {/* Create / Edit Expense Form */}
       {showCreateForm && hasPermission('manage_finances') && (
         <div className="create-expense-form glass-morphism">
-          <form onSubmit={handleCreateExpense}>
+          <form onSubmit={handleSaveExpense}>
             <div className="form-header">
-              <h3>إضافة مصروف جديد</h3>
+              <h3>{editingExpenseId ? 'تعديل المصروف' : 'إضافة مصروف جديد'}</h3>
               <button
                 type="button"
                 className="close-btn"
-                onClick={() => setShowCreateForm(false)}
+                onClick={resetExpenseForm}
+                aria-label="إغلاق النموذج"
               >
                 ✕
               </button>
@@ -877,20 +888,28 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
               <button
                 type="submit"
                 className="submit-btn hover-lift ripple-effect"
-                disabled={loading}
+                disabled={loading || balanceExceeded}
               >
                 <span className="btn-icon">💾</span>
-                حفظ المصروف
+                {editingExpenseId ? 'حفظ التعديلات' : 'حفظ المصروف'}
               </button>
               <button
                 type="button"
                 className="cancel-btn hover-lift"
-                onClick={() => setShowCreateForm(false)}
+                onClick={resetExpenseForm}
               >
                 إلغاء
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {successMessage && (
+        <div className="expense-success" role="status">
+          <span aria-hidden="true">✓</span>
+          <span>{successMessage}</span>
+          <button type="button" onClick={() => setSuccessMessage('')} aria-label="إغلاق رسالة النجاح">✕</button>
         </div>
       )}
 
@@ -903,7 +922,7 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
             fetchExpenses(true);
           } : null}
           onDismiss={() => setError(null)}
-          title="خطأ في تحميل المصروفات"
+          title="تعذر إكمال العملية"
           showDetails={process.env.NODE_ENV === 'development'}
         />
       )}
@@ -964,16 +983,16 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
                   <div className="expense-category">
                     <span className="category-label">الفئة:</span>
                     <span className="category-value">
-                      {categories.find(c => c.value === expense.category)?.label_ar || expense.category}
+                      {categories.find(c => c.value === (expense.expense_category || expense.category))?.label_ar || expense.expense_category || expense.category}
                     </span>
                   </div>
 
                   <div className="expense-date">
                     <div className="hijri-date">
-                      {formatHijriDate(expense.created_at)}
+                      {formatHijriDate(expense.expense_date || expense.created_at)}
                     </div>
                     <div className="gregorian-date">
-                      ({formatGregorianDate(expense.created_at)})
+                      ({formatGregorianDate(expense.expense_date || expense.created_at)})
                     </div>
                   </div>
 
@@ -1015,6 +1034,15 @@ const ExpenseManagement = ({ dateFilter, onExpenseChange }) => {
                   </button>
                   {expense.status === 'pending' && hasPermission('manage_finances') && (
                     <>
+                      <button
+                        className="edit-btn hover-lift"
+                        onClick={() => startEditingExpense(expense)}
+                        disabled={loading}
+                        title="تعديل المصروف"
+                      >
+                        <span className="btn-icon">✏️</span>
+                        تعديل
+                      </button>
                       <button
                         className="approve-btn hover-lift ripple-effect"
                         onClick={() => handleApproveExpense(expense.id)}

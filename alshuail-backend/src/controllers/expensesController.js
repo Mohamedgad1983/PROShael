@@ -51,6 +51,55 @@ function calculateSummaryFast(expenses) {
   };
 }
 
+const EXPENSE_EDITABLE_FIELDS = Object.freeze({
+  category: 'expense_category',
+  expense_category: 'expense_category',
+  title_ar: 'title_ar',
+  title_en: 'title_en',
+  description_ar: 'description_ar',
+  description_en: 'description_en',
+  amount: 'amount',
+  currency: 'currency',
+  expense_date: 'expense_date',
+  paid_to: 'paid_to',
+  paid_by: 'paid_by',
+  payment_method: 'payment_method',
+  receipt_number: 'receipt_number',
+  notes: 'notes'
+});
+
+const parseBoolean = (value) => value === true || value === 'true' || value === '1';
+
+const normalizeText = (value) => typeof value === 'string' ? value.trim() : value;
+
+const getMissingExpenseFields = (expense) => {
+  const required = [
+    ['expense_category', 'الفئة'],
+    ['title_ar', 'العنوان العربي'],
+    ['amount', 'المبلغ'],
+    ['expense_date', 'تاريخ الصرف'],
+    ['paid_to', 'المستفيد']
+  ];
+
+  return required
+    .filter(([field]) => expense[field] === undefined || expense[field] === null || String(expense[field]).trim() === '')
+    .map(([, label]) => label);
+};
+
+const validateExpenseAmountAndDate = (amount, expenseDate) => {
+  const parsedAmount = Number(amount);
+  if (!Number.isFinite(parsedAmount) || parsedAmount <= 0 || parsedAmount > 1000000) {
+    return { valid: false, code: 'INVALID_AMOUNT', message_ar: 'يرجى إدخال مبلغ صحيح لا يتجاوز 1,000,000 ر.س' };
+  }
+
+  const parsedDate = new Date(expenseDate);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return { valid: false, code: 'INVALID_EXPENSE_DATE', message_ar: 'يرجى إدخال تاريخ صرف صحيح' };
+  }
+
+  return { valid: true, amount: parsedAmount, date: parsedDate };
+};
+
 /**
  * Get all expenses with comprehensive filtering and role-based access
  * OPTIMIZED: Parallel execution, minimal JOINs, single-pass aggregation
@@ -158,6 +207,7 @@ export const getExpenses = async (req, res) => {
 
       return {
         ...expense,
+        category: expense.expense_category,
         hijri_formatted: HijriDateManager.formatHijriDisplay(expense.hijri_date_string),
         gregorian_formatted: new Date(expense.expense_date).toLocaleDateString('ar-SA'),
         approval_status_ar: getApprovalStatusArabic(expense.status),
@@ -220,22 +270,46 @@ export const createExpense = async (req, res) => {
     }
 
     const {
-      expense_category, title_ar, title_en, description_ar, description_en: _description_en,
+      expense_category, title_ar, title_en, description_ar, description_en,
       amount, currency = 'SAR', expense_date, paid_to, paid_by, payment_method,
       receipt_number, invoice_number: _invoice_number, notes, approval_required = false, tags: _tags, attachments: _attachments
     } = req.body;
 
-    if (!expense_category || !title_ar || !amount || !expense_date || !paid_to) {
+    const expenseInput = {
+      expense_category: normalizeText(expense_category),
+      title_ar: normalizeText(title_ar),
+      title_en: normalizeText(title_en),
+      description_ar: normalizeText(description_ar),
+      description_en: normalizeText(description_en),
+      amount,
+      currency: normalizeText(currency) || 'SAR',
+      expense_date,
+      paid_to: normalizeText(paid_to),
+      paid_by,
+      payment_method: normalizeText(payment_method),
+      receipt_number: normalizeText(receipt_number),
+      notes: normalizeText(notes)
+    };
+
+    const missingFields = getMissingExpenseFields(expenseInput);
+    if (missingFields.length > 0) {
       return res.status(400).json({
         success: false,
         error: 'Missing required fields',
+        message_ar: `يرجى استكمال الحقول المطلوبة: ${missingFields.join('، ')}`,
+        fields: missingFields,
         code: 'MISSING_REQUIRED_FIELDS'
       });
     }
 
+    const inputValidation = validateExpenseAmountAndDate(expenseInput.amount, expenseInput.expense_date);
+    if (!inputValidation.valid) {
+      return res.status(400).json({ success: false, ...inputValidation });
+    }
+
     // Fund Balance Validation (Constitution VI.2)
     // Validate that expense amount doesn't exceed available fund balance
-    const expenseAmount = parseFloat(amount);
+    const expenseAmount = inputValidation.amount;
     const balance = await getCurrentBalance();
 
     if (!balance) {
@@ -273,30 +347,34 @@ export const createExpense = async (req, res) => {
       });
     }
 
-    const expenseDate = new Date(expense_date);
+    const expenseDate = inputValidation.date;
     const hijriData = HijriDateManager.convertToHijri(expenseDate);
 
-    const expenseStatus = userRole === 'financial_manager' && !approval_required ? 'approved' : 'pending';
-    const approvedBy = (userRole === 'financial_manager' && !approval_required) ? userId : null;
-    const approvedAt = (userRole === 'financial_manager' && !approval_required) ? new Date().toISOString() : null;
-    const approvalNotes = (userRole === 'financial_manager' && !approval_required) ? 'Auto-approved by Financial Manager' : null;
+    const requiresApproval = parseBoolean(approval_required);
+    const autoApproved = userRole === 'financial_manager' && !requiresApproval;
+    const expenseStatus = autoApproved ? 'approved' : 'pending';
+    const approvedBy = autoApproved ? userId : null;
+    const approvedAt = autoApproved ? new Date().toISOString() : null;
+    const approvalNotes = autoApproved ? 'Auto-approved by Financial Manager' : null;
 
     const { rows } = await query(
       `INSERT INTO expenses (
-        expense_category, title_ar, title_en, description_ar, amount, currency,
+        expense_category, title_ar, title_en, description_ar, description_en, amount, currency,
         expense_date, paid_to, paid_by, payment_method, receipt_number, notes,
         approval_required, status, created_by,
         hijri_date_string, hijri_year, hijri_month, hijri_day, hijri_month_name,
         approved_by, approved_at, approval_notes
       ) VALUES (
         $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
-        $16, $17, $18, $19, $20, $21, $22, $23
+        $16, $17, $18, $19, $20, $21, $22, $23, $24
       ) RETURNING *`,
       [
-        expense_category, title_ar, title_en || null, description_ar || null,
-        parseFloat(amount), currency || 'SAR', expense_date, paid_to || null,
-        paid_by || null, payment_method || null, receipt_number || null, notes || null,
-        approval_required || false, expenseStatus, userId,
+        expenseInput.expense_category, expenseInput.title_ar, expenseInput.title_en || null,
+        expenseInput.description_ar || null, expenseInput.description_en || null,
+        expenseAmount, expenseInput.currency, expenseInput.expense_date, expenseInput.paid_to,
+        expenseInput.paid_by || null, expenseInput.payment_method || null,
+        expenseInput.receipt_number || null, expenseInput.notes || null,
+        requiresApproval, expenseStatus, userId,
         hijriData.hijri_date_string, hijriData.hijri_year, hijriData.hijri_month,
         hijriData.hijri_day, hijriData.hijri_month_name,
         approvedBy, approvedAt, approvalNotes
@@ -339,7 +417,13 @@ export const createExpense = async (req, res) => {
       message_en: expense.status === 'approved' ? 'Expense created and auto-approved successfully' : 'Expense created successfully and pending approval'
     });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message, code: 'EXPENSE_CREATION_ERROR' });
+    log.error('[Expenses] Failed to create expense', { error: error.message, userId: req.user?.id });
+    res.status(500).json({
+      success: false,
+      error: 'Expense creation failed',
+      message_ar: 'تعذر حفظ المصروف حالياً. يرجى المحاولة مرة أخرى أو التواصل مع الدعم.',
+      code: 'EXPENSE_CREATION_ERROR'
+    });
   }
 };
 
@@ -350,11 +434,11 @@ export const createExpense = async (req, res) => {
 export const approveExpense = async (req, res) => {
   try {
     const { expenseId } = req.params;
-    const { action, notes, force_approve = false } = req.body;
+    const { action, status, notes, rejection_reason, force_approve = false } = req.body;
     const userRole = req.user.role;
     const userId = req.user.id;
 
-    if (userRole !== 'financial_manager') {
+    if (!['financial_manager', 'super_admin'].includes(userRole)) {
       logFinancialAccess(userId, 'DENIED', 'expense_approval', userRole, { expense_id: expenseId }, req.ip).catch(() => {});
       return res.status(403).json({
         success: false,
@@ -363,10 +447,16 @@ export const approveExpense = async (req, res) => {
       });
     }
 
-    if (!['approve', 'reject', 'request_info'].includes(action)) {
+    // Accept the canonical `action` field and the legacy `status` field so
+    // cached admin builds keep working during deployments.
+    const requestedAction = action || (status === 'approved' ? 'approve' : status === 'rejected' ? 'reject' : null);
+    const actionNotes = normalizeText(notes || rejection_reason) || '';
+
+    if (!['approve', 'reject', 'request_info'].includes(requestedAction)) {
       return res.status(400).json({
         success: false,
         error: 'Invalid action. Must be approve, reject, or request_info',
+        message_ar: 'إجراء الموافقة غير صحيح',
         code: 'INVALID_ACTION'
       });
     }
@@ -384,33 +474,41 @@ export const approveExpense = async (req, res) => {
       return res.status(400).json({ success: false, error: 'Expense already approved', code: 'ALREADY_APPROVED' });
     }
 
-    const newStatus = action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : 'pending_info';
+    const newStatus = requestedAction === 'approve' ? 'approved' : requestedAction === 'reject' ? 'rejected' : 'pending_info';
+    const rejectedBy = requestedAction === 'reject' ? userId : null;
+    const rejectedAt = requestedAction === 'reject' ? new Date().toISOString() : null;
+    const rejectionReason = requestedAction === 'reject' ? actionNotes : null;
 
     const { rows: updateRows } = await query(
-      `UPDATE expenses SET status = $1, approved_by = $2, approved_at = $3, approval_notes = $4, updated_at = $5
-       WHERE id = $6 RETURNING *`,
-      [newStatus, userId, new Date().toISOString(), notes || '', new Date().toISOString(), expenseId]
+      `UPDATE expenses
+       SET status = $1, approved_by = $2, approved_at = $3, approval_notes = $4,
+           rejected_by = $5, rejected_at = $6, rejection_reason = $7,
+           updated_by = $8, updated_at = $9
+       WHERE id = $10 RETURNING *`,
+      [newStatus, userId, new Date().toISOString(), actionNotes, rejectedBy, rejectedAt,
+        rejectionReason, userId, new Date().toISOString(), expenseId]
     );
     const expense = updateRows[0];
 
     // Async audit
     createFinancialAuditTrail({
-      userId, operation: `expense_${action}`, resourceType: 'expense', resourceId: expenseId,
+      userId, operation: `expense_${requestedAction}`, resourceType: 'expense', resourceId: expenseId,
       previousValue: currentExpense, newValue: expense,
-      metadata: { action, notes, amount: expense.amount, previous_status: currentExpense.status, new_status: newStatus },
+      metadata: { action: requestedAction, notes: actionNotes, amount: expense.amount, previous_status: currentExpense.status, new_status: newStatus },
       ipAddress: req.ip
     }).catch(() => {});
 
     logFinancialAccess(userId, 'SUCCESS', 'expense_approval', userRole,
-      { expense_id: expenseId, action, amount: expense.amount, new_status: newStatus }, req.ip
+      { expense_id: expenseId, action: requestedAction, amount: expense.amount, new_status: newStatus }, req.ip
     ).catch(() => {});
 
-    sendExpenseStatusNotification(expense, action).catch(() => {});
+    sendExpenseStatusNotification(expense, requestedAction).catch(() => {});
 
     res.json({
       success: true,
       data: expense,
-      message: `Expense ${action}${action === 'approve' ? 'd' : action === 'reject' ? 'ed' : ''} successfully`
+      message: `Expense ${requestedAction} completed successfully`,
+      message_ar: requestedAction === 'approve' ? 'تمت الموافقة على المصروف' : requestedAction === 'reject' ? 'تم رفض المصروف' : 'تم طلب معلومات إضافية'
     });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message, code: 'EXPENSE_APPROVAL_ERROR' });
@@ -442,10 +540,54 @@ export const updateExpense = async (req, res) => {
       return res.status(404).json({ success: false, error: 'Expense not found', code: 'EXPENSE_NOT_FOUND' });
     }
 
-    const updateData = { ...req.body, updated_at: new Date().toISOString(), updated_by: userId };
+    if (currentExpense.status !== 'pending') {
+      return res.status(409).json({
+        success: false,
+        error: 'Only pending expenses can be edited',
+        message_ar: 'يمكن تعديل المصروفات التي ما زالت في الانتظار فقط',
+        code: 'EXPENSE_NOT_EDITABLE'
+      });
+    }
+
+    const updateData = {};
+    for (const [inputField, databaseField] of Object.entries(EXPENSE_EDITABLE_FIELDS)) {
+      if (Object.prototype.hasOwnProperty.call(req.body, inputField)) {
+        updateData[databaseField] = normalizeText(req.body[inputField]);
+      }
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'No editable fields supplied',
+        message_ar: 'لم يتم إرسال أي بيانات قابلة للتعديل',
+        code: 'NO_EDITABLE_FIELDS'
+      });
+    }
+
+    const mergedExpense = { ...currentExpense, ...updateData };
+    const missingFields = getMissingExpenseFields(mergedExpense);
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields',
+        message_ar: `يرجى استكمال الحقول المطلوبة: ${missingFields.join('، ')}`,
+        fields: missingFields,
+        code: 'MISSING_REQUIRED_FIELDS'
+      });
+    }
+
+    const inputValidation = validateExpenseAmountAndDate(mergedExpense.amount, mergedExpense.expense_date);
+    if (!inputValidation.valid) {
+      return res.status(400).json({ success: false, ...inputValidation });
+    }
+
+    updateData.amount = inputValidation.amount;
+    updateData.updated_at = new Date().toISOString();
+    updateData.updated_by = userId;
 
     if (updateData.expense_date) {
-      const hijriData = HijriDateManager.convertToHijri(new Date(updateData.expense_date));
+      const hijriData = HijriDateManager.convertToHijri(inputValidation.date);
       updateData.hijri_date_string = hijriData.hijri_date_string;
       updateData.hijri_year = hijriData.hijri_year;
       updateData.hijri_month = hijriData.hijri_month;
@@ -478,9 +620,15 @@ export const updateExpense = async (req, res) => {
 
     logFinancialAccess(userId, 'SUCCESS', 'expense_update', userRole, { expense_id: expenseId }, req.ip).catch(() => {});
 
-    res.json({ success: true, data: expense, message: 'Expense updated successfully' });
+    res.json({ success: true, data: expense, message: 'Expense updated successfully', message_ar: 'تم تعديل المصروف بنجاح' });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message, code: 'EXPENSE_UPDATE_ERROR' });
+    log.error('[Expenses] Failed to update expense', { error: error.message, expenseId: req.params?.expenseId, userId: req.user?.id });
+    res.status(500).json({
+      success: false,
+      error: 'Expense update failed',
+      message_ar: 'تعذر تعديل المصروف حالياً. يرجى المحاولة مرة أخرى أو التواصل مع الدعم.',
+      code: 'EXPENSE_UPDATE_ERROR'
+    });
   }
 };
 
@@ -516,6 +664,7 @@ export const getExpenseById = async (req, res) => {
 
     const enhancedExpense = {
       ...expense,
+      category: expense.expense_category,
       hijri_formatted: HijriDateManager.formatHijriDisplay(expense.hijri_date_string),
       gregorian_formatted: new Date(expense.expense_date).toLocaleDateString('ar-SA'),
       approval_status_ar: getApprovalStatusArabic(expense.status),
@@ -730,10 +879,12 @@ const calculateAverageApprovalTime = (expenses) => {
 
 const sendExpenseApprovalNotification = (expense) => {
   log.info('Sending approval notification for expense', { expense_id: expense.id });
+  return Promise.resolve();
 };
 
 const sendExpenseStatusNotification = (expense, action) => {
   log.info('Sending expense status notification', { action, expense_id: expense.id });
+  return Promise.resolve();
 };
 
 export default {
