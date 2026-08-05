@@ -38,7 +38,7 @@ import { query, getClient } from './database.js';
 import { log } from '../utils/logger.js';
 import { allocateSequence } from './sequenceGenerator.js';
 import { recordStatusChange } from './statusHistoryService.js';
-import { sendPushNotification } from './notificationService.js';
+import { createMemberNotification } from './notificationService.js';
 
 // ─── constants ────────────────────────────────────────────────────────────────
 
@@ -213,7 +213,8 @@ export async function createRequest({ memberId, payload }) {
     });
 
     await client.query('COMMIT');
-    return created;
+    const notificationDelivery = await dispatchStatusNotification(created, MARRIAGE_STATUS.SUBMITTED);
+    return { ...created, notification_delivery: notificationDelivery };
   } catch (err) {
     await client.query('ROLLBACK');
     log.error('[marriageSupportService] createRequest rollback', { error: err.message });
@@ -226,6 +227,10 @@ export async function createRequest({ memberId, payload }) {
 // ─── transition ───────────────────────────────────────────────────────────────
 
 const STATUS_NOTIFICATIONS = {
+  [MARRIAGE_STATUS.SUBMITTED]: {
+    title: 'تم استلام طلب دعم الزواج',
+    body: (r) => `تم استلام طلب دعم الزواج رقم ${r.sequence_number} بنجاح، وستصلك تحديثات كل مرحلة من خلال التطبيق.`,
+  },
   [MARRIAGE_STATUS.UNDER_COMMITTEE_REVIEW]: {
     title: 'جاري مراجعة طلب دعم الزواج',
     body: (r) => `تم استلام طلب دعم الزواج رقم ${r.sequence_number} وجاري مراجعته من اللجنة.`,
@@ -259,26 +264,31 @@ const STATUS_NOTIFICATIONS = {
   },
 };
 
-async function dispatchStatusNotification(request, toStatus) {
+export async function dispatchStatusNotification(request, toStatus) {
   const t = STATUS_NOTIFICATIONS[toStatus];
-  if (!t) {return;}
+  if (!t) {return { success: true, skipped: true, inAppStored: false };}
   try {
-    await sendPushNotification(
-      request.member_id,
-      { title: t.title, body: typeof t.body === 'function' ? t.body(request) : t.body },
-      {
+    return await createMemberNotification(request.member_id, {
+      title: t.title,
+      body: typeof t.body === 'function' ? t.body(request) : t.body,
+      type: 'marriage_support_status_update',
+      relatedId: request.id,
+      relatedType: 'marriage_support',
+      actionUrl: '/requests',
+      data: {
         type: 'marriage_support_status_update',
         request_id: String(request.id),
         sequence_number: String(request.sequence_number || ''),
         status: String(toStatus),
-      }
-    );
+      },
+    });
   } catch (err) {
     log.warn('[marriageSupportService] status notification failed (non-fatal)', {
       error: err.message,
       requestId: request.id,
       toStatus,
     });
+    return { success: false, inAppStored: false, error: err.message };
   }
 }
 
@@ -330,8 +340,8 @@ export async function transitionStatus({ requestId, toStatus, changedById, actor
     });
 
     await client.query('COMMIT');
-    await dispatchStatusNotification(updated[0], toStatus);
-    return updated[0];
+    const notificationDelivery = await dispatchStatusNotification(updated[0], toStatus);
+    return { ...updated[0], notification_delivery: notificationDelivery };
   } catch (err) {
     await client.query('ROLLBACK');
     throw err;

@@ -58,6 +58,29 @@ export interface MarriageStatusHistoryEntry {
   actor_role?: string;
 }
 
+export interface NotificationDelivery {
+  success: boolean;
+  deliveredVia?: 'push' | 'whatsapp' | 'in_app' | null;
+  inAppStored?: boolean;
+  notificationId?: string | null;
+  error?: string | null;
+}
+
+export interface InitiativeOption {
+  id: string;
+  title_ar?: string | null;
+  title_en?: string | null;
+  current_amount?: number | null;
+  status?: string | null;
+}
+
+export interface MemberOption {
+  id: string;
+  full_name_ar?: string | null;
+  full_name?: string | null;
+  membership_number?: string | null;
+}
+
 export interface MarriageRequest {
   id: string;
   sequence_number: string;
@@ -113,6 +136,7 @@ export interface MarriageRequest {
   updated_at: string;
   signatures?: MarriageSignature[];
   history?: MarriageStatusHistoryEntry[];
+  notification_delivery?: NotificationDelivery;
 }
 
 interface ApiEnvelope<T> {
@@ -134,6 +158,20 @@ export interface MarriageListFilters {
 // ─── api ──────────────────────────────────────────────────────────────────────
 
 export const marriageSupportService = {
+  async listInitiatives(): Promise<InitiativeOption[]> {
+    const res = await client.get<ApiEnvelope<InitiativeOption[]>>('/initiatives', {
+      params: { limit: 200 },
+    });
+    return res.data.data ?? [];
+  },
+
+  async listMembers(): Promise<MemberOption[]> {
+    const res = await client.get<ApiEnvelope<MemberOption[]>>('/members', {
+      params: { limit: 1000, status: 'active' },
+    });
+    return res.data.data ?? [];
+  },
+
   async list(filters: MarriageListFilters = {}): Promise<MarriageRequest[]> {
     const params: Record<string, unknown> = {};
     if (filters.status) params.status = filters.status;
@@ -171,7 +209,7 @@ export const marriageSupportService = {
   },
 
   async enterData(id: string, payload: {
-    contributions_sum: number;
+    contributions_sum?: number;
     previous_ananiyat_count_override?: number | null;
     additional_support_balance?: number;
     special_ananiya_value?: number;

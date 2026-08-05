@@ -21,7 +21,9 @@ jest.unstable_mockModule('../../../src/utils/logger.js', () => ({
   log: { info: jest.fn(), error: jest.fn(), warn: jest.fn(), debug: jest.fn() }
 }));
 jest.unstable_mockModule('../../../src/services/statusHistoryService.js', () => ({ recordStatusChange: jest.fn() }));
-jest.unstable_mockModule('../../../src/services/notificationService.js', () => ({ sendPushNotification: jest.fn() }));
+jest.unstable_mockModule('../../../src/services/notificationService.js', () => ({
+  createMemberNotification: jest.fn().mockResolvedValue({ success: true, inAppStored: true, deliveredVia: 'in_app' }),
+}));
 jest.unstable_mockModule('../../../src/services/sequenceGenerator.js', () => ({ allocateSequence: jest.fn() }));
 
 const { transitionStatus, LOAN_STATUS } = await import('../../../src/services/loanService.js');

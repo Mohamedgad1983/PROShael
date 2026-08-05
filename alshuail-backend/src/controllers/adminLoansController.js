@@ -7,8 +7,8 @@
  *                  approve / reject / forward to Brouj / record disbursement.
  *
  *   2. Brouj partner (brouj_partner role) — sees ONLY requests forwarded to
- *                  Brouj. Their action: upload Najiz acknowledgment. They
- *                  cannot approve/reject the request itself.
+ *                  Brouj and records an explicit approve/reject decision
+ *                  before uploading the Najiz acknowledgment.
  *
  * Filtering for Brouj is enforced server-side via `req.user.role`, so the
  * client UI can't bypass it.
@@ -51,6 +51,7 @@ function statusFilterForRole(user) {
     // include final states so they can see their completed work
     LOAN_STATUS.READY_FOR_DISBURSEMENT,
     LOAN_STATUS.COMPLETED,
+    LOAN_STATUS.REJECTED,
   ];
 }
 
@@ -90,12 +91,12 @@ async function createLoanDisbursementExpense({ loan, amount, userId, note }) {
       };
     }
 
-    const titleAr      = `سلفة - ${loan.sequence_number}`;
-    const titleEn      = `Loan disbursement - ${loan.sequence_number}`;
+    const titleAr      = `تمويل عائلي - ${loan.sequence_number}`;
+    const titleEn      = `Family financing disbursement - ${loan.sequence_number}`;
     const descriptionAr = note
       ? `${note} (طلب ${loan.sequence_number})`
-      : `صرف مبلغ سلفة للعضو ${loan.applicant_name} (طلب ${loan.sequence_number})`;
-    const notesText    = `صرف تلقائي من نظام السلف. رقم الطلب: ${loan.sequence_number}`;
+      : `صرف مبلغ تمويل عائلي للعضو ${loan.applicant_name} (طلب ${loan.sequence_number})`;
+    const notesText    = `صرف تلقائي من برنامج التمويل العائلي. رقم الطلب: ${loan.sequence_number}`;
 
     const { rows } = await query(
       `INSERT INTO expenses (
@@ -108,7 +109,7 @@ async function createLoanDisbursementExpense({ loan, amount, userId, note }) {
          'loan', $1, $2, $3, $4, 'SAR', $5, $6, 'bank_transfer', $7,
          false, 'paid', $8,
          $9, $10, $11, $12, $13,
-         $8, $14, 'صرف تلقائي بعد إكمال إجراءات السلفة'
+         $8, $14, 'صرف تلقائي بعد إكمال إجراءات التمويل العائلي'
        ) RETURNING id`,
       [
         titleAr,
@@ -270,11 +271,11 @@ export const rejectLoan = async (req, res) => {
   try {
     if (isBrouj(req.user)) {return res.status(403).json({ success: false, error: 'غير مسموح' });}
     const reason = String(req.body?.reason || '').trim();
-    if (!reason) {
+    if (reason.length < 5) {
       return res.status(400).json({
         success: false,
         code: 'REASON_REQUIRED',
-        message: 'يجب تحديد سبب الرفض',
+        message: 'يجب كتابة سبب واضح للرفض لا يقل عن 5 أحرف',
       });
     }
     const updated = await transitionStatus({
@@ -345,7 +346,7 @@ export const recordDisbursement = async (req, res) => {
       loanId: req.params.id,
       toStatus: LOAN_STATUS.COMPLETED,
       changedById: req.user.id,
-      note: req.body?.note || 'تم صرف السلفة',
+      note: req.body?.note || 'تم صرف التمويل العائلي',
       extraUpdates: {
         disbursed_at: new Date(),
         disbursed_amount: amount,
@@ -359,6 +360,58 @@ export const recordDisbursement = async (req, res) => {
 };
 
 // ─── Brouj-side actions ────────────────────────────────────────────────────────
+
+/** Institution decision: approve the forwarded request and begin processing. */
+export const broujApprove = async (req, res) => {
+  try {
+    if (!canDoBroujActions(req.user)) {
+      return res.status(403).json({ success: false, error: 'مخصص لبروز الريادة' });
+    }
+    const note = String(req.body?.note || '').trim();
+    const updated = await transitionStatus({
+      loanId: req.params.id,
+      toStatus: LOAN_STATUS.BROUJ_PROCESSING,
+      changedById: req.user.id,
+      note: note || 'موافقة مؤسسة بروز الريادة وبدء المعالجة',
+      extraUpdates: { processed_by_brouj_id: req.user.id },
+    });
+    return res.json({ success: true, data: updated });
+  } catch (err) {
+    return handleTransitionError(res, err);
+  }
+};
+
+/** Institution decision: reject with a mandatory, auditable reason. */
+export const broujReject = async (req, res) => {
+  try {
+    if (!canDoBroujActions(req.user)) {
+      return res.status(403).json({ success: false, error: 'مخصص لبروز الريادة' });
+    }
+    const reason = String(req.body?.reason || '').trim();
+    if (reason.length < 5) {
+      return res.status(400).json({
+        success: false,
+        code: 'REASON_REQUIRED',
+        message: 'يجب كتابة سبب واضح للرفض لا يقل عن 5 أحرف',
+      });
+    }
+    const updated = await transitionStatus({
+      loanId: req.params.id,
+      toStatus: LOAN_STATUS.REJECTED,
+      changedById: req.user.id,
+      note: `رفض المؤسسة: ${reason}`,
+      extraUpdates: {
+        rejection_reason: reason,
+        rejected_at: new Date(),
+        rejected_by_id: req.user.id,
+        processed_by_brouj_id: req.user.id,
+      },
+    });
+    return res.json({ success: true, data: updated });
+  } catch (err) {
+    return handleTransitionError(res, err);
+  }
+};
 
 export const broujUploadNajiz = async (req, res) => {
   try {

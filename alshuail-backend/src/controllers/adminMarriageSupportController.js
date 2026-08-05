@@ -177,7 +177,7 @@ export const linkInitiative = async (req, res) => {
 /**
  * Enter committee data — runs the calculation engine. Body:
  *   {
- *     contributions_sum,                  // required (typically initiative.current_amount)
+ *     contributions_sum?,                 // optional; defaults to 0 when no initiative exists
  *     previous_ananiyat_count_override?,  // optional manual override
  *     additional_support_balance?,
  *     special_ananiya_value?,
@@ -191,15 +191,20 @@ export const enterCommitteeData = async (req, res) => {
       return res.status(403).json({ success: false, error: 'مخصص لرئيس اللجنة' });
     }
     const {
-      contributions_sum,
+      contributions_sum = 0,
       previous_ananiyat_count_override = null,
       additional_support_balance = 0,
       special_ananiya_value = 0,
       witness_1_id, witness_1_name, witness_2_id, witness_2_name,
     } = req.body || {};
 
-    if (contributions_sum === undefined || contributions_sum === null) {
-      return res.status(400).json({ success: false, code: 'MISSING_CONTRIBUTIONS_SUM', error: 'مجموع المساهمات مطلوب' });
+    const normalizedContributions = Number(contributions_sum || 0);
+    if (!Number.isFinite(normalizedContributions) || normalizedContributions < 0) {
+      return res.status(400).json({
+        success: false,
+        code: 'INVALID_CONTRIBUTIONS_SUM',
+        error: 'مبلغ المبادرة يجب أن يكون صفراً أو مبلغاً موجباً',
+      });
     }
 
     // First persist witness selections if provided.
@@ -218,7 +223,7 @@ export const enterCommitteeData = async (req, res) => {
     // Run the calculation + snapshot.
     const calculated = await calculateAndSnapshot({
       requestId: req.params.id,
-      contributionsSum: contributions_sum,
+      contributionsSum: normalizedContributions,
       previousAnaniyatOverride: previous_ananiyat_count_override,
       additionalSupportBalance: additional_support_balance,
       specialAnaniyaValue: special_ananiya_value,
@@ -334,7 +339,14 @@ export const reject = async (req, res) => {
     if (!isCommitteeChair(req.user) && !isChairman(req.user)) {
       return res.status(403).json({ success: false, error: 'غير مسموح' });
     }
-    const reason = req.body?.reason || '';
+    const reason = String(req.body?.reason || '').trim();
+    if (reason.length < 5) {
+      return res.status(400).json({
+        success: false,
+        code: 'REASON_REQUIRED',
+        message: 'يجب كتابة سبب واضح للرفض لا يقل عن 5 أحرف',
+      });
+    }
     const updated = await transitionStatus({
       requestId: req.params.id,
       toStatus: MARRIAGE_STATUS.REJECTED,

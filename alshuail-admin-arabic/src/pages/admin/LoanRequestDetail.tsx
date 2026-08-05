@@ -8,7 +8,7 @@
  *   • status timeline
  *   • role-aware action panel:
  *       Fund staff:   start review → approve / reject → forward → disburse
- *       Brouj:        upload Najiz acknowledgment
+ *       Institution:  explicit approve / reject → upload Najiz acknowledgment
  *
  * The component is intentionally self-contained — no Redux/Context — so it
  * stays easy to drop into other admin pages later.
@@ -55,6 +55,7 @@ const LoanRequestDetail: React.FC<Props> = ({ loanId, onClose, onChange }) => {
   const [loan, setLoan] = useState<LoanRequest | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const [actionInFlight, setActionInFlight] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [showRejectBox, setShowRejectBox] = useState(false);
@@ -102,12 +103,23 @@ const LoanRequestDetail: React.FC<Props> = ({ loanId, onClose, onChange }) => {
 
   const runAction = async (label: string, fn: () => Promise<unknown>) => {
     setActionInFlight(label);
+    setError(null);
+    setInfo(null);
     try {
-      await fn();
+      const result = await fn() as LoanRequest | undefined;
+      const delivery = result?.notification_delivery;
+      const deliveryText = delivery?.deliveredVia === 'push'
+        ? ' وتم إشعار العضو داخل التطبيق وعبر التنبيه الفوري'
+        : delivery?.deliveredVia === 'whatsapp'
+          ? ' وتم إشعار العضو داخل التطبيق وواتساب'
+          : delivery?.inAppStored
+            ? ' وتم حفظ الإشعار داخل حساب العضو'
+            : '';
+      setInfo(`${label} بنجاح${deliveryText}`);
       await refresh();
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'فشل تنفيذ الإجراء';
-      alert(msg);
+      setError(msg);
     } finally {
       setActionInFlight(null);
     }
@@ -156,8 +168,9 @@ const LoanRequestDetail: React.FC<Props> = ({ loanId, onClose, onChange }) => {
           </ActionButton>
         );
       }
-      // Reject is allowed at any non-terminal state.
-      if (!['completed', 'rejected', 'cancelled'].includes(status)) {
+      // Fund rejection belongs to the fund-review stages only. Once forwarded,
+      // the institution records its own auditable decision below.
+      if (['submitted', 'under_fund_review', 'approved_by_fund'].includes(status)) {
         buttons.push(
           <ActionButton key="reject" tone="danger" loading={actionInFlight === 'reject'}
             onClick={() => setShowRejectBox(true)}>
@@ -168,7 +181,21 @@ const LoanRequestDetail: React.FC<Props> = ({ loanId, onClose, onChange }) => {
     }
 
     if (brouj) {
-      if (status === 'forwarded_to_brouj' || status === 'brouj_processing') {
+      if (status === 'forwarded_to_brouj') {
+        buttons.push(
+          <ActionButton key="brouj-approve" tone="success" loading={actionInFlight === 'institution-approve'}
+            onClick={() => runAction('اعتماد المؤسسة', () => loanService.broujApprove(loanId))}>
+            موافقة المؤسسة وبدء المعالجة
+          </ActionButton>
+        );
+        buttons.push(
+          <ActionButton key="brouj-reject" tone="danger" loading={actionInFlight === 'institution-reject'}
+            onClick={() => setShowRejectBox(true)}>
+            رفض المؤسسة مع ذكر السبب
+          </ActionButton>
+        );
+      }
+      if (status === 'brouj_processing') {
         buttons.push(
           <ActionButton key="najiz" tone="primary" loading={actionInFlight === 'najiz'}
             onClick={() => najizInputRef.current?.click()}>
@@ -181,6 +208,14 @@ const LoanRequestDetail: React.FC<Props> = ({ loanId, onClose, onChange }) => {
           <ActionButton key="fee" tone="success" loading={actionInFlight === 'fee'}
             onClick={() => feeInputRef.current?.click()}>
             تأكيد استكمال المعالجة
+          </ActionButton>
+        );
+      }
+      if (['brouj_processing', 'najiz_uploaded', 'fee_collected'].includes(status)) {
+        buttons.push(
+          <ActionButton key="brouj-reject-late" tone="danger" loading={actionInFlight === 'institution-reject'}
+            onClick={() => setShowRejectBox(true)}>
+            رفض المؤسسة مع ذكر السبب
           </ActionButton>
         );
       }
@@ -204,13 +239,14 @@ const LoanRequestDetail: React.FC<Props> = ({ loanId, onClose, onChange }) => {
         <div style={modalHeader}>
           <button onClick={onClose} style={closeButton}>✕</button>
           <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#1e293b' }}>
-            {loan?.sequence_number ? `طلب ${loan.sequence_number}` : 'تفاصيل الطلب'}
+            {loan?.sequence_number ? <><span>طلب </span><span dir="ltr" style={{ display: 'inline-block' }}>{loan.sequence_number}</span></> : 'تفاصيل الطلب'}
           </h2>
         </div>
 
         <div style={modalBody}>
           {loading && <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>جاري التحميل…</div>}
           {error && <div style={errorBox}>{error}</div>}
+          {info && <div style={successBox}>{info}</div>}
 
           {loan && (
             <>
@@ -350,7 +386,8 @@ const LoanRequestDetail: React.FC<Props> = ({ loanId, onClose, onChange }) => {
 
                 {showRejectBox && (
                   <div style={inlineBoxStyle}>
-                    <div style={{ marginBottom: 8, fontWeight: 600 }}>سبب الرفض</div>
+                    <div style={{ marginBottom: 5, fontWeight: 700 }}>سبب الرفض الذي سيظهر للعضو</div>
+                    <div style={{ marginBottom: 8, color: '#64748b', fontSize: 12 }}>السبب إلزامي، وسيُحفظ في سجل الطلب ويرسل للعضو.</div>
                     <textarea
                       value={rejectReason}
                       onChange={(e) => setRejectReason(e.target.value)}
@@ -363,11 +400,17 @@ const LoanRequestDetail: React.FC<Props> = ({ loanId, onClose, onChange }) => {
                         tone="danger"
                         loading={actionInFlight === 'reject'}
                         onClick={async () => {
-                          if (!rejectReason.trim()) {
-                            alert('يرجى كتابة سبب الرفض');
+                          if (rejectReason.trim().length < 5) {
+                            setError('اكتب سبباً واضحاً للرفض لا يقل عن 5 أحرف');
                             return;
                           }
-                          await runAction('reject', () => loanService.reject(loanId, rejectReason.trim()));
+                          const institutionStage = ['forwarded_to_brouj', 'brouj_processing', 'najiz_uploaded', 'fee_collected'].includes(loan.status);
+                          await runAction(
+                            institutionStage ? 'رفض المؤسسة' : 'رفض الطلب',
+                            () => institutionStage
+                              ? loanService.broujReject(loanId, rejectReason.trim())
+                              : loanService.reject(loanId, rejectReason.trim())
+                          );
                           setShowRejectBox(false);
                           setRejectReason('');
                         }}
@@ -604,6 +647,17 @@ const errorBox: React.CSSProperties = {
   padding: 12,
   borderRadius: 8,
   fontSize: 14,
+  marginBottom: 12,
+};
+
+const successBox: React.CSSProperties = {
+  background: '#dcfce7',
+  color: '#166534',
+  padding: 12,
+  border: '1px solid #86efac',
+  borderRadius: 8,
+  fontSize: 14,
+  marginBottom: 12,
 };
 
 const inlineBoxStyle: React.CSSProperties = {

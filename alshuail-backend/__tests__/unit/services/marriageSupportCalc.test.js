@@ -27,7 +27,9 @@ jest.unstable_mockModule('../../../src/utils/logger.js', () => ({
 // Stub sibling services so importing the module doesn't drag in their trees.
 jest.unstable_mockModule('../../../src/services/sequenceGenerator.js', () => ({ allocateSequence: jest.fn() }));
 jest.unstable_mockModule('../../../src/services/statusHistoryService.js', () => ({ recordStatusChange: jest.fn() }));
-jest.unstable_mockModule('../../../src/services/notificationService.js', () => ({ sendPushNotification: jest.fn() }));
+jest.unstable_mockModule('../../../src/services/notificationService.js', () => ({
+  createMemberNotification: jest.fn().mockResolvedValue({ success: true, inAppStored: true, deliveredVia: 'in_app' }),
+}));
 
 const { calculateAndSnapshot } = await import('../../../src/services/marriageSupportService.js');
 

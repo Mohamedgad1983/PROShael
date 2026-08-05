@@ -1,5 +1,5 @@
 /**
- * Loan Request Service (طلبات السلف)
+ * Family Financing Request Service (التمويل العائلي)
  *
  * Wraps the backend's three URL trees:
  *   /api/admin/loans   ← fund staff (super_admin, admin, financial_manager)
@@ -70,6 +70,14 @@ export interface LoanStatusHistoryEntry {
   changed_by_name_ar?: string;
 }
 
+export interface NotificationDelivery {
+  success: boolean;
+  deliveredVia?: 'push' | 'whatsapp' | 'in_app' | null;
+  inAppStored?: boolean;
+  notificationId?: string | null;
+  error?: string | null;
+}
+
 export interface LoanRequest {
   id: string;
   sequence_number: string;
@@ -109,6 +117,7 @@ export interface LoanRequest {
   updated_at: string;
   documents?: LoanDocument[];
   history?: LoanStatusHistoryEntry[];
+  notification_delivery?: NotificationDelivery;
 }
 
 interface ApiEnvelope<T> {
@@ -212,6 +221,22 @@ export const loanService = {
   },
 
   // ─── Brouj-side actions ──────────────────────────────────────────────────────
+  async broujApprove(id: string, note?: string): Promise<LoanRequest> {
+    const res = await client.post<ApiEnvelope<LoanRequest>>(`/brouj/loans/${id}/approve`, { note });
+    if (!res.data.success || !res.data.data) {
+      throw new Error(res.data.message || res.data.error || 'فشل اعتماد المؤسسة');
+    }
+    return res.data.data;
+  },
+
+  async broujReject(id: string, reason: string): Promise<LoanRequest> {
+    const res = await client.post<ApiEnvelope<LoanRequest>>(`/brouj/loans/${id}/reject`, { reason });
+    if (!res.data.success || !res.data.data) {
+      throw new Error(res.data.message || res.data.error || 'فشل رفض المؤسسة');
+    }
+    return res.data.data;
+  },
+
   async broujUploadNajiz(id: string, file: File): Promise<LoanRequest> {
     const form = new FormData();
     form.append('najiz_acknowledgment', file);
@@ -249,7 +274,7 @@ export const STATUS_LABELS_AR: Record<LoanStatus, string> = {
   under_fund_review: 'قيد المراجعة',
   approved_by_fund: 'تمت الموافقة الأولية',
   forwarded_to_brouj: 'محال إلى بروز الريادة',
-  brouj_processing: 'قيد المعالجة',
+  brouj_processing: 'وافقت المؤسسة — قيد المعالجة',
   najiz_uploaded: 'تم رفع إقرار ناجز',
   fee_collected: 'تم استكمال المعالجة',
   ready_for_disbursement: 'جاهز للصرف',
@@ -286,5 +311,5 @@ export function isFundRole(role?: string): boolean {
 }
 
 export function isBroujRole(role?: string): boolean {
-  return role === 'brouj_partner';
+  return role === 'brouj_partner' || role === 'super_admin';
 }

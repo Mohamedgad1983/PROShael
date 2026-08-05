@@ -92,10 +92,10 @@ const LoanRequestsList: React.FC = () => {
     <div style={{ direction: 'rtl', padding: '24px', maxWidth: 1400, margin: '0 auto' }}>
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#1e293b', marginBottom: 6 }}>
-          طلبات السلف المستردة
+          التمويل العائلي
         </h1>
         <p style={{ fontSize: '14px', color: '#64748b' }}>
-          إدارة طلبات السلف للموظفين الحكوميين — مراجعة، موافقة، إحالة لمؤسسة بروز الريادة، وصرف.
+          دورة اعتماد واضحة من الصندوق والمؤسسة، مع سبب موثق عند الرفض وإشعار فوري للعضو.
         </p>
       </div>
 

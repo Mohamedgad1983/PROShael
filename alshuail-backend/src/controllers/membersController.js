@@ -892,7 +892,11 @@ export const getMemberNotifications = async (req, res) => {
     const offset = (page - 1) * limit;
 
     // Build dynamic WHERE clause
-    const conditions = ['user_id = $1'];
+    const conditions = [`deleted_at IS NULL AND (
+      member_id = $1 OR user_id = $1 OR user_id IN (
+        SELECT id FROM users WHERE member_id = $1
+      )
+    )`];
     const params = [memberId];
     let paramIndex = 2;
 

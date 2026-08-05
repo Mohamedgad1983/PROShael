@@ -25,7 +25,10 @@ export const getMemberNotifications = async (req, res) => {
       `SELECT id, title, title_ar, message, message_ar, type, priority,
               is_read, created_at, related_id, related_type, icon, action_url
        FROM notifications
-       WHERE user_id = $1
+       WHERE deleted_at IS NULL
+         AND (member_id = $1 OR user_id = $1 OR user_id IN (
+           SELECT id FROM users WHERE member_id = $1
+         ))
        ORDER BY created_at DESC
        LIMIT 50`,
       [memberId]
@@ -100,7 +103,12 @@ export const getNotificationSummary = async (req, res) => {
     const memberId = req.user.id;
 
     const { rows: notifications } = await query(
-      'SELECT type, is_read FROM notifications WHERE user_id = $1',
+      `SELECT type, is_read
+         FROM notifications
+        WHERE deleted_at IS NULL
+          AND (member_id = $1 OR user_id = $1 OR user_id IN (
+            SELECT id FROM users WHERE member_id = $1
+          ))`,
       [memberId]
     );
 
@@ -149,7 +157,10 @@ export const markNotificationAsRead = async (req, res) => {
     const { rows } = await query(
       `UPDATE notifications
        SET is_read = true, read_at = $1
-       WHERE id = $2 AND user_id = $3
+       WHERE id = $2
+         AND (member_id = $3 OR user_id = $3 OR user_id IN (
+           SELECT id FROM users WHERE member_id = $3
+         ))
        RETURNING *`,
       [new Date().toISOString(), id, memberId]
     );
@@ -189,7 +200,10 @@ export const markAllNotificationsAsRead = async (req, res) => {
     const { rowCount } = await query(
       `UPDATE notifications
        SET is_read = true, read_at = $1
-       WHERE user_id = $2 AND is_read = false`,
+       WHERE is_read = false
+         AND (member_id = $2 OR user_id = $2 OR user_id IN (
+           SELECT id FROM users WHERE member_id = $2
+         ))`,
       [new Date().toISOString(), memberId]
     );
 
@@ -218,7 +232,12 @@ export const deleteNotification = async (req, res) => {
     const memberId = req.user.id;
 
     await query(
-      'DELETE FROM notifications WHERE id = $1 AND user_id = $2',
+      `UPDATE notifications
+          SET deleted_at = NOW()
+        WHERE id = $1
+          AND (member_id = $2 OR user_id = $2 OR user_id IN (
+            SELECT id FROM users WHERE member_id = $2
+          ))`,
       [id, memberId]
     );
 

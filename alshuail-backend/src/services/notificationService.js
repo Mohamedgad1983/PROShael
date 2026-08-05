@@ -4,7 +4,7 @@
  *
  * Status: PRODUCTION READY with latest Context7 patterns
  * Features:
- * - WhatsApp notifications via Twilio (with smart Arabic encoding)
+ * - WhatsApp notifications via UltraMsg with Twilio compatibility fallback
  * - Push notifications via Firebase Cloud Messaging (FCM v1 API)
  * - Multi-channel delivery with fallback
  * - User preference management
@@ -14,6 +14,7 @@
 
 import { log } from '../utils/logger.js';
 import * as firebaseService from './firebaseService.js';
+import * as ultramsgService from './ultramsgService.js';
 import * as twilioService from './twilioService.js';
 import { query } from './database.js';
 
@@ -40,7 +41,9 @@ export const DeliveryChannel = {
 };
 
 /**
- * Send notification via WhatsApp Business API (using Twilio)
+ * Send notification via WhatsApp. UltraMsg is primary because it is the
+ * configured production provider for member messaging. Twilio remains a
+ * compatibility fallback for other installations.
  * @param {string} phoneNumber - Recipient phone number (format: +9665xxxxxxxx)
  * @param {string} message - WhatsApp message text (supports Arabic)
  * @param {Object} [options] - Optional configuration
@@ -53,20 +56,27 @@ export async function sendWhatsAppNotification(phoneNumber, message, options = {
       messageLength: message.length
     });
 
-    // Use real Twilio service with latest Context7 patterns
-    const result = await twilioService.sendWhatsAppMessage(phoneNumber, message, options);
+    let result = await ultramsgService.sendWhatsAppMessage(phoneNumber, message);
+    let provider = 'ultramsg';
+
+    if (!result.success) {
+      result = await twilioService.sendWhatsAppMessage(phoneNumber, message, options);
+      provider = 'twilio';
+    }
 
     if (result.success) {
       log.info('WhatsApp notification sent successfully', {
         messageId: result.messageId,
         status: result.status,
-        phone: phoneNumber
+        phone: phoneNumber,
+        provider,
       });
 
       return {
         success: true,
         messageId: result.messageId,
         channel: DeliveryChannel.WHATSAPP,
+        provider,
         status: result.status,
         timestamp: new Date().toISOString()
       };
@@ -212,6 +222,195 @@ export async function sendPushNotification(userId, notification, data = {}) {
       channel: DeliveryChannel.PUSH
     };
   }
+}
+
+async function writeDeliveryLog({
+  memberId,
+  type,
+  channel,
+  title,
+  body,
+  status,
+  error = null,
+  metadata = {},
+}) {
+  try {
+    await query(
+      `INSERT INTO notification_logs (
+         member_id, title, body, data, status,
+         success_count, failure_count, sent_at, error_message, created_at
+       ) VALUES ($1, $2, $3, $4::jsonb, $5,
+                 CASE WHEN $5 = 'sent' THEN 1 ELSE 0 END,
+                 CASE WHEN $5 = 'failed' THEN 1 ELSE 0 END,
+                 CASE WHEN $5 = 'sent' THEN NOW() ELSE NULL END,
+                 $6, NOW())`,
+      [
+        memberId,
+        title,
+        body,
+        JSON.stringify({ notification_type: type, channel, ...metadata }),
+        status,
+        error,
+      ]
+    );
+  } catch (logError) {
+    log.warn('Could not write notification delivery log', {
+      memberId,
+      channel,
+      error: logError.message,
+    });
+  }
+}
+
+/**
+ * Canonical delivery path for transactional member events.
+ *
+ * The inbox row is written first and is never removed when an external
+ * provider fails. Delivery then prefers Push and falls back to WhatsApp.
+ */
+export async function createMemberNotification(memberId, {
+  title,
+  body,
+  type = 'general_announcement',
+  priority = 'normal',
+  relatedId = null,
+  relatedType = null,
+  actionUrl = null,
+  data = {},
+}) {
+  let inAppStored = false;
+  let notificationId = null;
+
+  try {
+    const { rows: userRows } = await query(
+      `SELECT id
+         FROM users
+        WHERE id = $1 OR member_id = $1
+        ORDER BY CASE WHEN member_id = $1 THEN 0 ELSE 1 END
+        LIMIT 1`,
+      [memberId]
+    );
+    const linkedUserId = userRows[0]?.id || null;
+
+    const { rows } = await query(
+      `INSERT INTO notifications (
+         member_id, user_id, title, title_ar, message, message_ar,
+         type, notification_type, priority, is_read, read,
+         related_id, related_type, action_url, metadata,
+         status, sent_at, created_at
+       ) VALUES (
+         $1, $2, $3, $3, $4, $4,
+         $5, $5, $6, false, false,
+         $7, $8, $9, $10::jsonb,
+         'sent', NOW(), NOW()
+       )
+       RETURNING id`,
+      [
+        memberId,
+        linkedUserId,
+        title,
+        body,
+        type,
+        priority,
+        relatedId,
+        relatedType,
+        actionUrl,
+        JSON.stringify(data),
+      ]
+    );
+
+    inAppStored = true;
+    notificationId = rows[0]?.id || null;
+    await writeDeliveryLog({
+      memberId,
+      type,
+      channel: 'in_app',
+      title,
+      body,
+      status: 'sent',
+      metadata: { notification_id: notificationId, related_id: relatedId, related_type: relatedType },
+    });
+  } catch (error) {
+    log.warn('Could not persist member notification', { memberId, error: error.message });
+    await writeDeliveryLog({ memberId, type, channel: 'in_app', title, body, status: 'failed', error: error.message });
+  }
+
+  const pushData = Object.fromEntries(
+    Object.entries({ ...data, type, related_id: relatedId, related_type: relatedType })
+      .filter(([, value]) => value !== undefined && value !== null)
+      .map(([key, value]) => [key, String(value)])
+  );
+
+  const pushResult = await sendPushNotification(memberId, { title, body }, pushData);
+  await writeDeliveryLog({
+    memberId,
+    type,
+    channel: DeliveryChannel.PUSH,
+    title,
+    body,
+    status: pushResult.success ? 'sent' : 'failed',
+    error: pushResult.success ? null : pushResult.error,
+    metadata: {
+      related_id: relatedId,
+      related_type: relatedType,
+      devices_reached: pushResult.devicesReached || 0,
+    },
+  });
+
+  if (pushResult.success) {
+    return {
+      ...pushResult,
+      success: true,
+      deliveredVia: DeliveryChannel.PUSH,
+      inAppStored,
+      notificationId,
+    };
+  }
+
+  try {
+    const { rows } = await query(
+      'SELECT phone, whatsapp_number FROM members WHERE id = $1 LIMIT 1',
+      [memberId]
+    );
+    const phone = rows[0]?.whatsapp_number || rows[0]?.phone;
+    if (phone) {
+      const whatsappResult = await sendWhatsAppNotification(phone, `${title}\n${body}`);
+      await writeDeliveryLog({
+        memberId,
+        type,
+        channel: DeliveryChannel.WHATSAPP,
+        title,
+        body,
+        status: whatsappResult.success ? 'sent' : 'failed',
+        error: whatsappResult.success ? null : whatsappResult.error,
+        metadata: {
+          related_id: relatedId,
+          related_type: relatedType,
+          provider: whatsappResult.provider || null,
+        },
+      });
+      if (whatsappResult.success) {
+        return {
+          ...whatsappResult,
+          success: true,
+          deliveredVia: DeliveryChannel.WHATSAPP,
+          inAppStored,
+          notificationId,
+        };
+      }
+    }
+  } catch (error) {
+    log.warn('WhatsApp fallback failed', { memberId, error: error.message });
+  }
+
+  return {
+    success: inAppStored,
+    deliveredVia: inAppStored ? 'in_app' : null,
+    channel: inAppStored ? 'in_app' : null,
+    inAppStored,
+    notificationId,
+    error: inAppStored ? null : (pushResult.error || 'notification_delivery_failed'),
+  };
 }
 
 /**
@@ -503,6 +702,7 @@ export default {
   sendWhatsAppNotification,
   sendSMSNotification,
   sendPushNotification,
+  createMemberNotification,
   sendMultiChannelNotification,
   getUserNotificationPreferences,
   isInQuietHours,

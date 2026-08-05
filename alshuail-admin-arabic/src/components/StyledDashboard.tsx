@@ -868,7 +868,7 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
     { id: 'payment-approvals', label: '✅ موافقات الدفعات', icon: BanknotesIcon },
     { id: 'bank-transfers', label: '🏦 طلبات التحويل', icon: BanknotesIcon },
     { id: 'expenses', label: '💰 المصروفات', icon: BanknotesIcon },
-    { id: 'loan-requests', label: '💳 طلبات السلف', icon: BanknotesIcon },
+    { id: 'loan-requests', label: '💳 التمويل العائلي', icon: BanknotesIcon },
     { id: 'marriage-support', label: '💍 دعم الزواج', icon: BanknotesIcon },
     { id: 'initiatives', label: 'المبادرات', icon: LightBulbIcon },
     { id: 'diyas', label: 'الديات', icon: ScaleIcon },
@@ -1755,7 +1755,7 @@ const StyledDashboard: React.FC<StyledDashboardProps> = ({ onLogout }) => {
                   <InitiativesManagementNew />
                 )}
 
-                {/* Loan requests (طلبات السلف) — same component serves
+                {/* Family financing requests — same component serves
                     fund staff + brouj_partner; service picks the right URL. */}
                 {activeSection === 'loan-requests' && <LoanRequestsList />}
 

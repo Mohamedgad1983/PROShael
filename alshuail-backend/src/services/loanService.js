@@ -27,7 +27,7 @@ import { query, getClient } from './database.js';
 import { log } from '../utils/logger.js';
 import { allocateSequence } from './sequenceGenerator.js';
 import { recordStatusChange } from './statusHistoryService.js';
-import { sendPushNotification } from './notificationService.js';
+import { createMemberNotification } from './notificationService.js';
 import {
   checkSubscriptionsPaid,
   checkProfileComplete,
@@ -79,25 +79,32 @@ const ALLOWED_TRANSITIONS = {
 // ─── notifications ────────────────────────────────────────────────────────────
 
 /**
- * Push-notification template per status. Statuses NOT in this map are silent —
- * either back-office churn the member doesn't need to see (`brouj_processing`)
- * or actions the member performed themselves (`cancelled`).
+ * Member-notification template per status. Statuses not in this map are silent
+ * because they are member-owned actions such as cancellation.
  *
  * Sent fire-and-forget AFTER the transition COMMIT — failures are logged but
  * never roll back the status change.
  */
 const STATUS_NOTIFICATIONS = {
+  [LOAN_STATUS.SUBMITTED]: {
+    title: 'تم استلام طلب التمويل العائلي',
+    body: (loan) => `تم استلام طلب التمويل العائلي رقم ${loan.sequence_number} بنجاح، وستصلك تحديثات كل مرحلة من خلال التطبيق.`,
+  },
   [LOAN_STATUS.UNDER_FUND_REVIEW]: {
-    title: 'جاري مراجعة طلب السلفة',
-    body: (loan) => `تم استلام طلب السلفة رقم ${loan.sequence_number} وجاري مراجعته من الصندوق.`,
+    title: 'جاري مراجعة طلب التمويل العائلي',
+    body: (loan) => `بدأ الصندوق مراجعة طلب التمويل العائلي رقم ${loan.sequence_number}.`,
   },
   [LOAN_STATUS.APPROVED_BY_FUND]: {
     title: 'تمت الموافقة المبدئية',
-    body: (loan) => `تمت الموافقة على طلب السلفة رقم ${loan.sequence_number}. سيتم تحويل الطلب لمؤسسة بروز الريادة.`,
+    body: (loan) => `تمت موافقة الصندوق المبدئية على طلب التمويل العائلي رقم ${loan.sequence_number}. سيتم تحويله للمؤسسة.`,
   },
   [LOAN_STATUS.FORWARDED_TO_BROUJ]: {
-    title: 'تم التحويل لمؤسسة بروز',
-    body: (loan) => `تم تحويل طلب السلفة رقم ${loan.sequence_number} لمؤسسة بروز الريادة لاستكمال الإجراءات عبر منصة ناجز.`,
+    title: 'تم تحويل طلبك للمؤسسة',
+    body: (loan) => `تم تحويل طلب التمويل العائلي رقم ${loan.sequence_number} لمؤسسة بروز الريادة لاتخاذ القرار.`,
+  },
+  [LOAN_STATUS.BROUJ_PROCESSING]: {
+    title: 'وافقت المؤسسة على طلب التمويل',
+    body: (loan) => `وافقت مؤسسة بروز الريادة على طلب التمويل العائلي رقم ${loan.sequence_number} وبدأت استكمال الإجراءات.`,
   },
   [LOAN_STATUS.NAJIZ_UPLOADED]: {
     title: 'تم تجهيز إقرار ناجز',
@@ -109,17 +116,17 @@ const STATUS_NOTIFICATIONS = {
   },
   [LOAN_STATUS.READY_FOR_DISBURSEMENT]: {
     title: 'جاهز للصرف',
-    body: (loan) => `طلب السلفة رقم ${loan.sequence_number} جاهز للصرف من الصندوق.`,
+    body: (loan) => `طلب التمويل العائلي رقم ${loan.sequence_number} جاهز للصرف من الصندوق.`,
   },
   [LOAN_STATUS.COMPLETED]: {
-    title: 'تم صرف السلفة',
-    body: (loan) => `تم صرف مبلغ السلفة رقم ${loan.sequence_number} بنجاح.`,
+    title: 'تم صرف التمويل العائلي',
+    body: (loan) => `تم صرف التمويل العائلي رقم ${loan.sequence_number} وتفعيل جدول الأقساط.`,
   },
   [LOAN_STATUS.REJECTED]: {
-    title: 'تم رفض طلب السلفة',
+    title: 'تم رفض طلب التمويل العائلي',
     body: (loan) => {
       const reason = loan.rejection_reason ? ` السبب: ${loan.rejection_reason}.` : '';
-      return `تم رفض طلب السلفة رقم ${loan.sequence_number}.${reason} للاستفسار يرجى التواصل مع إدارة الصندوق.`;
+      return `تم رفض طلب التمويل العائلي رقم ${loan.sequence_number}.${reason} للاستفسار يرجى التواصل مع إدارة الصندوق.`;
     },
   },
 };
@@ -131,29 +138,31 @@ const STATUS_NOTIFICATIONS = {
  * The `data` payload is what iOS / the Flutter app reads on tap to deep-link
  * straight to the loan detail screen.
  */
-async function dispatchStatusNotification(loan, toStatus) {
+export async function dispatchStatusNotification(loan, toStatus) {
   const template = STATUS_NOTIFICATIONS[toStatus];
-  if (!template) {return;}
+  if (!template) {return { success: true, skipped: true, inAppStored: false };}
   try {
-    await sendPushNotification(
-      loan.member_id,
-      {
-        title: template.title,
-        body: typeof template.body === 'function' ? template.body(loan) : template.body,
-      },
-      {
+    return await createMemberNotification(loan.member_id, {
+      title: template.title,
+      body: typeof template.body === 'function' ? template.body(loan) : template.body,
+      type: 'family_financing_status_update',
+      relatedId: loan.id,
+      relatedType: 'family_financing',
+      actionUrl: '/requests',
+      data: {
         type: 'loan_status_update',
         loan_id: String(loan.id),
         sequence_number: String(loan.sequence_number || ''),
         status: String(toStatus),
-      }
-    );
+      },
+    });
   } catch (err) {
     log.warn('[loanService] status notification failed (non-fatal)', {
       error: err.message,
       loanId: loan.id,
       toStatus,
     });
+    return { success: false, inAppStored: false, error: err.message };
   }
 }
 
@@ -445,7 +454,8 @@ export async function createLoanRequest({ memberId, payload }) {
     });
 
     await client.query('COMMIT');
-    return created;
+    const notificationDelivery = await dispatchStatusNotification(created, LOAN_STATUS.SUBMITTED);
+    return { ...created, notification_delivery: notificationDelivery };
   } catch (err) {
     await client.query('ROLLBACK');
     log.error('[loanService] createLoanRequest rollback', { error: err.message });
@@ -524,9 +534,9 @@ export async function transitionStatus({
     // Push notification to the borrower — AFTER commit so we never notify on
     // a transition that ended up rolling back. dispatchStatusNotification has
     // its own try/catch so failures here never bubble up.
-    await dispatchStatusNotification(updated[0], toStatus);
+    const notificationDelivery = await dispatchStatusNotification(updated[0], toStatus);
 
-    return updated[0];
+    return { ...updated[0], notification_delivery: notificationDelivery };
   } catch (err) {
     await client.query('ROLLBACK');
     throw err;

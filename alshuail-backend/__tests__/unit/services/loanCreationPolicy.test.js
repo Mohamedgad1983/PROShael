@@ -17,7 +17,7 @@ jest.unstable_mockModule('../../../src/services/statusHistoryService.js', () => 
   recordStatusChange: mockRecordStatusChange,
 }));
 jest.unstable_mockModule('../../../src/services/notificationService.js', () => ({
-  sendPushNotification: jest.fn(),
+  createMemberNotification: jest.fn().mockResolvedValue({ success: true, inAppStored: true, deliveredVia: 'in_app' }),
 }));
 jest.unstable_mockModule('../../../src/services/sequenceGenerator.js', () => ({
   allocateSequence: mockAllocateSequence,

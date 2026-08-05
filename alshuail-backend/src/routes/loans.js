@@ -30,6 +30,8 @@ import {
   rejectLoan,
   forwardToBrouj,
   recordDisbursement,
+  broujApprove,
+  broujReject,
   broujUploadNajiz,
   broujConfirmFee,
 } from '../controllers/adminLoansController.js';
@@ -104,6 +106,9 @@ const BROUJ_ROLES = ['brouj_partner', 'super_admin']; // super_admin can imperso
 
 broujRouter.get('/', authenticateToken, requireRole(BROUJ_ROLES), listLoans);
 broujRouter.get('/:id', authenticateToken, requireRole(BROUJ_ROLES), getLoan);
+
+broujRouter.post('/:id/approve', authenticateToken, requireRole(BROUJ_ROLES), broujApprove);
+broujRouter.post('/:id/reject', authenticateToken, requireRole(BROUJ_ROLES), broujReject);
 
 broujRouter.post(
   '/:id/upload-najiz',
