@@ -7,14 +7,72 @@ import {
   uploadToSupabase,
   deleteFromSupabase,
   getSignedUrl,
+  readSignedDocument,
   DOCUMENT_CATEGORIES,
   CATEGORY_TRANSLATIONS
 } from '../config/documentStorage.js';
 
 const router = express.Router();
 
+const DOCUMENT_ADMIN_ROLES = new Set(['admin', 'super_admin', 'financial_manager']);
+
+const isDocumentAdmin = (user) => DOCUMENT_ADMIN_ROLES.has(user?.role);
+const sameIdentifier = (left, right) => String(left ?? '') === String(right ?? '');
+const canAccessMemberDocuments = (user, memberId) => (
+  isDocumentAdmin(user) || sameIdentifier(user?.id, memberId)
+);
+
+const setPrivateDocumentHeaders = (res) => {
+  res.set({
+    'Cache-Control': 'private, no-store, max-age=0',
+    Pragma: 'no-cache',
+    Expires: '0',
+    'X-Content-Type-Options': 'nosniff',
+  });
+};
+
+// Signed-token file delivery is intentionally unauthenticated: authorization
+// already happened when the short-lived URL was issued. The token signature,
+// expiry, and storage-root path are revalidated for every request.
+router.get('/file/:token', async (req, res) => {
+  setPrivateDocumentHeaders(res);
+  try {
+    const document = await readSignedDocument(req.params.token);
+    res.type(document.filename);
+    return res.send(document.buffer);
+  } catch (error) {
+    if (error?.code === 'ENOENT') {
+      return res.status(404).json({
+        success: false,
+        message: 'المستند غير موجود',
+        message_en: 'Document not found',
+      });
+    }
+    if (['DOCUMENT_TOKEN_INVALID', 'DOCUMENT_TOKEN_EXPIRED'].includes(error?.code)) {
+      log.warn('[documents] Signed document access denied', { reason: error.code });
+      return res.status(403).json({
+        success: false,
+        message: 'رابط المستند غير صالح أو منتهي الصلاحية',
+        message_en: 'Document link is invalid or expired',
+      });
+    }
+
+    log.error('[documents] Signed document delivery failed', {
+      reason: error?.code || 'DOCUMENT_READ_FAILED',
+    });
+    return res.status(500).json({
+      success: false,
+      message: 'تعذر تحميل المستند',
+      message_en: 'Unable to load document',
+    });
+  }
+});
+
 // Upload document
 router.post('/upload', authenticateToken, upload.single('document'), async (req, res) => {
+  let uploadedFilePath = null;
+  let metadataPersisted = false;
+
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -39,7 +97,7 @@ router.post('/upload', authenticateToken, upload.single('document'), async (req,
     if (req.user.role === 'member') {
       // For members, use their own member ID (req.user.id)
       targetMemberId = req.user.id;
-    } else {
+    } else if (isDocumentAdmin(req.user)) {
       // For admin/super_admin, member_id must be provided
       if (!member_id) {
         return res.status(400).json({
@@ -50,6 +108,12 @@ router.post('/upload', authenticateToken, upload.single('document'), async (req,
         });
       }
       targetMemberId = member_id;
+    } else {
+      return res.status(403).json({
+        success: false,
+        message: 'غير مصرح برفع مستندات لأعضاء آخرين',
+        message_en: 'Unauthorized to upload documents for another member'
+      });
     }
 
     // Validate category
@@ -63,6 +127,7 @@ router.post('/upload', authenticateToken, upload.single('document'), async (req,
 
     // Upload to storage
     const uploadResult = await uploadToSupabase(req.file, targetMemberId, category);
+    uploadedFilePath = uploadResult.path;
 
     // Save metadata to database
     const { rows } = await query(
@@ -83,6 +148,7 @@ router.post('/upload', authenticateToken, upload.single('document'), async (req,
         'active'
       ]
     );
+    metadataPersisted = true;
     const document = rows[0];
 
     res.json({
@@ -96,6 +162,18 @@ router.post('/upload', authenticateToken, upload.single('document'), async (req,
     });
 
   } catch (error) {
+    // Storage happens before the metadata insert. If persistence fails, remove
+    // the just-written file so it cannot become an untracked public orphan.
+    if (uploadedFilePath && !metadataPersisted) {
+      try {
+        await deleteFromSupabase(uploadedFilePath);
+      } catch (cleanupError) {
+        log.error('Upload rollback cleanup failed:', {
+          filePath: uploadedFilePath,
+          error: cleanupError.message
+        });
+      }
+    }
     log.error('Upload error:', { error: error.message });
     res.status(500).json({
       success: false,
@@ -223,6 +301,15 @@ router.get('/', authenticateToken, async (req, res) => {
 router.get('/member/:memberId?', authenticateToken, async (req, res) => {
   try {
     const memberId = req.params.memberId || req.user.id;
+
+    if (!canAccessMemberDocuments(req.user, memberId)) {
+      return res.status(403).json({
+        success: false,
+        message: 'غير مصرح',
+        message_en: 'Unauthorized'
+      });
+    }
+
     const { category, search, limit = 50, offset = 0 } = req.query;
 
     const limitNum = parseInt(limit);
@@ -301,7 +388,8 @@ router.get('/:documentId/download', authenticateToken, async (req, res) => {
     const { documentId } = req.params;
 
     const { rows } = await query(
-      'SELECT * FROM documents_metadata WHERE id = $1',
+      `SELECT * FROM documents_metadata
+       WHERE id = $1 AND status = 'active'`,
       [documentId]
     );
     const document = rows[0];
@@ -315,8 +403,7 @@ router.get('/:documentId/download', authenticateToken, async (req, res) => {
     }
 
     // Check permission - admin/super_admin can download any document
-    if (document.member_id !== req.user.id &&
-        !['admin', 'super_admin', 'financial_manager'].includes(req.user.role)) {
+    if (!canAccessMemberDocuments(req.user, document.member_id)) {
       return res.status(403).json({
         success: false,
         message: 'غير مصرح',
@@ -347,7 +434,8 @@ router.get('/:documentId', authenticateToken, async (req, res) => {
     const { documentId } = req.params;
 
     const { rows } = await query(
-      'SELECT * FROM documents_metadata WHERE id = $1',
+      `SELECT * FROM documents_metadata
+       WHERE id = $1 AND status = 'active'`,
       [documentId]
     );
     const document = rows[0];
@@ -361,8 +449,7 @@ router.get('/:documentId', authenticateToken, async (req, res) => {
     }
 
     // Check permission - admin/super_admin can view any document
-    if (document.member_id !== req.user.id &&
-        !['admin', 'super_admin', 'financial_manager'].includes(req.user.role)) {
+    if (!canAccessMemberDocuments(req.user, document.member_id)) {
       return res.status(403).json({
         success: false,
         message: 'غير مصرح',
@@ -499,6 +586,24 @@ router.delete('/:documentId', authenticateToken, async (req, res) => {
       });
     }
 
+    const { rows: referenceRows } = await query(
+      `SELECT (
+         EXISTS (SELECT 1 FROM payments p WHERE p.receipt_document_id = $1)
+         OR EXISTS (SELECT 1 FROM initiative_donations d WHERE d.receipt_document_id = $1)
+         OR EXISTS (SELECT 1 FROM activity_contributions c WHERE c.receipt_document_id = $1)
+         OR EXISTS (SELECT 1 FROM bank_transfer_requests btr WHERE btr.receipt_document_id = $1)
+       ) AS is_financial_evidence`,
+      [documentId]
+    );
+    if (referenceRows[0]?.is_financial_evidence) {
+      return res.status(409).json({
+        success: false,
+        message: 'لا يمكن حذف مستند مستخدم كدليل مالي؛ يبقى محفوظاً في الأرشيف',
+        message_en: 'Referenced financial evidence cannot be deleted',
+        code: 'FINANCIAL_EVIDENCE_IMMUTABLE'
+      });
+    }
+
     // Soft delete in database
     await query(
       'UPDATE documents_metadata SET status = $1, deleted_at = $2 WHERE id = $3',
@@ -541,6 +646,14 @@ router.get('/config/categories', (req, res) => {
 router.get('/stats/overview', authenticateToken, async (req, res) => {
   try {
     const memberId = req.query.member_id || req.user.id;
+
+    if (!canAccessMemberDocuments(req.user, memberId)) {
+      return res.status(403).json({
+        success: false,
+        message: 'غير مصرح',
+        message_en: 'Unauthorized'
+      });
+    }
 
     const { rows: stats } = await query(
       `SELECT category, file_size FROM documents_metadata WHERE member_id = $1 AND status = $2`,

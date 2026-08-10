@@ -2,6 +2,7 @@ import { log } from '../utils/logger.js';
 import { query } from '../services/database.js';
 import {
   uploadReceipt,
+  removeUploadedReceipt,
   createBankTransferRequest,
   getBankTransferRequests,
   getBankTransferById,
@@ -15,6 +16,8 @@ import {
  * POST /api/bank-transfers
  */
 export const submitBankTransfer = async (req, res) => {
+  let uploadedReceipt = null;
+  let transferPersisted = false;
   try {
     const requesterId = req.user?.id;
 
@@ -66,6 +69,7 @@ export const submitBankTransfer = async (req, res) => {
 
     // Upload the receipt
     const uploadResult = await uploadReceipt(req.file, requesterId);
+    uploadedReceipt = uploadResult;
 
     // Create the transfer request
     const transfer = await createBankTransferRequest({
@@ -74,10 +78,10 @@ export const submitBankTransfer = async (req, res) => {
       amount,
       purpose,
       purpose_reference_id,
-      receipt_url: uploadResult.url,
-      receipt_filename: uploadResult.filename,
+      receipt: uploadResult,
       notes
     });
+    transferPersisted = true;
 
     log.info('Bank transfer submitted', {
       transferId: transfer.id,
@@ -93,9 +97,22 @@ export const submitBankTransfer = async (req, res) => {
       message: 'تم إرسال طلب التحويل البنكي بنجاح وسيتم مراجعته قريباً'
     });
   } catch (error) {
+    // Filesystem IO precedes the database transaction. If metadata/request
+    // persistence fails, remove the untracked file immediately.
+    if (uploadedReceipt?.path && !transferPersisted) {
+      try {
+        await removeUploadedReceipt(uploadedReceipt.path);
+      } catch (cleanupError) {
+        log.error('Failed to clean up unarchived bank-transfer receipt', {
+          path: uploadedReceipt.path,
+          error: cleanupError.message
+        });
+      }
+    }
     log.error('Error submitting bank transfer:', error);
-    res.status(500).json({
+    res.status(error?.statusCode || 500).json({
       success: false,
+      code: error?.code,
       error: error.message || 'فشل في إرسال طلب التحويل'
     });
   }
@@ -137,8 +154,11 @@ export const getAllBankTransfers = async (req, res) => {
 export const getBankTransfer = async (req, res) => {
   try {
     const { id } = req.params;
+    const requesterId = req.user?.role === 'member' ? req.user.id : null;
 
-    const transfer = await getBankTransferById(id);
+    // Member tokens are scoped in SQL so another member's PII and signed
+    // receipt URL are never loaded into application memory.
+    const transfer = await getBankTransferById(id, requesterId);
 
     if (!transfer) {
       return res.status(404).json({
@@ -192,8 +212,9 @@ export const approveTransfer = async (req, res) => {
     });
   } catch (error) {
     log.error('Error approving bank transfer:', error);
-    res.status(500).json({
+    res.status(error?.statusCode || 500).json({
       success: false,
+      code: error?.code,
       error: error.message || 'فشل في اعتماد التحويل'
     });
   }
@@ -238,8 +259,9 @@ export const rejectTransfer = async (req, res) => {
     });
   } catch (error) {
     log.error('Error rejecting bank transfer:', error);
-    res.status(500).json({
+    res.status(error?.statusCode || 500).json({
       success: false,
+      code: error?.code,
       error: error.message || 'فشل في رفض التحويل'
     });
   }

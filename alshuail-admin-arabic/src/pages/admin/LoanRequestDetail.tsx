@@ -19,6 +19,8 @@ import {
 DOCUMENT_LABELS_AR,isBroujRole,isFundRole,LoanRequest,loanService,LoanStatus,STATUS_COLORS,STATUS_LABELS_AR
 } from '../../services/loanService';
 import { API_ORIGIN } from '../../utils/apiConfig';
+import RepaymentPlanCard from '../../components/Financing/RepaymentPlanCard';
+import { nextMonthClampedDate } from '../../utils/financingPolicy';
 
 interface Props {
   loanId: string;
@@ -42,13 +44,49 @@ const formatDateTime = (s: string | undefined | null) => {
   }
 };
 
-/** Build a download URL the static-uploads pipeline can serve. */
-const fileUrl = (path?: string) => {
-  if (!path) return '#';
-  // Backend serves uploads at /uploads/<path>. The path stored already
-  // includes the BUCKET_NAME segment (e.g. member-documents/...).
-  if (path.startsWith('http')) return path;
-  return `${API_ORIGIN}/uploads/${path.replace(/^\/+/, '')}`;
+/** Resolve signed document endpoints while retaining legacy upload support. */
+export const fileUrl = (path?: string | null) => {
+  const rawPath = path?.trim();
+  if (!rawPath) return null;
+
+  try {
+    const isAbsolute = /^https?:\/\//i.test(rawPath);
+    const parsed = new URL(rawPath, `${API_ORIGIN}/`);
+
+    if (!['http:', 'https:'].includes(parsed.protocol)) return null;
+
+    // A relative signed URL must stay on the API origin. Rewriting it as a
+    // legacy /uploads path would discard the authorization boundary.
+    const isSignedDocumentPath = /^\/api\/documents\/file\/[^/]+$/i.test(parsed.pathname);
+    if (isSignedDocumentPath) {
+      const signed = new URL(parsed.pathname, isAbsolute ? parsed.origin : API_ORIGIN);
+      signed.search = parsed.search;
+      signed.hash = parsed.hash;
+      return signed.toString();
+    }
+
+    // Preserve third-party URLs. Local upload URLs and stored relative paths
+    // remain supported during the migration to signed document delivery.
+    const isLocalUploadPath = /^\/(?:api\/)?uploads(?:\/|$)/i.test(parsed.pathname);
+    if (isAbsolute && !isLocalUploadPath) return parsed.toString();
+
+    const relativePath = parsed.pathname
+      .replace(/^\/+/, '')
+      .replace(/^(?:api\/)?uploads(?:\/|$)/i, '')
+      .replace(/^(?:member-documents\/)+/i, '');
+
+    if (!relativePath) return null;
+
+    const normalized = new URL(
+      `/uploads/member-documents/${relativePath}`,
+      isAbsolute ? parsed.origin : API_ORIGIN
+    );
+    normalized.search = parsed.search;
+    normalized.hash = parsed.hash;
+    return normalized.toString();
+  } catch {
+    return null;
+  }
 };
 
 const LoanRequestDetail: React.FC<Props> = ({ loanId, onClose, onChange }) => {
@@ -61,6 +99,8 @@ const LoanRequestDetail: React.FC<Props> = ({ loanId, onClose, onChange }) => {
   const [showRejectBox, setShowRejectBox] = useState(false);
   const [disburseAmount, setDisburseAmount] = useState('');
   const [showDisburseBox, setShowDisburseBox] = useState(false);
+  const [installmentCount, setInstallmentCount] = useState('10');
+  const [firstDueDate, setFirstDueDate] = useState(nextMonthClampedDate);
 
   // Brouj-specific file inputs (Najiz + legacy processing document).
   const najizInputRef = useRef<HTMLInputElement | null>(null);
@@ -272,8 +312,12 @@ const LoanRequestDetail: React.FC<Props> = ({ loanId, onClose, onChange }) => {
                     </div>
                   )}
                   <div style={{ textAlign: 'right' }}>
-                    <div style={kpiLabel}>قيمة السلعة الإجمالية</div>
-                    <div style={{ ...kpiValue, fontSize: 22, color: '#4338ca' }}>{formatSAR(loan.loan_amount)}</div>
+                    <div style={kpiLabel}>مبلغ التمويل</div>
+                    <div style={{ ...kpiValue, fontSize: 22, color: '#0f766e' }}>{formatSAR(loan.loan_amount)}</div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={kpiLabel}>رسوم البرنامج</div>
+                    <div style={kpiValue}>{formatSAR(loan.financing_fee_amount ?? loan.admin_fee_amount)}</div>
                   </div>
                 </div>
               </div>
@@ -307,6 +351,8 @@ const LoanRequestDetail: React.FC<Props> = ({ loanId, onClose, onChange }) => {
                 )}
               </div>
 
+              {loan.repayment_plan && <RepaymentPlanCard plan={loan.repayment_plan} />}
+
               {/* Documents */}
               <div style={cardStyle}>
                 <h3 style={cardTitle}>المرفقات</h3>
@@ -314,33 +360,48 @@ const LoanRequestDetail: React.FC<Props> = ({ loanId, onClose, onChange }) => {
                   <p style={{ color: '#64748b' }}>لا توجد مرفقات</p>
                 ) : (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
-                    {loan.documents.map((d) => (
-                      <a
-                        key={d.id}
-                        href={fileUrl(d.file_path)}
-                        target="_blank"
-                        rel="noreferrer"
-                        style={docCardStyle}
-                      >
-                        <div style={{ fontSize: 22 }}>📄</div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 600, fontSize: 13, color: '#1e293b' }}>
-                            {DOCUMENT_LABELS_AR[d.document_type] || d.document_type}
+                    {loan.documents.map((d) => {
+                      const downloadUrl = fileUrl(d.signed_url || d.file_path);
+                      const content = (
+                        <>
+                          <div style={{ fontSize: 22 }}>📄</div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 600, fontSize: 13, color: '#1e293b' }}>
+                              {DOCUMENT_LABELS_AR[d.document_type] || d.document_type}
+                            </div>
+                            {d.original_name && (
+                              <div style={{ fontSize: 11, color: '#64748b', direction: 'ltr', textAlign: 'right' }}>
+                                {d.original_name}
+                              </div>
+                            )}
+                            {d.uploaded_at && (
+                              <div style={{ fontSize: 11, color: '#94a3b8' }}>
+                                {formatDateTime(d.uploaded_at)}
+                              </div>
+                            )}
                           </div>
-                          {d.original_name && (
-                            <div style={{ fontSize: 11, color: '#64748b', direction: 'ltr', textAlign: 'right' }}>
-                              {d.original_name}
-                            </div>
-                          )}
-                          {d.uploaded_at && (
-                            <div style={{ fontSize: 11, color: '#94a3b8' }}>
-                              {formatDateTime(d.uploaded_at)}
-                            </div>
-                          )}
+                          <div style={{ fontSize: 12, color: downloadUrl ? '#4338ca' : '#94a3b8', fontWeight: 600 }}>
+                            {downloadUrl ? 'تنزيل' : 'غير متاح'}
+                          </div>
+                        </>
+                      );
+
+                      return downloadUrl ? (
+                        <a
+                          key={d.id}
+                          href={downloadUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={docCardStyle}
+                        >
+                          {content}
+                        </a>
+                      ) : (
+                        <div key={d.id} style={docCardStyle} aria-label="المرفق غير متاح للتنزيل">
+                          {content}
                         </div>
-                        <div style={{ fontSize: 12, color: '#4338ca', fontWeight: 600 }}>تنزيل</div>
-                      </a>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -426,25 +487,64 @@ const LoanRequestDetail: React.FC<Props> = ({ loanId, onClose, onChange }) => {
 
                 {showDisburseBox && (
                   <div style={inlineBoxStyle}>
-                    <div style={{ marginBottom: 8, fontWeight: 600 }}>المبلغ المصروف فعلياً (ر.س)</div>
+                    <div style={{ marginBottom: 10, fontWeight: 700, color: '#123d2d' }}>إعداد الصرف وجدول الأقساط</div>
+                    <div style={{ marginBottom: 8, fontWeight: 600 }}>مبلغ التمويل المصروف (ر.س)</div>
                     <input
                       type="number"
                       value={disburseAmount}
                       onChange={(e) => setDisburseAmount(e.target.value)}
-                      placeholder={String(loan.loan_amount || '')}
+                      placeholder={String(loan.requested_item_amount || loan.loan_amount || '')}
                       style={{ ...textareaStyle, height: 40 }}
                     />
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 10 }}>
+                      <label style={{ fontSize: 12, color: '#475569' }}>
+                        عدد شهور الأقساط (بحد أقصى سنة)
+                        <select
+                          value={installmentCount}
+                          onChange={(e) => setInstallmentCount(e.target.value)}
+                          style={{ ...textareaStyle, height: 40, marginTop: 5 }}
+                        >
+                          {Array.from({ length: 12 }, (_, index) => index + 1).map((count) => (
+                            <option key={count} value={count}>{count} {count === 10 ? '— الافتراضي' : ''}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label style={{ fontSize: 12, color: '#475569' }}>
+                        تاريخ أول قسط
+                        <input
+                          type="date"
+                          value={firstDueDate}
+                          onChange={(e) => setFirstDueDate(e.target.value)}
+                          style={{ ...textareaStyle, height: 40, marginTop: 5 }}
+                        />
+                      </label>
+                    </div>
+                    <div style={{ marginTop: 10, padding: 10, borderRadius: 8, background: '#ecfdf5', color: '#065f46', fontSize: 12 }}>
+                      الرسوم: {formatSAR(loan.financing_fee_amount ?? loan.admin_fee_amount)} · إجمالي السداد: {formatSAR(
+                        Number(loan.requested_item_amount || loan.loan_amount || 0) + Number((loan.financing_fee_amount ?? loan.admin_fee_amount) || 0)
+                      )}
+                    </div>
                     <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
                       <ActionButton
                         tone="success"
                         loading={actionInFlight === 'disburse'}
                         onClick={async () => {
-                          const amount = Number(disburseAmount || loan.loan_amount);
+                          const amount = Number(disburseAmount || loan.requested_item_amount || loan.loan_amount);
+                          const months = Number(installmentCount);
                           if (!Number.isFinite(amount) || amount <= 0) {
                             alert('المبلغ غير صالح');
                             return;
                           }
-                          await runAction('disburse', () => loanService.recordDisbursement(loanId, amount));
+                          if (!Number.isInteger(months) || months < 1 || months > 12 || !firstDueDate) {
+                            alert('يرجى تحديد عدد الأقساط وتاريخ أول قسط');
+                            return;
+                          }
+                          await runAction('disburse', () => loanService.recordDisbursement(
+                            loanId,
+                            amount,
+                            months,
+                            firstDueDate
+                          ));
                           setShowDisburseBox(false);
                           setDisburseAmount('');
                         }}

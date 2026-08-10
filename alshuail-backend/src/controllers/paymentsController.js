@@ -1,4 +1,4 @@
-import { query } from '../services/database.js';
+import { getClient, query } from '../services/database.js';
 import { PaymentProcessingService } from '../services/paymentProcessingService.js';
 import { FinancialAnalyticsService } from '../services/financialAnalyticsService.js';
 import { ReceiptService } from '../services/receiptService.js';
@@ -7,6 +7,12 @@ import jwt from 'jsonwebtoken';
 import { log } from '../utils/logger.js';
 import { validatePayment } from '../validators/payment-validator.js';
 import { config } from '../config/env.js';
+import { settleFinancingPayment } from '../services/financingRepaymentService.js';
+import {
+  SUBSCRIPTION_POLICY,
+  clampSubscriptionBalance,
+  remainingSubscriptionBalance
+} from '../constants/subscriptionPolicy.js';
 import {
   uploadToSupabase as uploadDocumentFile,
   getSignedUrl as getDocumentUrl,
@@ -17,6 +23,10 @@ import {
   normalizePaymentReceivedDateRange,
   paymentReceivedDateSelect
 } from '../utils/paymentDateFilter.js';
+import {
+  isElectronicPaymentMethod,
+  normalizePaymentMethod,
+} from '../constants/paymentMethodPolicy.js';
 
 export const getAllPayments = async (req, res) => {
   try {
@@ -256,7 +266,14 @@ export const getPendingPayments = async (req, res) => {
       offset = 0
     } = req.query;
 
-    const filters = [`p.status IN ('pending', 'pending_verification')`];
+    const filters = [
+      `p.status IN ('pending', 'pending_verification')`,
+      'p.financing_plan_id IS NULL',
+      `NULLIF(BTRIM(COALESCE(p.gateway_provider, '')), '') IS NULL`,
+      `NULLIF(BTRIM(COALESCE(p.gateway_payment_id::text, '')), '') IS NULL`,
+      `LOWER(BTRIM(COALESCE(p.payment_method, ''))) NOT IN ('app_payment', 'apple_pay', 'card', 'credit_card', 'knet', 'moyasar', 'online')`,
+      `(LOWER(BTRIM(COALESCE(p.payment_method, ''))) NOT IN ('bank_transfer', 'transfer') OR p.receipt_document_id IS NOT NULL)`
+    ];
     const params = [];
     let paramIndex = 1;
 
@@ -322,30 +339,21 @@ export const getPendingPayments = async (req, res) => {
       params
     );
 
-    // Attach a ready-to-open URL for each receipt so the admin UI doesn't
-    // have to know about the storage backend.
-    //
-    // We must return an ABSOLUTE URL pointing at the backend host. The admin
-    // dashboard runs on alshailfund.com (Cloudflare Pages) while the files
-    // are served by express on api.alshailfund.com. A relative `/uploads/...`
-    // URL would route to Cloudflare Pages, which doesn't serve these files
-    // and falls back to /login — that's what kicks the admin out when they
-    // click "عرض الوصل".
-    //
-    // Priority for the URL base:
-    //   1. UPLOAD_URL env var if explicitly set
-    //   2. Derive from the request itself (protocol + host) — works for
-    //      localhost dev AND prod behind the nginx reverse proxy.
+    // The member-document static path is intentionally blocked. Return only
+    // a short-lived signed URL and never expose the raw storage path.
     const protocol = req.protocol;
     const host = req.get('host') || 'api.alshailfund.com';
-    const uploadBaseUrl = process.env.UPLOAD_URL || `${protocol}://${host}/uploads`;
-    const bucketName = 'member-documents';
-    const withReceiptUrl = rows.map((r) => ({
-      ...r,
-      receipt_url: r.receipt_file_path
-        ? `${uploadBaseUrl}/${bucketName}/${r.receipt_file_path}`
-        : null
-    }));
+    const apiOrigin = `${protocol}://${host}`;
+    const withReceiptUrl = rows.map((row) => {
+      const { receipt_file_path: receiptFilePath, ...safeRow } = row;
+      const signedPath = receiptFilePath ? getDocumentUrl(receiptFilePath) : null;
+      return {
+        ...safeRow,
+        receipt_url: signedPath
+          ? (signedPath.startsWith('http') ? signedPath : `${apiOrigin}${signedPath}`)
+          : null
+      };
+    });
 
     res.json({
       success: true,
@@ -375,7 +383,14 @@ export const getPendingPaymentsStats = async (req, res) => {
       date_from,
       date_to
     } = req.query;
-    const filters = [`p.status IN ('pending', 'pending_verification')`];
+    const filters = [
+      `p.status IN ('pending', 'pending_verification')`,
+      'p.financing_plan_id IS NULL',
+      `NULLIF(BTRIM(COALESCE(p.gateway_provider, '')), '') IS NULL`,
+      `NULLIF(BTRIM(COALESCE(p.gateway_payment_id::text, '')), '') IS NULL`,
+      `LOWER(BTRIM(COALESCE(p.payment_method, ''))) NOT IN ('app_payment', 'apple_pay', 'card', 'credit_card', 'knet', 'moyasar', 'online')`,
+      `(LOWER(BTRIM(COALESCE(p.payment_method, ''))) NOT IN ('bank_transfer', 'transfer') OR p.receipt_document_id IS NOT NULL)`
+    ];
     const params = [];
     let paramIndex = 1;
     const { startDate, endDate } = normalizePaymentReceivedDateRange({
@@ -894,6 +909,157 @@ function generateReferenceNumber() {
   return `${prefix}-${timestamp}-${random}`;
 }
 
+function requireMobileBankTransfer(body = {}) {
+  const suppliedMethod = body.payment_method || body.method || 'bank_transfer';
+  const normalized = String(suppliedMethod).trim().toLowerCase();
+  if (normalized !== 'bank_transfer') {
+    const error = new Error(
+      'هذا المسار مخصص للتحويل البنكي فقط. استخدم Apple Pay من شاشة الدفع الإلكتروني.'
+    );
+    error.statusCode = 400;
+    error.code = 'UNVERIFIED_MOBILE_PAYMENT_METHOD';
+    throw error;
+  }
+  return 'bank_transfer';
+}
+
+function resolveMobileBeneficiaryId(body, fallbackMemberId) {
+  return body?.memberId || body?.member_id || body?.beneficiary_id || fallbackMemberId;
+}
+
+async function createMobileSubscriptionPayment({
+  payerId,
+  beneficiaryId,
+  amount,
+  paymentMethod,
+  subscriptionPeriod,
+  notes,
+  status = 'pending'
+}) {
+  if (paymentMethod !== 'bank_transfer' || status !== 'pending') {
+    const error = new Error('لا يمكن إنشاء دفعة إلكترونية من مسار التحويل البنكي');
+    error.statusCode = 400;
+    error.code = 'UNVERIFIED_MOBILE_PAYMENT_METHOD';
+    throw error;
+  }
+
+  const currentDate = new Date();
+  const hijriData = HijriDateManager.convertToHijri(currentDate);
+  const numericAmount = Number(amount);
+
+  if (
+    !Number.isFinite(numericAmount) ||
+    numericAmount < SUBSCRIPTION_POLICY.MONTHLY_FEE ||
+    numericAmount % SUBSCRIPTION_POLICY.MONTHLY_FEE !== 0
+  ) {
+    throw new Error('مبلغ الاشتراك يجب أن يكون من مضاعفات 50 ريال');
+  }
+
+  const { rows: balanceRows } = await query(
+    `SELECT m.current_balance,
+            COALESCE((
+              SELECT SUM(p.amount)
+              FROM payments p
+              WHERE COALESCE(p.beneficiary_id, p.payer_id) = m.id
+                AND p.category = 'subscription'
+                AND p.status IN ('pending', 'pending_verification')
+            ), 0) AS pending_subscription_amount
+     FROM members m
+     WHERE m.id = $1`,
+    [beneficiaryId]
+  );
+  if (!balanceRows.length) {
+    throw new Error('العضو المستفيد غير موجود');
+  }
+  const currentBalance = clampSubscriptionBalance(balanceRows[0].current_balance);
+  const pendingAmount = Number(balanceRows[0].pending_subscription_amount) || 0;
+  const available = Math.max(0, remainingSubscriptionBalance(currentBalance) - pendingAmount);
+  if (numericAmount > available) {
+    const capError = new Error(`مبلغ الاشتراك يتجاوز الرصيد المتبقي المتاح (${available} ريال)`);
+    capError.statusCode = 409;
+    throw capError;
+  }
+
+  // Look up the beneficiary's subscription row — payments.subscription_id is
+  // an FK to subscriptions.id, so we must use a real one or leave it NULL.
+  let subscriptionId = null;
+  try {
+    const { rows: subRows } = await query(
+      'SELECT id FROM subscriptions WHERE member_id = $1 ORDER BY created_at DESC LIMIT 1',
+      [beneficiaryId]
+    );
+    if (subRows.length) {
+      subscriptionId = subRows[0].id;
+    }
+  } catch (lookupErr) {
+    log.warn('createMobileSubscriptionPayment: subscription lookup failed — proceeding with NULL subscription_id', {
+      beneficiaryId,
+      error: lookupErr.message
+    });
+  }
+
+  const cols = [
+    'payer_id', 'beneficiary_id', 'amount', 'payment_date',
+    'payment_method', 'category', 'status', 'reference_number', 'notes',
+    'hijri_date_string', 'hijri_year', 'hijri_month', 'hijri_day',
+    'hijri_month_name', 'created_at'
+  ];
+  const vals = [
+    payerId,
+    beneficiaryId,
+    numericAmount,
+    currentDate.toISOString().split('T')[0],
+    paymentMethod,
+    'subscription',
+    status,
+    generateReferenceNumber(),
+    `Subscription Payment (${subscriptionPeriod || 'monthly'}). ${notes || ''}`.trim(),
+    hijriData.hijri_date_string,
+    hijriData.hijri_year,
+    hijriData.hijri_month,
+    hijriData.hijri_day,
+    hijriData.hijri_month_name,
+    currentDate.toISOString()
+  ];
+
+  if (subscriptionId) {
+    cols.push('subscription_id');
+    vals.push(subscriptionId);
+  }
+
+  const placeholders = vals.map((_, i) => `$${i + 1}`).join(', ');
+  const { rows: paymentRows } = await query(
+    `INSERT INTO payments (${cols.join(', ')}) VALUES (${placeholders}) RETURNING *`,
+    vals
+  );
+
+  return paymentRows[0];
+}
+
+export function getMoyasarGatewayConfig() {
+  const publicKey = config.paymentGateway.publicKey || process.env.MOYASAR_PUBLISHABLE_KEY || '';
+  const secretKey = config.paymentGateway.secretKey || process.env.MOYASAR_SECRET_KEY || '';
+  const apiBaseUrl = (
+    config.paymentGateway.apiBaseUrl ||
+    process.env.MOYASAR_API_BASE_URL ||
+    'https://api.moyasar.com'
+  ).replace(/\/+$/, '');
+  const currency = (config.paymentGateway.currency || process.env.PAYMENT_GATEWAY_CURRENCY || 'SAR').toUpperCase();
+
+  return {
+    provider: 'moyasar',
+    enabled: Boolean(
+      config.featureFlags.paymentGatewayEnabled ||
+      config.featureFlags.iosPaymentGatewayEnabled ||
+      publicKey
+    ),
+    publicKey,
+    secretKey,
+    apiBaseUrl,
+    currency
+  };
+}
+
 // Mobile Payment Controller Functions
 
 export const payForInitiative = async (req, res) => {
@@ -901,6 +1067,7 @@ export const payForInitiative = async (req, res) => {
     const token = req.headers.authorization?.replace('Bearer ', '');
     const decoded = jwt.verify(token, config.jwt.secret);
     const memberId = decoded.id;
+    const paymentMethod = requireMobileBankTransfer(req.body);
 
     const { initiative_id, amount, notes } = req.body;
 
@@ -931,7 +1098,7 @@ export const payForInitiative = async (req, res) => {
     ];
     const values = [
       memberId, memberId, parseFloat(amount),
-      currentDate.toISOString().split('T')[0], 'app_payment',
+      currentDate.toISOString().split('T')[0], paymentMethod,
       'initiative', 'pending', generateReferenceNumber(),
       `Initiative Payment: ${initiative_id}. ${notes || ''}`.trim(),
       hijriData.hijri_date_string, hijriData.hijri_year, hijriData.hijri_month,
@@ -959,9 +1126,10 @@ export const payForInitiative = async (req, res) => {
       message: 'تم إنشاء دفعة المبادرة بنجاح'
     });
   } catch (error) {
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
-      error: error.message || 'فشل في إنشاء دفعة المبادرة'
+      error: error.message || 'فشل في إنشاء دفعة المبادرة',
+      ...(error.code ? { code: error.code } : {})
     });
   }
 };
@@ -971,6 +1139,7 @@ export const payForDiya = async (req, res) => {
     const token = req.headers.authorization?.replace('Bearer ', '');
     const decoded = jwt.verify(token, config.jwt.secret);
     const memberId = decoded.id;
+    const paymentMethod = requireMobileBankTransfer(req.body);
 
     const { diya_id, amount, notes } = req.body;
 
@@ -995,10 +1164,10 @@ export const payForDiya = async (req, res) => {
       [
         memberId,
         memberId,
-        '00000000-0000-0000-0000-000000000000',
+        null,
         parseFloat(amount),
         currentDate.toISOString().split('T')[0],
-        'app_payment',
+        paymentMethod,
         'diya',
         'pending',
         generateReferenceNumber(),
@@ -1020,9 +1189,10 @@ export const payForDiya = async (req, res) => {
       message: 'تم إنشاء دفعة الدية بنجاح'
     });
   } catch (error) {
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
-      error: error.message || 'فشل في إنشاء دفعة الدية'
+      error: error.message || 'فشل في إنشاء دفعة الدية',
+      ...(error.code ? { code: error.code } : {})
     });
   }
 };
@@ -1034,6 +1204,8 @@ export const paySubscription = async (req, res) => {
     const memberId = decoded.id;
 
     const { amount, subscription_period, notes } = req.body;
+    const beneficiaryId = resolveMobileBeneficiaryId(req.body, memberId);
+    const paymentMethod = requireMobileBankTransfer(req.body);
 
     if (!amount) {
       return res.status(400).json({
@@ -1042,64 +1214,14 @@ export const paySubscription = async (req, res) => {
       });
     }
 
-    const currentDate = new Date();
-    const hijriData = HijriDateManager.convertToHijri(currentDate);
-
-    // Look up the member's subscription row — payments.subscription_id is an
-    // FK to subscriptions.id, so we must use a real one or leave it NULL.
-    // The old code hardcoded '00000000-0000-0000-0000-000000000001' which
-    // violated the FK for every member that didn't happen to have that id.
-    let subscriptionId = null;
-    try {
-      const { rows: subRows } = await query(
-        'SELECT id FROM subscriptions WHERE member_id = $1 ORDER BY created_at DESC LIMIT 1',
-        [memberId]
-      );
-      if (subRows.length) subscriptionId = subRows[0].id;
-    } catch (lookupErr) {
-      log.warn('paySubscription: subscription lookup failed — proceeding with NULL subscription_id', {
-        memberId,
-        error: lookupErr.message
-      });
-    }
-
-    // Build INSERT dynamically so we only include subscription_id when we have one.
-    const cols = [
-      'payer_id', 'beneficiary_id', 'amount', 'payment_date',
-      'payment_method', 'category', 'status', 'reference_number', 'notes',
-      'hijri_date_string', 'hijri_year', 'hijri_month', 'hijri_day',
-      'hijri_month_name', 'created_at'
-    ];
-    const vals = [
-      memberId,
-      memberId,
-      parseFloat(amount),
-      currentDate.toISOString().split('T')[0],
-      'app_payment',
-      'subscription',
-      'pending',
-      generateReferenceNumber(),
-      `Subscription Payment (${subscription_period || 'monthly'}). ${notes || ''}`.trim(),
-      hijriData.hijri_date_string,
-      hijriData.hijri_year,
-      hijriData.hijri_month,
-      hijriData.hijri_day,
-      hijriData.hijri_month_name,
-      currentDate.toISOString()
-    ];
-
-    if (subscriptionId) {
-      cols.push('subscription_id');
-      vals.push(subscriptionId);
-    }
-
-    const placeholders = vals.map((_, i) => `$${i + 1}`).join(', ');
-    const { rows: paymentRows } = await query(
-      `INSERT INTO payments (${cols.join(', ')}) VALUES (${placeholders}) RETURNING *`,
-      vals
-    );
-
-    const payment = paymentRows[0];
+    const payment = await createMobileSubscriptionPayment({
+      payerId: memberId,
+      beneficiaryId,
+      amount,
+      paymentMethod,
+      subscriptionPeriod: subscription_period,
+      notes
+    });
 
     res.status(201).json({
       success: true,
@@ -1108,9 +1230,233 @@ export const paySubscription = async (req, res) => {
     });
   } catch (error) {
     log.error('paySubscription failed', { error: error.message });
+    res.status(error.statusCode || 500).json({
+      success: false,
+      error: error.message || 'فشل في إنشاء دفعة الاشتراك',
+      ...(error.code ? { code: error.code } : {})
+    });
+  }
+};
+
+export const createGatewaySession = async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    const decoded = jwt.verify(token, config.jwt.secret);
+    const memberId = decoded.id;
+    const gateway = getMoyasarGatewayConfig();
+
+    if (!gateway.enabled) {
+      return res.status(503).json({
+        success: false,
+        error: 'الدفع الإلكتروني غير مفعل حالياً'
+      });
+    }
+
+    if (!gateway.publicKey) {
+      return res.status(503).json({
+        success: false,
+        error: 'مفتاح Moyasar العام غير مهيأ'
+      });
+    }
+
+    const { amount, notes, planId } = req.body;
+    const paymentAmount = Number(amount);
+    if (!Number.isFinite(paymentAmount) || paymentAmount <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'المبلغ مطلوب ويجب أن يكون أكبر من صفر'
+      });
+    }
+
+    const beneficiaryId = resolveMobileBeneficiaryId(req.body, memberId);
+    const payment = await createMobileSubscriptionPayment({
+      payerId: memberId,
+      beneficiaryId,
+      amount: paymentAmount,
+      paymentMethod: 'app_payment',
+      subscriptionPeriod: planId ? `plan:${planId}` : 'monthly',
+      notes,
+      status: 'pending'
+    });
+
+    res.status(201).json({
+      success: true,
+      data: {
+        payment_id: payment.id,
+        checkout_url: null,
+        provider: gateway.provider,
+        gateway_session_id: payment.id,
+        status: payment.status,
+        publishable_key: gateway.publicKey,
+        amount_minor: Math.round(paymentAmount * 100),
+        currency: gateway.currency,
+        description: payment.reference_number || 'Al-Shuail subscription payment'
+      }
+    });
+  } catch (error) {
+    log.error('createGatewaySession failed', { error: error.message });
+    res.status(error.statusCode || 500).json({
+      success: false,
+      error: error.message || 'تعذر بدء الدفع الإلكتروني'
+    });
+  }
+};
+
+export const verifyGatewayPayment = async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    const decoded = jwt.verify(token, config.jwt.secret);
+    const memberId = decoded.id;
+    const gateway = getMoyasarGatewayConfig();
+    const paymentId = req.params.paymentId;
+    const gatewayPaymentId = req.body.gateway_payment_id || req.body.gatewayPaymentId;
+
+    if (!gateway.enabled) {
+      return res.status(503).json({
+        success: false,
+        error: 'الدفع الإلكتروني غير مفعل حالياً'
+      });
+    }
+
+    if (!gateway.secretKey) {
+      return res.status(503).json({
+        success: false,
+        error: 'مفتاح Moyasar السري غير مهيأ'
+      });
+    }
+
+    if (!gatewayPaymentId) {
+      return res.status(400).json({
+        success: false,
+        error: 'معرف عملية Moyasar مطلوب'
+      });
+    }
+
+    const { rows: paymentRows } = await query(
+      `SELECT * FROM payments
+        WHERE id = $1
+          AND payer_id = $2
+          AND payment_method = 'app_payment'
+        LIMIT 1`,
+      [paymentId, memberId]
+    );
+    const payment = paymentRows[0];
+
+    if (!payment) {
+      return res.status(404).json({
+        success: false,
+        error: 'دفعة الدفع الإلكتروني غير موجودة أو غير مخولة'
+      });
+    }
+
+    const providerResponse = await fetch(
+      `${gateway.apiBaseUrl}/v1/payments/${encodeURIComponent(gatewayPaymentId)}`,
+      {
+        method: 'GET',
+        headers: {
+          Authorization: `Basic ${Buffer.from(`${gateway.secretKey}:`).toString('base64')}`,
+          Accept: 'application/json'
+        }
+      }
+    );
+
+    const providerPayment = await providerResponse.json().catch(() => ({}));
+    if (!providerResponse.ok) {
+      log.warn('Moyasar verification failed', {
+        paymentId,
+        gatewayPaymentId,
+        status: providerResponse.status,
+        providerPayment
+      });
+      return res.status(502).json({
+        success: false,
+        error: providerPayment.message || 'تعذر التحقق من Moyasar'
+      });
+    }
+
+    const expectedAmountMinor = Math.round(Number(payment.amount) * 100);
+    const providerAmountMinor = Number(providerPayment.amount);
+    const providerCurrency = String(providerPayment.currency || '').toUpperCase();
+    const providerStatus = String(providerPayment.status || '').toLowerCase();
+
+    if (providerAmountMinor !== expectedAmountMinor || providerCurrency !== gateway.currency) {
+      return res.status(400).json({
+        success: false,
+        error: 'بيانات عملية Moyasar لا تطابق الدفعة'
+      });
+    }
+
+    if (providerStatus === 'paid') {
+      let repaymentPlan = null;
+      if (payment.financing_plan_id) {
+        repaymentPlan = await settleFinancingPayment({
+          paymentId,
+          gatewayPaymentId,
+          gatewayProvider: gateway.provider,
+        });
+      } else {
+        const updated = await PaymentProcessingService.updatePaymentStatus(paymentId, 'paid', {
+          reason: `Moyasar payment verified: ${gatewayPaymentId}`
+        });
+        if (!updated.success) {
+          return res.status(400).json(updated);
+        }
+        await query(
+          `UPDATE payments
+           SET gateway_provider = $1, gateway_payment_id = $2, gateway_status = 'paid',
+               gateway_failure_reason = NULL
+           WHERE id = $3`,
+          [gateway.provider, gatewayPaymentId, paymentId]
+        );
+      }
+
+      return res.json({
+        success: true,
+        data: {
+          payment_id: paymentId,
+          status: 'paid',
+          provider: gateway.provider,
+          gateway_payment_id: gatewayPaymentId,
+          failure_reason: null,
+          repayment_plan: repaymentPlan
+        }
+      });
+    }
+
+    if (['failed', 'canceled', 'cancelled'].includes(providerStatus)) {
+      await PaymentProcessingService.updatePaymentStatus(paymentId, 'failed', {
+        reason: providerPayment.source?.message || providerPayment.message || 'Moyasar payment failed'
+      });
+      await query(
+        `UPDATE payments
+         SET gateway_provider = $1, gateway_payment_id = $2, gateway_status = $3,
+             gateway_failure_reason = $4
+         WHERE id = $5`,
+        [
+          gateway.provider,
+          gatewayPaymentId,
+          providerStatus,
+          providerPayment.source?.message || providerPayment.message || 'Moyasar payment failed',
+          paymentId,
+        ]
+      );
+    }
+
+    res.json({
+      success: true,
+      data: {
+        payment_id: paymentId,
+        status: providerStatus || 'pending',
+        provider: gateway.provider,
+        gateway_payment_id: gatewayPaymentId,
+        failure_reason: providerPayment.source?.message || providerPayment.message || null
+      }
+    });
+  } catch (error) {
+    log.error('verifyGatewayPayment failed', { error: error.message });
     res.status(500).json({
       success: false,
-      error: error.message || 'فشل في إنشاء دفعة الاشتراك'
+      error: error.message || 'تعذر التحقق من الدفع الإلكتروني'
     });
   }
 };
@@ -1120,6 +1466,7 @@ export const payForMember = async (req, res) => {
     const token = req.headers.authorization?.replace('Bearer ', '');
     const decoded = jwt.verify(token, config.jwt.secret);
     const payerId = decoded.id;
+    const paymentMethod = requireMobileBankTransfer(req.body);
 
     const { beneficiary_id, amount, payment_category, notes } = req.body;
 
@@ -1151,6 +1498,24 @@ export const payForMember = async (req, res) => {
       });
     }
 
+    if (payment_category === 'subscription') {
+      const payment = await createMobileSubscriptionPayment({
+        payerId,
+        beneficiaryId: beneficiary_id,
+        amount,
+        paymentMethod,
+        subscriptionPeriod: req.body.subscription_period,
+        notes,
+        status: 'pending'
+      });
+
+      return res.status(201).json({
+        success: true,
+        data: { ...payment, beneficiary_name: beneficiary.full_name },
+        message: `تم إنشاء دفعة الاشتراك لصالح ${beneficiary.full_name} بنجاح`
+      });
+    }
+
     const currentDate = new Date();
     const hijriData = HijriDateManager.convertToHijri(currentDate);
 
@@ -1165,10 +1530,10 @@ export const payForMember = async (req, res) => {
       [
         payerId,
         beneficiary_id,
-        '00000000-0000-0000-0000-000000000000',
+        null,
         parseFloat(amount),
         currentDate.toISOString().split('T')[0],
-        'app_payment',
+        paymentMethod,
         payment_category,
         'pending',
         generateReferenceNumber(),
@@ -1193,9 +1558,10 @@ export const payForMember = async (req, res) => {
       message: `تم إنشاء الدفعة لصالح ${beneficiary.full_name} بنجاح`
     });
   } catch (error) {
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
-      error: error.message || 'فشل في إنشاء الدفعة'
+      error: error.message || 'فشل في إنشاء الدفعة',
+      ...(error.code ? { code: error.code } : {})
     });
   }
 };
@@ -1231,6 +1597,10 @@ export const uploadPaymentReceipt = async (req, res) => {
           WHERE payer_id = $1
             AND status IN ('pending', 'pending_verification')
             AND receipt_document_id IS NULL
+            AND financing_plan_id IS NULL
+            AND NULLIF(BTRIM(COALESCE(gateway_provider, '')), '') IS NULL
+            AND NULLIF(BTRIM(COALESCE(gateway_payment_id::text, '')), '') IS NULL
+            AND LOWER(BTRIM(COALESCE(payment_method, ''))) IN ('bank_transfer', 'transfer')
           ORDER BY created_at DESC
           LIMIT 1`,
         [memberId]
@@ -1264,61 +1634,125 @@ export const uploadPaymentReceipt = async (req, res) => {
       });
     }
 
+    const paymentMethod = normalizePaymentMethod(payment.payment_method);
+    const gatewayManaged = Boolean(
+      payment.financing_plan_id
+      || String(payment.gateway_provider || '').trim()
+      || String(payment.gateway_payment_id || '').trim()
+      || isElectronicPaymentMethod(paymentMethod)
+    );
+    if (
+      gatewayManaged
+      || paymentMethod !== 'bank_transfer'
+      || !['pending', 'pending_verification'].includes(payment.status)
+      || payment.receipt_document_id
+    ) {
+      return res.status(409).json({
+        success: false,
+        code: 'PAYMENT_RECEIPT_NOT_ALLOWED',
+        error: 'رفع الوصل متاح فقط لتحويل بنكي معلق لم تتم مراجعته'
+      });
+    }
+
     // 1. Persist the file under the member's receipts folder so it shows up
     //    in /admin/documents → {member_id}/receipts/{timestamp}_{filename}
     const uploaded = await uploadDocumentFile(uploadedFile, payment.payer_id, 'receipts');
     savedFilePath = uploaded.path;
 
-    // 2. Insert a documents_metadata row so the admin dashboard can list it
-    //    alongside the member's other documents. Title includes the member's
-    //    name (primary) and the payment reference (secondary) for easy scan.
-    const payerName = payment.payer_full_name?.trim();
-    const ref = payment.reference_number || paymentId;
-    const receiptTitle = payerName
-      ? `وصل دفعة - ${payerName}`
-      : `وصل دفعة ${ref}`;
-    const { rows: docRows } = await query(
-      `INSERT INTO documents_metadata (
-         member_id, uploaded_by, title, description, category,
-         file_path, file_size, file_type, original_name, status
-       ) VALUES ($1, $2, $3, $4, 'receipts', $5, $6, $7, $8, 'active')
-       RETURNING id, file_path`,
-      [
-        payment.payer_id,
-        memberId, // same as payer_id for self-upload; different for admin uploads later
-        receiptTitle,
-        payment.notes || '',
-        uploaded.path,
-        uploaded.size,
-        uploaded.type,
-        uploadedFile.originalname
-      ]
-    );
-    const documentRow = docRows[0];
+    // Metadata and payment linkage commit together. The row is re-locked
+    // after file IO so a concurrent approval/upload cannot leave an orphaned
+    // active document or downgrade an already-processed payment.
+    const client = await getClient();
+    let transactionOpen = false;
+    let documentRow;
+    let updatedPayment;
+    try {
+      await client.query('BEGIN');
+      transactionOpen = true;
+      const { rows: lockedRows } = await client.query(
+        `SELECT p.*, m.full_name AS payer_full_name
+           FROM payments p
+           LEFT JOIN members m ON p.payer_id = m.id
+          WHERE p.id = $1 AND p.payer_id = $2
+          FOR UPDATE OF p`,
+        [paymentId, memberId]
+      );
+      const locked = lockedRows[0];
+      const lockedMethod = normalizePaymentMethod(locked?.payment_method);
+      const lockedGatewayManaged = Boolean(
+        locked?.financing_plan_id
+        || String(locked?.gateway_provider || '').trim()
+        || String(locked?.gateway_payment_id || '').trim()
+        || isElectronicPaymentMethod(lockedMethod)
+      );
+      if (
+        !locked
+        || lockedGatewayManaged
+        || lockedMethod !== 'bank_transfer'
+        || !['pending', 'pending_verification'].includes(locked.status)
+        || locked.receipt_document_id
+      ) {
+        const error = new Error('لم تعد الدفعة مؤهلة لرفع وصل تحويل بنكي');
+        error.statusCode = 409;
+        error.code = 'PAYMENT_RECEIPT_NOT_ALLOWED';
+        throw error;
+      }
 
-    // 3. Update the payment: link to the new document row and move status
-    //    to pending_verification. All file metadata (filename, size, mimetype,
-    //    path) lives in documents_metadata — join on receipt_document_id to
-    //    read it. The receipt_uploaded / receipt_filename / receipt_size /
-    //    receipt_mimetype columns that the old code referenced never actually
-    //    existed on the payments table, so every historical upload silently
-    //    failed at this step.
-    const { rows: updatedRows } = await query(
-      `UPDATE payments SET
-         receipt_document_id  = $1,
-         status               = $2,
-         updated_at           = $3
-       WHERE id = $4
-       RETURNING *`,
-      [
-        documentRow.id,
-        'pending_verification',
-        new Date().toISOString(),
-        paymentId
-      ]
-    );
+      const payerName = locked.payer_full_name?.trim();
+      const ref = locked.reference_number || paymentId;
+      const receiptTitle = payerName ? `وصل دفعة - ${payerName}` : `وصل دفعة ${ref}`;
+      const { rows: docRows } = await client.query(
+        `INSERT INTO documents_metadata (
+           member_id, uploaded_by, title, description, category,
+           file_path, file_size, file_type, original_name, status
+         ) VALUES ($1, $2, $3, $4, 'receipts', $5, $6, $7, $8, 'active')
+         RETURNING id, file_path`,
+        [
+          locked.payer_id,
+          memberId,
+          receiptTitle,
+          locked.notes || '',
+          uploaded.path,
+          uploaded.size,
+          uploaded.type,
+          uploadedFile.originalname
+        ]
+      );
+      documentRow = docRows[0];
 
-    const updatedPayment = updatedRows[0];
+      const { rows: updatedRows } = await client.query(
+        `UPDATE payments SET
+           receipt_document_id = $1,
+           status = 'pending_verification',
+           updated_at = $2
+         WHERE id = $3
+           AND status IN ('pending', 'pending_verification')
+           AND receipt_document_id IS NULL
+           AND financing_plan_id IS NULL
+           AND NULLIF(BTRIM(COALESCE(gateway_provider, '')), '') IS NULL
+           AND NULLIF(BTRIM(COALESCE(gateway_payment_id::text, '')), '') IS NULL
+           AND LOWER(BTRIM(COALESCE(payment_method, ''))) IN ('bank_transfer', 'transfer')
+         RETURNING *`,
+        [documentRow.id, new Date().toISOString(), paymentId]
+      );
+      updatedPayment = updatedRows[0];
+      if (!updatedPayment) {
+        const error = new Error('لم تعد الدفعة مؤهلة لرفع وصل تحويل بنكي');
+        error.statusCode = 409;
+        error.code = 'PAYMENT_RECEIPT_NOT_ALLOWED';
+        throw error;
+      }
+      await client.query('COMMIT');
+      transactionOpen = false;
+    } catch (error) {
+      if (transactionOpen) {
+        try {await client.query('ROLLBACK');} catch (_rollbackError) { /* preserve original */ }
+      }
+      throw error;
+    } finally {
+      client.release();
+    }
+
     updatedPayment.receipt_url = getDocumentUrl(uploaded.path);
 
     log.info('Payment receipt uploaded and linked to documents', {
@@ -1348,9 +1782,10 @@ export const uploadPaymentReceipt = async (req, res) => {
     }
 
     log.error('uploadPaymentReceipt failed', { error: error.message });
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
-      error: error.message || 'فشل في رفع الإيصال'
+      error: error.message || 'فشل في رفع الإيصال',
+      ...(error.code ? { code: error.code } : {})
     });
   }
 };

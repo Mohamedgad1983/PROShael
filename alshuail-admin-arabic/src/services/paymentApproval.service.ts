@@ -62,11 +62,22 @@ export interface PendingPayment {
   // (receipt_document_id IS NOT NULL).
   receipt_document_id: string | null;
   receipt_uploaded: boolean;
-  receipt_file_path: string | null;
   receipt_original_name: string | null;
   receipt_file_size: number | null;
   receipt_mimetype: string | null;
   receipt_url: string | null;
+  // Future gateway transaction monitoring fields. These are optional so the
+  // current manual/receipt approval API keeps working unchanged.
+  payment_source?: 'manual' | 'receipt' | 'bank_transfer' | 'gateway' | string | null;
+  currency?: string | null;
+  gateway_provider?: string | null;
+  gateway_session_id?: string | null;
+  gateway_payment_id?: string | null;
+  gateway_status?: string | null;
+  gateway_failure_reason?: string | null;
+  gateway_webhook_received?: boolean | null;
+  balance_update_status?: string | null;
+  family_branch_name?: string | null;
 }
 
 export interface PendingPaymentsStats {

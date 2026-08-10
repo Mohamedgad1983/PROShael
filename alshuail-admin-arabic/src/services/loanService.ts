@@ -12,6 +12,7 @@
 
 import axios,{ AxiosInstance } from 'axios';
 import { API_BASE_URL } from '../utils/apiConfig';
+import type { RepaymentPlan } from './financingRepaymentTypes';
 
 const client: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -51,6 +52,8 @@ export interface LoanDocument {
     | 'financial_statement'
     | 'najiz_acknowledgment'
     | 'fee_receipt';
+  signed_url?: string;
+  /** @deprecated Legacy responses only; new detail responses use signed_url. */
   file_path?: string;
   file_size?: number;
   file_type?: string;
@@ -94,6 +97,8 @@ export interface LoanRequest {
   loan_amount: string | number;
   admin_fee_rate: string | number;
   admin_fee_amount: string | number;
+  financing_fee_amount?: string | number | null;
+  total_repayment_amount?: string | number | null;
   admin_fee_collected: boolean;
   status: LoanStatus;
   member_phone?: string;
@@ -118,6 +123,7 @@ export interface LoanRequest {
   documents?: LoanDocument[];
   history?: LoanStatusHistoryEntry[];
   notification_delivery?: NotificationDelivery;
+  repayment_plan?: RepaymentPlan | null;
 }
 
 interface ApiEnvelope<T> {
@@ -212,8 +218,19 @@ export const loanService = {
     return res.data.data;
   },
 
-  async recordDisbursement(id: string, amount: number, note?: string): Promise<LoanRequest> {
-    const res = await client.post<ApiEnvelope<LoanRequest>>(`/admin/loans/${id}/disburse`, { amount, note });
+  async recordDisbursement(
+    id: string,
+    amount: number,
+    installmentCount: number,
+    firstDueDate: string,
+    note?: string
+  ): Promise<LoanRequest> {
+    const res = await client.post<ApiEnvelope<LoanRequest>>(`/admin/loans/${id}/disburse`, {
+      amount,
+      installment_count: installmentCount,
+      first_due_date: firstDueDate,
+      note,
+    });
     if (!res.data.success || !res.data.data) {
       throw new Error(res.data.message || res.data.error || 'فشل تنفيذ الإجراء');
     }

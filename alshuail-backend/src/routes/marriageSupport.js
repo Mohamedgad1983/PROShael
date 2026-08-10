@@ -13,11 +13,7 @@ import { authenticateToken } from '../middleware/auth.js';
 import { requireRole } from '../middleware/rbacMiddleware.js';
 import {
   getEligibility,
-  listMy,
-  getMy,
   create,
-  signBeneficiary,
-  downloadPdf,
   cancelMy,
 } from '../controllers/marriageSupportController.js';
 import {
@@ -25,14 +21,22 @@ import {
   getRequest,
   startCommitteeReview,
   linkInitiative,
-  enterCommitteeData,
-  generatePdf,
   signCommittee,
   signWitness,
   reject,
   chairmanApprove,
   recordDisbursement,
 } from '../controllers/adminMarriageSupportController.js';
+import {
+  downloadParticipantContract,
+  downloadParticipantPdf,
+  enterCommitteeDataSecure,
+  generatePdfSecure,
+  getMyParticipantRequest,
+  listMyParticipantRequests,
+  remindNextSigner,
+  signAsParticipant,
+} from '../controllers/marriageSupportParticipantController.js';
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -53,8 +57,10 @@ export const memberRouter = express.Router();
 const MEMBER_ROLES = ['member', 'super_admin', 'admin', 'financial_manager', 'marriage_committee_chair', 'committee_witness'];
 
 memberRouter.get('/eligibility-check', authenticateToken, requireRole(MEMBER_ROLES), getEligibility);
-memberRouter.get('/me',                authenticateToken, requireRole(MEMBER_ROLES), listMy);
-memberRouter.get('/me/:id',            authenticateToken, requireRole(MEMBER_ROLES), getMy);
+// Participant access is authorized against the request assignment itself so
+// selected witnesses are not blocked by their primary JWT role.
+memberRouter.get('/me',                authenticateToken, listMyParticipantRequests);
+memberRouter.get('/me/:id',            authenticateToken, getMyParticipantRequest);
 
 memberRouter.post('/',
   authenticateToken,
@@ -63,8 +69,9 @@ memberRouter.post('/',
   create
 );
 
-memberRouter.post('/me/:id/sign',   authenticateToken, requireRole(MEMBER_ROLES), signBeneficiary);
-memberRouter.get('/:id/pdf',        authenticateToken, requireRole([...MEMBER_ROLES, 'committee_witness']), downloadPdf);
+memberRouter.post('/me/:id/sign',   authenticateToken, signAsParticipant);
+memberRouter.get('/:id/contract',   authenticateToken, downloadParticipantContract);
+memberRouter.get('/:id/pdf',        authenticateToken, downloadParticipantPdf);
 memberRouter.delete('/me/:id',      authenticateToken, requireRole(MEMBER_ROLES), cancelMy);
 
 // =============================================================================
@@ -83,10 +90,11 @@ adminRouter.get('/:id',  authenticateToken, requireRole(VIEWERS), getRequest);
 // committee-chair workflow
 adminRouter.post('/:id/start-review',  authenticateToken, requireRole(COMMITTEE_ROLES), startCommitteeReview);
 adminRouter.post('/:id/link-initiative', authenticateToken, requireRole(COMMITTEE_ROLES), linkInitiative);
-adminRouter.post('/:id/enter-data',    authenticateToken, requireRole(COMMITTEE_ROLES), enterCommitteeData);
-adminRouter.post('/:id/generate-pdf',  authenticateToken, requireRole(COMMITTEE_ROLES), generatePdf);
+adminRouter.post('/:id/enter-data',    authenticateToken, requireRole(COMMITTEE_ROLES), enterCommitteeDataSecure);
+adminRouter.post('/:id/generate-pdf',  authenticateToken, requireRole(COMMITTEE_ROLES), generatePdfSecure);
 adminRouter.post('/:id/sign-committee', authenticateToken, requireRole(COMMITTEE_ROLES), signCommittee);
 adminRouter.post('/:id/sign-witness',   authenticateToken, requireRole(SIGN_WITNESS_ROLES), signWitness);
+adminRouter.post('/:id/remind-next-signer', authenticateToken, requireRole(COMMITTEE_ROLES), remindNextSigner);
 adminRouter.post('/:id/reject',        authenticateToken, requireRole([...COMMITTEE_ROLES, ...CHAIRMAN_ROLES]), reject);
 
 // chairman workflow

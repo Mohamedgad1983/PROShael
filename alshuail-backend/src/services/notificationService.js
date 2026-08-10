@@ -132,7 +132,7 @@ export function sendSMSNotification(phoneNumber, _message) {
  * @param {Object} [data] - Optional custom data payload
  * @returns {Promise<Object>} - Delivery status
  */
-export async function sendPushNotification(userId, notification, data = {}) {
+export async function sendPushNotification(userId, notification, data = {}, options = {}) {
   try {
     log.info('Push notification requested', {
       userId,
@@ -163,7 +163,8 @@ export async function sendPushNotification(userId, notification, data = {}) {
         body: notification.body,
         imageUrl: notification.imageUrl
       },
-      data
+      data,
+      options
     );
 
     // Clean up invalid tokens
@@ -193,9 +194,14 @@ export async function sendPushNotification(userId, notification, data = {}) {
         totalDevices: tokens.length
       });
 
+      const messageIds = (result.results || [])
+        .filter(item => item.success && item.messageId)
+        .map(item => item.messageId);
+
       return {
         success: true,
-        messageId: `push_multicast_${Date.now()}`,
+        messageId: messageIds[0] || `push_multicast_${Date.now()}`,
+        messageIds,
         channel: DeliveryChannel.PUSH,
         status: 'sent',
         devicesReached: result.successCount,
@@ -224,6 +230,87 @@ export async function sendPushNotification(userId, notification, data = {}) {
   }
 }
 
+/**
+ * Persist one canonical in-app notification inside the caller's transaction.
+ *
+ * The deterministic idempotency key is intentionally required: callers that
+ * need external delivery retries must be able to replay without creating a
+ * second inbox row. Provider delivery is deliberately not performed here.
+ */
+export async function persistIdempotentMemberNotification(memberId, {
+  title,
+  body,
+  type = 'general_announcement',
+  priority = 'normal',
+  relatedId = null,
+  relatedType = null,
+  actionUrl = null,
+  data = {},
+}, { client, idempotencyKey } = {}) {
+  if (!client?.query) {throw new TypeError('A transaction client is required');}
+  const canonicalKey = String(idempotencyKey || '').trim();
+  if (!canonicalKey) {throw new TypeError('A non-empty notification idempotency key is required');}
+
+  const { rows: userRows } = await client.query(
+    `SELECT id
+       FROM users
+      WHERE id = $1 OR member_id = $1
+      ORDER BY CASE WHEN member_id = $1 THEN 0 ELSE 1 END
+      LIMIT 1`,
+    [memberId]
+  );
+  const linkedUserId = userRows[0]?.id || null;
+  const { rows: insertedRows } = await client.query(
+    `INSERT INTO notifications (
+       member_id, user_id, title, title_ar, message, message_ar,
+       type, notification_type, priority, is_read, read,
+       related_id, related_type, action_url, metadata,
+       status, sent_at, created_at, idempotency_key
+     ) VALUES (
+       $1, $2, $3, $3, $4, $4,
+       $5, $6, $7, false, false,
+       $8, $9, $10, $11::jsonb,
+       'sent', NOW(), NOW(), $12
+     )
+     ON CONFLICT (idempotency_key) WHERE idempotency_key IS NOT NULL
+     DO NOTHING
+     RETURNING id, member_id`,
+    [
+      memberId,
+      linkedUserId,
+      title,
+      body,
+      type,
+      type,
+      priority,
+      relatedId,
+      relatedType,
+      actionUrl,
+      JSON.stringify(data),
+      canonicalKey,
+    ]
+  );
+  if (insertedRows.length) {
+    return { notificationId: insertedRows[0].id, created: true };
+  }
+
+  // This is a new statement under READ COMMITTED, so it sees the winner of a
+  // concurrent unique-index race after ON CONFLICT has waited for that commit.
+  const { rows: existingRows } = await client.query(
+    `SELECT id, member_id
+       FROM notifications
+      WHERE idempotency_key = $1
+      LIMIT 1`,
+    [canonicalKey]
+  );
+  const existing = existingRows[0];
+  if (!existing) {throw new Error('Idempotent notification row could not be resolved');}
+  if (String(existing.member_id) !== String(memberId)) {
+    throw new Error('Notification idempotency key belongs to another member');
+  }
+  return { notificationId: existing.id, created: false };
+}
+
 async function writeDeliveryLog({
   memberId,
   type,
@@ -240,15 +327,18 @@ async function writeDeliveryLog({
          member_id, title, body, data, status,
          success_count, failure_count, sent_at, error_message, created_at
        ) VALUES ($1, $2, $3, $4::jsonb, $5,
-                 CASE WHEN $5 = 'sent' THEN 1 ELSE 0 END,
-                 CASE WHEN $5 = 'failed' THEN 1 ELSE 0 END,
-                 CASE WHEN $5 = 'sent' THEN NOW() ELSE NULL END,
-                 $6, NOW())`,
+                 CASE WHEN $6 = 'sent' THEN 1 ELSE 0 END,
+                 CASE WHEN $7 = 'failed' THEN 1 ELSE 0 END,
+                 CASE WHEN $8 = 'sent' THEN NOW() ELSE NULL END,
+                 $9, NOW())`,
       [
         memberId,
         title,
         body,
         JSON.stringify({ notification_type: type, channel, ...metadata }),
+        status,
+        status,
+        status,
         status,
         error,
       ]
@@ -300,8 +390,8 @@ export async function createMemberNotification(memberId, {
          status, sent_at, created_at
        ) VALUES (
          $1, $2, $3, $3, $4, $4,
-         $5, $5, $6, false, false,
-         $7, $8, $9, $10::jsonb,
+         $5, $6, $7, false, false,
+         $8, $9, $10, $11::jsonb,
          'sent', NOW(), NOW()
        )
        RETURNING id`,
@@ -310,6 +400,7 @@ export async function createMemberNotification(memberId, {
         linkedUserId,
         title,
         body,
+        type,
         type,
         priority,
         relatedId,
@@ -702,6 +793,7 @@ export default {
   sendWhatsAppNotification,
   sendSMSNotification,
   sendPushNotification,
+  persistIdempotentMemberNotification,
   createMemberNotification,
   sendMultiChannelNotification,
   getUserNotificationPreferences,

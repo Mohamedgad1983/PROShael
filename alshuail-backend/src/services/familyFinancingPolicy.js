@@ -5,9 +5,9 @@
  * the eligibility endpoint and must not calculate or invent alternative fees.
  */
 export const FAMILY_FINANCING_TIERS = Object.freeze([
-  Object.freeze({ principal: 3000, fee: 500 }),
-  Object.freeze({ principal: 6000, fee: 800 }),
-  Object.freeze({ principal: 10000, fee: 1400 }),
+  Object.freeze({ principal: 3000, fee: 450 }),
+  Object.freeze({ principal: 6000, fee: 750 }),
+  Object.freeze({ principal: 10000, fee: 1050 }),
 ]);
 
 /**
@@ -16,7 +16,7 @@ export const FAMILY_FINANCING_TIERS = Object.freeze([
  * The version is sent to the mobile app and returned with the request so the
  * exact accepted wording can be preserved in financing_terms_snapshot.
  */
-export const FAMILY_FINANCING_TERMS_VERSION = 'family_financing_terms_ar_v2_2026-08-02';
+export const FAMILY_FINANCING_TERMS_VERSION = 'family_financing_terms_ar_v3_2026-08-09';
 
 export const FAMILY_FINANCING_TERMS_AR = `أقر أنا المتقدم بالطلب بصحة ودقة كافة البيانات والمرفقات المزودة أعلاه، كما أقر بموافقتي على تحويل طلبي إلى (مؤسسة بروز الريادة) لإتمام إجراءات شراء السلعة بالتقسيط والتوثيق عبر منصة ناجز.
 وعليه، ألتزم باستلام السلعة فور جهوزيتها، أو توكيل من ينوب عني للاستلام بموجب البيانات المحددة في هذا الطلب، مع إخلاء مسؤولية صندوق الشعيل فور تسليم السلعة لي أو للنائب المحدد من قبلي.
@@ -24,31 +24,11 @@ export const FAMILY_FINANCING_TERMS_AR = `أقر أنا المتقدم بالط�
 
 const asMoney = (value) => Math.round(Number(value) * 100) / 100;
 
-export function normalizeFamilyFinancingTiers(rawTiers) {
-  let tiers = rawTiers;
-  if (typeof tiers === 'string') {
-    try {
-      tiers = JSON.parse(tiers);
-    } catch {
-      tiers = null;
-    }
-  }
-
-  if (!Array.isArray(tiers)) {
-    return FAMILY_FINANCING_TIERS.map((tier) => ({ ...tier }));
-  }
-
-  const normalized = tiers
-    .map((tier) => ({
-      principal: asMoney(tier?.principal),
-      fee: asMoney(tier?.fee),
-    }))
-    .filter((tier) => tier.principal > 0 && tier.fee >= 0)
-    .sort((left, right) => left.principal - right.principal);
-
-  return normalized.length
-    ? normalized
-    : FAMILY_FINANCING_TIERS.map((tier) => ({ ...tier }));
+export function normalizeFamilyFinancingTiers(_rawTiers) {
+  // The three package prices are policy, not administrator-entered settings.
+  // Always canonicalise legacy 500/800/1400 snapshots for future requests;
+  // historical accepted request snapshots remain untouched.
+  return FAMILY_FINANCING_TIERS.map((tier) => ({ ...tier }));
 }
 
 export function resolveFamilyFinancingTier(principalAmount, rawTiers) {

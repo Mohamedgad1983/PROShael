@@ -12,7 +12,7 @@
 
 import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
-import { uploadToSupabase } from '../config/documentStorage.js';
+import { deleteFromSupabase, uploadToSupabase } from '../config/documentStorage.js';
 import {
   MARRIAGE_STATUS,
   SIGNER_ROLE,
@@ -24,6 +24,7 @@ import {
 } from '../services/marriageSupportService.js';
 import { streamMarriageSupportPdf } from '../services/marriageSupportPdf.js';
 import { getStatusHistory } from '../services/statusHistoryService.js';
+import { FINANCING_PROGRAM, getRepaymentPlanByRequest } from '../services/financingRepaymentService.js';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -83,7 +84,12 @@ export const getMy = async (req, res) => {
       foreignKey: 'request_id',
       recordId: request.id,
     });
-    return res.json({ success: true, data: { ...request, signatures, history } });
+    const repaymentPlan = await getRepaymentPlanByRequest({
+      programType: FINANCING_PROGRAM.MARRIAGE,
+      requestId: request.id,
+      memberId: req.user.id,
+    });
+    return res.json({ success: true, data: { ...request, signatures, history, repayment_plan: repaymentPlan } });
   } catch (err) {
     log.error('[marriage] getMy', { error: err.message });
     return res.status(500).json({ success: false, error: 'فشل جلب الطلب' });
@@ -91,6 +97,9 @@ export const getMy = async (req, res) => {
 };
 
 export const create = async (req, res) => {
+  let contractPath = null;
+  let requestCreated = false;
+
   try {
     const elig = await checkEligibility(req.user.id);
     if (!elig.ok) {
@@ -102,20 +111,25 @@ export const create = async (req, res) => {
     }
 
     // Upload marriage contract if provided.
-    let contractUrl = null;
     if (req.file) {
       try {
         const upload = await uploadToSupabase(req.file, req.user.id, 'marriage-contract');
-        contractUrl = upload.path;
+        contractPath = upload.path;
       } catch (uploadErr) {
-        log.warn('[marriage] contract upload failed (continuing without)', { error: uploadErr.message });
+        log.error('[marriage] contract upload failed', { error: uploadErr.message });
+        return res.status(500).json({
+          success: false,
+          code: 'MARRIAGE_CONTRACT_UPLOAD_FAILED',
+          error: 'تعذر رفع عقد الزواج، لم يتم إنشاء الطلب. يرجى المحاولة مرة أخرى',
+        });
       }
     }
 
     const created = await createRequest({
       memberId: req.user.id,
-      payload: { ...req.body, marriage_contract_url: contractUrl },
+      payload: { ...req.body, marriage_contract_url: contractPath },
     });
+    requestCreated = true;
 
     log.info('[marriage] created', { requestId: created.id, seq: created.sequence_number });
 
@@ -125,6 +139,18 @@ export const create = async (req, res) => {
       data: created,
     });
   } catch (err) {
+    // The file is written before createRequest persists its path. Roll it back
+    // when request creation fails so no unreferenced contract remains on disk.
+    if (contractPath && !requestCreated) {
+      try {
+        await deleteFromSupabase(contractPath);
+      } catch (cleanupError) {
+        log.error('[marriage] orphan contract cleanup failed', {
+          filePath: contractPath,
+          error: cleanupError.message,
+        });
+      }
+    }
     log.error('[marriage] create', { error: err.message, stack: err.stack });
     return res.status(500).json({ success: false, error: 'فشل إنشاء الطلب', detail: err.message });
   }

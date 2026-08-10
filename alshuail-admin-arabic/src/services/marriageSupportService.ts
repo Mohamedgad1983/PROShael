@@ -8,6 +8,7 @@
 
 import axios,{ AxiosInstance } from 'axios';
 import { API_BASE_URL } from '../utils/apiConfig';
+import type { RepaymentPlan } from './financingRepaymentTypes';
 
 const client: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -37,6 +38,43 @@ export type MarriageStatus =
   | 'cancelled';
 
 export type SignerRole = 'beneficiary' | 'witness_1' | 'witness_2' | 'committee_chair';
+
+export const SIGNATURE_ORDER: readonly SignerRole[] = [
+  'beneficiary',
+  'witness_1',
+  'witness_2',
+  'committee_chair',
+];
+
+export interface MarriageSignatureSummary {
+  signed_count: number;
+  total_count: number;
+  next_signer_role?: SignerRole | null;
+  next_signer_name?: string | null;
+}
+
+export interface MarriageReminderResult {
+  notified?: boolean;
+  next_signer_role?: SignerRole | null;
+  next_signer_name?: string | null;
+  message?: string;
+}
+
+export interface MarriageInitiativeOption {
+  id: string;
+  title_ar?: string | null;
+  title_en?: string | null;
+  status: string;
+  current_amount?: string | number | null;
+  target_amount?: string | number | null;
+}
+
+export interface MarriageMemberOption {
+  id: string;
+  full_name: string;
+  membership_number?: string | null;
+  phone?: string | null;
+}
 
 export interface MarriageSignature {
   id: string;
@@ -137,6 +175,11 @@ export interface MarriageRequest {
   signatures?: MarriageSignature[];
   history?: MarriageStatusHistoryEntry[];
   notification_delivery?: NotificationDelivery;
+  repayment_plan?: RepaymentPlan | null;
+  participant_role?: SignerRole | null;
+  next_signer_role?: SignerRole | null;
+  can_current_user_sign?: boolean;
+  signature_summary?: MarriageSignatureSummary | null;
 }
 
 interface ApiEnvelope<T> {
@@ -189,6 +232,28 @@ export const marriageSupportService = {
     return res.data.data ?? null;
   },
 
+  async listInitiativeOptions(): Promise<MarriageInitiativeOption[]> {
+    const res = await client.get<MarriageInitiativeOption[] | ApiEnvelope<MarriageInitiativeOption[]>>(
+      '/initiatives',
+      { params: { limit: 100 } }
+    );
+    const payload = res.data;
+    return Array.isArray(payload) ? payload : payload.data ?? [];
+  },
+
+  async searchWitnessCandidates(searchQuery: string): Promise<MarriageMemberOption[]> {
+    const res = await client.get<MarriageMemberOption[] | ApiEnvelope<MarriageMemberOption[]>>(
+      '/members/search',
+      { params: { q: searchQuery, limit: 20 } }
+    );
+    const payload = res.data;
+    const candidates = Array.isArray(payload) ? payload : payload.data ?? [];
+    return candidates.map((candidate) => ({
+      ...candidate,
+      full_name: candidate.full_name || (candidate as MarriageMemberOption & { full_name_ar?: string }).full_name_ar || '',
+    }));
+  },
+
   async startReview(id: string): Promise<MarriageRequest> {
     const res = await client.post<ApiEnvelope<MarriageRequest>>(`/admin/marriage-support/${id}/start-review`);
     if (!res.data.success || !res.data.data) {
@@ -209,14 +274,14 @@ export const marriageSupportService = {
   },
 
   async enterData(id: string, payload: {
-    contributions_sum?: number;
+    contributions_sum: number;
     previous_ananiyat_count_override?: number | null;
     additional_support_balance?: number;
     special_ananiya_value?: number;
-    witness_1_id?: string | null;
-    witness_1_name?: string | null;
-    witness_2_id?: string | null;
-    witness_2_name?: string | null;
+    witness_1_id: string;
+    witness_1_name: string;
+    witness_2_id: string;
+    witness_2_name: string;
   }): Promise<MarriageRequest> {
     const res = await client.post<ApiEnvelope<MarriageRequest>>(
       `/admin/marriage-support/${id}/enter-data`,
@@ -257,15 +322,49 @@ export const marriageSupportService = {
     return res.data.data ?? { ok: true };
   },
 
-  async reject(id: string, reason: string): Promise<MarriageRequest> {
-    const res = await client.post<ApiEnvelope<MarriageRequest>>(
-      `/admin/marriage-support/${id}/reject`,
-      { reason }
-    );
-    if (!res.data.success || !res.data.data) {
-      throw new Error(res.data.message || res.data.error || 'فشل الرفض');
+  async remindNextSigner(id: string): Promise<MarriageReminderResult> {
+    try {
+      const res = await client.post<ApiEnvelope<MarriageReminderResult>>(
+        `/admin/marriage-support/${id}/remind-next-signer`
+      );
+      if (!res.data.success) {
+        throw new Error(res.data.message || res.data.error || 'فشل إرسال التذكير');
+      }
+      return {
+        ...(res.data.data ?? {}),
+        message: res.data.data?.message || res.data.message,
+      };
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        const apiMessage = error.response?.data?.message || error.response?.data?.error;
+        throw new Error(apiMessage || 'تعذر إرسال التذكير إلى الموقّع التالي');
+      }
+      throw error;
     }
-    return res.data.data;
+  },
+
+  async reject(id: string, reason: string): Promise<MarriageRequest> {
+    const normalizedReason = reason.trim().replace(/\s+/g, ' ');
+    if (normalizedReason.length < 3) {
+      throw new Error('يرجى كتابة سبب رفض واضح');
+    }
+
+    try {
+      const res = await client.post<ApiEnvelope<MarriageRequest>>(
+        `/admin/marriage-support/${id}/reject`,
+        { reason: normalizedReason }
+      );
+      if (!res.data.success || !res.data.data) {
+        throw new Error(res.data.message || res.data.error || 'فشل الرفض');
+      }
+      return res.data.data;
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        const apiMessage = error.response?.data?.message || error.response?.data?.error;
+        throw new Error(apiMessage || 'تعذر رفض الطلب');
+      }
+      throw error;
+    }
   },
 
   async chairmanApprove(id: string, note?: string): Promise<MarriageRequest> {
@@ -279,10 +378,16 @@ export const marriageSupportService = {
     return res.data.data;
   },
 
-  async recordDisbursement(id: string, amount: number, note?: string): Promise<MarriageRequest> {
+  async recordDisbursement(
+    id: string,
+    amount: number,
+    installmentCount: number,
+    firstDueDate: string,
+    note?: string
+  ): Promise<MarriageRequest> {
     const res = await client.post<ApiEnvelope<MarriageRequest>>(
       `/admin/marriage-support/${id}/disburse`,
-      { amount, note }
+      { amount, installment_count: installmentCount, first_due_date: firstDueDate, note }
     );
     if (!res.data.success || !res.data.data) {
       throw new Error(res.data.message || res.data.error || 'فشل تسجيل الصرف');

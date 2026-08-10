@@ -1,7 +1,13 @@
-import { query } from '../services/database.js';
+import { query, getClient } from '../services/database.js';
 import { log } from '../utils/logger.js';
 import { config } from '../config/env.js';
 import { initiativeProgress } from '../utils/initiativeInput.js';
+import { normalizePaymentMethod } from '../constants/paymentMethodPolicy.js';
+import {
+  uploadToSupabase as uploadDocumentFile,
+  getSignedUrl as getDocumentUrl,
+  deleteFromSupabase as deleteDocumentFile
+} from '../config/documentStorage.js';
 
 /**
  * Generate reference number for contribution
@@ -13,6 +19,55 @@ const generateContributionReference = () => {
   const random = Math.random().toString(36).substring(2, 6).toUpperCase();
   return `${prefix}-${year}-${timestamp}${random}`;
 };
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const findContributionByRequestId = async (db, memberId, clientRequestId) => {
+  if (!clientRequestId) {
+    return null;
+  }
+  const runQuery = typeof db === 'function' ? db : db.query.bind(db);
+
+  const { rows: activityRows } = await runQuery(
+    `SELECT ac.*, 'activity' AS source_type,
+            COALESCE(a.name_ar, a.title_ar, a.name_en, a.title_en) AS initiative_title
+       FROM activity_contributions ac
+       JOIN activities a ON a.id = ac.activity_id
+      WHERE ac.member_id = $1 AND ac.client_request_id = $2
+      LIMIT 1`,
+    [memberId, clientRequestId]
+  );
+  if (activityRows[0]) {
+    return activityRows[0];
+  }
+
+  const { rows: initiativeRows } = await runQuery(
+    `SELECT d.*, 'initiative' AS source_type,
+            COALESCE(i.title_ar, i.title_en) AS initiative_title
+       FROM initiative_donations d
+       JOIN initiatives i ON i.id = d.initiative_id
+      WHERE d.member_id = $1 AND d.client_request_id = $2
+      LIMIT 1`,
+    [memberId, clientRequestId]
+  );
+  return initiativeRows[0] || null;
+};
+
+const normalizeContributionResponse = (row, sourceType, receiptUrl = null) => ({
+  id: String(row.id),
+  initiative_id: String(row.activity_id || row.initiative_id),
+  member_id: String(row.member_id),
+  amount: Number(row.amount),
+  payment_method: row.payment_method,
+  status: row.status || (row.approved_by ? 'confirmed' : 'pending'),
+  reference_number: row.reference_number || row.payment_reference || null,
+  notes: row.notes || null,
+  receipt_document_id: row.receipt_document_id || null,
+  receipt_url: receiptUrl || row.receipt_url || null,
+  client_request_id: row.client_request_id || null,
+  source_type: sourceType || row.source_type,
+  created_at: row.created_at || row.payment_date || null
+});
 
 /**
  * Get all initiatives with totals and contribution summaries
@@ -78,9 +133,10 @@ export const getAllInitiatives = async (req, res) => {
     const [initiativesResult, activitiesResult] = await Promise.all([
       query(
         `SELECT id::text AS id,
+                'initiative'::text AS source_type,
                 title_ar, title_en,
                 description_ar, description_en,
-                target_amount, current_amount,
+                target_amount, COALESCE(current_amount, collected_amount, 0) AS current_amount,
                 min_contribution, max_contribution,
                 start_date AS collection_start_date,
                 end_date AS collection_end_date,
@@ -99,6 +155,7 @@ export const getAllInitiatives = async (req, res) => {
       }),
       query(
         `SELECT id::text AS id,
+                'activity'::text AS source_type,
                 COALESCE(name_ar, title_ar) AS title_ar,
                 COALESCE(name_en, title_en) AS title_en,
                 description_ar, description_en,
@@ -431,40 +488,138 @@ export const createInitiative = async (req, res) => {
  * POST /api/initiatives/:id/contribute
  */
 export const addContribution = async (req, res) => {
+  let client;
+  let transactionStarted = false;
+  let savedFilePath = null;
+
   try {
     const { id } = req.params;
     const {
-      member_id,
       amount,
-      payment_method = 'cash',
+      payment_method = 'bank_transfer',
       notes,
-      status = 'pending'
+      client_request_id
     } = req.body;
 
-    // Validation
-    if (!member_id || !amount) {
+    // The member identity is authoritative from the verified JWT. Accepting a
+    // body member_id allowed one member to submit a contribution for another.
+    const memberId = req.user?.id || req.user?.user_id;
+    const clientRequestId = client_request_id || req.get('Idempotency-Key') || null;
+
+    if (!memberId) {
+      return res.status(401).json({
+        success: false,
+        error: 'تعذر تحديد العضو من الجلسة. يرجى تسجيل الدخول مجدداً.'
+      });
+    }
+
+    if (clientRequestId && !UUID_PATTERN.test(String(clientRequestId))) {
       return res.status(400).json({
         success: false,
-        error: 'معرف العضو والمبلغ مطلوبان'
+        error: 'معرف عملية المساهمة غير صالح'
       });
     }
 
     const contributionAmount = Number(amount);
-    if (contributionAmount < 50) {
+    if (!Number.isFinite(contributionAmount) || contributionAmount <= 0) {
       return res.status(400).json({
         success: false,
-        error: 'الحد الأدنى للمساهمة هو 50 ريال'
+        error: 'مبلغ المساهمة يجب أن يكون أكبر من صفر'
       });
     }
 
-    // Check if initiative exists and is active
-    const { rows: initiativeRows } = await query(
-      'SELECT id, status, target_amount, current_amount, end_date FROM activities WHERE id = $1',
-      [id]
+    if (notes && String(notes).length > 2000) {
+      return res.status(400).json({
+        success: false,
+        error: 'الملاحظات طويلة جداً؛ الحد الأقصى 2000 حرف'
+      });
+    }
+
+    const normalizedPaymentMethod = normalizePaymentMethod(payment_method);
+    if (normalizedPaymentMethod !== 'bank_transfer') {
+      return res.status(400).json({
+        success: false,
+        code: 'UNVERIFIED_INITIATIVE_PAYMENT_METHOD',
+        error: 'مساهمات المبادرات تقبل التحويل البنكي الموثق فقط'
+      });
+    }
+
+    client = await getClient();
+    await client.query('BEGIN');
+    transactionStarted = true;
+
+    // A response can be lost after a successful write. A stable UUID from the
+    // app lets the retry return the original contribution instead of inserting
+    // a duplicate row.
+    const existingContribution = await findContributionByRequestId(
+      client,
+      memberId,
+      clientRequestId
+    );
+    if (existingContribution) {
+      await client.query('COMMIT');
+      transactionStarted = false;
+      return res.status(200).json({
+        success: true,
+        data: normalizeContributionResponse(existingContribution),
+        message: 'تم تسجيل هذه المساهمة مسبقاً'
+      });
+    }
+
+    if (!req.file) {
+      await client.query('ROLLBACK');
+      transactionStarted = false;
+      return res.status(400).json({
+        success: false,
+        code: 'INITIATIVE_RECEIPT_REQUIRED',
+        error: 'يجب إرفاق صورة إيصال التحويل قبل إرسال المساهمة'
+      });
+    }
+
+    // The feed still displays legacy activities for historical visibility,
+    // but only the current initiatives programme has the audited review flow.
+    // Resolve the source before writing any archived receipt and fail closed
+    // for a legacy activity.
+    const { rows: activityRows } = await client.query(
+      `SELECT id, status, target_amount, current_amount,
+              COALESCE(collection_end_date, end_date) AS end_date,
+              min_contribution, max_contribution,
+              COALESCE(name_ar, title_ar, name_en, title_en) AS title
+         FROM activities
+        WHERE id::text = $1
+        FOR UPDATE`,
+      [String(id)]
     );
 
-    const initiative = initiativeRows[0];
+    if (activityRows[0]) {
+      await client.query('ROLLBACK');
+      transactionStarted = false;
+      return res.status(410).json({
+        success: false,
+        code: 'LEGACY_INITIATIVE_CONTRIBUTIONS_RETIRED',
+        error: 'هذه مبادرة مؤرشفة ولا تستقبل مساهمات جديدة عبر التطبيق'
+      });
+    }
+
+    const sourceType = 'initiative';
+    let initiative = null;
+
     if (!initiative) {
+      const { rows: initiativeRows } = await client.query(
+        `SELECT id, status, target_amount, current_amount, end_date,
+                min_contribution, max_contribution,
+                COALESCE(title_ar, title_en) AS title
+           FROM initiatives
+          WHERE id::text = $1
+          FOR UPDATE`,
+        [String(id)]
+      );
+      initiative = initiativeRows[0] || null;
+    }
+
+    if (!initiative) {
+      await client.query('ROLLBACK');
+      transactionStarted = false;
       return res.status(404).json({
         success: false,
         error: 'المبادرة غير موجودة'
@@ -472,6 +627,8 @@ export const addContribution = async (req, res) => {
     }
 
     if (initiative.status !== 'active') {
+      await client.query('ROLLBACK');
+      transactionStarted = false;
       return res.status(400).json({
         success: false,
         error: 'لا يمكن المساهمة في مبادرة غير نشطة'
@@ -480,72 +637,177 @@ export const addContribution = async (req, res) => {
 
     // Check if initiative has expired
     if (initiative.end_date && new Date(initiative.end_date) < new Date()) {
+      await client.query('ROLLBACK');
+      transactionStarted = false;
       return res.status(400).json({
         success: false,
         error: 'انتهت فترة المساهمة في هذه المبادرة'
       });
     }
 
+    const minimumAmount = Number(initiative.min_contribution) || 50;
+    const maximumAmount = Number(initiative.max_contribution) || 50_000;
+    if (contributionAmount < minimumAmount) {
+      await client.query('ROLLBACK');
+      transactionStarted = false;
+      return res.status(400).json({
+        success: false,
+        error: `الحد الأدنى للمساهمة هو ${minimumAmount} ريال`
+      });
+    }
+    if (contributionAmount > maximumAmount) {
+      await client.query('ROLLBACK');
+      transactionStarted = false;
+      return res.status(400).json({
+        success: false,
+        error: `الحد الأقصى للمساهمة هو ${maximumAmount} ريال`
+      });
+    }
+
     // Check if member exists
-    const { rows: memberRows } = await query(
-      'SELECT id FROM members WHERE id = $1',
-      [member_id]
+    const { rows: memberRows } = await client.query(
+      'SELECT id, full_name, phone, email FROM members WHERE id = $1',
+      [memberId]
     );
 
     if (memberRows.length === 0) {
+      await client.query('ROLLBACK');
+      transactionStarted = false;
       return res.status(400).json({
         success: false,
-        error: 'العضو المحدد غير موجود'
+        error: 'حساب العضو غير مرتبط بسجل أعضاء صالح'
       });
     }
 
     // Generate reference number
     const referenceNumber = generateContributionReference();
+    let receiptDocumentId = null;
+    let receiptUrl = null;
 
-    // Insert contribution
-    const { rows: contribRows } = await query(
-      `INSERT INTO activity_contributions (activity_id, member_id, amount, payment_method, status, reference_number, notes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
-       RETURNING *`,
-      [id, member_id, contributionAmount, payment_method, status, referenceNumber, notes]
+    const uploaded = await uploadDocumentFile(req.file, memberId, 'receipts');
+    savedFilePath = uploaded.path;
+    receiptUrl = getDocumentUrl(uploaded.path);
+
+    const { rows: documentRows } = await client.query(
+      `INSERT INTO documents_metadata (
+         member_id, uploaded_by, title, description, category,
+         file_path, file_size, file_type, original_name, status
+       ) VALUES ($1, $1, $2, $3, 'receipts', $4, $5, $6, $7, 'active')
+       RETURNING id`,
+      [
+        memberId,
+        `وصل مساهمة - ${initiative.title || 'مبادرة عائلية'}`,
+        notes || `مساهمة رقم ${referenceNumber}`,
+        uploaded.path,
+        uploaded.size,
+        uploaded.type,
+        req.file.originalname
+      ]
     );
+    receiptDocumentId = documentRows[0].id;
 
-    const newContribution = contribRows[0];
-
-    // Fetch member info
-    const { rows: memberInfo } = await query(
-      'SELECT id, full_name, phone, email FROM members WHERE id = $1',
-      [member_id]
-    );
-    newContribution.member = memberInfo[0] || null;
-
-    // Fetch activity info
-    const { rows: activityInfo } = await query(
-      'SELECT id, title FROM activities WHERE id = $1',
-      [id]
-    );
-    newContribution.activity = activityInfo[0] || null;
-
-    // Update initiative current amount if contribution is confirmed
-    if (status === 'confirmed') {
-      await query(
-        'UPDATE activities SET current_amount = $1, updated_at = $2 WHERE id = $3',
-        [Number(initiative.current_amount) + contributionAmount, new Date().toISOString(), id]
+    let newContribution;
+    if (sourceType === 'activity') {
+      const { rows } = await client.query(
+        `INSERT INTO activity_contributions (
+           activity_id, member_id, amount, payment_method, status,
+           reference_number, notes, receipt_document_id, client_request_id
+         ) VALUES ($1, $2, $3, $4, 'pending', $5, $6, $7, $8)
+         RETURNING *`,
+        [
+          id,
+          memberId,
+          contributionAmount,
+          normalizedPaymentMethod,
+          referenceNumber,
+          notes || null,
+          receiptDocumentId,
+          clientRequestId
+        ]
       );
+      newContribution = rows[0];
+    } else {
+      const { rows } = await client.query(
+        `INSERT INTO initiative_donations (
+           initiative_id, member_id, amount, payment_method, status,
+           payment_reference, notes, payment_date,
+           receipt_document_id, client_request_id
+         ) VALUES ($1, $2, $3, $4, 'pending', $5, $6, CURRENT_DATE, $7, $8)
+         RETURNING *`,
+        [
+          id,
+          memberId,
+          contributionAmount,
+          normalizedPaymentMethod,
+          referenceNumber,
+          notes || null,
+          receiptDocumentId,
+          clientRequestId
+        ]
+      );
+      newContribution = rows[0];
     }
+
+    await client.query('COMMIT');
+    transactionStarted = false;
+
+    const responseData = normalizeContributionResponse(newContribution, sourceType, receiptUrl);
+    responseData.member = memberRows[0];
+    responseData.initiative = { id: String(id), title: initiative.title };
 
     res.status(201).json({
       success: true,
-      data: newContribution,
-      message: status === 'confirmed' ? 'تم تأكيد المساهمة بنجاح' : 'تم إضافة المساهمة بنجاح'
+      data: responseData,
+      message: 'تم تسجيل المساهمة وإرسالها للمراجعة بنجاح'
     });
   } catch (error) {
+    if (client && transactionStarted) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (rollbackError) {
+        log.warn('Failed to roll back initiative contribution', { error: rollbackError.message });
+      }
+    }
+
+    if (savedFilePath) {
+      try {
+        await deleteDocumentFile(savedFilePath);
+      } catch (cleanupError) {
+        log.warn('Failed to clean up initiative receipt', {
+          filePath: savedFilePath,
+          error: cleanupError.message
+        });
+      }
+    }
+
+    // Concurrent retries can race before either request sees the other. The
+    // unique database index is the final guard; return the existing row rather
+    // than surfacing a 500 to the member.
+    const memberId = req.user?.id || req.user?.user_id;
+    const clientRequestId = req.body?.client_request_id || req.get('Idempotency-Key') || null;
+    if (error.code === '23505' && memberId && clientRequestId) {
+      try {
+        const existing = await findContributionByRequestId(query, memberId, clientRequestId);
+        if (existing) {
+          return res.status(200).json({
+            success: true,
+            data: normalizeContributionResponse(existing),
+            message: 'تم تسجيل هذه المساهمة مسبقاً'
+          });
+        }
+      } catch (lookupError) {
+        log.warn('Failed to load idempotent initiative contribution', { error: lookupError.message });
+      }
+    }
+
     log.error('Error adding contribution', { error: error.message });
     res.status(500).json({
       success: false,
-      error: 'فشل في إضافة المساهمة',
+      error: 'تعذر تسجيل المساهمة الآن. لم يتم إنشاء عملية مكررة، يرجى المحاولة مرة أخرى.',
       message: config.isDevelopment ? error.message : undefined
     });
+  } finally {
+    client?.release();
   }
 };
 
@@ -554,6 +816,8 @@ export const addContribution = async (req, res) => {
  * PUT /api/initiatives/:id/contributions/:contributionId
  */
 export const updateContributionStatus = async (req, res) => {
+  let client;
+  let transactionStarted = false;
   try {
     const { id, contributionId } = req.params;
     const { status, notes } = req.body;
@@ -565,32 +829,80 @@ export const updateContributionStatus = async (req, res) => {
       });
     }
 
-    // Get current contribution
-    const { rows: contributionRows } = await query(
-      'SELECT * FROM activity_contributions WHERE id = $1 AND activity_id = $2',
-      [contributionId, id]
-    );
+    client = await getClient();
+    await client.query('BEGIN');
+    transactionStarted = true;
 
-    const contribution = contributionRows[0];
-    if (!contribution) {
-      return res.status(404).json({
-        success: false,
-        error: 'المساهمة غير موجودة'
-      });
-    }
-
-    // Get initiative data
-    const { rows: initiativeRows } = await query(
-      'SELECT current_amount FROM activities WHERE id = $1',
+    // Keep one lock order for create/approve/reject: initiative, then
+    // contribution, then receipt. This prevents double approval and amount
+    // drift when two admins act on the same row concurrently.
+    const { rows: initiativeRows } = await client.query(
+      'SELECT id FROM activities WHERE id = $1 FOR UPDATE',
       [id]
     );
+    if (!initiativeRows[0]) {
+      await client.query('ROLLBACK');
+      transactionStarted = false;
+      return res.status(404).json({ success: false, error: 'المبادرة غير موجودة' });
+    }
 
-    const initiative = initiativeRows[0];
-    if (!initiative) {
-      return res.status(404).json({
-        success: false,
-        error: 'المبادرة غير موجودة'
-      });
+    const { rows: contributionRows } = await client.query(
+      `SELECT *
+         FROM activity_contributions
+        WHERE id = $1 AND activity_id = $2
+        FOR UPDATE`,
+      [contributionId, id]
+    );
+    const contribution = contributionRows[0];
+    if (!contribution) {
+      await client.query('ROLLBACK');
+      transactionStarted = false;
+      return res.status(404).json({ success: false, error: 'المساهمة غير موجودة' });
+    }
+
+    if (status === 'confirmed') {
+      if (normalizePaymentMethod(contribution.payment_method) !== 'bank_transfer') {
+        await client.query('ROLLBACK');
+        transactionStarted = false;
+        return res.status(409).json({
+          success: false,
+          code: 'UNVERIFIED_INITIATIVE_PAYMENT_METHOD',
+          error: 'لا يمكن اعتماد مساهمة إلكترونية غير مرتبطة ببوابة دفع موثقة'
+        });
+      }
+
+      if (!contribution.receipt_document_id) {
+        await client.query('ROLLBACK');
+        transactionStarted = false;
+        return res.status(409).json({
+          success: false,
+          code: 'INITIATIVE_RECEIPT_REQUIRED',
+          error: 'لا يمكن اعتماد المساهمة قبل إرفاق إيصال التحويل المؤرشف'
+        });
+      }
+
+      await client.query(
+        'SELECT pg_advisory_xact_lock(hashtextextended($1::text, 0))',
+        [contribution.receipt_document_id]
+      );
+      const { rows: receiptRows } = await client.query(
+        `SELECT id
+           FROM documents_metadata
+          WHERE id = $1
+            AND member_id = $2
+            AND category = 'receipts'
+            AND status = 'active'`,
+        [contribution.receipt_document_id, contribution.member_id]
+      );
+      if (!receiptRows[0]) {
+        await client.query('ROLLBACK');
+        transactionStarted = false;
+        return res.status(409).json({
+          success: false,
+          code: 'INITIATIVE_RECEIPT_INVALID',
+          error: 'إيصال المساهمة غير متاح أو لا يخص العضو صاحب المساهمة'
+        });
+      }
     }
 
     // Update contribution
@@ -605,36 +917,43 @@ export const updateContributionStatus = async (req, res) => {
 
     updateParams.push(contributionId);
 
-    const { rows: updatedRows } = await query(
-      `UPDATE activity_contributions SET ${setClauses.join(', ')} WHERE id = $${pIdx} RETURNING *`,
+    setClauses.push('updated_at = NOW()');
+    const { rows: updatedRows } = await client.query(
+      `UPDATE activity_contributions
+          SET ${setClauses.join(', ')}
+        WHERE id = $${pIdx}
+        RETURNING *`,
       updateParams
     );
 
     const updatedContribution = updatedRows[0];
 
+    // Recalculate from ledger rows rather than adding/subtracting the request
+    // amount. Replays and concurrent actions therefore cannot double count.
+    await client.query(
+      `UPDATE activities a
+          SET current_amount = totals.amount,
+              updated_at = NOW()
+         FROM (
+           SELECT COALESCE(SUM(amount), 0) AS amount
+             FROM activity_contributions
+            WHERE activity_id = $1 AND status = 'confirmed'
+         ) totals
+        WHERE a.id = $1`,
+      [id]
+    );
+
     // Fetch member info
     if (updatedContribution.member_id) {
-      const { rows: memberInfo } = await query(
+      const { rows: memberInfo } = await client.query(
         'SELECT id, full_name, phone, email FROM members WHERE id = $1',
         [updatedContribution.member_id]
       );
       updatedContribution.member = memberInfo[0] || null;
     }
 
-    // Update initiative current amount based on status change
-    let amountChange = 0;
-    if (contribution.status === 'confirmed' && status !== 'confirmed') {
-      amountChange = -Number(contribution.amount);
-    } else if (contribution.status !== 'confirmed' && status === 'confirmed') {
-      amountChange = Number(contribution.amount);
-    }
-
-    if (amountChange !== 0) {
-      await query(
-        'UPDATE activities SET current_amount = $1, updated_at = $2 WHERE id = $3',
-        [Math.max(0, Number(initiative.current_amount) + amountChange), new Date().toISOString(), id]
-      );
-    }
+    await client.query('COMMIT');
+    transactionStarted = false;
 
     res.json({
       success: true,
@@ -643,12 +962,27 @@ export const updateContributionStatus = async (req, res) => {
                status === 'rejected' ? 'تم رفض المساهمة' : 'تم تحديث حالة المساهمة'
     });
   } catch (error) {
+    if (client && transactionStarted) {
+      try {
+        await client.query('ROLLBACK');
+      } catch (rollbackError) {
+        log.warn('Failed to roll back initiative contribution review', {
+          error: rollbackError.message
+        });
+      }
+    }
     log.error('Error updating contribution status', { error: error.message });
-    res.status(500).json({
+    const isEvidenceConflict = error.code === '23514';
+    res.status(isEvidenceConflict ? 409 : 500).json({
       success: false,
-      error: 'فشل في تحديث حالة المساهمة',
+      ...(isEvidenceConflict ? { code: 'INITIATIVE_EVIDENCE_CONFLICT' } : {}),
+      error: isEvidenceConflict
+        ? 'تعذر اعتماد المساهمة لأن إيصال التحويل غير صالح أو تغيرت بياناته'
+        : 'فشل في تحديث حالة المساهمة',
       message: config.isDevelopment ? error.message : undefined
     });
+  } finally {
+    client?.release();
   }
 };
 

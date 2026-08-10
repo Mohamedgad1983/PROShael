@@ -205,10 +205,11 @@ export const config = {
     otpAuthEnabled: getBoolean('OTP_AUTH_ENABLED', true),
   },
 
-  // Payment Gateway (Moyasar)
+  // Payment Gateway (Moyasar). These names match the production secret file.
   paymentGateway: {
     enabled: getBoolean('PAYMENT_GATEWAY_ENABLED', false),
     iosEnabled: getBoolean('IOS_PAYMENT_GATEWAY_ENABLED', false),
+    reconciliationEnabled: getBoolean('PAYMENT_GATEWAY_RECONCILIATION_ENABLED', false),
     provider: getString('PAYMENT_GATEWAY_PROVIDER', 'moyasar').toLowerCase(),
     currency: getString('PAYMENT_GATEWAY_CURRENCY', 'SAR').toUpperCase(),
     moyasar: {
@@ -216,6 +217,16 @@ export const config = {
       secretKey: getString('MOYASAR_SECRET_KEY', ''),
       webhookSecret: getString('MOYASAR_WEBHOOK_SECRET', ''),
     },
+  },
+
+  // Repayment rollout switches are independent from the existing subscription
+  // Apple Pay switch. A configured key must never enable financing by itself.
+  financingRepayment: {
+    enabled: getBoolean('FINANCING_REPAYMENT_ENABLED', false),
+    gatewayEnabled: getBoolean('FINANCING_GATEWAY_ENABLED', false),
+    remindersEnabled: getBoolean('FINANCING_REMINDERS_ENABLED', false),
+    businessTimeZone: getString('FINANCING_BUSINESS_TIMEZONE', 'Asia/Riyadh'),
+    intentTtlMinutes: getInt('FINANCING_INTENT_TTL_MINUTES', 30),
   },
 
   // Firebase Cloud Messaging (Push Notifications)
@@ -246,7 +257,7 @@ export const config = {
 
 // Log configuration on startup (non-sensitive info only)
 if (isDevelopment) {
-  configLogger.info(`Environment Configuration Loaded: env=${config.env} port=${config.port} db=${config.database.url ? 'DATABASE_URL' : 'DB_* variables'} postgresHost=${config.postgres.host} jwtConfigured=${!!config.jwt.secret} redisEnabled=${config.redis.enabled} frontendUrl=${config.frontend.url} firebaseEnabled=${config.firebase.enabled} twilioEnabled=${config.twilio.enabled} ultramsgEnabled=${config.ultramsg.enabled} passwordAuthEnabled=${config.featureFlags.passwordAuthEnabled} paymentGatewayEnabled=${config.paymentGateway.enabled} paymentGatewayProvider=${config.paymentGateway.provider}`);
+  configLogger.info(`Environment Configuration Loaded: env=${config.env} port=${config.port} db=${config.database.url ? 'DATABASE_URL' : 'DB_* variables'} postgresHost=${config.postgres.host} jwtConfigured=${!!config.jwt.secret} redisEnabled=${config.redis.enabled} frontendUrl=${config.frontend.url} firebaseEnabled=${config.firebase.enabled} twilioEnabled=${config.twilio.enabled} ultramsgEnabled=${config.ultramsg.enabled} passwordAuthEnabled=${config.featureFlags.passwordAuthEnabled} paymentGatewayEnabled=${config.paymentGateway.enabled} paymentGatewayProvider=${config.paymentGateway.provider} financingRepaymentEnabled=${config.financingRepayment.enabled}`);
 }
 
 // Warn about missing optional but recommended variables

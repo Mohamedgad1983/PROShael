@@ -1,19 +1,9 @@
 /**
- * Marriage Support PDF Generator (إقرار الدين)
+ * Marriage Support PDF Generator (إقرار الدين).
  *
- * Generates a PDF for the marriage-support request — currently a basic
- * record using PDFKit's built-in Helvetica. Arabic glyphs will render as
- * fallback boxes until an Arabic font (Amiri / Cairo) is bundled into
- * `assets/fonts/`. The PDF data is INCLUDED IN THE HASH only via the
- * canonical request JSON (see generateRequestHash), not via the PDF
- * bytes — so the PDF can be regenerated any time without invalidating
- * existing signatures.
- *
- * Public:
- *   • generateMarriageSupportPdfBuffer(request) → Promise<Buffer>
- *   • streamMarriageSupportPdf(request, res)    → streams to Express res
- *
- * Both helpers expect a fully-loaded marriage_support_requests row.
+ * The request hash is derived from canonical request data in
+ * marriageSupportService.js. PDF bytes are deliberately not part of that hash,
+ * so layout/font improvements do not invalidate existing signatures.
  */
 
 import PDFDocument from 'pdfkit';
@@ -24,219 +14,522 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ─── font discovery ──────────────────────────────────────────────────────────
-// If an Arabic TTF is bundled in the repo at one of these paths, we'll use it;
-// otherwise we fall back to Helvetica (which is built into PDFKit but has no
-// Arabic glyphs — Arabic text will render as fallback boxes).
-const ARABIC_FONT_CANDIDATES = [
-  path.resolve(__dirname, '../../assets/fonts/Amiri-Regular.ttf'),
-  path.resolve(__dirname, '../../assets/fonts/Cairo-Regular.ttf'),
-  path.resolve(__dirname, '../../assets/Amiri-Regular.ttf'),
-];
+/** Checked-in OFL font; never fall back to a font without Arabic glyphs. */
+export const MARRIAGE_PDF_ARABIC_FONT_PATH = path.resolve(
+  __dirname,
+  '../../assets/fonts/NotoNaskhArabic-Regular.ttf'
+);
 
-function findArabicFontPath() {
-  for (const p of ARABIC_FONT_CANDIDATES) {
-    try {
-      if (fs.existsSync(p)) {return p;}
-    } catch (_e) { /* ignore */ }
+const ARABIC_FONT = 'NotoNaskhArabic';
+const LATIN_FONT = 'Helvetica';
+const PAGE_MARGIN = 46;
+const CONTENT_TOP = 92;
+const CONTENT_BOTTOM = 778;
+
+const COLORS = Object.freeze({
+  navy: '#17324D',
+  blue: '#2D5B86',
+  gold: '#B58A3A',
+  green: '#237A57',
+  paleGreen: '#EEF7F2',
+  paleBlue: '#F3F7FA',
+  paleGold: '#FBF7EE',
+  border: '#D8E0E6',
+  text: '#1E2933',
+  muted: '#687784',
+  white: '#FFFFFF',
+});
+
+const STATUS_AR = Object.freeze({
+  submitted: 'تم تقديم الطلب',
+  under_committee_review: 'قيد مراجعة اللجنة',
+  data_entered: 'تم إدخال البيانات',
+  awaiting_signatures: 'بانتظار التوقيعات',
+  signatures_complete: 'اكتملت التوقيعات',
+  approved_by_chairman: 'معتمد من رئيس الصندوق',
+  completed: 'مكتمل',
+  rejected: 'مرفوض',
+  cancelled: 'ملغي',
+});
+
+const SIGNATURE_ROLES = Object.freeze([
+  { key: 'beneficiary', ar: 'المستفيد', en: 'Beneficiary' },
+  { key: 'witness_1', ar: 'الشاهد الأول', en: 'Witness 1' },
+  { key: 'witness_2', ar: 'الشاهد الثاني', en: 'Witness 2' },
+  { key: 'committee_chair', ar: 'رئيس اللجنة', en: 'Committee Chair' },
+]);
+
+const hasArabic = (value) => /[\u0600-\u06ff\u0750-\u077f\u08a0-\u08ff]/u.test(String(value));
+
+const display = (value) => {
+  if (value === null || value === undefined || value === '') {return '-';}
+  return String(value);
+};
+
+const fmtAmount = (value) => {
+  if (value === null || value === undefined || value === '') {return '-';}
+  const number = Number(value);
+  if (!Number.isFinite(number)) {return '-';}
+  return `${new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(number)} SAR`;
+};
+
+const fmtDate = (value, includeTime = false) => {
+  if (!value) {return '-';}
+  try {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {return display(value).slice(0, 24);}
+    if (!includeTime) {return date.toISOString().slice(0, 10);}
+    return `${date.toISOString().replace('T', ' ').slice(0, 16)} UTC`;
+  } catch {
+    return display(value).slice(0, 24);
   }
-  return null;
+};
+
+function setArabic(doc, size, color = COLORS.text) {
+  return doc.font(ARABIC_FONT).fontSize(size).fillColor(color);
 }
 
-const fmtAmount = (n) => {
-  if (n === null || n === undefined || n === '') {return '—';}
-  const v = Number(n);
-  if (!Number.isFinite(v)) {return '—';}
-  return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(v) + ' SAR';
-};
+function setLatin(doc, size, color = COLORS.text) {
+  return doc.font(LATIN_FONT).fontSize(size).fillColor(color);
+}
 
-const fmtDate = (s) => {
-  if (!s) {return '—';}
-  try {
-    return new Date(s).toISOString().slice(0, 10);
-  } catch {
-    return String(s).slice(0, 10);
+function drawPageHeader(doc, request) {
+  const width = doc.page.width - (PAGE_MARGIN * 2);
+  doc.save();
+  doc.rect(0, 0, doc.page.width, 74).fill(COLORS.navy);
+  doc.rect(0, 74, doc.page.width, 3).fill(COLORS.gold);
+
+  setArabic(doc, 18, COLORS.white).text(
+    'صندوق عائلة شعيل العنزي',
+    PAGE_MARGIN,
+    20,
+    { width, align: 'right', lineBreak: false, wordSpacing: 1 }
+  );
+  setArabic(doc, 11, '#DCE7EF').text(
+    'إقرار دين - برنامج دعم المقبلين على الزواج',
+    PAGE_MARGIN,
+    47,
+    { width, align: 'right', lineBreak: false, wordSpacing: 1 }
+  );
+  setLatin(doc, 8.5, '#DCE7EF').text(
+    `Reference: ${display(request.sequence_number || request.id)}`,
+    PAGE_MARGIN,
+    50,
+    { width: width * 0.48, align: 'left', lineBreak: false }
+  );
+  doc.restore();
+}
+
+function drawPageFooters(doc) {
+  const range = doc.bufferedPageRange();
+  for (let index = range.start; index < range.start + range.count; index += 1) {
+    doc.switchToPage(index);
+    const pageNumber = index - range.start + 1;
+    const width = doc.page.width - (PAGE_MARGIN * 2);
+    const y = doc.page.height - 42;
+    doc.save();
+    doc.moveTo(PAGE_MARGIN, y - 9).lineTo(doc.page.width - PAGE_MARGIN, y - 9)
+      .lineWidth(0.5).strokeColor(COLORS.border).stroke();
+    setArabic(doc, 8, COLORS.muted).text(
+      'وثيقة إلكترونية صادرة عن صندوق عائلة شعيل العنزي',
+      PAGE_MARGIN,
+      y,
+      { width: width * 0.72, align: 'right', lineBreak: false, wordSpacing: 1 }
+    );
+    setLatin(doc, 8, COLORS.muted).text(
+      `Page ${pageNumber} / ${range.count}`,
+      PAGE_MARGIN,
+      y,
+      { width: width * 0.25, align: 'left', lineBreak: false }
+    );
+    doc.restore();
   }
-};
+}
 
-/**
- * Build the PDF document and return the underlying buffer once finalised.
- */
-export async function generateMarriageSupportPdfBuffer(request) {
+class FlowLayout {
+  constructor(doc, request) {
+    this.doc = doc;
+    this.request = request;
+    this.y = CONTENT_TOP;
+  }
+
+  addPage() {
+    this.doc.addPage();
+    drawPageHeader(this.doc, this.request);
+    this.y = CONTENT_TOP;
+  }
+
+  ensureSpace(height) {
+    if (this.y + height > CONTENT_BOTTOM) {this.addPage();}
+  }
+
+  gap(height = 10) {
+    this.y += height;
+  }
+
+  sectionTitle(title) {
+    const height = 30;
+    this.ensureSpace(height);
+    const width = this.doc.page.width - (PAGE_MARGIN * 2);
+    setArabic(this.doc, 13, COLORS.navy).text(
+      title,
+      PAGE_MARGIN,
+      this.y + 2,
+      { width, align: 'right', lineBreak: false, wordSpacing: 1 }
+    );
+    this.doc.moveTo(PAGE_MARGIN, this.y + 25)
+      .lineTo(this.doc.page.width - PAGE_MARGIN, this.y + 25)
+      .lineWidth(0.8).strokeColor(COLORS.gold).stroke();
+    this.y += height;
+  }
+}
+
+function valueHeight(doc, value, width) {
+  const text = display(value);
+  if (hasArabic(text)) {
+    setArabic(doc, 11.5);
+  } else {
+    setLatin(doc, 10.5);
+  }
+  return doc.heightOfString(text, { width, align: 'right', lineGap: 1 });
+}
+
+function drawInfoGrid(flow, fields, options = {}) {
+  const { doc } = flow;
+  const gap = 8;
+  const rowGap = options.rowGap ?? 8;
+  const totalWidth = doc.page.width - (PAGE_MARGIN * 2);
+  const cellWidth = (totalWidth - gap) / 2;
+
+  for (let index = 0; index < fields.length; index += 2) {
+    const row = fields.slice(index, index + 2);
+    const heights = row.map((field) => valueHeight(doc, field.value, cellWidth - 20));
+    const rowHeight = Math.max(options.minimumRowHeight || 50, ...heights.map((height) => height + 28));
+    flow.ensureSpace(rowHeight + rowGap);
+
+    row.forEach((field, cellIndex) => {
+      // First logical field appears on the right in the RTL grid.
+      const x = PAGE_MARGIN + ((1 - cellIndex) * (cellWidth + gap));
+      doc.roundedRect(x, flow.y, cellWidth, rowHeight, 5)
+        .fillAndStroke(options.fill || COLORS.paleBlue, COLORS.border);
+      setArabic(doc, 8.5, COLORS.muted).text(
+        field.label,
+        x + 10,
+        flow.y + 7,
+        { width: cellWidth - 20, align: 'right', lineBreak: false, wordSpacing: 1 }
+      );
+      const text = display(field.value);
+      if (hasArabic(text)) {
+        setArabic(doc, 11.5, COLORS.text);
+      } else {
+        setLatin(doc, 10.5, COLORS.text);
+      }
+      doc.text(text, x + 10, flow.y + 23, {
+        width: cellWidth - 20,
+        align: 'right',
+        lineGap: 1,
+        wordSpacing: hasArabic(text) ? 1 : 0,
+      });
+    });
+    flow.y += rowHeight + rowGap;
+  }
+}
+
+function drawFinalAmount(flow, amount) {
+  const { doc } = flow;
+  const width = doc.page.width - (PAGE_MARGIN * 2);
+  const height = 55;
+  flow.ensureSpace(height);
+  doc.roundedRect(PAGE_MARGIN, flow.y, width, height, 7)
+    .fillAndStroke(COLORS.paleGreen, '#B8DAC8');
+  setArabic(doc, 13, COLORS.green).text(
+    'المبلغ النهائي المستحق للدعم',
+    PAGE_MARGIN + (width * 0.46),
+    flow.y + 14,
+    { width: (width * 0.5) - 14, align: 'right', lineBreak: false, wordSpacing: 1 }
+  );
+  setLatin(doc, 16, COLORS.green).text(
+    fmtAmount(amount),
+    PAGE_MARGIN + 14,
+    flow.y + 17,
+    { width: width * 0.42, align: 'left', lineBreak: false }
+  );
+  flow.y += height;
+}
+
+function drawAcknowledgment(flow) {
+  const { doc } = flow;
+  const width = doc.page.width - (PAGE_MARGIN * 2);
+  const text =
+    'أقر أنا المستفيد الموقع أدناه بصحة جميع البيانات والمرفقات الواردة في هذا الإقرار، ' +
+    'وبموافقتي على تفاصيل الاحتساب والمبلغ النهائي الموضح أعلاه، وعلى صرف دعم الزواج ' +
+    'وفق لائحة صندوق عائلة شعيل العنزي. كما أتعهد بالالتزام بجميع الأحكام والالتزامات ' +
+    'المترتبة على هذا الإقرار.';
+  setArabic(doc, 11.5, COLORS.text);
+  const textHeight = doc.heightOfString(text, {
+    width: width - 28,
+    align: 'right',
+    lineGap: 4,
+    wordSpacing: 1,
+  });
+  const height = textHeight + 28;
+  flow.ensureSpace(height);
+  doc.roundedRect(PAGE_MARGIN, flow.y, width, height, 6)
+    .fillAndStroke(COLORS.paleGold, '#E6D7B5');
+  setArabic(doc, 11.5, COLORS.text).text(text, PAGE_MARGIN + 14, flow.y + 12, {
+    width: width - 28,
+    align: 'right',
+    lineGap: 4,
+    wordSpacing: 1,
+  });
+  flow.y += height;
+}
+
+function signatureName(role, signature, request) {
+  return signature?.signer_name || {
+    beneficiary: request.applicant_name,
+    witness_1: request.witness_1_name,
+    witness_2: request.witness_2_name,
+    committee_chair: request.committee_chair_name,
+  }[role.key] || '-';
+}
+
+function signatureCardHeight(doc, width, role, signature, request) {
+  const name = signatureName(role, signature, request);
+  setArabic(doc, 11);
+  const nameHeight = doc.heightOfString(display(name), {
+    width: width - 24,
+    align: 'right',
+    lineGap: 1,
+  });
+  return Math.max(77, nameHeight + 55);
+}
+
+function drawSignatureCard(doc, x, y, width, height, role, signature, request) {
+  const name = signatureName(role, signature, request);
+
+  doc.roundedRect(x, y, width, height, 6)
+    .fillAndStroke(signature ? COLORS.paleGreen : '#FAFAFA', signature ? '#B8DAC8' : COLORS.border);
+  setArabic(doc, 11.5, COLORS.navy).text(
+    role.ar,
+    x + 12,
+    y + 7,
+    { width: width - 24, align: 'right', lineBreak: false, wordSpacing: 1 }
+  );
+  setLatin(doc, 7.5, COLORS.muted).text(
+    role.en,
+    x + 12,
+    y + 11,
+    { width: width * 0.46, align: 'left', lineBreak: false }
+  );
+  setArabic(doc, 11, COLORS.text).text(
+    display(name),
+    x + 12,
+    y + 28,
+    { width: width - 24, align: 'right', lineGap: 1, wordSpacing: 1 }
+  );
+  if (signature) {
+    setArabic(doc, 8.5, COLORS.green).text(
+      'تم التوقيع إلكترونيا',
+      x + (width * 0.51),
+      y + height - 22,
+      { width: (width * 0.49) - 12, align: 'right', lineBreak: false, wordSpacing: 1 }
+    );
+    setLatin(doc, 7, COLORS.muted).text(
+      fmtDate(signature.signed_at, true),
+      x + 12,
+      y + height - 18,
+      { width: width * 0.48, align: 'left', lineBreak: false }
+    );
+  } else {
+    setArabic(doc, 8.5, COLORS.muted).text(
+      'بانتظار التوقيع',
+      x + 12,
+      y + height - 22,
+      { width: width - 24, align: 'right', lineBreak: false, wordSpacing: 1 }
+    );
+  }
+}
+
+function drawSignatureGrid(flow, roles, signatures, request) {
+  const { doc } = flow;
+  const gap = 8;
+  const totalWidth = doc.page.width - (PAGE_MARGIN * 2);
+  const cardWidth = (totalWidth - gap) / 2;
+  for (let index = 0; index < roles.length; index += 2) {
+    const row = roles.slice(index, index + 2);
+    const height = Math.max(...row.map((role) => (
+      signatureCardHeight(doc, cardWidth, role, signatures.get(role.key), request)
+    )));
+    flow.ensureSpace(height + 8);
+    row.forEach((role, cellIndex) => {
+      const x = PAGE_MARGIN + ((1 - cellIndex) * (cardWidth + gap));
+      drawSignatureCard(
+        doc,
+        x,
+        flow.y,
+        cardWidth,
+        height,
+        role,
+        signatures.get(role.key),
+        request
+      );
+    });
+    flow.y += height + 8;
+  }
+}
+
+function drawHashStamp(flow, request) {
+  const { doc } = flow;
+  const width = doc.page.width - (PAGE_MARGIN * 2);
+  const hash = display(request.pdf_data_hash || 'not yet stamped');
+  setLatin(doc, 7.5);
+  const hashHeight = doc.heightOfString(hash, { width: width - 28, align: 'left' });
+  const height = Math.max(65, hashHeight + 48);
+  flow.ensureSpace(height);
+  doc.roundedRect(PAGE_MARGIN, flow.y, width, height, 5)
+    .fillAndStroke('#F8FAFB', COLORS.border);
+  setArabic(doc, 9, COLORS.muted).text(
+    'بصمة المستند الرقمية - ترتبط جميع التوقيعات بهذه البصمة',
+    PAGE_MARGIN + 14,
+    flow.y + 8,
+    { width: width - 28, align: 'right', lineBreak: false, wordSpacing: 1 }
+  );
+  setLatin(doc, 7.5, COLORS.text).text(
+    `SHA-256: ${hash}`,
+    PAGE_MARGIN + 14,
+    flow.y + 27,
+    { width: width - 28, align: 'left' }
+  );
+  setLatin(doc, 7.5, COLORS.muted).text(
+    `Generated: ${new Date().toISOString()}`,
+    PAGE_MARGIN + 14,
+    flow.y + height - 17,
+    { width: width - 28, align: 'left', lineBreak: false }
+  );
+  flow.y += height;
+}
+
+function assertBundledFont() {
+  if (!fs.existsSync(MARRIAGE_PDF_ARABIC_FONT_PATH)) {
+    const error = new Error(`Bundled Arabic PDF font is missing: ${MARRIAGE_PDF_ARABIC_FONT_PATH}`);
+    error.code = 'MARRIAGE_PDF_FONT_MISSING';
+    throw error;
+  }
+}
+
+/** Build a polished, dynamically paginated PDF and return its bytes. */
+export function generateMarriageSupportPdfBuffer(request) {
+  assertBundledFont();
   return new Promise((resolve, reject) => {
     try {
       const doc = new PDFDocument({
+        autoFirstPage: false,
+        bufferPages: true,
         size: 'A4',
-        margin: 50,
+        margin: 0,
         info: {
-          Title: `Marriage Support Request ${request.sequence_number || ''}`,
+          Title: `Marriage Support Acknowledgment ${display(request.sequence_number || request.id)}`,
           Author: 'Al-Shuail Family Fund',
           Subject: 'إقرار الدين - دعم الزواج',
+          Keywords: 'marriage support, acknowledgment, electronic signatures',
         },
       });
-
       const buffers = [];
-      doc.on('data', (b) => buffers.push(b));
+      doc.on('data', (buffer) => buffers.push(buffer));
       doc.on('end', () => resolve(Buffer.concat(buffers)));
       doc.on('error', reject);
+      doc.registerFont(ARABIC_FONT, MARRIAGE_PDF_ARABIC_FONT_PATH);
 
-      // Use bundled Arabic font if available, otherwise Helvetica.
-      const arabicFont = findArabicFontPath();
-      if (arabicFont) {
-        doc.registerFont('Arabic', arabicFont);
-        doc.font('Arabic');
-      } else {
-        doc.font('Helvetica');
-      }
+      const flow = new FlowLayout(doc, request);
+      flow.addPage();
 
-      // ─── Header ───────────────────────────────────────────────────────
-      doc.fontSize(18).text('AL-SHUAIL FAMILY FUND', { align: 'center' });
-      doc.moveDown(0.2);
-      doc.fontSize(14).text('Marriage Support Request — Acknowledgment of Debt', { align: 'center' });
-      doc.fontSize(11).text('صندوق عائلة شعيل العنزي — إقرار دعم زواج', { align: 'center' });
-      doc.moveDown(1);
+      drawInfoGrid(flow, [
+        { label: 'رقم الطلب', value: request.sequence_number || request.id },
+        { label: 'تاريخ التقديم', value: fmtDate(request.created_at) },
+        { label: 'حالة الطلب', value: STATUS_AR[request.status] || display(request.status) },
+        { label: 'تاريخ إعداد الإقرار', value: fmtDate(request.pdf_generated_at) },
+      ], { minimumRowHeight: 48 });
 
-      // ─── Request meta ──────────────────────────────────────────────────
-      doc.fontSize(11).fillColor('#000');
-      const seqDir = `Request #: ${request.sequence_number || '—'}`;
-      doc.text(seqDir, { align: 'left' });
-      doc.text(`Submitted: ${fmtDate(request.created_at)}`, { align: 'left' });
-      doc.text(`Status: ${request.status || '—'}`, { align: 'left' });
-      doc.moveDown(0.6);
+      flow.sectionTitle('بيانات المستفيد');
+      drawInfoGrid(flow, [
+        { label: 'اسم المستفيد', value: request.applicant_name },
+        { label: 'الرقم المدني', value: request.national_id },
+        { label: 'تاريخ الميلاد', value: fmtDate(request.date_of_birth) },
+      ]);
 
-      // ─── Beneficiary ──────────────────────────────────────────────────
-      sectionTitle(doc, 'Beneficiary / المستفيد');
-      kv(doc, 'Name', request.applicant_name || '—');
-      kv(doc, 'National ID', request.national_id || '—');
-      kv(doc, 'Date of Birth', fmtDate(request.date_of_birth));
-      doc.moveDown(0.4);
+      flow.sectionTitle('بيانات الزواج');
+      drawInfoGrid(flow, [
+        { label: 'اسم الزوجة', value: request.spouse_name_ar },
+        { label: 'الرقم المدني للزوجة', value: request.spouse_national_id },
+        { label: 'تاريخ الزواج', value: fmtDate(request.marriage_date) },
+      ]);
 
-      // ─── Marriage details ──────────────────────────────────────────────
-      sectionTitle(doc, 'Marriage Details / بيانات الزواج');
-      kv(doc, 'Spouse Name', request.spouse_name_ar || '—');
-      kv(doc, 'Spouse National ID', request.spouse_national_id || '—');
-      kv(doc, 'Marriage Date', fmtDate(request.marriage_date));
-      doc.moveDown(0.4);
+      flow.sectionTitle('تفاصيل احتساب الدعم');
+      drawInfoGrid(flow, [
+        { label: 'إجمالي الاشتراكات', value: fmtAmount(request.contributions_sum) },
+        {
+          label: 'عدد العانيات السابقة',
+          value: request.previous_ananiyat_count_override ?? request.previous_ananiyat_count_auto ?? 0,
+        },
+        { label: 'رصيد الدعم الإضافي', value: fmtAmount(request.additional_support_balance) },
+        { label: 'قيمة العانية الخاصة', value: fmtAmount(request.special_ananiya_value) },
+        { label: 'الإجمالي الأولي', value: fmtAmount(request.initial_total) },
+        { label: 'المبلغ بعد الخصم', value: fmtAmount(request.after_discount) },
+        { label: 'الرصيد التنافسي', value: fmtAmount(request.competitive_balance) },
+      ], { minimumRowHeight: 41, rowGap: 3, fill: '#F7F9FB' });
+      drawFinalAmount(flow, request.final_amount);
 
-      // ─── Calculation breakdown ────────────────────────────────────────
-      sectionTitle(doc, 'Calculation / تفاصيل الحساب');
-      kv(doc, 'Contributions Sum', fmtAmount(request.contributions_sum));
-      kv(doc, 'Previous Ananiyat Count',
-        String(request.previous_ananiyat_count_override ?? request.previous_ananiyat_count_auto ?? 0));
-      kv(doc, 'Additional Support Balance', fmtAmount(request.additional_support_balance));
-      kv(doc, 'Special Ananiya Value', fmtAmount(request.special_ananiya_value));
-      kv(doc, 'Initial Total', fmtAmount(request.initial_total));
-      kv(doc, 'After Discount', fmtAmount(request.after_discount));
-      kv(doc, 'Competitive Balance', fmtAmount(request.competitive_balance));
-      doc.moveDown(0.2);
-      doc.fontSize(13).fillColor('#0a7d3a').text(`FINAL AMOUNT: ${fmtAmount(request.final_amount)}`, { align: 'left' });
-      doc.fontSize(11).fillColor('#000');
-      doc.moveDown(0.6);
+      // Keep the legal acknowledgment and its electronic signatures together
+      // on a fresh page. Oversized names still paginate card-by-card below.
+      flow.addPage();
+      flow.sectionTitle('الإقرار');
+      drawAcknowledgment(flow);
+      flow.gap(8);
 
-      // ─── Witnesses ────────────────────────────────────────────────────
-      sectionTitle(doc, 'Witnesses / الشهود');
-      kv(doc, 'Witness 1', request.witness_1_name || '— (not selected) —');
-      kv(doc, 'Witness 2', request.witness_2_name || '— (not selected) —');
-      doc.moveDown(0.4);
+      flow.sectionTitle('الشهود المعتمدون');
+      drawInfoGrid(flow, [
+        { label: 'الشاهد الأول', value: request.witness_1_name || '-' },
+        { label: 'الشاهد الثاني', value: request.witness_2_name || '-' },
+      ], { minimumRowHeight: 48 });
 
-      // ─── Settings used ────────────────────────────────────────────────
-      sectionTitle(doc, 'Settings Snapshot');
-      kv(doc, 'Discount Rate',
-        request.snapshot_competition_discount_rate != null
-          ? `${(Number(request.snapshot_competition_discount_rate) * 100).toFixed(2)}%`
-          : '—');
-      kv(doc, 'Minimum Floor', fmtAmount(request.snapshot_marriage_support_minimum));
-      kv(doc, 'Ananiya Per Unit', fmtAmount(request.snapshot_ananiyat_per_unit));
-      kv(doc, 'Add-Support Multiplier',
-        request.snapshot_additional_support_multiplier != null
-          ? `${Number(request.snapshot_additional_support_multiplier).toFixed(2)}x`
-          : '—');
-      doc.moveDown(0.6);
+      flow.sectionTitle('إعدادات الاحتساب المثبتة وقت إصدار الإقرار');
+      drawInfoGrid(flow, [
+        {
+          label: 'نسبة الخصم',
+          value: request.snapshot_competition_discount_rate === null ||
+            request.snapshot_competition_discount_rate === undefined
+            ? '-'
+            : `${(Number(request.snapshot_competition_discount_rate) * 100).toFixed(2)}%`,
+        },
+        { label: 'الحد الأدنى للدعم', value: fmtAmount(request.snapshot_marriage_support_minimum) },
+        { label: 'قيمة العانية', value: fmtAmount(request.snapshot_ananiyat_per_unit) },
+        {
+          label: 'معامل الدعم الإضافي',
+          value: request.snapshot_additional_support_multiplier === null ||
+            request.snapshot_additional_support_multiplier === undefined
+            ? '-'
+            : `${Number(request.snapshot_additional_support_multiplier).toFixed(2)}x`,
+        },
+      ], { minimumRowHeight: 45 });
 
-      // ─── Acknowledgment text ──────────────────────────────────────────
-      sectionTitle(doc, 'Acknowledgment / إقرار');
-      doc.fontSize(10).fillColor('#333').text(
-        'I, the undersigned beneficiary, acknowledge the accuracy of the data and ' +
-        'attachments provided. I agree to the calculation and final amount above ' +
-        'and consent to the disbursement of marriage support per Al-Shuail Family ' +
-        'Fund regulations. I commit to the obligations stated in this acknowledgment.',
-        { align: 'left' }
+      flow.sectionTitle('التوقيعات الإلكترونية');
+      const signatures = new Map(
+        (request.signatures || []).map((signature) => [signature.signer_role, signature])
       );
-      doc.moveDown(0.3);
-      doc.text(
-        'أقر أنا الموقع أدناه (المستفيد) بصحة البيانات والمرفقات المزودة، ' +
-        'وأوافق على الحساب والمبلغ النهائي أعلاه، وأقبل صرف دعم الزواج وفق ' +
-        'لائحة صندوق عائلة شعيل العنزي، وألتزم بالتعهدات المذكورة في هذا الإقرار.',
-        { align: 'left' }
-      );
-      doc.moveDown(0.6);
+      drawSignatureGrid(flow, SIGNATURE_ROLES, signatures, request);
+      flow.gap(4);
+      drawHashStamp(flow, request);
 
-      // ─── Signature placeholders ───────────────────────────────────────
-      sectionTitle(doc, 'Signatures (electronic) / التوقيعات الإلكترونية');
-      const sigOrder = ['beneficiary', 'witness_1', 'witness_2', 'committee_chair'];
-      const sigLabels = {
-        beneficiary: 'Beneficiary / المستفيد',
-        witness_1: 'Witness 1 / الشاهد الأول',
-        witness_2: 'Witness 2 / الشاهد الثاني',
-        committee_chair: 'Committee Chair / رئيس اللجنة',
-      };
-      const have = (request.signatures || []).reduce((acc, s) => {
-        acc[s.signer_role] = s;
-        return acc;
-      }, {});
-      for (const r of sigOrder) {
-        const s = have[r];
-        const status = s
-          ? `✓ Signed ${fmtDate(s.signed_at)} — ${s.signer_name || s.signer_member_id}`
-          : '— pending —';
-        kv(doc, sigLabels[r], status);
-      }
-      doc.moveDown(0.6);
-
-      // ─── Hash stamp footer ────────────────────────────────────────────
-      doc.fontSize(8).fillColor('#666').text(
-        `Document hash (SHA-256): ${request.pdf_data_hash || 'not yet stamped'}`,
-        { align: 'left' }
-      );
-      doc.text(`Generated at: ${new Date().toISOString()}`, { align: 'left' });
-      doc.text(
-        'This document is auto-generated by the Al-Shuail Family Fund system. ' +
-        'Each electronic signature binds to the SHA-256 hash above.',
-        { align: 'left' }
-      );
-
-      // If Arabic font is missing, leave a TODO note for the operator.
-      if (!arabicFont) {
-        doc.moveDown(0.4);
-        doc.fontSize(8).fillColor('#aa5500').text(
-          'NOTE: Arabic glyphs may render as fallback boxes — bundle Amiri-Regular.ttf ' +
-          'into assets/fonts/ to fix. The hash and data are unaffected.',
-          { align: 'left' }
-        );
-      }
-
+      drawPageFooters(doc);
       doc.end();
-    } catch (err) {
-      reject(err);
+    } catch (error) {
+      reject(error);
     }
   });
 }
 
-function sectionTitle(doc, title) {
-  doc.fontSize(12).fillColor('#1e3a8a').text(title, { underline: true });
-  doc.fontSize(11).fillColor('#000');
-  doc.moveDown(0.2);
-}
-
-function kv(doc, k, v) {
-  doc.fontSize(11).fillColor('#444').text(`${k}: `, { continued: true });
-  doc.fillColor('#000').text(String(v));
-}
-
-/**
- * Stream the PDF directly to an Express response — preferred over building
- * the buffer + sending if the caller is the HTTP layer.
- */
+/** Stream the generated PDF to an Express response. */
 export async function streamMarriageSupportPdf(request, res) {
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader(

@@ -3,10 +3,13 @@ import React,{ useCallback,useEffect,useMemo,useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiService } from '../../services/api';
 import { logger } from '../../utils/logger';
+import GatewayFinancialExceptionsReview from './GatewayFinancialExceptionsReview';
+import GatewayReconciliationReviewQueue from './GatewayReconciliationReviewQueue';
 import PaymentDateFilter from './PaymentDateFilter';
+import PendingRefundReview from './PendingRefundReview';
 
 import {
-ArrowDownTrayIcon,ArrowsRightLeftIcon,ArrowTrendingUpIcon,BanknotesIcon,
+ArrowDownTrayIcon,ArrowsRightLeftIcon,ArrowTrendingUpIcon,ArrowUturnLeftIcon,BanknotesIcon,
 ChartBarIcon,CheckCircleIcon,ClockIcon,CurrencyDollarIcon,DocumentTextIcon,EyeIcon,MagnifyingGlassIcon,PencilIcon,PlusIcon,ReceiptPercentIcon,ShieldExclamationIcon,UserGroupIcon,WalletIcon,XCircleIcon
 } from '@heroicons/react/24/outline';
 
@@ -16,6 +19,9 @@ const ALLOW_MOCK_FALLBACK = process.env.NODE_ENV === 'development' &&
 const PaymentsTracking = () => {
   const { user, canAccessModule } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
+  const [pendingRefundCount, setPendingRefundCount] = useState(null);
+  const [gatewayFinancialExceptionCount, setGatewayFinancialExceptionCount] = useState(null);
+  const [gatewayReconciliationReviewCount, setGatewayReconciliationReviewCount] = useState(null);
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -27,6 +33,7 @@ const PaymentsTracking = () => {
     is_on_behalf: ''
   });
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
+  const canReviewPendingRefunds = ['super_admin', 'financial_manager'].includes(user?.role);
 
   // Mock payment data
   const mockPayments = useMemo(() => [
@@ -283,6 +290,8 @@ const PaymentsTracking = () => {
         return <CheckCircleIcon className="w-5 h-5 text-green-500" />;
       case 'pending':
         return <ClockIcon className="w-5 h-5 text-yellow-500" />;
+      case 'pending_refund':
+        return <ArrowUturnLeftIcon className="w-5 h-5 text-rose-600" />;
       case 'failed':
         return <XCircleIcon className="w-5 h-5 text-red-500" />;
       default:
@@ -295,6 +304,7 @@ const PaymentsTracking = () => {
       case 'paid':
       case 'completed': return 'مكتمل';
       case 'pending': return 'معلق';
+      case 'pending_refund': return 'بانتظار الاسترداد';
       case 'failed': return 'فشل';
       default: return 'غير محدد';
     }
@@ -305,6 +315,7 @@ const PaymentsTracking = () => {
       case 'paid':
       case 'completed': return 'bg-green-100 text-green-800 border-green-200';
       case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'pending_refund': return 'bg-rose-100 text-rose-800 border-rose-200';
       case 'failed': return 'bg-red-100 text-red-800 border-red-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
@@ -472,6 +483,7 @@ const PaymentsTracking = () => {
               <option value="">جميع الحالات</option>
               <option value="paid">مكتمل</option>
               <option value="pending">معلق</option>
+              <option value="pending_refund">بانتظار الاسترداد</option>
               <option value="failed">فشل</option>
             </select>
           </div>
@@ -633,12 +645,18 @@ const PaymentsTracking = () => {
                           <ArrowDownTrayIcon className="w-4 h-4" />
                         </button>
                       )}
-                      <button
-                        className="p-2 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-lg transition-colors duration-200"
-                        title="تعديل"
-                      >
-                        <PencilIcon className="w-4 h-4" />
-                      </button>
+                      {payment.status === 'pending_refund' ? (
+                        <span className="rounded-lg bg-rose-50 px-2 py-1 text-xs font-semibold text-rose-700">
+                          يُعالج من تبويب الاستردادات
+                        </span>
+                      ) : (
+                        <button
+                          className="p-2 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-lg transition-colors duration-200"
+                          title="تعديل"
+                        >
+                          <PencilIcon className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -747,6 +765,73 @@ const PaymentsTracking = () => {
             >
               جميع المعاملات
             </button>
+            {canReviewPendingRefunds && (
+              <button
+                onClick={() => setActiveTab('pending_refunds')}
+                className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap ${
+                  activeTab === 'pending_refunds'
+                    ? 'bg-gradient-to-br from-amber-600 to-rose-700 text-white shadow-lg'
+                    : 'bg-amber-50 text-amber-900 hover:bg-amber-100 border border-amber-200'
+                }`}
+              >
+                <ArrowUturnLeftIcon className="h-5 w-5" />
+                استردادات معلقة
+                <span
+                  className={`min-w-6 rounded-full px-1.5 py-0.5 text-center text-xs font-bold ${
+                    activeTab === 'pending_refunds' ? 'bg-white/20 text-white' : 'bg-rose-100 text-rose-800'
+                  }`}
+                  aria-label={pendingRefundCount === null ? 'لم تُحمّل القائمة بعد' : `${pendingRefundCount} عملية استرداد معلقة`}
+                >
+                  {pendingRefundCount === null ? '!' : pendingRefundCount}
+                </span>
+              </button>
+            )}
+            {canReviewPendingRefunds && (
+              <button
+                onClick={() => setActiveTab('gateway_financial_exceptions')}
+                className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap ${
+                  activeTab === 'gateway_financial_exceptions'
+                    ? 'bg-gradient-to-br from-orange-600 to-amber-700 text-white shadow-lg'
+                    : 'bg-orange-50 text-orange-900 hover:bg-orange-100 border border-orange-200'
+                }`}
+              >
+                <ShieldExclamationIcon className="h-5 w-5" />
+                استثناءات مالية
+                <span
+                  className={`min-w-6 rounded-full px-1.5 py-0.5 text-center text-xs font-bold ${
+                    activeTab === 'gateway_financial_exceptions' ? 'bg-white/20 text-white' : 'bg-rose-100 text-rose-800'
+                  }`}
+                  aria-label={gatewayFinancialExceptionCount === null
+                    ? 'لم تُحمّل الاستثناءات المالية بعد'
+                    : `${gatewayFinancialExceptionCount} استثناء مالي مفتوح`}
+                >
+                  {gatewayFinancialExceptionCount === null ? '!' : gatewayFinancialExceptionCount}
+                </span>
+              </button>
+            )}
+            {canReviewPendingRefunds && (
+              <button
+                onClick={() => setActiveTab('gateway_reconciliation_reviews')}
+                className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap ${
+                  activeTab === 'gateway_reconciliation_reviews'
+                    ? 'bg-gradient-to-br from-sky-700 to-teal-800 text-white shadow-lg'
+                    : 'bg-sky-50 text-sky-950 hover:bg-sky-100 border border-sky-200'
+                }`}
+              >
+                <ArrowsRightLeftIcon className="h-5 w-5" />
+                مراجعة المصالحة
+                <span
+                  className={`min-w-6 rounded-full px-1.5 py-0.5 text-center text-xs font-bold ${
+                    activeTab === 'gateway_reconciliation_reviews' ? 'bg-white/20 text-white' : 'bg-rose-100 text-rose-800'
+                  }`}
+                  aria-label={gatewayReconciliationReviewCount === null
+                    ? 'لم تُحمّل مراجعات المصالحة بعد'
+                    : `${gatewayReconciliationReviewCount} عملية مصالحة تحتاج مراجعة`}
+                >
+                  {gatewayReconciliationReviewCount === null ? '!' : gatewayReconciliationReviewCount}
+                </span>
+              </button>
+            )}
             <button
               onClick={() => setActiveTab('analytics')}
               className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 whitespace-nowrap ${
@@ -772,6 +857,24 @@ const PaymentsTracking = () => {
 
         {/* Tab Content */}
         {(activeTab === 'overview' || activeTab === 'transactions') && <PaymentsTable />}
+        {activeTab === 'pending_refunds' && canReviewPendingRefunds && (
+          <PendingRefundReview
+            currentUserRole={user?.role}
+            onCountChange={setPendingRefundCount}
+          />
+        )}
+        {activeTab === 'gateway_financial_exceptions' && canReviewPendingRefunds && (
+          <GatewayFinancialExceptionsReview
+            currentUserRole={user?.role}
+            onCountChange={setGatewayFinancialExceptionCount}
+          />
+        )}
+        {activeTab === 'gateway_reconciliation_reviews' && canReviewPendingRefunds && (
+          <GatewayReconciliationReviewQueue
+            currentUserRole={user?.role}
+            onCountChange={setGatewayReconciliationReviewCount}
+          />
+        )}
         {activeTab === 'analytics' && (
           <div className="glass-card p-8 text-center">
             <ChartBarIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
@@ -789,7 +892,7 @@ const PaymentsTracking = () => {
       </div>
 
       {/* Add CSS Styles */}
-      <style jsx>{`
+      <style>{`
         .glass-card {
           background: rgba(255, 255, 255, 0.9);
           backdrop-filter: blur(40px);

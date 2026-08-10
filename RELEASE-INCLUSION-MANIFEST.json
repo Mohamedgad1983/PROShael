@@ -1,0 +1,892 @@
+{
+  "formatVersion": 1,
+  "releaseCandidate": "proshael-release-main-20260810",
+  "baseline": {
+    "repository": "origin/main",
+    "commit": "588cbe9d007b3f496ddbbaaf206778b61cef31e3"
+  },
+  "generatedAt": "2026-08-10T01:30:30.707Z",
+  "selfInventoryNote": "This manifest file is intentionally excluded from its own includedFiles array.",
+  "releaseMigrationManifest": {
+    "path": "alshuail-backend/migrations/release-20260810.manifest.json",
+    "entryCount": 21,
+    "first": "20260731_family_financing_installments.sql",
+    "last": "20260822_retire_legacy_activity_contributions.sql"
+  },
+  "dependencyRemediation": {
+    "adminPackageJsonSha256": "856e8fb1fac985d06211da065c675e856d2fcc8bb507dd7f418a2a480fa5d2ab",
+    "adminPackageLockSha256": "b7c005e29d0f85914ee93390a8defc8ab758e83226ce20caaf632cffba561d64",
+    "backendAggregateSha256": "7f5ba391934d2e7ebba585edbf5e4bd412b02d9d4b9937c444ce5189015d4399"
+  },
+  "includedFiles": [
+    {
+      "path": "alshuail-admin-arabic/package-lock.json",
+      "status": "modified",
+      "sha256": "b7c005e29d0f85914ee93390a8defc8ab758e83226ce20caaf632cffba561d64"
+    },
+    {
+      "path": "alshuail-admin-arabic/package.json",
+      "status": "modified",
+      "sha256": "856e8fb1fac985d06211da065c675e856d2fcc8bb507dd7f418a2a480fa5d2ab"
+    },
+    {
+      "path": "alshuail-admin-arabic/src/components/Financing/RepaymentPlanCard.tsx",
+      "status": "added",
+      "sha256": "ae2c7920a5f89c82a7632c0cfadbf8ae650cf5ee648444edb9497cb1472a10ea"
+    },
+    {
+      "path": "alshuail-admin-arabic/src/components/Payments/__tests__/GatewayFinancialExceptionsReview.test.tsx",
+      "status": "added",
+      "sha256": "6651b86e2b56936b50e84d6ecc37822923942d9ca515b3f51b4d7e3b6f11a43c"
+    },
+    {
+      "path": "alshuail-admin-arabic/src/components/Payments/__tests__/GatewayReconciliationReviewQueue.test.tsx",
+      "status": "added",
+      "sha256": "8f055d93b80d18251ef8a923e0f5824d40fdf22cd92afd43c1b9901c7a701641"
+    },
+    {
+      "path": "alshuail-admin-arabic/src/components/Payments/__tests__/PaymentsTracking.gatewayFinancialExceptions.test.jsx",
+      "status": "added",
+      "sha256": "5ed54156bd9c47a4a796dd22564428dcd13b483331b39286cc0c5a092a7409a2"
+    },
+    {
+      "path": "alshuail-admin-arabic/src/components/Payments/__tests__/PaymentsTracking.pendingRefund.test.jsx",
+      "status": "added",
+      "sha256": "250ce3eb84b59753dd3957154538f8ccb22ba22a4fdb8f594c87fd2672ec94b2"
+    },
+    {
+      "path": "alshuail-admin-arabic/src/components/Payments/__tests__/PendingRefundReview.test.tsx",
+      "status": "added",
+      "sha256": "506eb0fccb7892217d32dbc7728ac690c99320aadf7dfdaa3cfe2f28ffa25c45"
+    },
+    {
+      "path": "alshuail-admin-arabic/src/components/Payments/BankTransferRequests.tsx",
+      "status": "modified",
+      "sha256": "3bdc8a6cd7e820beb8245fc088b390ddf4fa536a8fc3b2806a5ae4be81de9c78"
+    },
+    {
+      "path": "alshuail-admin-arabic/src/components/Payments/GatewayFinancialExceptionsReview.tsx",
+      "status": "added",
+      "sha256": "9e0f12478abe4bbc73122c31f00fbabd8bf69e70f630b9ecaeae064e86d2981d"
+    },
+    {
+      "path": "alshuail-admin-arabic/src/components/Payments/GatewayReconciliationReviewQueue.tsx",
+      "status": "added",
+      "sha256": "b985b197c3f23efe87896739e6c8f6e9595f85551f0eb94f1d6ae538990a0bea"
+    },
+    {
+      "path": "alshuail-admin-arabic/src/components/Payments/PaymentsTracking.jsx",
+      "status": "modified",
+      "sha256": "df8449adb3fe7ee1e4397892924e1999510aeb9499906ca352ea65148920d432"
+    },
+    {
+      "path": "alshuail-admin-arabic/src/components/Payments/PendingRefundReview.tsx",
+      "status": "added",
+      "sha256": "58fcc4d7ffce0b31467b9bb808641a85455405b1c5f9e14a1bb5db05d1035856"
+    },
+    {
+      "path": "alshuail-admin-arabic/src/pages/admin/__tests__/InitiativeReport.test.tsx",
+      "status": "added",
+      "sha256": "5dfc1f94e42019e58a4405d0e5234065517edba6f53fe81a2a92a76a74368314"
+    },
+    {
+      "path": "alshuail-admin-arabic/src/pages/admin/__tests__/LoanRequestDetail.test.tsx",
+      "status": "added",
+      "sha256": "1be99e9252be35b97de1da83f2db6b67c5b049f85fdbf5dabd169a9c7e578a0e"
+    },
+    {
+      "path": "alshuail-admin-arabic/src/pages/admin/__tests__/MarriageSupportDetail.test.tsx",
+      "status": "added",
+      "sha256": "59d64351398aed2c22e5f2fef2095118395f564ba3a4c9a7f2c4490c5638bc37"
+    },
+    {
+      "path": "alshuail-admin-arabic/src/pages/admin/InitiativeReport.tsx",
+      "status": "modified",
+      "sha256": "130c659abe3cdf3f54a216f8f53da7c8f06b467bf7b14c75570f82fa53ada7d6"
+    },
+    {
+      "path": "alshuail-admin-arabic/src/pages/admin/LoanRequestDetail.tsx",
+      "status": "modified",
+      "sha256": "53af572bfd049eaad9257acedcc7e446563c2531b140473a31c8e9393592042b"
+    },
+    {
+      "path": "alshuail-admin-arabic/src/pages/admin/LoanRequestsList.tsx",
+      "status": "modified",
+      "sha256": "90e40df7f3e0c4010d258f23dbaff568be5e7b7f82aa24122cc4bfe14bc78937"
+    },
+    {
+      "path": "alshuail-admin-arabic/src/pages/admin/MarriageSupportDetail.tsx",
+      "status": "modified",
+      "sha256": "694d6cebefa5b1ea83a7c9f24ea706b8c28e51fce8ab16ad5d499e982ba28c1a"
+    },
+    {
+      "path": "alshuail-admin-arabic/src/services/__tests__/gatewayFinancialExceptionService.test.ts",
+      "status": "added",
+      "sha256": "12b5805d7ab8f6d85d4bf20e646398a381bc5422070f93bc12dc36a86267dd9a"
+    },
+    {
+      "path": "alshuail-admin-arabic/src/services/__tests__/gatewayReconciliationReviewService.test.ts",
+      "status": "added",
+      "sha256": "f39ae9a1d7839cfedfd1a2cba2b14757f316339def97a3a332479ec40180511d"
+    },
+    {
+      "path": "alshuail-admin-arabic/src/services/__tests__/gatewayRefundService.test.ts",
+      "status": "added",
+      "sha256": "d9ba17d0f70b37de2fd5a4e9c4a3ea5bf85edf0d36a29e31346195e0126753f9"
+    },
+    {
+      "path": "alshuail-admin-arabic/src/services/__tests__/initiativeDonationReviewService.test.ts",
+      "status": "added",
+      "sha256": "bae4bd86e104e91553b8bd70786a4aec3055bbb38205aefd696a51bc5306cd62"
+    },
+    {
+      "path": "alshuail-admin-arabic/src/services/financingRepaymentTypes.ts",
+      "status": "added",
+      "sha256": "2e3fb35e999e4ce72b334204c78bd5cbb125e5ed2e985c53277405eba86d5958"
+    },
+    {
+      "path": "alshuail-admin-arabic/src/services/gatewayFinancialExceptionService.ts",
+      "status": "added",
+      "sha256": "b6fd6e580c09ead29105898c2456be88646939acb9da9f25211cf01fd067d018"
+    },
+    {
+      "path": "alshuail-admin-arabic/src/services/gatewayReconciliationReviewService.ts",
+      "status": "added",
+      "sha256": "211541431941097b8aa9805c9e7dd32a30f058569a1588e52669bb6490aa3f59"
+    },
+    {
+      "path": "alshuail-admin-arabic/src/services/gatewayRefundService.ts",
+      "status": "added",
+      "sha256": "c6407eb8df4110de620d03915aeb95f0f382e79892f71c7503ed9cf6c9183eab"
+    },
+    {
+      "path": "alshuail-admin-arabic/src/services/initiativeDonationReviewService.ts",
+      "status": "added",
+      "sha256": "c5f91ccc4a09b6df9b6f6fb4626a5da0e916d54dbae7425f4f4dd15668018fd8"
+    },
+    {
+      "path": "alshuail-admin-arabic/src/services/loanService.ts",
+      "status": "modified",
+      "sha256": "e5ed6b53a8951590077a7c49646b86187c07fed15d5ec2993e4c2ca2da3a58fe"
+    },
+    {
+      "path": "alshuail-admin-arabic/src/services/marriageSupportService.ts",
+      "status": "modified",
+      "sha256": "79d6adce7851f3b8477dca491b477781ee728780d035a8f9a132f62c2e0735e5"
+    },
+    {
+      "path": "alshuail-admin-arabic/src/services/paymentApproval.service.ts",
+      "status": "modified",
+      "sha256": "bd9871c10d6872f752d494088fd6235e2c8055dc33e1153a51c5898d5b28558f"
+    },
+    {
+      "path": "alshuail-admin-arabic/src/utils/__tests__/financingPolicy.test.ts",
+      "status": "added",
+      "sha256": "888c9d6d024f089e16d5f8be92ad02dc5c4212e07b6825df6d3742c586729a6e"
+    },
+    {
+      "path": "alshuail-admin-arabic/src/utils/financingPolicy.ts",
+      "status": "added",
+      "sha256": "d2a01a950700dab82839004eafd8b5901d897a41e953213feb88118867531da9"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/config/documentStorageSigning.test.js",
+      "status": "added",
+      "sha256": "2d19f3d3ecde2aee8f943b3043e1618891d1e573f7ecc12700981112351e8e73"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/config/documentStorageUniqueness.test.js",
+      "status": "added",
+      "sha256": "b21a7780f2672be3860cab74d9c57ee9d723795b51d78678705bde7e20629022"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/config/paymentGatewayConfig.test.js",
+      "status": "added",
+      "sha256": "35523ecfe1d0eae823813513af2a7c3cb522d4501b390eedb991a49d17d3d200"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/controllers/bankTransfersController.test.js",
+      "status": "added",
+      "sha256": "95c53a3077e92233485329a069a53e6377147b193a970fda14c79b99873c9cf6"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/controllers/diyaMemberPrivacy.test.js",
+      "status": "added",
+      "sha256": "d4df1a78a0e65da6ea736e3b0d837c107cb877593dcc96f77320aa9a10a81a0d"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/controllers/financingRepaymentController.gatewayReadiness.test.js",
+      "status": "added",
+      "sha256": "7ea624de580574b13a4cb2b86edca547b8d4a27c2cfaa26ed0e2b92a5914e41a"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/controllers/gatewayFinancialExceptionController.test.js",
+      "status": "added",
+      "sha256": "d97017aeb8fb23240793c0fb94bc9f35154be41b2ae281d678655874b6490c72"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/controllers/gatewayReconciliationReview.pg.test.js",
+      "status": "added",
+      "sha256": "1d16247e262f4a356b01e99f2f29117e51eecd13824491b0314f4b2efcd6b530"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/controllers/gatewayReconciliationReviewController.test.js",
+      "status": "added",
+      "sha256": "876d58acd16e54d553e84f45641667770a6b5b52b5c772fab25b735c3c8edaa5"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/controllers/gatewayRefundController.test.js",
+      "status": "added",
+      "sha256": "c7b899e101d6264d03e9dfa1de0e99db575c5d1d3a855cd616896e0b17df7133"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/controllers/initiativeContributionApproval.test.js",
+      "status": "added",
+      "sha256": "63fb1960d50fc9c8928d8a3e51e9b472cb1dc6392aebe933b88b936da8734e5d"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/controllers/initiativeContributionController.test.js",
+      "status": "added",
+      "sha256": "2660121b26d60fd19ead65b6efcfeae414fd889c7941c0ef264510ec1b0824de"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/controllers/initiativeReceiptCompatibilityController.test.js",
+      "status": "added",
+      "sha256": "033fe9353b902d54e6455c99863a5866a9c763e310511faf8d19a07cc3fdfdc6"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/controllers/initiativeReceiptRollback.test.js",
+      "status": "added",
+      "sha256": "1d5a2caad83b9475d312871596966f604eb2aa8defec12eeb36327857a07ece2"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/controllers/loanDocumentUrls.test.js",
+      "status": "added",
+      "sha256": "324462a7aa5b62a806f96c535288a8764487f3f4304c0baf325b64318e986ed9"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/controllers/marriageContractDownload.test.js",
+      "status": "added",
+      "sha256": "6fa50085b846cdaeb5a7231e799833c13e32c946689a1b6c065db1aec463fabb"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/controllers/marriageContractUploadLifecycle.test.js",
+      "status": "added",
+      "sha256": "8d74326e72822005a3e6aa37199a5970e9b09855b6abe53910b9420e961bbe38"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/controllers/mobilePaymentMethodGuard.test.js",
+      "status": "added",
+      "sha256": "e6a63710f0f0b369e9167b651c1c2f829aab026e6f8b2738cc30a2ede6ed0bdb"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/controllers/paymentGatewayController.financing.test.js",
+      "status": "added",
+      "sha256": "f3580f10dbe5c01041ebf2e586ba3a3b7e0e0a9c7a950f726bee55f024ca818e"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/controllers/paymentGatewayController.test.js",
+      "status": "modified",
+      "sha256": "d66eff28564f6f8320319708fe57970ca00ade9c54dd22f953a8d21c295661e9"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/controllers/paymentReceiptGatewayGuard.test.js",
+      "status": "added",
+      "sha256": "1022f98a8be7409a7390a263d41951ee1de281d8536fb75c8b8933f7ec08749f"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/middleware/apiRateLimiters.test.js",
+      "status": "added",
+      "sha256": "8d0f5590504e2e55575592e88477266996c2ff53f73f96c5a2c410873b6d233a"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/middleware/csrfV4Integration.test.js",
+      "status": "added",
+      "sha256": "ec6b79c2c5faba096fc90fae8451c042951807b9c599f9af5d18aada01acd656"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/middleware/serverCsrfGatewayExemptions.test.js",
+      "status": "added",
+      "sha256": "44641654a2c29e328945a56397ec32c41b650cc2b360fd6f7bfe56fab8007154"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/migrations/bankTransferReceipt.pg.test.js",
+      "status": "added",
+      "sha256": "a5e67fdc56d945f178dc5e46f3e4627ea0b2279d69826fc316cdbe6071a768a1"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/migrations/bankTransferReceiptMigration.test.js",
+      "status": "added",
+      "sha256": "7e3eb4ee5476bbe4200f5c0c2552d59b1e07ee9015981488094013a5d989b2f8"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/migrations/bankTransferRequestReceiptMigration.test.js",
+      "status": "added",
+      "sha256": "1646a48484d98d625eeb647ba803e539e10df451a7a27fd160eed11b40463793"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/migrations/financingGatewayReversals.pg.test.js",
+      "status": "added",
+      "sha256": "9b81db371cfe04cc3c822aec22411440d631125199d605dc1980d38f5f7ac9a3"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/migrations/financingGatewayReversalsMigration.test.js",
+      "status": "added",
+      "sha256": "41364f901e161dd1e639519eea8ce4a19bf0a5ba44abd2747f2cf26cacb53dd7"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/migrations/financingRepaymentMigrations.test.js",
+      "status": "added",
+      "sha256": "a457f6f817e0e1b7eedc809fbd66b14eb4e64a170ac6fe13de8620abc900e54a"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/migrations/gatewayReconciliationReviewQueueMigration.test.js",
+      "status": "added",
+      "sha256": "0a07d99928e8567487c91b96cf0cc20e02ae18a2bba81c159333b584e3e7abdf"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/migrations/initiativeContributionEvidence.pg.test.js",
+      "status": "added",
+      "sha256": "73daf3ce78a17816cd5cc17493c9061ec12422ad04f5a3e44318c984c0bb0a03"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/migrations/initiativeContributionEvidenceMigration.test.js",
+      "status": "added",
+      "sha256": "263e7a9cfa080e9511c6137f6263eb4c7d78fe9d307e0e2e070eba17dd650ae1"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/migrations/initiativeDonationReview.pg.test.js",
+      "status": "added",
+      "sha256": "99444361a9fdb48ec5e8de7fc2381cc90f3ac915d490493dacb6a4a7b1880439"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/migrations/legacyActivityContributionRetirement.test.js",
+      "status": "added",
+      "sha256": "95b8c130dc3e9b202222230c02ad692f2a8c85a509da6513a62ffcf87d285735"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/migrations/manualPaymentAliasBoundary.pg.test.js",
+      "status": "added",
+      "sha256": "8877aaa3ceba33bb1e38a48788bf72ab6cbfd83c845310cba76f75b064b9a9c9"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/migrations/manualPaymentAliasBoundaryMigration.test.js",
+      "status": "added",
+      "sha256": "581ad339de703fa502e5994cf5bc40273ae6d8790b553927e7e9295385875bb2"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/routes/documentsSecurity.test.js",
+      "status": "added",
+      "sha256": "b2d60fe9aeff14a31929cd91a2a81a625d90c4207e4dcddafeb99dc009d3387b"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/routes/gatewayReconciliationReviewRoutes.test.js",
+      "status": "added",
+      "sha256": "5a3904eab7772fa7d07836f10f817091d41b1c78ade5dfc34fc487ea0a3c648c"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/routes/gatewayRefundRoutes.test.js",
+      "status": "added",
+      "sha256": "39f4e5e91ba41120ad446886e4267f60ef96dc9eae9f74d54a1f8891924781c9"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/routes/initiativeDonationReview.test.js",
+      "status": "added",
+      "sha256": "20d4d3a4dcc814c00a7a6074ab9af5b9dfad4c3d0d24019c4f09e7e568234075"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/routes/initiativeReceiptArchiveDetails.test.js",
+      "status": "added",
+      "sha256": "9f6952d33a46d8ae52253fa8b54268300354918bfa6731ec71b855f90982e644"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/routes/paymentOwnership.test.js",
+      "status": "added",
+      "sha256": "9f6a43d58bae2bf0fd6d177c3d2df2bd038f2920d716eb55362daf72f72d7ae0"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/scripts/releaseMigrationRunner.test.js",
+      "status": "added",
+      "sha256": "d63575b3453a63a858fafcd878cd083f98362ea9a668e7049aa23c1ccf9157fa"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/services/bankTransferApproval.pg.test.js",
+      "status": "added",
+      "sha256": "6bfe01f50111764ea4c19f4c35b0ce5e331efe3c77e9140bdd0f4f44276b64a1"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/services/bankTransferService.test.js",
+      "status": "added",
+      "sha256": "520b04a88a42f558dedf69d9749638c6ed0f653784a05f49bb27147aae3bfbc1"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/services/familyFinancingPolicy.test.js",
+      "status": "modified",
+      "sha256": "9cf6be6c6e67862d7470c2ad06c29642d7f4930cbe8c21f831e8e141d989411d"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/services/financingReminderService.test.js",
+      "status": "added",
+      "sha256": "76b3849231a76d7453e1046104269efe1e0c29b56ad9a9b25af1c28b76fbfa50"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/services/financingRepaymentService.test.js",
+      "status": "added",
+      "sha256": "a54663f571a115905c9e98d1464d01417582cf6cbd91a9f8274c75409235a56d"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/services/financingReversalService.test.js",
+      "status": "added",
+      "sha256": "2b14dd202aac39cb168a64ed8cff62c5de67877f8b8feb422e3e5efc29ac1c67"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/services/firebaseCollapseOptions.test.js",
+      "status": "added",
+      "sha256": "3d4ae03e0bc7b04ade94451d241cb68be658cfe0a9d20efb9f8b866eb2ab97c1"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/services/gatewayReconciliation.pg.test.js",
+      "status": "added",
+      "sha256": "63b42198f9825371f0a5b1d1f9184b06e64d09ebf17c8d09410c73169d031ba9"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/services/gatewayReconciliationService.test.js",
+      "status": "added",
+      "sha256": "aa6f397896b7d6c87dfc8df33ab12615c4528e6d3c6fa90a4eba9b4e52e82000"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/services/loanCreationPolicy.test.js",
+      "status": "modified",
+      "sha256": "4a3440e7d61de2c457c2d1b2590a5c655827513b9f7d1aebafa4120b7ecab162"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/services/marriageSupportCalc.test.js",
+      "status": "modified",
+      "sha256": "2b7d0f544fa416813d4556617b713e8e73f6740284f1d563f9a5679a4604bf27"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/services/marriageSupportPdf.test.js",
+      "status": "added",
+      "sha256": "dc30532775c27b77714f09acf641096b0440ea3a26d6b93a3cb630ce6a99a3b4"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/services/marriageSupportService.test.js",
+      "status": "added",
+      "sha256": "1d7ab50b396feeb527d1d132560ee806246d11c1435fa75e1a51376ec6e47c28"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/services/moyasarGatewayOperationalReadiness.test.js",
+      "status": "added",
+      "sha256": "151aac745764b6dfd88391599c06c9d56fa26b101228ccbbc6d0df4fb6c7db19"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/services/moyasarRefundService.test.js",
+      "status": "added",
+      "sha256": "3b2b120f97a95bbefd83f8f7cb4b9090f077fd48456841a61376ac5129624a29"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/services/notificationPersistence.test.js",
+      "status": "added",
+      "sha256": "d6ab93d5c33fc0b37475dad44ae0617054fad9355a8a6addcca6766e1c43081a"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/services/paymentProcessingGatewayGuard.test.js",
+      "status": "added",
+      "sha256": "db61bdf2917ee3143392db7c0623017a1c4dda9da4eaa0726d4a04073e73320b"
+    },
+    {
+      "path": "alshuail-backend/.env.example",
+      "status": "modified",
+      "sha256": "123e266e020bebe1d9a4008138fa2930a2c17495269df1e2b1af00fb3c5b3f0f"
+    },
+    {
+      "path": "alshuail-backend/assets/fonts/NotoNaskhArabic-Regular.ttf",
+      "status": "added",
+      "sha256": "c9a039ce48a477243c1eb7d561b13de115cfd651d8a83fa42e2f4d63c2e11b00"
+    },
+    {
+      "path": "alshuail-backend/assets/fonts/OFL.txt",
+      "status": "added",
+      "sha256": "36790856f2b60400c81b8a446a46be2d489b81dad9ee4d27784b1c844dbce646"
+    },
+    {
+      "path": "alshuail-backend/migrations/20260731_family_financing_installments.sql",
+      "status": "added",
+      "sha256": "2e4514c16c75f9a0141234ea19cfd08e7452d7d59e5e318f5aaeb45f75a47158"
+    },
+    {
+      "path": "alshuail-backend/migrations/20260801_enforce_subscription_2021_2025_caps.sql",
+      "status": "added",
+      "sha256": "77f0c0c37467f0b85f0b33c0968bcaa8e24a576eb719270a7a031762917fb817"
+    },
+    {
+      "path": "alshuail-backend/migrations/20260802_update_family_financing_fees.sql",
+      "status": "added",
+      "sha256": "b11a1b1dd47c5a904e4deed12b34651a11c0507593e796f5147462226bb020ea"
+    },
+    {
+      "path": "alshuail-backend/migrations/20260805_harden_initiative_contributions.sql",
+      "status": "added",
+      "sha256": "9cb24764fd424a120e1d9b660be3f8084385ad190c5df7235df88d8e9c5fe3fa"
+    },
+    {
+      "path": "alshuail-backend/migrations/20260809_harden_marriage_signature_workflow.sql",
+      "status": "added",
+      "sha256": "ca3e2f8cf632c778409f5cb4d799652a6a89bb955ff4b5d824b69f4e79308c3c"
+    },
+    {
+      "path": "alshuail-backend/migrations/20260810_gateway_protocol_v2.sql",
+      "status": "added",
+      "sha256": "b51ee3c215689bb67f0926e4d9a5a0cf236daaf4a682a443d8045d40077b7b00"
+    },
+    {
+      "path": "alshuail-backend/migrations/20260810_gateway_refund_workflow.sql",
+      "status": "added",
+      "sha256": "c76e629b90f4a2845e11863725a63c854de6cd07d711c23a46089104b4e5b56d"
+    },
+    {
+      "path": "alshuail-backend/migrations/20260810_harden_financing_reminders.sql",
+      "status": "added",
+      "sha256": "5bbd2289653f4300881fdcf350ce0065db98b283e5be3435b68db96aa29361e1"
+    },
+    {
+      "path": "alshuail-backend/migrations/20260811_financing_gateway_reversals.sql",
+      "status": "added",
+      "sha256": "6aaff48ad4ac4401a84d0539250fe754c3edd5b436f8b0f4a533b255cde6d514"
+    },
+    {
+      "path": "alshuail-backend/migrations/20260812_gateway_payment_reconciliation.sql",
+      "status": "added",
+      "sha256": "68a997a66e58cddf26b62ecad2dba2af4e4ee7310b10404201e87b0198308013"
+    },
+    {
+      "path": "alshuail-backend/migrations/20260813_harden_gateway_admin_status.sql",
+      "status": "added",
+      "sha256": "98d8fc4d7e31677f0ddb9101e527d94edbe618dc897d9ca8ddb188b2e166db3d"
+    },
+    {
+      "path": "alshuail-backend/migrations/20260814_require_bank_transfer_receipts.sql",
+      "status": "added",
+      "sha256": "286e4912d7090d5edcffba66b7f82b0ebdbf8f30b69945c4573a5682e29aafd6"
+    },
+    {
+      "path": "alshuail-backend/migrations/20260815_capture_after_abandonment.sql",
+      "status": "added",
+      "sha256": "6698887ee4864e03591ea1bf508da8e5fb423f61d016785d984fa66cc2c3bdfe"
+    },
+    {
+      "path": "alshuail-backend/migrations/20260816_archive_bank_transfer_receipts.sql",
+      "status": "added",
+      "sha256": "656827e7d9ca1efd6711d82444bf444c7f0c65974c93681e34d935ad68cc8def"
+    },
+    {
+      "path": "alshuail-backend/migrations/20260817_harden_initiative_contribution_evidence.sql",
+      "status": "added",
+      "sha256": "ec608c720679f23a689a90005df3334e20e56398e7d041c18f4f6365fdebcc52"
+    },
+    {
+      "path": "alshuail-backend/migrations/20260818_harden_manual_payment_aliases.sql",
+      "status": "added",
+      "sha256": "d642a26e9ebffcee9e29af66cf3929423f223cd2f403c27a7d844bb64100160d"
+    },
+    {
+      "path": "alshuail-backend/migrations/20260819_gateway_reconciliation_operational_hardening.sql",
+      "status": "added",
+      "sha256": "91563d003fe0336096503df590c778921766fa70072ecb49f0df583c3f660099"
+    },
+    {
+      "path": "alshuail-backend/migrations/20260820_gateway_reconciliation_review_queue.sql",
+      "status": "added",
+      "sha256": "cf5a13afc8752c2847f1dfcd1ea97d8fc474f8dabb0380cd9dbfc40050ccc8ad"
+    },
+    {
+      "path": "alshuail-backend/migrations/20260821_harden_initiative_donation_review.sql",
+      "status": "added",
+      "sha256": "af8248cfc820a19b1b47db4f305817336be4020261901b52f13f34ccb882f830"
+    },
+    {
+      "path": "alshuail-backend/migrations/20260822_retire_legacy_activity_contributions.sql",
+      "status": "added",
+      "sha256": "f6dc87375bfdbe351f14bd97bdbf558e93e05bfa37c2416cd8630be470c2fc46"
+    },
+    {
+      "path": "alshuail-backend/migrations/README-RELEASE-RUNNER.md",
+      "status": "added",
+      "sha256": "3ad0e338957f57a17daf5699267dbc508898490eb0b28ea883c47cea8a43447b"
+    },
+    {
+      "path": "alshuail-backend/migrations/release-20260810.manifest.json",
+      "status": "added",
+      "sha256": "eb25bb8bfa7a7afc66934bff0c22429350b4c24f253be4144bcc58860b3fd403"
+    },
+    {
+      "path": "alshuail-backend/package-lock.json",
+      "status": "modified",
+      "sha256": "7b0fc7ce4d6dec225451c6538fd300012ccaa3c343c435559d138a76205dd5af"
+    },
+    {
+      "path": "alshuail-backend/package.json",
+      "status": "modified",
+      "sha256": "a2a2cc3caf495f6b2dc648c4a03c3212445b46eabf84e860ea18e5a468f3ce92"
+    },
+    {
+      "path": "alshuail-backend/scripts/rehearse-document-archive.mjs",
+      "status": "added",
+      "sha256": "0fe16cd7b6bf6fd40a0539fd1a1e9682c7fffd0e64bd2ba59bab63c2fc25aae6"
+    },
+    {
+      "path": "alshuail-backend/scripts/remind-marriage-next-signer.mjs",
+      "status": "added",
+      "sha256": "ea7a635d2ab9e03967f6a0682b5e5a3f276fa3441f21df141842c1fdd2486cc4"
+    },
+    {
+      "path": "alshuail-backend/scripts/run-release-migrations.mjs",
+      "status": "added",
+      "sha256": "4b8d4a4d97ec73e02cc91bca8383eeafa72ad27db3d7526dc16831b18c9b4f59"
+    },
+    {
+      "path": "alshuail-backend/scripts/smoke-initiative-contribution.js",
+      "status": "added",
+      "sha256": "bfdb3476c090a56c2671fc449182434cd718c9ef9576a674b0d082a6e32b815a"
+    },
+    {
+      "path": "alshuail-backend/scripts/smoke-marriage-participant-read.mjs",
+      "status": "added",
+      "sha256": "cb715dceaa5d8ed81e770ecdaa500db2e5ed54c76264bd9fde1fe143b0f10fc3"
+    },
+    {
+      "path": "alshuail-backend/server.js",
+      "status": "modified",
+      "sha256": "08e2f42bfd8d684b3f7159c140d3dba85b20e4ad70a517baf9d0c58d5c2e826c"
+    },
+    {
+      "path": "alshuail-backend/src/config/documentStorage.js",
+      "status": "modified",
+      "sha256": "e2d5d5d37de9e92f63e00eea6c944a9f32c5f0c27b208dab0f3664408d198dd0"
+    },
+    {
+      "path": "alshuail-backend/src/config/env.js",
+      "status": "modified",
+      "sha256": "456d341d034c58b618938852d5057bf05e01fcfbef79a3cbd9b371f25c7aa4bf"
+    },
+    {
+      "path": "alshuail-backend/src/constants/paymentMethodPolicy.js",
+      "status": "added",
+      "sha256": "ee5de06ead942c43a012bf3afcc0a1141913668934f13dddc257ad199384232e"
+    },
+    {
+      "path": "alshuail-backend/src/constants/subscriptionPolicy.js",
+      "status": "added",
+      "sha256": "5a6e5a5450b9bfd3ebaa67f908ea8bc37a0ed34c4ba4eb693f960dcee1fff929"
+    },
+    {
+      "path": "alshuail-backend/src/controllers/adminLoansController.js",
+      "status": "modified",
+      "sha256": "afc8dae4fdc4841136b2d192f8f5e1cf87ca241ddbecfe784830a48887a2e135"
+    },
+    {
+      "path": "alshuail-backend/src/controllers/adminMarriageSupportController.js",
+      "status": "modified",
+      "sha256": "043dc0135a3f516321112cdb0d4dc0bf8c2317cc5c9e06cf3c6c7a9bec405ef0"
+    },
+    {
+      "path": "alshuail-backend/src/controllers/bankTransfersController.js",
+      "status": "modified",
+      "sha256": "cc3352298675d717267be3e935088979e418139b68a0af7204251568c84425b3"
+    },
+    {
+      "path": "alshuail-backend/src/controllers/diyasController.js",
+      "status": "modified",
+      "sha256": "1ba0f34cc1f8e970a12aa40ffc5c9d08a3ab0fc3958048dbf2b7fc4f9d0c6b14"
+    },
+    {
+      "path": "alshuail-backend/src/controllers/financingRepaymentController.js",
+      "status": "added",
+      "sha256": "0ed12caf0654e8190648d39073602bce76e7ae9795a94fad72d8cdfabcc4f52d"
+    },
+    {
+      "path": "alshuail-backend/src/controllers/gatewayFinancialExceptionController.js",
+      "status": "added",
+      "sha256": "0ea30b5b9536632fa6a3d6440ff0245e5eeb2eac8a4dabdd4910ab7134be576a"
+    },
+    {
+      "path": "alshuail-backend/src/controllers/gatewayReconciliationReviewController.js",
+      "status": "added",
+      "sha256": "4e3c15666661844a74051151bac4723b2a6d482a25efad2aea62ad3113ec8c41"
+    },
+    {
+      "path": "alshuail-backend/src/controllers/gatewayRefundController.js",
+      "status": "added",
+      "sha256": "6650c8a3a1622e633a7fd1e6553a767dd6e4314e86364f8b7c2daa41cdd06770"
+    },
+    {
+      "path": "alshuail-backend/src/controllers/initiativeReceiptCompatibilityController.js",
+      "status": "added",
+      "sha256": "1fc31f6490015f71d2d060da06fa79d1e6c4f34c8c792b1082b65b6de44871b7"
+    },
+    {
+      "path": "alshuail-backend/src/controllers/initiativesController.js",
+      "status": "modified",
+      "sha256": "ea2f8ff6ceec72c34d75a1ce85347bf0647fd466bef0018c8e52a88908782c57"
+    },
+    {
+      "path": "alshuail-backend/src/controllers/loansController.js",
+      "status": "modified",
+      "sha256": "1c3e881071ed54e913dfda577ab9c618c1691fff6dfc433097f177851397c64a"
+    },
+    {
+      "path": "alshuail-backend/src/controllers/marriageSupportController.js",
+      "status": "modified",
+      "sha256": "3f92802dbc7079178d6b240d871d20743c850c7b077613c6e0811aff5a94f62f"
+    },
+    {
+      "path": "alshuail-backend/src/controllers/marriageSupportParticipantController.js",
+      "status": "added",
+      "sha256": "46b004331b386a78db0751271bb409cd9fd8854d36b903f86da21d2933cf4c04"
+    },
+    {
+      "path": "alshuail-backend/src/controllers/paymentGatewayController.js",
+      "status": "modified",
+      "sha256": "2343972147bda58edff534f92063a44531ddf186530acb2dcd81ae6c6e365f6f"
+    },
+    {
+      "path": "alshuail-backend/src/controllers/paymentsController.js",
+      "status": "modified",
+      "sha256": "9af5fa90688b868e970ade80c11d76f34e054694351fc75cea6de465a0dc6828"
+    },
+    {
+      "path": "alshuail-backend/src/middleware/apiRateLimiters.js",
+      "status": "added",
+      "sha256": "c4d2013691b6abf5b93b5720d586d4180d742230c6a59544df7427217754a0f4"
+    },
+    {
+      "path": "alshuail-backend/src/middleware/csrf.js",
+      "status": "modified",
+      "sha256": "cb00393bc0e84f05778402ec00940ebe05a517160916a1e4bcd438ff6acbd7bc"
+    },
+    {
+      "path": "alshuail-backend/src/middleware/payment-validator.js",
+      "status": "modified",
+      "sha256": "5d83526afd9dda359a134c57b8896f4b553ce73befee47d4f052f3662c6ff86d"
+    },
+    {
+      "path": "alshuail-backend/src/routes/diyaDashboard.js",
+      "status": "modified",
+      "sha256": "fe8634a73c218d0a7e1d6c0bd9b8e17c08375401f90beea36635b58d123e9773"
+    },
+    {
+      "path": "alshuail-backend/src/routes/documents.js",
+      "status": "modified",
+      "sha256": "c4807394cb3f7a2b17bb751cfd3f7b95c263317831849876a33138ab2e7f7614"
+    },
+    {
+      "path": "alshuail-backend/src/routes/financingRepayment.js",
+      "status": "added",
+      "sha256": "f2328aa7c2e53f489e637d2a21e6a85fecea843c1f88684696f15ff3a5d0f695"
+    },
+    {
+      "path": "alshuail-backend/src/routes/initiatives.js",
+      "status": "modified",
+      "sha256": "41421f6986d876aee9e3f20ed442cf59ce484ea4a3897d64dca30709fd4355cc"
+    },
+    {
+      "path": "alshuail-backend/src/routes/initiativesEnhanced.js",
+      "status": "modified",
+      "sha256": "b6f10d1f17351acf0c256d897b172ca4f75ba95184cfed015e7cbe37f2917066"
+    },
+    {
+      "path": "alshuail-backend/src/routes/marriageSupport.js",
+      "status": "modified",
+      "sha256": "0e1d01eef2486f8677e8737983c0bf78119db10d69e0d8309bef0c64809fcacc"
+    },
+    {
+      "path": "alshuail-backend/src/routes/payments.js",
+      "status": "modified",
+      "sha256": "01fc6c30ee5d1f740b3a06992c6cbab4fe04b9f700398742fec1cd068aedf163"
+    },
+    {
+      "path": "alshuail-backend/src/services/bankTransferService.js",
+      "status": "modified",
+      "sha256": "357b2f6e66cf9cf3807bfea9a3a80d54e74fe351620e6e50abd37cd3b4eb14c7"
+    },
+    {
+      "path": "alshuail-backend/src/services/familyFinancingPolicy.js",
+      "status": "modified",
+      "sha256": "47c32822f29970712ae16f00c494930e22fe69eb2569e66a3daa9b4a7d3a73b4"
+    },
+    {
+      "path": "alshuail-backend/src/services/financingReminderService.js",
+      "status": "added",
+      "sha256": "7323090ea5c63a12516f55990a9675dae3b893e5e8d4ef3a7f4fed756b0c4959"
+    },
+    {
+      "path": "alshuail-backend/src/services/financingRepaymentService.js",
+      "status": "added",
+      "sha256": "f4c342235809e28f8d8c5127d50b3d894f6f4d59f55c76ccf2e142be686a7a99"
+    },
+    {
+      "path": "alshuail-backend/src/services/financingReversalService.js",
+      "status": "added",
+      "sha256": "487c14778e8777b96ebc6882dca44b2ce656efca11a85ec9d24fb7f6931510c1"
+    },
+    {
+      "path": "alshuail-backend/src/services/firebaseService.js",
+      "status": "modified",
+      "sha256": "9cfffa8812c19f5565e21242102d9e508f7d7e2530c0047e235ce02f789f1599"
+    },
+    {
+      "path": "alshuail-backend/src/services/gatewayReconciliationService.js",
+      "status": "added",
+      "sha256": "c53c6fe97c8122314037943370fff2ced9384fa5cf2105c09b4cddd33ea283a1"
+    },
+    {
+      "path": "alshuail-backend/src/services/marriageSupportPdf.js",
+      "status": "modified",
+      "sha256": "95dab44b03b045c8b380c365aab6e763ba87853f27fe475606c5bee4e17135b7"
+    },
+    {
+      "path": "alshuail-backend/src/services/marriageSupportService.js",
+      "status": "modified",
+      "sha256": "d61c4d919da772c447799ebcc279865891ec3f3f4d7615f7eeefaca0f82f0c25"
+    },
+    {
+      "path": "alshuail-backend/src/services/moyasarService.js",
+      "status": "modified",
+      "sha256": "2323f588cdabbd0bb08e68baa576eec34632a591423dd81feb7888c4e09e5ed6"
+    },
+    {
+      "path": "alshuail-backend/src/services/notificationService.js",
+      "status": "modified",
+      "sha256": "1b21340c4e2ff02ce17b6bac8c61d4a996ac057478878077b2401628c608e205"
+    },
+    {
+      "path": "alshuail-backend/src/services/paymentProcessingService.js",
+      "status": "modified",
+      "sha256": "d9db1c19c00b6a531a1c284be6e3fe25634d81e158f4c20d5b5d64d630894b8b"
+    },
+    {
+      "path": "alshuail-backend/src/utils/paymentDateFilter.js",
+      "status": "modified",
+      "sha256": "5699b2bbea80473b30d9913a9f26e8763a34800f435545922bc3a26495358bd1"
+    }
+  ],
+  "excludedScopes": [
+    "restructuring deletions and archive/tools/docs moves",
+    "unrelated crisis, expenses, accessControl, monitoring, statement/balance changes",
+    "Flutter, iOS, and mobile PWA",
+    "generated build/test outputs",
+    "broad subscription lane except subscription policy/runtime and the required 20260801 prerequisite migration"
+  ],
+  "validation": {
+    "backendNpmCi": "passed; 945 packages audited; 0 vulnerabilities",
+    "backendJest": "passed; 168 suites, 4997 tests; 8 suites/33 tests skipped",
+    "backendLint": "passed with 0 errors and 1407 baseline warnings",
+    "backendNodeSyntax": "passed for all .js/.mjs files outside node_modules/coverage",
+    "adminNpmCi": "passed; 1653 packages audited",
+    "adminAudit": "4 moderate vulnerabilities; 0 low, 0 high, 0 critical",
+    "adminJest": "passed; 29 suites, 193 tests",
+    "adminTypeCheck": "passed",
+    "adminLint": "passed",
+    "adminProductionBuild": "passed"
+  }
+}

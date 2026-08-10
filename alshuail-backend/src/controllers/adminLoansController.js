@@ -7,24 +7,38 @@
  *                  approve / reject / forward to Brouj / record disbursement.
  *
  *   2. Brouj partner (brouj_partner role) — sees ONLY requests forwarded to
- *                  Brouj and records an explicit approve/reject decision
- *                  before uploading the Najiz acknowledgment.
+ *                  Brouj. Their action: upload Najiz acknowledgment. They
+ *                  cannot approve/reject the request itself.
  *
  * Filtering for Brouj is enforced server-side via `req.user.role`, so the
  * client UI can't bypass it.
  */
 
-import { query } from '../services/database.js';
+import { query, getClient } from '../services/database.js';
 import { log } from '../utils/logger.js';
-import { uploadToSupabase } from '../config/documentStorage.js';
-import { LOAN_STATUS, transitionStatus } from '../services/loanService.js';
-import { getStatusHistory } from '../services/statusHistoryService.js';
+import { getSignedUrl, uploadToSupabase } from '../config/documentStorage.js';
+import { LOAN_STATUS, transitionStatus, dispatchStatusNotification } from '../services/loanService.js';
+import { getStatusHistory, recordStatusChange } from '../services/statusHistoryService.js';
+import {
+  FINANCING_PROGRAM,
+  createRepaymentPlanInTransaction,
+  defaultFirstDueDate,
+  getRepaymentPlanByRequest,
+  isFinancingRepaymentEnabled,
+  resolveLoanDisbursementTerms,
+  validateInstallmentCount,
+} from '../services/financingRepaymentService.js';
 import { HijriDateManager } from '../utils/hijriDateUtils.js';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
 function isBrouj(user) {
   return user && user.role === 'brouj_partner';
+}
+
+function dateOnly(value) {
+  if (value instanceof Date) {return value.toISOString().slice(0, 10);}
+  return String(value || '').slice(0, 10);
 }
 
 /**
@@ -51,7 +65,6 @@ function statusFilterForRole(user) {
     // include final states so they can see their completed work
     LOAN_STATUS.READY_FOR_DISBURSEMENT,
     LOAN_STATUS.COMPLETED,
-    LOAN_STATUS.REJECTED,
   ];
 }
 
@@ -63,20 +76,20 @@ async function fetchDocuments(loanId) {
      ORDER BY uploaded_at ASC`,
     [loanId]
   );
-  return rows;
+  return rows.map(({ file_path: filePath, ...document }) => ({
+    ...document,
+    signed_url: getSignedUrl(filePath),
+  }));
 }
 
 /**
  * Auto-create an `expenses` row when a loan disbursement is recorded. Mirrors
  * the diya auto-transfer pattern (see diyasController.transferInternalDiyas).
  *
- * Returns the new expense.id, or null on failure. Failure is non-fatal — the
- * loan still completes; an admin can reconcile manually using the warning
- * logged here. The loan_requests.disbursement_expense_id column is left NULL
- * in that case.
+ * This helper runs on the caller's transaction. Any failure aborts the expense,
+ * balance debit, repayment plan, and request status together.
  */
-async function createLoanDisbursementExpense({ loan, amount, userId, note }) {
-  try {
+async function createLoanDisbursementExpense({ client, loan, amount, userId, note }) {
     const expenseDate = new Date();
     let hijriData;
     try {
@@ -95,10 +108,10 @@ async function createLoanDisbursementExpense({ loan, amount, userId, note }) {
     const titleEn      = `Family financing disbursement - ${loan.sequence_number}`;
     const descriptionAr = note
       ? `${note} (طلب ${loan.sequence_number})`
-      : `صرف مبلغ تمويل عائلي للعضو ${loan.applicant_name} (طلب ${loan.sequence_number})`;
-    const notesText    = `صرف تلقائي من برنامج التمويل العائلي. رقم الطلب: ${loan.sequence_number}`;
+      : `صرف تمويل عائلي للعضو ${loan.applicant_name} (طلب ${loan.sequence_number})`;
+    const notesText    = `صرف تلقائي من نظام التمويل العائلي. رقم الطلب: ${loan.sequence_number}`;
 
-    const { rows } = await query(
+    const { rows } = await client.query(
       `INSERT INTO expenses (
          expense_category, title_ar, title_en, description_ar, amount, currency,
          expense_date, paid_to, payment_method, notes,
@@ -129,14 +142,6 @@ async function createLoanDisbursementExpense({ loan, amount, userId, note }) {
       ]
     );
     return rows[0]?.id || null;
-  } catch (err) {
-    log.warn('[adminLoansController] failed to create disbursement expense (non-fatal)', {
-      error: err.message,
-      loanId: loan.id,
-      sequence_number: loan.sequence_number,
-    });
-    return null;
-  }
 }
 
 // ─── list / detail ─────────────────────────────────────────────────────────────
@@ -180,7 +185,8 @@ export const listLoans = async (req, res) => {
 
     const { rows } = await query(
       `SELECT lr.id, lr.sequence_number, lr.status, lr.applicant_name, lr.national_id,
-              lr.loan_amount, lr.admin_fee_amount, lr.created_at, lr.updated_at,
+              lr.loan_amount, lr.admin_fee_amount, lr.financing_fee_amount,
+              lr.total_repayment_amount, lr.created_at, lr.updated_at,
               lr.member_id, m.phone AS member_phone, m.full_name_ar AS member_full_name_ar
        FROM loan_requests lr
        LEFT JOIN members m ON lr.member_id = m.id
@@ -223,7 +229,11 @@ export const getLoan = async (req, res) => {
       foreignKey: 'loan_request_id',
       recordId: loan.id,
     });
-    return res.json({ success: true, data: { ...loan, documents, history } });
+    const repaymentPlan = await getRepaymentPlanByRequest({
+      programType: FINANCING_PROGRAM.FAMILY,
+      requestId: loan.id,
+    });
+    return res.json({ success: true, data: { ...loan, documents, history, repayment_plan: repaymentPlan } });
   } catch (err) {
     log.error('[adminLoans] getLoan', { error: err.message });
     return res.status(500).json({ success: false, error: 'فشل جلب الطلب' });
@@ -315,6 +325,14 @@ export const forwardToBrouj = async (req, res) => {
 };
 
 export const recordDisbursement = async (req, res) => {
+  if (!isFinancingRepaymentEnabled()) {
+    return res.status(503).json({
+      success: false,
+      code: 'FINANCING_REPAYMENT_DISABLED',
+      message: 'صرف التمويل وجدول السداد غير مفعلين حالياً'
+    });
+  }
+  let client;
   try {
     if (isBrouj(req.user)) {return res.status(403).json({ success: false, error: 'غير مسموح' });}
     const amount = Number(req.body?.amount);
@@ -322,40 +340,183 @@ export const recordDisbursement = async (req, res) => {
       return res.status(400).json({ success: false, code: 'INVALID_AMOUNT', message: 'المبلغ غير صالح' });
     }
 
-    // Pull the current loan first — we need sequence_number + applicant_name
-    // for the expense row that's about to be auto-created.
-    const { rows: loanRows } = await query(
-      'SELECT id, sequence_number, applicant_name FROM loan_requests WHERE id = $1',
+    const installmentCount = validateInstallmentCount(req.body?.installment_count, 12);
+    const firstDueDate = req.body?.first_due_date === null || req.body?.first_due_date === undefined
+      ? defaultFirstDueDate()
+      : req.body.first_due_date;
+
+    client = await getClient();
+    await client.query('BEGIN');
+    const { rows: loanRows } = await client.query(
+      'SELECT * FROM loan_requests WHERE id = $1 FOR UPDATE',
       [req.params.id]
     );
     if (loanRows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ success: false, code: 'NOT_FOUND', message: 'الطلب غير موجود' });
     }
     const loan = loanRows[0];
+    if (loan.status === LOAN_STATUS.COMPLETED) {
+      const existingPlan = await getRepaymentPlanByRequest({
+        programType: FINANCING_PROGRAM.FAMILY,
+        requestId: loan.id,
+        client,
+      });
+      if (!existingPlan) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({
+          success: false,
+          code: 'LEGACY_COMPLETED_REQUEST_NO_PLAN',
+          message: 'هذا طلب تاريخي مكتمل ولا يمكن إنشاء جدول سداد له تلقائياً'
+        });
+      }
+      const replayMismatch = !Number.isFinite(Number(loan.disbursed_amount))
+        || Math.abs(Number(loan.disbursed_amount) - amount) > 0.009
+        || (
+          req.body?.installment_count !== null
+          && req.body?.installment_count !== undefined
+          && Number(existingPlan.installment_count) !== installmentCount
+        )
+        || (
+          req.body?.first_due_date !== null
+          && req.body?.first_due_date !== undefined
+          && dateOnly(existingPlan.first_due_date) !== String(firstDueDate)
+        );
+      if (replayMismatch) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({
+          success: false,
+          code: 'DISBURSEMENT_REPLAY_MISMATCH',
+          message: 'بيانات إعادة الطلب لا تطابق عملية الصرف المسجلة'
+        });
+      }
+      await client.query('COMMIT');
+      return res.json({
+        success: true,
+        idempotent_replay: true,
+        data: { ...loan, repayment_plan: existingPlan },
+        expense_id: loan.disbursement_expense_id,
+        repayment_plan: existingPlan,
+      });
+    }
+    if (loan.status !== LOAN_STATUS.READY_FOR_DISBURSEMENT) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({
+        success: false,
+        code: 'ILLEGAL_TRANSITION',
+        message: 'الطلب غير جاهز للصرف'
+      });
+    }
+    const terms = resolveLoanDisbursementTerms(loan);
+    if (
+      req.body?.installment_count === null
+      || req.body?.installment_count === undefined
+      || req.body?.first_due_date === null
+      || req.body?.first_due_date === undefined
+    ) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        success: false,
+        code: terms.isLegacy ? 'LEGACY_SCHEDULE_SELECTION_REQUIRED' : 'SCHEDULE_SELECTION_REQUIRED',
+        message: 'يجب تحديد عدد الأقساط وتاريخ أول قسط صراحةً'
+      });
+    }
 
-    // Auto-create the matching expenses row first. Best-effort — if it fails
-    // we still complete the loan and log a warning for manual reconciliation.
+    const { principal, feeAmount } = terms;
+    if (Math.abs(amount - principal) > 0.009) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        success: false,
+        code: 'DISBURSEMENT_AMOUNT_MISMATCH',
+        message: `مبلغ الصرف يجب أن يطابق مبلغ الباقة (${principal} ر.س)`
+      });
+    }
     const expenseId = await createLoanDisbursementExpense({
+      client,
       loan,
       amount,
       userId: req.user.id,
       note: req.body?.note,
     });
 
-    const updated = await transitionStatus({
-      loanId: req.params.id,
+    const plan = await createRepaymentPlanInTransaction({
+      client,
+      programType: FINANCING_PROGRAM.FAMILY,
+      requestId: loan.id,
+      memberId: loan.member_id,
+      principalAmount: principal,
+      feeAmount,
+      installmentCount,
+      firstDueDate,
+      createdById: req.user.id,
+    });
+
+    const { rows: updatedRows } = await client.query(
+      `UPDATE loan_requests
+       SET status = $1,
+           disbursed_at = NOW(),
+           disbursed_amount = $2,
+           disbursement_expense_id = $3,
+           financing_fee_amount = $4,
+           total_repayment_amount = $5
+       WHERE id = $6 AND status = $7
+       RETURNING *`,
+      [
+        LOAN_STATUS.COMPLETED,
+        amount,
+        expenseId,
+        feeAmount,
+        Number(plan.total_amount),
+        loan.id,
+        LOAN_STATUS.READY_FOR_DISBURSEMENT,
+      ]
+    );
+    if (!updatedRows.length) {
+      throw Object.assign(new Error('تغيرت حالة الطلب أثناء الصرف'), { code: 'ILLEGAL_TRANSITION' });
+    }
+    const updated = updatedRows[0];
+    await recordStatusChange({
+      tableName: 'loan_request_status_history',
+      foreignKey: 'loan_request_id',
+      recordId: loan.id,
+      fromStatus: loan.status,
       toStatus: LOAN_STATUS.COMPLETED,
       changedById: req.user.id,
-      note: req.body?.note || 'تم صرف التمويل العائلي',
-      extraUpdates: {
-        disbursed_at: new Date(),
-        disbursed_amount: amount,
-        ...(expenseId ? { disbursement_expense_id: expenseId } : {}),
-      },
+      note: req.body?.note || 'تم صرف التمويل وتفعيل جدول الأقساط',
+      client,
     });
-    return res.json({ success: true, data: updated, expense_id: expenseId });
+    const repaymentPlan = await getRepaymentPlanByRequest({
+      programType: FINANCING_PROGRAM.FAMILY,
+      requestId: loan.id,
+      client,
+    });
+    await client.query('COMMIT');
+    await dispatchStatusNotification(updated, LOAN_STATUS.COMPLETED);
+    return res.json({
+      success: true,
+      data: { ...updated, repayment_plan: repaymentPlan },
+      expense_id: expenseId,
+      repayment_plan: repaymentPlan,
+    });
   } catch (err) {
+    try { await client?.query('ROLLBACK'); } catch (_rollbackError) { /* no-op */ }
+    if ([
+      'INVALID_INSTALLMENT_COUNT',
+      'INVALID_FIRST_DUE_DATE',
+      'FIRST_DUE_DATE_IN_PAST',
+      'INVALID_FINANCING_TIER',
+    ].includes(err?.code)) {
+      return res.status(400).json({ success: false, code: err.code, message: err.message });
+    }
+    if ([
+      'REPAYMENT_PLAN_CONFLICT',
+      'FINANCING_TERMS_SNAPSHOT_INVALID',
+    ].includes(err?.code)) {
+      return res.status(409).json({ success: false, code: err.code, message: err.message });
+    }
     return handleTransitionError(res, err);
+  } finally {
+    client?.release();
   }
 };
 

@@ -13,6 +13,7 @@
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs/promises';
+import { createHmac, randomUUID, timingSafeEqual } from 'crypto';
 import { fileURLToPath } from 'url';
 import { log } from '../utils/logger.js';
 import { query } from '../services/database.js';
@@ -22,12 +23,35 @@ const __dirname = path.dirname(__filename);
 
 // Base upload directory - use environment variable or default
 const UPLOAD_BASE_DIR = process.env.UPLOAD_DIR || path.join(__dirname, '../../uploads');
+// Storage bucket name (kept for backward compatibility, now a subdirectory)
+export const BUCKET_NAME = 'member-documents';
+const DEFAULT_SIGNED_URL_TTL_SECONDS = 60 * 60;
+const MAX_SIGNED_URL_TTL_SECONDS = 24 * 60 * 60;
+const SIGNATURE_BYTE_LENGTH = 32;
+
+const documentStorageRoot = () => path.resolve(UPLOAD_BASE_DIR, BUCKET_NAME);
+
+const documentSigningSecret = () => {
+  const secret = process.env.DOCUMENT_SIGNING_SECRET || process.env.JWT_SECRET;
+  if (typeof secret !== 'string' || secret.length === 0) {
+    const error = new Error('Document signing is not configured');
+    error.code = 'DOCUMENT_SIGNING_NOT_CONFIGURED';
+    throw error;
+  }
+  return secret;
+};
+
+const signedDocumentError = (code, message) => {
+  const error = new Error(message);
+  error.code = code;
+  return error;
+};
 
 // Ensure upload directory exists on startup
 (async () => {
   try {
-    await fs.mkdir(UPLOAD_BASE_DIR, { recursive: true });
-    log.info('[DocumentStorage] Upload directory ready', { path: UPLOAD_BASE_DIR });
+    await fs.mkdir(documentStorageRoot(), { recursive: true });
+    log.info('[DocumentStorage] Upload directory ready', { path: documentStorageRoot() });
   } catch (error) {
     log.error('[DocumentStorage] Failed to create upload directory', { error: error.message });
   }
@@ -90,14 +114,12 @@ export const CATEGORY_TRANSLATIONS = {
   [DOCUMENT_CATEGORIES.OTHER]: 'أخرى'
 };
 
-// Storage bucket name (kept for backward compatibility, now represents a subdirectory)
-export const BUCKET_NAME = 'member-documents';
-
 // Generate unique file path
 export const generateFilePath = (userId, category, filename) => {
   const timestamp = Date.now();
+  const uniqueId = randomUUID();
   const sanitizedFilename = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
-  return `${userId}/${category}/${timestamp}_${sanitizedFilename}`;
+  return `${userId}/${category}/${timestamp}_${uniqueId}_${sanitizedFilename}`;
 };
 
 /**
@@ -106,7 +128,33 @@ export const generateFilePath = (userId, category, filename) => {
  * @returns {string} Full filesystem path
  */
 const getFullPath = (filePath) => {
-  return path.join(UPLOAD_BASE_DIR, BUCKET_NAME, filePath);
+  if (typeof filePath !== 'string' || filePath.trim() === '') {
+    throw new Error('Invalid document storage path');
+  }
+
+  if (filePath.includes('\0') || filePath.includes('\\')) {
+    throw new Error('Invalid document storage path');
+  }
+
+  const normalizedPath = path.posix.normalize(filePath);
+  if (
+    path.posix.isAbsolute(filePath) ||
+    normalizedPath === '..' ||
+    normalizedPath.startsWith('../') ||
+    normalizedPath !== filePath
+  ) {
+    throw new Error('Document path escapes the storage root');
+  }
+
+  const storageRoot = documentStorageRoot();
+  const fullPath = path.resolve(storageRoot, filePath);
+  const insideStorageRoot = fullPath.startsWith(`${storageRoot}${path.sep}`);
+
+  if (!insideStorageRoot) {
+    throw new Error('Document path escapes the storage root');
+  }
+
+  return fullPath;
 };
 
 /**
@@ -140,7 +188,9 @@ export const uploadToSupabase = async (file, userId, category) => {
     await fs.mkdir(directory, { recursive: true });
 
     // Write file to disk
-    await fs.writeFile(fullPath, file.buffer);
+    // Never overwrite archived financial evidence. UUID entropy makes a
+    // collision practically impossible; `wx` remains the filesystem guard.
+    await fs.writeFile(fullPath, file.buffer, { flag: 'wx' });
 
     log.info('[DocumentStorage] File uploaded', {
       path: filePath,
@@ -188,23 +238,143 @@ export const deleteFromSupabase = async (filePath) => {
 };
 
 /**
- * Get URL for file access (replaces signed URL functionality)
- * For local storage, we return a direct URL since files are served via Express/nginx
- * MIGRATED from Supabase signed URLs
+ * Get a short-lived HMAC-signed URL for private file access.
  * @param {string} filePath - Relative file path
- * @param {number} _expiresIn - Ignored for local storage (kept for API compatibility)
- * @returns {string} Public URL for the file
+ * @param {number} _expiresIn - Expiry in seconds (maximum 24 hours)
+ * @returns {string} Signed private document route
  */
 export const getSignedUrl = (filePath, _expiresIn = 3600) => {
   try {
-    // For local storage, just return the public URL
-    // In production with nginx, you could implement token-based access if needed
-    const url = getPublicUrl(filePath);
-    return url;
+    // Validate before signing so a token can never authorize a path outside
+    // the private document bucket.
+    getFullPath(filePath);
+
+    const expiresIn = Number(_expiresIn ?? DEFAULT_SIGNED_URL_TTL_SECONDS);
+    if (
+      !Number.isInteger(expiresIn) ||
+      expiresIn <= 0 ||
+      expiresIn > MAX_SIGNED_URL_TTL_SECONDS
+    ) {
+      throw new Error('Invalid signed document URL expiry');
+    }
+
+    const payload = Buffer.from(JSON.stringify({
+      p: filePath,
+      e: Math.floor(Date.now() / 1000) + expiresIn,
+    })).toString('base64url');
+    const signature = createHmac('sha256', documentSigningSecret())
+      .update(payload)
+      .digest('base64url');
+
+    return `/api/documents/file/${payload}.${signature}`;
   } catch (error) {
     log.error('[DocumentStorage] Error generating URL', { error: error.message });
     throw error;
   }
+};
+
+/**
+ * Verify and decode a signed document token.
+ * Signature comparison is constant-time and the decoded storage path is
+ * revalidated before any filesystem operation.
+ *
+ * @param {string} token - Token emitted by getSignedUrl (without route prefix)
+ * @param {number} nowSeconds - Epoch seconds; injectable for deterministic tests
+ * @returns {{ filePath: string, fullPath: string, expiresAt: number }}
+ */
+export const verifySignedDocumentToken = (
+  token,
+  nowSeconds = Math.floor(Date.now() / 1000)
+) => {
+  if (typeof token !== 'string' || token.length === 0 || token.length > 4096) {
+    throw signedDocumentError('DOCUMENT_TOKEN_INVALID', 'Invalid document token');
+  }
+
+  const parts = token.split('.');
+  if (parts.length !== 2 || !parts[0] || !parts[1]) {
+    throw signedDocumentError('DOCUMENT_TOKEN_INVALID', 'Invalid document token');
+  }
+
+  const [encodedPayload, encodedSignature] = parts;
+  let providedSignature;
+  try {
+    providedSignature = Buffer.from(encodedSignature, 'base64url');
+  } catch {
+    throw signedDocumentError('DOCUMENT_TOKEN_INVALID', 'Invalid document token');
+  }
+  if (providedSignature.toString('base64url') !== encodedSignature) {
+    throw signedDocumentError('DOCUMENT_TOKEN_INVALID', 'Invalid document token');
+  }
+
+  const expectedSignature = createHmac('sha256', documentSigningSecret())
+    .update(encodedPayload)
+    .digest();
+  if (
+    providedSignature.length !== SIGNATURE_BYTE_LENGTH ||
+    !timingSafeEqual(providedSignature, expectedSignature)
+  ) {
+    throw signedDocumentError('DOCUMENT_TOKEN_INVALID', 'Invalid document token');
+  }
+
+  let payload;
+  try {
+    const decodedPayload = Buffer.from(encodedPayload, 'base64url');
+    if (decodedPayload.toString('base64url') !== encodedPayload) {
+      throw new Error('Non-canonical token payload');
+    }
+    payload = JSON.parse(decodedPayload.toString('utf8'));
+  } catch {
+    throw signedDocumentError('DOCUMENT_TOKEN_INVALID', 'Invalid document token');
+  }
+
+  if (
+    !payload ||
+    typeof payload.p !== 'string' ||
+    !Number.isSafeInteger(payload.e)
+  ) {
+    throw signedDocumentError('DOCUMENT_TOKEN_INVALID', 'Invalid document token');
+  }
+  if (!Number.isSafeInteger(nowSeconds) || payload.e <= nowSeconds) {
+    throw signedDocumentError('DOCUMENT_TOKEN_EXPIRED', 'Document token expired');
+  }
+
+  let fullPath;
+  try {
+    fullPath = getFullPath(payload.p);
+  } catch {
+    throw signedDocumentError('DOCUMENT_TOKEN_INVALID', 'Invalid document token');
+  }
+
+  return { filePath: payload.p, fullPath, expiresAt: payload.e };
+};
+
+/**
+ * Read a file authorized by a signed token while also protecting against a
+ * symlink inside the bucket resolving outside the configured storage root.
+ */
+export const readSignedDocument = async (token) => {
+  const verified = verifySignedDocumentToken(token);
+  const [realStorageRoot, realFilePath] = await Promise.all([
+    fs.realpath(documentStorageRoot()),
+    fs.realpath(verified.fullPath),
+  ]);
+  if (!realFilePath.startsWith(`${realStorageRoot}${path.sep}`)) {
+    throw signedDocumentError('DOCUMENT_TOKEN_INVALID', 'Invalid document token');
+  }
+
+  const stats = await fs.stat(realFilePath);
+  if (!stats.isFile()) {
+    const error = new Error('Document file not found');
+    error.code = 'ENOENT';
+    throw error;
+  }
+
+  return {
+    buffer: await fs.readFile(realFilePath),
+    filePath: verified.filePath,
+    filename: path.basename(verified.filePath),
+    expiresAt: verified.expiresAt,
+  };
 };
 
 /**

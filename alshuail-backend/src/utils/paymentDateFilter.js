@@ -9,6 +9,7 @@ export class PaymentDateFilterError extends Error {
     this.statusCode = 400;
   }
 }
+
 function normalizeDateOnly(value, label) {
   if (value === undefined || value === null || value === '') {
     return null;

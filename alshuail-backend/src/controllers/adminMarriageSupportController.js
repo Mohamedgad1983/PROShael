@@ -11,7 +11,7 @@
  *      signatures, then records disbursement.
  */
 
-import { query } from '../services/database.js';
+import { query, getClient } from '../services/database.js';
 import { log } from '../utils/logger.js';
 import {
   MARRIAGE_STATUS,
@@ -20,8 +20,18 @@ import {
   calculateAndSnapshot,
   generatePdfAndStamp,
   recordSignature,
+  dispatchStatusNotification,
 } from '../services/marriageSupportService.js';
-import { getStatusHistory } from '../services/statusHistoryService.js';
+import { getStatusHistory, recordStatusChange } from '../services/statusHistoryService.js';
+import {
+  FINANCING_PROGRAM,
+  createRepaymentPlanInTransaction,
+  defaultFirstDueDate,
+  getRepaymentPlanByRequest,
+  isFinancingRepaymentEnabled,
+  resolveFinancingTier,
+  validateInstallmentCount,
+} from '../services/financingRepaymentService.js';
 
 // ─── role helpers ─────────────────────────────────────────────────────────────
 
@@ -30,6 +40,11 @@ function isCommitteeChair(user) {
 }
 function isChairman(user) {
   return user && user.role === 'super_admin'; // for v1, super_admin is the chairman
+}
+
+function dateOnly(value) {
+  if (value instanceof Date) {return value.toISOString().slice(0, 10);}
+  return String(value || '').slice(0, 10);
 }
 
 async function fetchSignatures(requestId) {
@@ -112,7 +127,11 @@ export const getRequest = async (req, res) => {
       foreignKey: 'request_id',
       recordId: request.id,
     });
-    return res.json({ success: true, data: { ...request, signatures, history } });
+    const repaymentPlan = await getRepaymentPlanByRequest({
+      programType: FINANCING_PROGRAM.MARRIAGE,
+      requestId: request.id,
+    });
+    return res.json({ success: true, data: { ...request, signatures, history, repayment_plan: repaymentPlan } });
   } catch (err) {
     log.error('[adminMarriage] getRequest', { error: err.message });
     return res.status(500).json({ success: false, error: 'فشل جلب الطلب' });
@@ -388,6 +407,14 @@ export const chairmanApprove = async (req, res) => {
  * payout to the fund's accounting.
  */
 export const recordDisbursement = async (req, res) => {
+  if (!isFinancingRepaymentEnabled()) {
+    return res.status(503).json({
+      success: false,
+      code: 'FINANCING_REPAYMENT_DISABLED',
+      error: 'صرف دعم الزواج وجدول السداد غير مفعلين حالياً'
+    });
+  }
+  let client;
   try {
     if (!isChairman(req.user)) {
       return res.status(403).json({ success: false, error: 'مخصص لرئيس الصندوق' });
@@ -397,34 +424,107 @@ export const recordDisbursement = async (req, res) => {
       return res.status(400).json({ success: false, code: 'INVALID_AMOUNT', error: 'المبلغ غير صالح' });
     }
 
-    const { rows } = await query(
-      'SELECT id, sequence_number, applicant_name FROM marriage_support_requests WHERE id = $1',
+    const installmentCount = validateInstallmentCount(req.body?.installment_count, 12);
+    const firstDueDate = req.body?.first_due_date === null || req.body?.first_due_date === undefined
+      ? defaultFirstDueDate()
+      : req.body.first_due_date;
+    client = await getClient();
+    await client.query('BEGIN');
+    const { rows } = await client.query(
+      'SELECT * FROM marriage_support_requests WHERE id = $1 FOR UPDATE',
       [req.params.id]
     );
     if (rows.length === 0) {
+      await client.query('ROLLBACK');
       return res.status(404).json({ success: false, error: 'الطلب غير موجود' });
     }
     const request = rows[0];
-
-    // Auto-create expense row (best-effort).
-    let expenseId = null;
-    try {
-      const expenseDate = new Date();
-      const { HijriDateManager } = await import('../utils/hijriDateUtils.js');
-      let hijriData;
-      try {
-        hijriData = HijriDateManager.convertToHijri(expenseDate);
-      } catch (_e) {
-        hijriData = { hijri_date_string: '', hijri_year: null, hijri_month: null, hijri_day: null, hijri_month_name: '' };
+    if (request.status === MARRIAGE_STATUS.COMPLETED) {
+      const existingPlan = await getRepaymentPlanByRequest({
+        programType: FINANCING_PROGRAM.MARRIAGE,
+        requestId: request.id,
+        client,
+      });
+      if (!existingPlan) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({
+          success: false,
+          code: 'LEGACY_COMPLETED_REQUEST_NO_PLAN',
+          error: 'هذا طلب تاريخي مكتمل ولا يمكن إنشاء جدول سداد له تلقائياً'
+        });
       }
+      const replayMismatch = !Number.isFinite(Number(request.disbursed_amount))
+        || Math.abs(Number(request.disbursed_amount) - amount) > 0.009
+        || (
+          req.body?.installment_count !== null
+          && req.body?.installment_count !== undefined
+          && Number(existingPlan.installment_count) !== installmentCount
+        )
+        || (
+          req.body?.first_due_date !== null
+          && req.body?.first_due_date !== undefined
+          && dateOnly(existingPlan.first_due_date) !== String(firstDueDate)
+        );
+      if (replayMismatch) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({
+          success: false,
+          code: 'DISBURSEMENT_REPLAY_MISMATCH',
+          error: 'بيانات إعادة الطلب لا تطابق عملية الصرف المسجلة'
+        });
+      }
+      await client.query('COMMIT');
+      return res.json({
+        success: true,
+        idempotent_replay: true,
+        data: { ...request, repayment_plan: existingPlan },
+        expense_id: request.disbursement_expense_id,
+        repayment_plan: existingPlan,
+      });
+    }
+    if (request.status !== MARRIAGE_STATUS.APPROVED_BY_CHAIRMAN) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ success: false, code: 'ILLEGAL_TRANSITION', error: 'الطلب غير جاهز للصرف' });
+    }
+    if (
+      req.body?.installment_count === null
+      || req.body?.installment_count === undefined
+      || req.body?.first_due_date === null
+      || req.body?.first_due_date === undefined
+    ) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        success: false,
+        code: 'SCHEDULE_SELECTION_REQUIRED',
+        error: 'يجب تحديد عدد الأقساط وتاريخ أول قسط صراحةً'
+      });
+    }
+    const tier = resolveFinancingTier(amount, null, { requireExact: true });
+    if (Number(request.final_amount) > 0 && amount > Number(request.final_amount)) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        success: false,
+        code: 'AMOUNT_EXCEEDS_APPROVED_SUPPORT',
+        error: 'مبلغ الصرف يتجاوز مبلغ دعم الزواج المعتمد'
+      });
+    }
 
-      const titleAr = `دعم زواج - ${request.sequence_number}`;
-      const titleEn = `Marriage support - ${request.sequence_number}`;
-      const descriptionAr = `صرف دعم زواج للعضو ${request.applicant_name} (طلب ${request.sequence_number})`;
-      const notesText = `صرف تلقائي من نظام دعم الزواج. رقم الطلب: ${request.sequence_number}`;
+    const expenseDate = new Date();
+    const { HijriDateManager } = await import('../utils/hijriDateUtils.js');
+    let hijriData;
+    try {
+      hijriData = HijriDateManager.convertToHijri(expenseDate);
+    } catch (_e) {
+      hijriData = { hijri_date_string: '', hijri_year: null, hijri_month: null, hijri_day: null, hijri_month_name: '' };
+    }
 
-      const { rows: expRows } = await query(
-        `INSERT INTO expenses (
+    const titleAr = `دعم زواج - ${request.sequence_number}`;
+    const titleEn = `Marriage support - ${request.sequence_number}`;
+    const descriptionAr = `صرف دعم زواج للعضو ${request.applicant_name} (طلب ${request.sequence_number})`;
+    const notesText = `صرف تلقائي من نظام دعم الزواج. رقم الطلب: ${request.sequence_number}`;
+
+    const { rows: expRows } = await client.query(
+      `INSERT INTO expenses (
            expense_category, title_ar, title_en, description_ar, amount, currency,
            expense_date, paid_to, payment_method, notes,
            approval_required, status, created_by,
@@ -436,39 +536,90 @@ export const recordDisbursement = async (req, res) => {
            $9, $10, $11, $12, $13,
            $8, $14, 'صرف تلقائي بعد اكتمال إجراءات دعم الزواج'
          ) RETURNING id`,
-        [
-          titleAr, titleEn, descriptionAr, amount,
-          expenseDate.toISOString().split('T')[0],
-          request.applicant_name || '', notesText,
-          req.user.id,
-          hijriData.hijri_date_string || '',
-          hijriData.hijri_year || null,
-          hijriData.hijri_month || null,
-          hijriData.hijri_day || null,
-          hijriData.hijri_month_name || '',
-          new Date().toISOString(),
-        ]
-      );
-      expenseId = expRows[0]?.id || null;
-    } catch (err) {
-      log.warn('[adminMarriage] expense create failed (non-fatal)', { error: err.message, requestId: request.id });
-    }
+      [
+        titleAr, titleEn, descriptionAr, amount,
+        expenseDate.toISOString().split('T')[0],
+        request.applicant_name || '', notesText,
+        req.user.id,
+        hijriData.hijri_date_string || '',
+        hijriData.hijri_year || null,
+        hijriData.hijri_month || null,
+        hijriData.hijri_day || null,
+        hijriData.hijri_month_name || '',
+        new Date().toISOString(),
+      ]
+    );
+    const expenseId = expRows[0]?.id || null;
 
-    const updated = await transitionStatus({
+    const plan = await createRepaymentPlanInTransaction({
+      client,
+      programType: FINANCING_PROGRAM.MARRIAGE,
       requestId: request.id,
+      memberId: request.member_id,
+      principalAmount: tier.principal,
+      feeAmount: tier.fee,
+      installmentCount,
+      firstDueDate,
+      createdById: req.user.id,
+    });
+
+    const { rows: updatedRows } = await client.query(
+      `UPDATE marriage_support_requests
+       SET status = $1, disbursed_at = NOW(), disbursed_amount = $2,
+           disbursed_by_id = $3, disbursement_expense_id = $4
+       WHERE id = $5 AND status = $6
+       RETURNING *`,
+      [
+        MARRIAGE_STATUS.COMPLETED,
+        amount,
+        req.user.id,
+        expenseId,
+        request.id,
+        MARRIAGE_STATUS.APPROVED_BY_CHAIRMAN,
+      ]
+    );
+    if (!updatedRows.length) {
+      throw Object.assign(new Error('تغيرت حالة الطلب أثناء الصرف'), { code: 'ILLEGAL_TRANSITION' });
+    }
+    const updated = updatedRows[0];
+    await recordStatusChange({
+      tableName: 'marriage_support_status_history',
+      foreignKey: 'request_id',
+      recordId: request.id,
+      fromStatus: request.status,
       toStatus: MARRIAGE_STATUS.COMPLETED,
       changedById: req.user.id,
-      actorRole: 'super_admin',
-      note: req.body?.note || 'تم صرف الدعم',
-      extraUpdates: {
-        disbursed_at: new Date(),
-        disbursed_amount: amount,
-        disbursed_by_id: req.user.id,
-        ...(expenseId ? { disbursement_expense_id: expenseId } : {}),
-      },
+      note: req.body?.note || 'تم صرف الدعم وتفعيل جدول الأقساط',
+      client,
     });
-    return res.json({ success: true, data: updated, expense_id: expenseId });
+    const repaymentPlan = await getRepaymentPlanByRequest({
+      programType: FINANCING_PROGRAM.MARRIAGE,
+      requestId: request.id,
+      client,
+    });
+    await client.query('COMMIT');
+    await dispatchStatusNotification(updated, MARRIAGE_STATUS.COMPLETED);
+    return res.json({
+      success: true,
+      data: { ...updated, repayment_plan: repaymentPlan },
+      expense_id: expenseId,
+      repayment_plan: repaymentPlan || plan,
+    });
   } catch (err) {
+    try { await client?.query('ROLLBACK'); } catch (_rollbackError) { /* no-op */ }
+    if ([
+      'INVALID_FINANCING_TIER',
+      'INVALID_INSTALLMENT_COUNT',
+      'INVALID_FIRST_DUE_DATE',
+      'FIRST_DUE_DATE_IN_PAST',
+    ].includes(err?.code)) {
+      return res.status(400).json({ success: false, code: err.code, error: err.message });
+    }
+    if (err?.code === 'REPAYMENT_PLAN_CONFLICT') {
+      return res.status(409).json({ success: false, code: err.code, error: err.message });
+    }
     return handleTransitionError(res, err);
+  } finally {
+    client?.release();
   }
 };

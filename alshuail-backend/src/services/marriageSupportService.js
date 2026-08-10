@@ -69,6 +69,56 @@ export const SIGNATURE_ORDER = Object.freeze([
   SIGNER_ROLE.COMMITTEE_CHAIR,
 ]);
 
+export const SIGNATURE_REMINDER_COOLDOWN_SECONDS = 15 * 60;
+
+const signatureReminderCache = new Map();
+const signatureReminderInFlight = new Map();
+
+function idsMatch(left, right) {
+  return left !== undefined && left !== null &&
+    right !== undefined && right !== null &&
+    String(left) === String(right);
+}
+
+function serviceError(message, code) {
+  const error = new Error(message);
+  error.code = code;
+  return error;
+}
+
+/**
+ * Resolve a request participant from immutable server-side assignments.
+ * The request body is deliberately never consulted for this decision.
+ */
+export function deriveParticipantRole(request, memberId) {
+  if (!request || memberId === undefined || memberId === null) {return null;}
+  if (idsMatch(request.member_id, memberId)) {return SIGNER_ROLE.BENEFICIARY;}
+  if (idsMatch(request.witness_1_id, memberId)) {return SIGNER_ROLE.WITNESS_1;}
+  if (idsMatch(request.witness_2_id, memberId)) {return SIGNER_ROLE.WITNESS_2;}
+  if (idsMatch(request.committee_chair_id, memberId)) {return SIGNER_ROLE.COMMITTEE_CHAIR;}
+  return null;
+}
+
+function signerMemberIdForRole(request, signerRole) {
+  const ids = {
+    [SIGNER_ROLE.BENEFICIARY]: request?.member_id,
+    [SIGNER_ROLE.WITNESS_1]: request?.witness_1_id,
+    [SIGNER_ROLE.WITNESS_2]: request?.witness_2_id,
+    [SIGNER_ROLE.COMMITTEE_CHAIR]: request?.committee_chair_id,
+  };
+  return ids[signerRole] || null;
+}
+
+function signerNameForRole(request, signerRole) {
+  const names = {
+    [SIGNER_ROLE.BENEFICIARY]: request?.applicant_name,
+    [SIGNER_ROLE.WITNESS_1]: request?.witness_1_name,
+    [SIGNER_ROLE.WITNESS_2]: request?.witness_2_name,
+    [SIGNER_ROLE.COMMITTEE_CHAIR]: request?.committee_chair_name || 'رئيس اللجنة',
+  };
+  return names[signerRole] || null;
+}
+
 const ALLOWED_TRANSITIONS = {
   [MARRIAGE_STATUS.SUBMITTED]:              [MARRIAGE_STATUS.UNDER_COMMITTEE_REVIEW, MARRIAGE_STATUS.CANCELLED, MARRIAGE_STATUS.REJECTED],
   [MARRIAGE_STATUS.UNDER_COMMITTEE_REVIEW]: [MARRIAGE_STATUS.DATA_ENTERED, MARRIAGE_STATUS.REJECTED, MARRIAGE_STATUS.CANCELLED],
@@ -253,7 +303,7 @@ const STATUS_NOTIFICATIONS = {
   },
   [MARRIAGE_STATUS.COMPLETED]: {
     title: 'تم صرف دعم الزواج',
-    body: (r) => `تم صرف دعم الزواج رقم ${r.sequence_number} بنجاح.`,
+    body: (r) => `تم صرف دعم الزواج رقم ${r.sequence_number} وتفعيل جدول الأقساط.`,
   },
   [MARRIAGE_STATUS.REJECTED]: {
     title: 'تم رفض طلب دعم الزواج',
@@ -410,12 +460,20 @@ export async function calculateAndSnapshot({
 }) {
   const settings = await getSettings();
 
-  // Auto-count previous ananiyat for this member (lookup via the request).
-  const { rows: rRows } = await query('SELECT member_id FROM marriage_support_requests WHERE id = $1', [requestId]);
+  // Signing inputs are mutable only during committee review. The UPDATE below
+  // repeats this predicate to close the race between this read and the write.
+  const { rows: rRows } = await query(
+    'SELECT member_id, status FROM marriage_support_requests WHERE id = $1',
+    [requestId]
+  );
   if (rRows.length === 0) {
-    const e = new Error('Marriage support request not found');
-    e.code = 'NOT_FOUND';
-    throw e;
+    throw serviceError('Marriage support request not found', 'NOT_FOUND');
+  }
+  if (rRows[0].status !== MARRIAGE_STATUS.UNDER_COMMITTEE_REVIEW) {
+    throw serviceError(
+      'Marriage support calculation can only be changed during committee review',
+      'INVALID_STATE'
+    );
   }
   const memberId = rRows[0].member_id;
   const autoCount = await countPreviousAnaniyat(memberId);
@@ -454,7 +512,7 @@ export async function calculateAndSnapshot({
        competitive_balance = $12,
        final_amount        = $13,
        calculated_at       = NOW()
-     WHERE id = $14
+     WHERE id = $14 AND status = $15
      RETURNING *`,
     [
       round2(cs),
@@ -468,9 +526,131 @@ export async function calculateAndSnapshot({
       round2(competitiveBalance),
       round2(finalAmount),
       requestId,
+      MARRIAGE_STATUS.UNDER_COMMITTEE_REVIEW,
     ]
   );
+  if (updated.length === 0) {
+    throw serviceError(
+      'Marriage support request left committee review before the calculation was saved',
+      'INVALID_STATE'
+    );
+  }
   return updated[0];
+}
+
+function executeWith(executor, sql, params) {
+  if (typeof executor === 'function') {return executor(sql, params);}
+  return executor.query(sql, params);
+}
+
+async function loadWitnessMembers(witnessIds, executor = query) {
+  const uniqueIds = [...new Set(witnessIds.filter(Boolean).map(String))];
+  if (uniqueIds.length === 0) {return new Map();}
+  const { rows } = await executeWith(
+    executor,
+    `SELECT id, full_name_ar, full_name
+       FROM members
+      WHERE id = ANY($1::uuid[])`,
+    [uniqueIds]
+  );
+  return new Map(rows.map((member) => [String(member.id), member]));
+}
+
+/** Validate the two witness assignments immediately before signing opens. */
+export async function validateWitnessAssignments(request, executor = query) {
+  const witness1Id = request?.witness_1_id;
+  const witness2Id = request?.witness_2_id;
+  if (!witness1Id || !witness2Id) {
+    throw serviceError('Two witnesses must be selected before signatures open', 'WITNESSES_REQUIRED');
+  }
+  if (idsMatch(witness1Id, witness2Id)) {
+    throw serviceError('The two witnesses must be different members', 'WITNESSES_MUST_BE_DISTINCT');
+  }
+  if (idsMatch(witness1Id, request.member_id) || idsMatch(witness2Id, request.member_id)) {
+    throw serviceError('The beneficiary cannot be selected as a witness', 'WITNESS_CANNOT_BE_BENEFICIARY');
+  }
+
+  const members = await loadWitnessMembers([witness1Id, witness2Id], executor);
+  if (!members.has(String(witness1Id)) || !members.has(String(witness2Id))) {
+    throw serviceError('One or more selected witnesses do not exist', 'WITNESS_NOT_FOUND');
+  }
+  return {
+    witness1: members.get(String(witness1Id)),
+    witness2: members.get(String(witness2Id)),
+  };
+}
+
+/**
+ * Persist witness selections while the request is under committee review.
+ * Names are resolved from members server-side and cannot be supplied by the
+ * caller. A row lock prevents concurrent selection changes.
+ */
+export async function updateWitnessAssignments({ requestId, witness1Id, witness2Id }) {
+  const client = await getClient();
+  try {
+    await client.query('BEGIN');
+    const { rows } = await client.query(
+      `SELECT id, status, member_id, witness_1_id, witness_2_id,
+              witness_1_name, witness_2_name
+         FROM marriage_support_requests
+        WHERE id = $1
+        FOR UPDATE`,
+      [requestId]
+    );
+    if (rows.length === 0) {
+      throw serviceError('Marriage support request not found', 'NOT_FOUND');
+    }
+    const request = rows[0];
+    if (request.status !== MARRIAGE_STATUS.UNDER_COMMITTEE_REVIEW) {
+      throw serviceError('Witnesses can only be changed during committee review', 'INVALID_STATE');
+    }
+
+    const nextWitness1Id = witness1Id || request.witness_1_id || null;
+    const nextWitness2Id = witness2Id || request.witness_2_id || null;
+    if (nextWitness1Id && nextWitness2Id && idsMatch(nextWitness1Id, nextWitness2Id)) {
+      throw serviceError('The two witnesses must be different members', 'WITNESSES_MUST_BE_DISTINCT');
+    }
+    if (idsMatch(nextWitness1Id, request.member_id) || idsMatch(nextWitness2Id, request.member_id)) {
+      throw serviceError('The beneficiary cannot be selected as a witness', 'WITNESS_CANNOT_BE_BENEFICIARY');
+    }
+
+    const members = await loadWitnessMembers([nextWitness1Id, nextWitness2Id], client);
+    for (const witnessId of [nextWitness1Id, nextWitness2Id].filter(Boolean)) {
+      if (!members.has(String(witnessId))) {
+        throw serviceError('One or more selected witnesses do not exist', 'WITNESS_NOT_FOUND');
+      }
+    }
+    const witness1 = nextWitness1Id ? members.get(String(nextWitness1Id)) : null;
+    const witness2 = nextWitness2Id ? members.get(String(nextWitness2Id)) : null;
+
+    const { rows: updated } = await client.query(
+      `UPDATE marriage_support_requests
+          SET witness_1_id = $1,
+              witness_1_name = $2,
+              witness_2_id = $3,
+              witness_2_name = $4
+        WHERE id = $5 AND status = $6
+        RETURNING *`,
+      [
+        nextWitness1Id,
+        witness1 ? (witness1.full_name_ar || witness1.full_name || '') : null,
+        nextWitness2Id,
+        witness2 ? (witness2.full_name_ar || witness2.full_name || '') : null,
+        requestId,
+        MARRIAGE_STATUS.UNDER_COMMITTEE_REVIEW,
+      ]
+    );
+    if (updated.length === 0) {
+      throw serviceError('Witness assignments are no longer editable', 'INVALID_STATE');
+    }
+    await client.query('COMMIT');
+    return updated[0];
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 // ─── canonical hash ─────────────────────────────────────────────────────────
@@ -519,6 +699,249 @@ export function nextExpectedSigner(existingSignerRoles) {
   return null;
 }
 
+function normalizedSignerRoles(signatures) {
+  return (Array.isArray(signatures) ? signatures : [])
+    .map((signature) => typeof signature === 'string' ? signature : signature?.signer_role)
+    .filter((role) => SIGNATURE_ORDER.includes(role));
+}
+
+/** Attach the participant-specific fields consumed by the shipped iOS app. */
+export function decorateRequestForParticipant(request, memberId, signatures = request?.signed_roles || []) {
+  const signedRoles = normalizedSignerRoles(signatures);
+  const participantRole = deriveParticipantRole(request, memberId);
+  const nextSignerRole = nextExpectedSigner(signedRoles);
+  const publicRequest = { ...request };
+  delete publicRequest.signed_roles;
+  return {
+    ...publicRequest,
+    participant_role: participantRole,
+    next_signer_role: nextSignerRole,
+    can_current_user_sign: Boolean(
+      participantRole &&
+      request.status === MARRIAGE_STATUS.AWAITING_SIGNATURES &&
+      participantRole === nextSignerRole
+    ),
+    signature_summary: {
+      signed_count: new Set(signedRoles).size,
+      total_count: SIGNATURE_ORDER.length,
+      next_signer_role: nextSignerRole,
+      next_signer_name: nextSignerRole ? signerNameForRole(request, nextSignerRole) : null,
+    },
+  };
+}
+
+export async function listParticipantRequests(memberId) {
+  const { rows } = await query(
+    `SELECT mr.id, mr.sequence_number, mr.status, mr.spouse_name_ar,
+            mr.marriage_date, mr.final_amount, mr.created_at, mr.updated_at,
+            mr.rejection_reason, mr.member_id, mr.applicant_name,
+            mr.witness_1_id, mr.witness_2_id,
+            mr.witness_1_name, mr.witness_2_name, mr.committee_chair_id,
+            ARRAY(
+              SELECT ms.signer_role
+                FROM marriage_support_signatures ms
+               WHERE ms.request_id = mr.id
+               ORDER BY ms.signed_at ASC
+            ) AS signed_roles
+       FROM marriage_support_requests mr
+      WHERE mr.member_id = $1
+         OR mr.witness_1_id = $1
+         OR mr.witness_2_id = $1
+         OR mr.committee_chair_id = $1
+      ORDER BY mr.created_at DESC`,
+    [memberId]
+  );
+  return rows.map((request) => decorateRequestForParticipant(request, memberId));
+}
+
+export async function getParticipantRequest({ requestId, memberId }) {
+  const { rows } = await query(
+    `SELECT *
+       FROM marriage_support_requests
+      WHERE id = $1
+        AND (member_id = $2 OR witness_1_id = $2 OR witness_2_id = $2 OR committee_chair_id = $2)`,
+    [requestId, memberId]
+  );
+  if (rows.length === 0) {return null;}
+  const request = rows[0];
+  const { rows: signatures } = await query(
+    `SELECT id, signer_role, signer_member_id, signer_name, signed_at,
+            ip_address, signature_method
+       FROM marriage_support_signatures
+      WHERE request_id = $1
+      ORDER BY signed_at ASC`,
+    [requestId]
+  );
+  return decorateRequestForParticipant({ ...request, signatures }, memberId, signatures);
+}
+
+function reminderCacheKey(requestId, signerRole, memberId) {
+  return `${requestId}:${signerRole}:${memberId}`;
+}
+
+async function findRecentSignatureReminder({ requestId, memberId, cooldownSeconds }) {
+  const richSql = `
+    SELECT created_at
+      FROM notifications
+     WHERE related_id = $1
+       AND type = 'marriage_support_signature_reminder'
+       AND (member_id = $2 OR user_id = $2)
+       AND created_at >= NOW() - ($3 * INTERVAL '1 second')
+     ORDER BY created_at DESC
+     LIMIT 1`;
+  try {
+    const { rows } = await query(richSql, [requestId, memberId, cooldownSeconds]);
+    return rows[0]?.created_at || null;
+  } catch (_richSchemaError) {
+    // Older rolling-deployment schemas only expose user_id.
+    try {
+      const { rows } = await query(
+        `SELECT created_at
+           FROM notifications
+          WHERE related_id = $1
+            AND type = 'marriage_support_signature_reminder'
+            AND user_id = $2
+            AND created_at >= NOW() - ($3 * INTERVAL '1 second')
+          ORDER BY created_at DESC
+          LIMIT 1`,
+        [requestId, memberId, cooldownSeconds]
+      );
+      return rows[0]?.created_at || null;
+    } catch (error) {
+      log.warn('[marriageSupportService] reminder cooldown lookup unavailable', {
+        requestId,
+        error: error.message,
+      });
+      return null;
+    }
+  }
+}
+
+function signatureReminderCopy(request, signerRole) {
+  const sequence = request.sequence_number || request.id;
+  if (signerRole === SIGNER_ROLE.BENEFICIARY) {
+    return {
+      title: 'توقيع إقرار دعم الزواج',
+      body: `طلب دعم الزواج رقم ${sequence} بانتظار توقيعك على الإقرار.`,
+    };
+  }
+  if (signerRole === SIGNER_ROLE.COMMITTEE_CHAIR) {
+    return {
+      title: 'إقرار دعم الزواج جاهز لاعتماد اللجنة',
+      body: `اكتملت توقيعات المستفيد والشاهدين للطلب رقم ${sequence}، والإقرار بانتظار توقيعك.`,
+    };
+  }
+  return {
+    title: 'مطلوب توقيع شاهد على إقرار دعم الزواج',
+    body: `تم اختيارك شاهداً للطلب رقم ${sequence}. يرجى مراجعة الإقرار وتوقيعه من التطبيق.`,
+  };
+}
+
+async function notifyNextSignerInternal({
+  requestId,
+  requestedById = null,
+  cooldownSeconds = SIGNATURE_REMINDER_COOLDOWN_SECONDS,
+}) {
+  const { rows } = await query(
+    'SELECT * FROM marriage_support_requests WHERE id = $1',
+    [requestId]
+  );
+  if (rows.length === 0) {
+    throw serviceError('Marriage support request not found', 'NOT_FOUND');
+  }
+  const request = rows[0];
+  if (request.status !== MARRIAGE_STATUS.AWAITING_SIGNATURES) {
+    throw serviceError('The request is not awaiting signatures', 'INVALID_STATE');
+  }
+  const { rows: signatures } = await query(
+    `SELECT signer_role
+       FROM marriage_support_signatures
+      WHERE request_id = $1
+      ORDER BY signed_at ASC`,
+    [requestId]
+  );
+  const nextSignerRole = nextExpectedSigner(normalizedSignerRoles(signatures));
+  if (!nextSignerRole) {
+    throw serviceError('All required signatures are already complete', 'NO_NEXT_SIGNER');
+  }
+  const nextSignerId = signerMemberIdForRole(request, nextSignerRole);
+  const nextSignerName = signerNameForRole(request, nextSignerRole);
+  if (!nextSignerId) {
+    throw serviceError(`No member is assigned to ${nextSignerRole}`, 'NEXT_SIGNER_UNASSIGNED');
+  }
+
+  const cacheKey = reminderCacheKey(requestId, nextSignerRole, nextSignerId);
+  const now = Date.now();
+  const cachedAt = signatureReminderCache.get(cacheKey);
+  if (cachedAt && now - cachedAt < cooldownSeconds * 1000) {
+    return {
+      notified: false,
+      cooldown_active: true,
+      retry_after_seconds: Math.max(1, Math.ceil(cooldownSeconds - ((now - cachedAt) / 1000))),
+      next_signer_role: nextSignerRole,
+      next_signer_name: nextSignerName,
+    };
+  }
+
+  const recentAt = await findRecentSignatureReminder({ requestId, memberId: nextSignerId, cooldownSeconds });
+  if (recentAt) {
+    const timestamp = new Date(recentAt).getTime();
+    signatureReminderCache.set(cacheKey, Number.isFinite(timestamp) ? timestamp : now);
+    return {
+      notified: false,
+      cooldown_active: true,
+      retry_after_seconds: cooldownSeconds,
+      next_signer_role: nextSignerRole,
+      next_signer_name: nextSignerName,
+    };
+  }
+
+  const copy = signatureReminderCopy(request, nextSignerRole);
+  const delivery = await createMemberNotification(nextSignerId, {
+    title: copy.title,
+    body: copy.body,
+    type: 'marriage_support_signature_reminder',
+    priority: 'high',
+    relatedId: request.id,
+    relatedType: 'marriage_support',
+    actionUrl: '/requests',
+    data: {
+      request_id: String(request.id),
+      sequence_number: String(request.sequence_number || ''),
+      signer_role: nextSignerRole,
+      requested_by_id: requestedById ? String(requestedById) : '',
+    },
+  });
+  if (delivery?.success || delivery?.inAppStored) {
+    signatureReminderCache.set(cacheKey, now);
+  }
+  return {
+    notified: Boolean(delivery?.success || delivery?.inAppStored),
+    cooldown_active: false,
+    next_signer_role: nextSignerRole,
+    next_signer_name: nextSignerName,
+    notification_delivery: delivery,
+  };
+}
+
+/** Notify the currently expected signer, with process and database cooldowns. */
+export async function notifyNextSigner(options) {
+  const lockKey = String(options.requestId);
+  const existing = signatureReminderInFlight.get(lockKey);
+  if (existing) {
+    await existing.catch(() => {});
+  }
+  const task = notifyNextSignerInternal(options);
+  signatureReminderInFlight.set(lockKey, task);
+  try {
+    return await task;
+  } finally {
+    if (signatureReminderInFlight.get(lockKey) === task) {
+      signatureReminderInFlight.delete(lockKey);
+    }
+  }
+}
+
 /**
  * Record a signature. Validates:
  *   • request is in awaiting_signatures status
@@ -527,8 +950,10 @@ export function nextExpectedSigner(existingSignerRoles) {
  * On the 4th signature, automatically transitions the request to
  * signatures_complete and dispatches the corresponding push notification.
  */
-export async function recordSignature({ requestId, signerRole, signerMemberId, signerName, ipAddress, userAgent }) {
+export async function recordSignature({ requestId, signerRole = null, signerMemberId, signerName, ipAddress, userAgent }) {
   const client = await getClient();
+  let transactionResult;
+  let completedRequest = null;
   try {
     await client.query('BEGIN');
 
@@ -537,76 +962,167 @@ export async function recordSignature({ requestId, signerRole, signerMemberId, s
       [requestId]
     );
     if (rrows.length === 0) {
-      const e = new Error('Marriage support request not found');
-      e.code = 'NOT_FOUND';
-      throw e;
+      throw serviceError('Marriage support request not found', 'NOT_FOUND');
     }
     const request = rrows[0];
 
-    if (request.status !== MARRIAGE_STATUS.AWAITING_SIGNATURES) {
-      const e = new Error(`Request status is ${request.status}, signatures only accepted in awaiting_signatures`);
-      e.code = 'INVALID_STATE';
-      throw e;
+    const resolvedSignerRole = signerRole || deriveParticipantRole(request, signerMemberId);
+    if (!resolvedSignerRole || !SIGNATURE_ORDER.includes(resolvedSignerRole)) {
+      throw serviceError('The authenticated user is not a signer on this request', 'PARTICIPANT_FORBIDDEN');
+    }
+    const assignedMemberId = signerMemberIdForRole(request, resolvedSignerRole);
+    if (!assignedMemberId || !idsMatch(assignedMemberId, signerMemberId)) {
+      throw serviceError('The authenticated user is not assigned to this signer role', 'SIGNER_MISMATCH');
     }
 
-    if (!request.pdf_data_hash) {
-      const e = new Error('Request has no stamped data hash; PDF not generated');
-      e.code = 'NO_HASH';
-      throw e;
-    }
-
-    // Check ordering.
     const { rows: sigs } = await client.query(
-      'SELECT signer_role FROM marriage_support_signatures WHERE request_id = $1 ORDER BY signed_at ASC',
+      `SELECT signer_role, signer_member_id
+         FROM marriage_support_signatures
+        WHERE request_id = $1
+        ORDER BY signed_at ASC`,
       [requestId]
     );
-    const haveRoles = sigs.map((s) => s.signer_role);
-    const next = nextExpectedSigner(haveRoles);
-    if (next !== signerRole) {
-      const e = new Error(`Expected ${next} to sign next, got ${signerRole}`);
-      e.code = 'OUT_OF_ORDER';
-      throw e;
+    const haveRoles = normalizedSignerRoles(sigs);
+    const existingSignature = sigs.find((signature) => signature.signer_role === resolvedSignerRole);
+    if (existingSignature) {
+      if (!idsMatch(existingSignature.signer_member_id, signerMemberId)) {
+        throw serviceError('This signer role was recorded for a different member', 'SIGNER_MISMATCH');
+      }
+      const allDone = SIGNATURE_ORDER.every((role) => haveRoles.includes(role));
+      if (allDone && request.status === MARRIAGE_STATUS.AWAITING_SIGNATURES) {
+        const { rows: completedRows } = await client.query(
+          `UPDATE marriage_support_requests
+              SET status = $1
+            WHERE id = $2 AND status = $3
+            RETURNING *`,
+          [MARRIAGE_STATUS.SIGNATURES_COMPLETE, requestId, MARRIAGE_STATUS.AWAITING_SIGNATURES]
+        );
+        if (completedRows.length === 0) {
+          throw serviceError('Request status changed while completing signatures', 'INVALID_STATE');
+        }
+        completedRequest = completedRows[0];
+        await recordStatusChange({
+          tableName: 'marriage_support_status_history',
+          foreignKey: 'request_id',
+          recordId: requestId,
+          fromStatus: MARRIAGE_STATUS.AWAITING_SIGNATURES,
+          toStatus: MARRIAGE_STATUS.SIGNATURES_COMPLETE,
+          changedById: signerMemberId,
+          actorRole: resolvedSignerRole,
+          note: 'اكتملت كل التوقيعات',
+          client,
+        });
+      }
+      await client.query('COMMIT');
+      transactionResult = {
+        ok: true,
+        alreadySigned: true,
+        allDone,
+        signerRole: resolvedSignerRole,
+        signer_role: resolvedSignerRole,
+        nextSigner: allDone ? null : nextExpectedSigner(haveRoles),
+        next_signer_role: allDone ? null : nextExpectedSigner(haveRoles),
+      };
+    } else {
+      if (request.status !== MARRIAGE_STATUS.AWAITING_SIGNATURES) {
+        throw serviceError(
+          `Request status is ${request.status}, signatures only accepted in awaiting_signatures`,
+          'INVALID_STATE'
+        );
+      }
+
+      if (!request.pdf_data_hash) {
+        throw serviceError('Request has no stamped data hash; PDF not generated', 'NO_HASH');
+      }
+
+      const next = nextExpectedSigner(haveRoles);
+      if (next !== resolvedSignerRole) {
+        throw serviceError(`Expected ${next} to sign next, got ${resolvedSignerRole}`, 'OUT_OF_ORDER');
+      }
+
+      const currentHash = generateRequestHash(request);
+      if (currentHash !== request.pdf_data_hash) {
+        throw serviceError('Request data has changed since PDF was generated; re-issue required', 'HASH_MISMATCH');
+      }
+
+      await client.query(
+        `INSERT INTO marriage_support_signatures (
+           request_id, signer_role, signer_member_id, signer_name,
+           ip_address, user_agent, data_hash
+         ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [
+          requestId,
+          resolvedSignerRole,
+          signerMemberId,
+          signerNameForRole(request, resolvedSignerRole) || signerName || '',
+          ipAddress || null,
+          userAgent || null,
+          currentHash,
+        ]
+      );
+
+      const allRolesNow = [...haveRoles, resolvedSignerRole];
+      const allDone = SIGNATURE_ORDER.every((role) => allRolesNow.includes(role));
+      if (allDone) {
+        const { rows: completedRows } = await client.query(
+          `UPDATE marriage_support_requests
+              SET status = $1
+            WHERE id = $2 AND status = $3
+            RETURNING *`,
+          [MARRIAGE_STATUS.SIGNATURES_COMPLETE, requestId, MARRIAGE_STATUS.AWAITING_SIGNATURES]
+        );
+        if (completedRows.length === 0) {
+          throw serviceError('Request status changed while completing signatures', 'INVALID_STATE');
+        }
+        completedRequest = completedRows[0];
+        await recordStatusChange({
+          tableName: 'marriage_support_status_history',
+          foreignKey: 'request_id',
+          recordId: requestId,
+          fromStatus: MARRIAGE_STATUS.AWAITING_SIGNATURES,
+          toStatus: MARRIAGE_STATUS.SIGNATURES_COMPLETE,
+          changedById: signerMemberId,
+          actorRole: resolvedSignerRole,
+          note: 'اكتملت كل التوقيعات',
+          client,
+        });
+      }
+
+      await client.query('COMMIT');
+      transactionResult = {
+        ok: true,
+        alreadySigned: false,
+        allDone,
+        signerRole: resolvedSignerRole,
+        signer_role: resolvedSignerRole,
+        nextSigner: allDone ? null : nextExpectedSigner(allRolesNow),
+        next_signer_role: allDone ? null : nextExpectedSigner(allRolesNow),
+      };
     }
-
-    // Re-derive hash from current request — must match stamp.
-    const currentHash = generateRequestHash(request);
-    if (currentHash !== request.pdf_data_hash) {
-      const e = new Error('Request data has changed since PDF was generated; re-issue required');
-      e.code = 'HASH_MISMATCH';
-      throw e;
-    }
-
-    await client.query(
-      `INSERT INTO marriage_support_signatures (
-         request_id, signer_role, signer_member_id, signer_name,
-         ip_address, user_agent, data_hash
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [requestId, signerRole, signerMemberId, signerName || '', ipAddress || null, userAgent || null, currentHash]
-    );
-
-    // If this was the 4th signature, transition to signatures_complete.
-    const allRolesNow = [...haveRoles, signerRole];
-    const allDone = SIGNATURE_ORDER.every((r) => allRolesNow.includes(r));
-
-    await client.query('COMMIT');
-
-    if (allDone) {
-      await transitionStatus({
-        requestId,
-        toStatus: MARRIAGE_STATUS.SIGNATURES_COMPLETE,
-        changedById: signerMemberId,
-        actorRole: signerRole,
-        note: 'اكتملت كل التوقيعات',
-      });
-    }
-
-    return { ok: true, allDone, nextSigner: allDone ? null : nextExpectedSigner(allRolesNow) };
   } catch (err) {
     await client.query('ROLLBACK');
     throw err;
   } finally {
     client.release();
   }
+
+  if (completedRequest) {
+    transactionResult.notification_delivery = await dispatchStatusNotification(
+      completedRequest,
+      MARRIAGE_STATUS.SIGNATURES_COMPLETE
+    );
+  } else if (!transactionResult.alreadySigned && transactionResult.next_signer_role) {
+    try {
+      transactionResult.next_signer_notification = await notifyNextSigner({ requestId });
+    } catch (error) {
+      log.warn('[marriageSupportService] next-signer notification failed (non-fatal)', {
+        requestId,
+        error: error.message,
+      });
+      transactionResult.next_signer_notification = { notified: false, error: error.message };
+    }
+  }
+  return transactionResult;
 }
 
 // ─── PDF stub ───────────────────────────────────────────────────────────────
@@ -620,36 +1136,80 @@ export async function recordSignature({ requestId, signerRole, signerMemberId, s
  * here when the template is finalised.
  */
 export async function generatePdfAndStamp({ requestId, changedById, actorRole }) {
-  const { rows } = await query('SELECT * FROM marriage_support_requests WHERE id = $1', [requestId]);
-  if (rows.length === 0) {
-    const e = new Error('Marriage support request not found');
-    e.code = 'NOT_FOUND';
-    throw e;
-  }
-  const request = rows[0];
-  const hash = generateRequestHash(request);
-  // Placeholder URL — replace with real document storage path when PDF
-  // generation is wired up.
-  const pdfUrl = `/api/marriage-support/${requestId}/pdf`;
+  const client = await getClient();
+  let updatedRequest;
+  try {
+    await client.query('BEGIN');
+    const { rows } = await client.query(
+      'SELECT * FROM marriage_support_requests WHERE id = $1 FOR UPDATE',
+      [requestId]
+    );
+    if (rows.length === 0) {
+      throw serviceError('Marriage support request not found', 'NOT_FOUND');
+    }
+    const request = rows[0];
+    if (request.status !== MARRIAGE_STATUS.DATA_ENTERED) {
+      throw serviceError(
+        `Illegal transition ${request.status} → ${MARRIAGE_STATUS.AWAITING_SIGNATURES}`,
+        'ILLEGAL_TRANSITION'
+      );
+    }
+    await validateWitnessAssignments(request, client);
 
-  return transitionStatus({
-    requestId,
-    toStatus: MARRIAGE_STATUS.AWAITING_SIGNATURES,
-    changedById,
-    actorRole,
-    note: 'تم إعداد إقرار الدين وفتح باب التوقيع',
-    extraUpdates: {
-      pdf_data_hash: hash,
-      pdf_url: pdfUrl,
-      pdf_generated_at: new Date(),
-    },
-  });
+    const hash = generateRequestHash(request);
+    const pdfUrl = `/api/marriage-support/${requestId}/pdf`;
+    const { rows: updated } = await client.query(
+      `UPDATE marriage_support_requests
+          SET status = $1,
+              pdf_data_hash = $2,
+              pdf_url = $3,
+              pdf_generated_at = $4
+        WHERE id = $5 AND status = $6
+        RETURNING *`,
+      [
+        MARRIAGE_STATUS.AWAITING_SIGNATURES,
+        hash,
+        pdfUrl,
+        new Date(),
+        requestId,
+        MARRIAGE_STATUS.DATA_ENTERED,
+      ]
+    );
+    if (updated.length === 0) {
+      throw serviceError('Request status changed while opening signatures', 'INVALID_STATE');
+    }
+    updatedRequest = updated[0];
+    await recordStatusChange({
+      tableName: 'marriage_support_status_history',
+      foreignKey: 'request_id',
+      recordId: requestId,
+      fromStatus: MARRIAGE_STATUS.DATA_ENTERED,
+      toStatus: MARRIAGE_STATUS.AWAITING_SIGNATURES,
+      changedById,
+      actorRole,
+      note: 'تم إعداد إقرار الدين وفتح باب التوقيع',
+      client,
+    });
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+
+  const notificationDelivery = await dispatchStatusNotification(
+    updatedRequest,
+    MARRIAGE_STATUS.AWAITING_SIGNATURES
+  );
+  return { ...updatedRequest, notification_delivery: notificationDelivery };
 }
 
 export default {
   MARRIAGE_STATUS,
   SIGNER_ROLE,
   SIGNATURE_ORDER,
+  SIGNATURE_REMINDER_COOLDOWN_SECONDS,
   getSettings,
   checkEligibility,
   validateRequestPayload,
@@ -657,8 +1217,16 @@ export default {
   transitionStatus,
   countPreviousAnaniyat,
   calculateAndSnapshot,
+  validateWitnessAssignments,
+  updateWitnessAssignments,
   generateRequestHash,
   nextExpectedSigner,
+  deriveParticipantRole,
+  decorateRequestForParticipant,
+  listParticipantRequests,
+  getParticipantRequest,
   recordSignature,
+  notifyNextSigner,
   generatePdfAndStamp,
+  dispatchStatusNotification,
 };

@@ -104,14 +104,14 @@ describe('loan creation fixed financing policy', () => {
     await createLoanRequest({ memberId: 'member-1', payload });
 
     expect(insertParameters[10]).toBe(6000); // requested_item_amount
-    expect(insertParameters[11]).toBe(6800); // loan_amount / displayed total
-    expect(insertParameters[14]).toBe(800);  // financing_fee_amount
-    expect(insertParameters[15]).toBe(6800); // total_repayment_amount
+    expect(insertParameters[11]).toBe(6750); // loan_amount / displayed total
+    expect(insertParameters[14]).toBe(750);  // financing_fee_amount
+    expect(insertParameters[15]).toBe(6750); // total_repayment_amount
     const termsSnapshot = JSON.parse(insertParameters[16]);
     expect(termsSnapshot).toMatchObject({
       principal: 6000,
-      fee: 800,
-      total: 6800,
+      fee: 750,
+      total: 6750,
       terms_version: FAMILY_FINANCING_TERMS_VERSION,
       terms_text_ar: FAMILY_FINANCING_TERMS_AR,
       early_settlement_via_app: true,

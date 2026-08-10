@@ -1,0 +1,112 @@
+{
+  "version": 1,
+  "release": "release-20260810",
+  "generatedAt": "2026-08-10T00:46:50.730Z",
+  "migrations": [
+    {
+      "filename": "20260731_family_financing_installments.sql",
+      "sha256": "2e4514c16c75f9a0141234ea19cfd08e7452d7d59e5e318f5aaeb45f75a47158",
+      "action": "prerequisite"
+    },
+    {
+      "filename": "20260801_enforce_subscription_2021_2025_caps.sql",
+      "sha256": "77f0c0c37467f0b85f0b33c0968bcaa8e24a576eb719270a7a031762917fb817",
+      "action": "prerequisite"
+    },
+    {
+      "filename": "20260802_update_family_financing_fees.sql",
+      "sha256": "b11a1b1dd47c5a904e4deed12b34651a11c0507593e796f5147462226bb020ea",
+      "action": "prerequisite"
+    },
+    {
+      "filename": "20260804_make_initiative_target_amount_optional.sql",
+      "sha256": "a8edc4f1d077d3313ba149504f4b180be5e847482725d4bcf7316218c4356034",
+      "action": "prerequisite"
+    },
+    {
+      "filename": "20260805_harden_initiative_contributions.sql",
+      "sha256": "9cb24764fd424a120e1d9b660be3f8084385ad190c5df7235df88d8e9c5fe3fa",
+      "action": "prerequisite"
+    },
+    {
+      "filename": "20260809_harden_marriage_signature_workflow.sql",
+      "sha256": "ca3e2f8cf632c778409f5cb4d799652a6a89bb955ff4b5d824b69f4e79308c3c",
+      "action": "prerequisite"
+    },
+    {
+      "filename": "20260810_gateway_protocol_v2.sql",
+      "sha256": "b51ee3c215689bb67f0926e4d9a5a0cf236daaf4a682a443d8045d40077b7b00",
+      "action": "apply"
+    },
+    {
+      "filename": "20260810_gateway_refund_workflow.sql",
+      "sha256": "c76e629b90f4a2845e11863725a63c854de6cd07d711c23a46089104b4e5b56d",
+      "action": "apply"
+    },
+    {
+      "filename": "20260810_harden_financing_reminders.sql",
+      "sha256": "5bbd2289653f4300881fdcf350ce0065db98b283e5be3435b68db96aa29361e1",
+      "action": "apply"
+    },
+    {
+      "filename": "20260811_financing_gateway_reversals.sql",
+      "sha256": "6aaff48ad4ac4401a84d0539250fe754c3edd5b436f8b0f4a533b255cde6d514",
+      "action": "apply"
+    },
+    {
+      "filename": "20260812_gateway_payment_reconciliation.sql",
+      "sha256": "68a997a66e58cddf26b62ecad2dba2af4e4ee7310b10404201e87b0198308013",
+      "action": "apply"
+    },
+    {
+      "filename": "20260813_harden_gateway_admin_status.sql",
+      "sha256": "98d8fc4d7e31677f0ddb9101e527d94edbe618dc897d9ca8ddb188b2e166db3d",
+      "action": "apply"
+    },
+    {
+      "filename": "20260814_require_bank_transfer_receipts.sql",
+      "sha256": "286e4912d7090d5edcffba66b7f82b0ebdbf8f30b69945c4573a5682e29aafd6",
+      "action": "apply"
+    },
+    {
+      "filename": "20260815_capture_after_abandonment.sql",
+      "sha256": "6698887ee4864e03591ea1bf508da8e5fb423f61d016785d984fa66cc2c3bdfe",
+      "action": "apply"
+    },
+    {
+      "filename": "20260816_archive_bank_transfer_receipts.sql",
+      "sha256": "656827e7d9ca1efd6711d82444bf444c7f0c65974c93681e34d935ad68cc8def",
+      "action": "apply"
+    },
+    {
+      "filename": "20260817_harden_initiative_contribution_evidence.sql",
+      "sha256": "ec608c720679f23a689a90005df3334e20e56398e7d041c18f4f6365fdebcc52",
+      "action": "apply"
+    },
+    {
+      "filename": "20260818_harden_manual_payment_aliases.sql",
+      "sha256": "d642a26e9ebffcee9e29af66cf3929423f223cd2f403c27a7d844bb64100160d",
+      "action": "apply"
+    },
+    {
+      "filename": "20260819_gateway_reconciliation_operational_hardening.sql",
+      "sha256": "91563d003fe0336096503df590c778921766fa70072ecb49f0df583c3f660099",
+      "action": "apply"
+    },
+    {
+      "filename": "20260820_gateway_reconciliation_review_queue.sql",
+      "sha256": "cf5a13afc8752c2847f1dfcd1ea97d8fc474f8dabb0380cd9dbfc40050ccc8ad",
+      "action": "apply"
+    },
+    {
+      "filename": "20260821_harden_initiative_donation_review.sql",
+      "sha256": "af8248cfc820a19b1b47db4f305817336be4020261901b52f13f34ccb882f830",
+      "action": "apply"
+    },
+    {
+      "filename": "20260822_retire_legacy_activity_contributions.sql",
+      "sha256": "f6dc87375bfdbe351f14bd97bdbf558e93e05bfa37c2416cd8630be470c2fc46",
+      "action": "apply"
+    }
+  ]
+}

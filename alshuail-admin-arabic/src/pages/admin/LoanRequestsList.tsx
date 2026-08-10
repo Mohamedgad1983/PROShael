@@ -95,7 +95,7 @@ const LoanRequestsList: React.FC = () => {
           التمويل العائلي
         </h1>
         <p style={{ fontSize: '14px', color: '#64748b' }}>
-          دورة اعتماد واضحة من الصندوق والمؤسسة، مع سبب موثق عند الرفض وإشعار فوري للعضو.
+          إدارة طلبات التمويل العائلي — موافقة الصندوق والمؤسسة، الصرف، وجدولة الأقساط حتى 12 شهراً.
         </p>
       </div>
 
@@ -229,7 +229,7 @@ const LoanRequestsList: React.FC = () => {
                   <td style={tdStyle}>{loan.applicant_name || loan.member_full_name_ar || '—'}</td>
                   <td style={{ ...tdStyle, direction: 'ltr', textAlign: 'right' }}>{loan.national_id || '—'}</td>
                   <td style={tdStyle}>{formatSAR(loan.loan_amount)}</td>
-                  <td style={tdStyle}>{formatSAR(loan.admin_fee_amount)}</td>
+                  <td style={tdStyle}>{formatSAR(loan.financing_fee_amount ?? loan.admin_fee_amount)}</td>
                   <td style={tdStyle}>{formatDate(loan.created_at)}</td>
                   <td style={tdStyle}>
                     <button

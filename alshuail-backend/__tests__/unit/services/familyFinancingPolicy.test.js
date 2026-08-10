@@ -9,9 +9,9 @@ import {
 
 describe('family financing fee policy', () => {
   test.each([
-    [3000, 500, 3500],
-    [6000, 800, 6800],
-    [10000, 1400, 11400],
+    [3000, 450, 3450],
+    [6000, 750, 6750],
+    [10000, 1050, 11050],
   ])('maps principal %i to fee %i and total %i', (principal, fee, total) => {
     expect(resolveFamilyFinancingTier(principal)).toEqual({ principal, fee, total });
   });
@@ -27,7 +27,7 @@ describe('family financing fee policy', () => {
   });
 
   test('keeps the complete base acknowledgment and app settlement clause versioned', () => {
-    expect(FAMILY_FINANCING_TERMS_VERSION).toBe('family_financing_terms_ar_v2_2026-08-02');
+    expect(FAMILY_FINANCING_TERMS_VERSION).toBe('family_financing_terms_ar_v3_2026-08-09');
     expect(FAMILY_FINANCING_TERMS_AR).toContain('مؤسسة بروز الريادة');
     expect(FAMILY_FINANCING_TERMS_AR).toContain('ألتزم باستلام السلعة فور جهوزيتها');
     expect(FAMILY_FINANCING_TERMS_AR).toContain('إخلاء مسؤولية صندوق الشعيل');

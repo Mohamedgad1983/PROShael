@@ -7,6 +7,7 @@ import express from 'express';
 import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
 import { authenticateToken, authorize } from '../middleware/auth.js';
+import { assertManualPaymentMethod } from '../constants/paymentMethodPolicy.js';
 
 const router = express.Router();
 const financialManagers = ['super_admin', 'admin', 'financial_manager', 'occasions_initiatives_diyas_admin'];
@@ -382,6 +383,10 @@ router.post('/:id/contribution', async (req, res) => {
     try {
         const { id } = req.params;
         const { contributor_id, amount, payment_method = 'cash', notes } = req.body;
+        const manualPaymentMethod = assertManualPaymentMethod(payment_method, {
+            allowBankTransfer: false,
+            fallback: 'cash'
+        });
 
         // Validate input
         if (!contributor_id || !amount || amount <= 0) {
@@ -397,7 +402,7 @@ router.post('/:id/contribution', async (req, res) => {
              (activity_id, contributor_id, contribution_amount, payment_method, contribution_date, notes)
              VALUES ($1, $2, $3, $4, $5, $6)
              RETURNING *`,
-            [id, contributor_id, amount, payment_method, new Date().toISOString().split('T')[0], notes]
+            [id, contributor_id, amount, manualPaymentMethod, new Date().toISOString().split('T')[0], notes]
         );
         const contribution = result.rows[0];
 
@@ -407,9 +412,10 @@ router.post('/:id/contribution', async (req, res) => {
         });
     } catch (error) {
         log.error('Error adding contribution:', { error: error.message });
-        res.status(500).json({
+        res.status(error?.statusCode || 500).json({
             success: false,
-            error: 'Failed to add contribution'
+            ...(error?.code ? { code: error.code } : {}),
+            error: error?.statusCode ? error.message : 'Failed to add contribution'
         });
     }
 });

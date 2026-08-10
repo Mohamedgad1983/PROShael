@@ -54,12 +54,32 @@ import balanceAdjustmentsRoutes from './src/routes/balanceAdjustments.js';
 import bankTransfersRoutes from './src/routes/bankTransfers.js';
 import passwordAuthRoutes from './src/routes/passwordAuth.routes.js';
 import fundBalanceRoutes from './src/routes/fundBalance.routes.js';
+import financingRepaymentRoutes from './src/routes/financingRepayment.js';
+import { startFinancingReminderScheduler } from './src/services/financingReminderService.js';
+import { startGatewayReconciliationScheduler } from './src/services/gatewayReconciliationService.js';
 import { log } from './src/utils/logger.js';
 import { config } from './src/config/env.js';
 import { errorHandler } from './src/utils/errorCodes.js';
 import cookieParser from 'cookie-parser';
 import csrfRoutes from './src/routes/csrf.js';
 import { validateCSRFToken } from './src/middleware/csrf.js';
+import { adaptiveApiLimiter } from './src/middleware/apiRateLimiters.js';
+
+// Global safety net used by the current production process. Keep it when
+// changing API middleware so a rejected async task cannot start a PM2 loop.
+process.on('unhandledRejection', (reason, promise) => {
+  log.error('Unhandled promise rejection (process kept alive)', {
+    reason: reason instanceof Error ? { message: reason.message, stack: reason.stack } : reason,
+    promise: String(promise)
+  });
+});
+
+process.on('uncaughtException', (err) => {
+  log.error('Uncaught exception (process kept alive)', {
+    message: err?.message,
+    stack: err?.stack
+  });
+});
 
 // ─── Global safety net: keep the API alive on unhandled async errors ───
 // Node 20 terminates the process on an unhandled promise rejection by default,
@@ -149,8 +169,17 @@ if (!fs.existsSync(newsUploadsDir)) {
 // otherwise receipt URLs built by the controllers will point at files
 // that don't exist here.
 const uploadStaticDir = process.env.UPLOAD_DIR || path.join(__dirname, 'uploads');
-app.use('/uploads', express.static(uploadStaticDir));
-app.use('/api/uploads', express.static(uploadStaticDir));
+// Member documents contain identity, marriage and financial evidence. They are
+// served only through the expiring signed-document endpoint; keep public static
+// compatibility for non-sensitive assets such as news images.
+const blockProtectedDocumentStatic = (req, res, next) => {
+  if (req.path === '/member-documents' || req.path.startsWith('/member-documents/')) {
+    return res.status(404).json({ success: false, error: 'Not found' });
+  }
+  return next();
+};
+app.use('/uploads', blockProtectedDocumentStatic, express.static(uploadStaticDir));
+app.use('/api/uploads', blockProtectedDocumentStatic, express.static(uploadStaticDir));
 log.info(`Static uploads served from: ${uploadStaticDir}`);
 
 app.use(helmet({
@@ -253,14 +282,7 @@ app.use((req, res, next) => {
   next();
 });
 
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 2000, // High limit for admin dashboard with monitoring auto-refresh
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { success: false, error: 'Too many requests, please try again later' }
-});
-app.use('/api', limiter);
+app.use('/api', adaptiveApiLimiter);
 
 // Strict per-IP limiter for authentication surfaces (login, OTP, password).
 // Far tighter than the global limiter to blunt brute-force and OTP-send abuse.
@@ -323,6 +345,12 @@ app.use('/api', csrfRoutes);
 
 // Apply CSRF validation to protected routes
 app.use('/api', (req, res, next) => {
+  // Express strips the `/api` mount from req.path inside this middleware.
+  // Use originalUrl so every exemption below is matched against the public
+  // route clients actually call, and discard only the query component.
+  const csrfPath = String(req.originalUrl || `${req.baseUrl || ''}${req.path || ''}`)
+    .split('?')[0];
+
   // Skip CSRF for specific endpoints
   const skipCSRF = [
     '/api/auth/login',
@@ -332,13 +360,25 @@ app.use('/api', (req, res, next) => {
     '/api/auth/password/verify-otp',
     '/api/auth/password/reset-password',
     '/api/auth/password/face-id-login',
-    '/api/payments/gateway/',
     '/api/health',
     '/api/csrf-token',
     '/api/csrf-token/validate'
   ];
 
-  if (skipCSRF.some(path => req.path.startsWith(path)) || req.method === 'GET') {
+  const hasBearerAuthorization = /^Bearer\s+\S+$/i.test(String(req.headers.authorization || ''));
+  const isMoyasarWebhook = req.method === 'POST'
+    && csrfPath === '/api/payments/gateway/moyasar/webhook';
+
+  if (
+    skipCSRF.some(path => csrfPath.startsWith(path))
+    // Browser CSRF cannot attach the app's explicit Authorization header.
+    // Bearer-authenticated admin/native requests are therefore protected by
+    // JWT verification and CORS, while cookie-authenticated mutations still
+    // require the double-submit token below.
+    || hasBearerAuthorization
+    || isMoyasarWebhook
+    || req.method === 'GET'
+  ) {
     return next();
   }
 
@@ -368,6 +408,8 @@ app.use('/api/brouj/loans', loansBroujRouter);
 //   /api/admin/marriage-support   committee chair + chairman workflow
 app.use('/api/marriage-support', marriageMemberRouter);
 app.use('/api/admin/marriage-support', marriageAdminRouter);
+// Shared repayment plans for family financing and marriage support.
+app.use('/api/financing', financingRepaymentRoutes);
 // Add member monitoring routes under /api/member-monitoring to avoid conflict
 app.use('/api/member-monitoring', memberMonitoringRoutes);
 app.use('/api/payments', paymentsRoutes);
@@ -548,6 +590,8 @@ const startServer = async () => {
   log.info(`   Frontend URL: ${config.frontend.url}`);
 
   app.listen(PORT, '0.0.0.0', () => {
+    startFinancingReminderScheduler();
+    startGatewayReconciliationScheduler();
     log.info('\n🚀 Server Started Successfully!');
     log.info('═══════════════════════════════════════');
     log.info(`📡 API Server: http://localhost:${PORT}`);

@@ -84,21 +84,24 @@ export async function sendPushNotification(token, notification, data = {}, optio
       },
       data: data,
       android: {
-        priority: 'high',
+        ...options.android,
+        priority: options.android?.priority || 'high',
         notification: {
           channelId: 'default',
           sound: 'default',
           defaultSound: true,
           defaultVibrateTimings: true,
           ...options.android?.notification
-        },
-        ...options.android
+        }
       },
       apns: {
+        ...options.apns,
         headers: {
-          'apns-priority': '10'
+          'apns-priority': '10',
+          ...options.apns?.headers
         },
         payload: {
+          ...options.apns?.payload,
           aps: {
             alert: {
               title: notification.title,
@@ -108,8 +111,7 @@ export async function sendPushNotification(token, notification, data = {}, optio
             badge: options.apns?.badge || 1,
             ...options.apns?.payload?.aps
           }
-        },
-        ...options.apns
+        }
       },
       webpush: {
         notification: {
@@ -201,7 +203,8 @@ export async function sendMulticastNotification(tokens, notification, data = {},
       },
       data: data,
       android: {
-        priority: 'high',
+        ...options.android,
+        priority: options.android?.priority || 'high',
         ttl: 3600 * 1000, // 1 hour
         notification: {
           channelId: 'default',
@@ -209,14 +212,16 @@ export async function sendMulticastNotification(tokens, notification, data = {},
           defaultSound: true,
           defaultVibrateTimings: true,
           ...options.android?.notification
-        },
-        ...options.android
+        }
       },
       apns: {
+        ...options.apns,
         headers: {
-          'apns-priority': '10'
+          'apns-priority': '10',
+          ...options.apns?.headers
         },
         payload: {
+          ...options.apns?.payload,
           aps: {
             alert: {
               title: notification.title,
@@ -226,8 +231,7 @@ export async function sendMulticastNotification(tokens, notification, data = {},
             badge: options.apns?.badge || 1,
             ...options.apns?.payload?.aps
           }
-        },
-        ...options.apns
+        }
       }
     };
 

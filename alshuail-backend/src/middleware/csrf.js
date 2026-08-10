@@ -11,6 +11,15 @@ import { log } from '../utils/logger.js';
 // Configure CSRF protection options
 const csrfOptions = {
   getSecret: () => config.csrf.secret,
+  // Bind the token to the browser's authentication session. Public requests
+  // do not have an auth cookie, so use a stable anonymous identifier until
+  // authentication is established and the client fetches a fresh token.
+  getSessionIdentifier: (req) => {
+    const authToken = req.cookies?.auth_token;
+    return typeof authToken === 'string' && authToken.length > 0
+      ? authToken
+      : 'anonymous';
+  },
   cookieName: 'x-csrf-token',
   cookieOptions: {
     httpOnly: false, // Allow frontend to read for header submission
@@ -19,17 +28,17 @@ const csrfOptions = {
     path: '/',
     maxAge: 3600000 // 1 hour
   },
-  getTokenFromRequest: (req) => {
-    // Check multiple locations for CSRF token
-    return req.headers['x-csrf-token'] ||
-           req.body._csrf ||
-           req.query._csrf;
+  // csrf-csrf v4 expects getCsrfTokenFromRequest. Accept the token only from
+  // the dedicated header so it cannot leak through URLs or ambiguous bodies.
+  getCsrfTokenFromRequest: (req) => {
+    const token = req.headers['x-csrf-token'];
+    return typeof token === 'string' ? token : undefined;
   }
 };
 
 // Initialize CSRF protection
 const {
-  generateToken,
+  generateCsrfToken,
   validateRequest,
   doubleCsrfProtection
 } = doubleCsrf(csrfOptions);
@@ -37,7 +46,7 @@ const {
 // Middleware to generate and provide CSRF token
 const generateCSRFToken = (req, res, next) => {
   try {
-    const token = generateToken(req, res);
+    const token = generateCsrfToken(req, res);
     req.csrfToken = () => token;
     next();
   } catch (error) {
@@ -69,11 +78,19 @@ const validateCSRFToken = (req, res, next) => {
   }
 
   try {
-    validateRequest(req);
-    next();
+    if (validateRequest(req)) {
+      return next();
+    }
+
+    log.warn('CSRF validation failed', { path: req.originalUrl || req.path });
+    return res.status(403).json({
+      success: false,
+      error: 'Invalid security token. Please refresh and try again.',
+      code: 'CSRF_VALIDATION_FAILED'
+    });
   } catch (error) {
     log.error('CSRF validation failed', { error: error.message });
-    res.status(403).json({
+    return res.status(403).json({
       success: false,
       error: 'Invalid security token. Please refresh and try again.',
       code: 'CSRF_VALIDATION_FAILED'

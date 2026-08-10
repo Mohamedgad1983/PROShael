@@ -18,7 +18,7 @@ interface BankTransfer {
   amount: number;
   purpose: 'subscription' | 'diya' | 'initiative' | 'general';
   purpose_reference_id?: string;
-  receipt_url: string;
+  receipt_url?: string | null;
   receipt_filename?: string;
   status: 'pending' | 'approved' | 'rejected';
   notes?: string;
@@ -261,13 +261,20 @@ const TransferCard: React.FC<{
 
       {/* Actions */}
       <div className="flex items-center gap-2 pt-4 border-t border-gray-100">
-        <button
-          onClick={() => onViewReceipt(transfer.receipt_url)}
-          className="flex items-center gap-1 px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-        >
-          <EyeIcon className="w-4 h-4" />
-          {LABELS.viewReceipt}
-        </button>
+        {transfer.receipt_url ? (
+          <button
+            onClick={() => onViewReceipt(transfer.receipt_url as string)}
+            className="flex items-center gap-1 px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+          >
+            <EyeIcon className="w-4 h-4" />
+            {LABELS.viewReceipt}
+          </button>
+        ) : (
+          <span className="flex items-center gap-1 px-3 py-2 text-sm text-amber-700 bg-amber-50 rounded-lg">
+            <ExclamationTriangleIcon className="w-4 h-4" />
+            إيصال قديم يحتاج أرشفة
+          </span>
+        )}
 
         {transfer.status === 'pending' && (
           <>
@@ -560,7 +567,8 @@ const BankTransferRequests: React.FC = () => {
 
   // View receipt
   const handleViewReceipt = useCallback((url: string) => {
-    setReceiptUrl(url);
+    const absoluteUrl = url.startsWith('/') ? `${API_BASE_URL}${url}` : url;
+    setReceiptUrl(absoluteUrl);
     setShowReceiptModal(true);
   }, []);
 

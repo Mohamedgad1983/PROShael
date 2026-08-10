@@ -40,8 +40,8 @@ function setup({ prevCount = 0, memberFound = true } = {}) {
   mockQuery.mockImplementation(async (sql, params) => {
     const t = String(sql);
     if (t.includes('FROM marriage_support_settings')) return { rows: [] };
-    if (t.includes('SELECT member_id FROM marriage_support_requests')) {
-      return { rows: memberFound ? [{ member_id: 'mem1' }] : [] };
+    if (t.includes('SELECT member_id') && t.includes('FROM marriage_support_requests')) {
+      return { rows: memberFound ? [{ member_id: 'mem1', status: 'under_committee_review' }] : [] };
     }
     if (t.includes('FROM payments')) return { rows: [{ n: prevCount }] };
     if (t.includes('UPDATE marriage_support_requests')) {

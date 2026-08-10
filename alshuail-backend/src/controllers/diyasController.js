@@ -1,7 +1,22 @@
-import { query, getClient } from '../services/database.js';
+import * as database from '../services/database.js';
 import { log } from '../utils/logger.js';
 import { config } from '../config/env.js';
 import { HijriDateManager } from '../utils/hijriDateUtils.js';
+import {
+  assertManualPaymentMethod,
+  isElectronicPaymentMethod,
+  normalizePaymentMethod,
+} from '../constants/paymentMethodPolicy.js';
+
+const query = (...args) => database.query(...args);
+const getClient = (...args) => database.getClient(...args);
+
+const isGatewayManagedPayment = (payment) => Boolean(
+  payment?.financing_plan_id
+  || String(payment?.gateway_provider || '').trim()
+  || String(payment?.gateway_payment_id || '').trim()
+  || isElectronicPaymentMethod(payment?.payment_method)
+);
 
 /**
  * Generate reference number for diya case
@@ -222,6 +237,21 @@ export const createDiya = async (req, res) => {
       status = 'pending',
       notes
     } = req.body;
+    const manualPaymentMethod = assertManualPaymentMethod(payment_method, {
+      allowBankTransfer: true,
+      fallback: 'cash',
+    });
+
+    if (!['pending', 'paid', 'cancelled'].includes(status)) {
+      return res.status(400).json({ success: false, error: 'حالة الدفع غير صحيحة' });
+    }
+    if (status === 'paid' && manualPaymentMethod === 'bank_transfer') {
+      return res.status(400).json({
+        success: false,
+        error: 'التحويل البنكي يجب أن يمر عبر رفع الإيصال والمراجعة',
+        code: 'BANK_TRANSFER_RECEIPT_WORKFLOW_REQUIRED',
+      });
+    }
 
     // Validation
     if (!payer_id || !amount || !title) {
@@ -259,7 +289,7 @@ export const createDiya = async (req, res) => {
       `INSERT INTO payments (payer_id, amount, category, title, description, payment_method, status, reference_number, notes)
        VALUES ($1, $2, 'diya', $3, $4, $5, $6, $7, $8)
        RETURNING *`,
-      [payer_id, diyaAmount, title, description, payment_method, status, referenceNumber, notes]
+      [payer_id, diyaAmount, title, description, manualPaymentMethod, status, referenceNumber, notes]
     );
 
     res.status(201).json({
@@ -269,9 +299,10 @@ export const createDiya = async (req, res) => {
     });
   } catch (error) {
     log.error('Error creating diya', { error: error.message });
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
-      error: 'فشل في إنشاء قضية الدية',
+      error: error.statusCode ? error.message : 'فشل في إنشاء قضية الدية',
+      ...(error.code ? { code: error.code } : {}),
       message: config.isDevelopment ? error.message : undefined
     });
   }
@@ -305,12 +336,32 @@ export const updateDiyaStatus = async (req, res) => {
         error: 'قضية الدية غير موجودة'
       });
     }
+    const existingPayment = existingRows[0];
+    if (isGatewayManagedPayment(existingPayment)) {
+      return res.status(409).json({
+        success: false,
+        error: 'لا يمكن تعديل حالة دفعة إلكترونية من مسار الدية اليدوي',
+        code: 'GATEWAY_MANAGED_PAYMENT_STATUS_IMMUTABLE',
+      });
+    }
+
+    const normalizedMethod = payment_method
+      ? assertManualPaymentMethod(payment_method, { allowBankTransfer: true })
+      : null;
+    const effectiveMethod = normalizedMethod || normalizePaymentMethod(existingPayment.payment_method);
+    if (status === 'paid' && effectiveMethod === 'bank_transfer' && !existingPayment.receipt_document_id) {
+      return res.status(409).json({
+        success: false,
+        error: 'يجب إرفاق إيصال التحويل البنكي قبل تأكيد الدفع',
+        code: 'BANK_TRANSFER_RECEIPT_REQUIRED',
+      });
+    }
 
     const setClauses = ['status = $1', 'updated_at = $2'];
     const params = [status, new Date().toISOString()];
     let pIdx = 3;
 
-    if (payment_method) { setClauses.push(`payment_method = $${pIdx++}`); params.push(payment_method); }
+    if (normalizedMethod) { setClauses.push(`payment_method = $${pIdx++}`); params.push(normalizedMethod); }
     if (notes !== undefined) { setClauses.push(`notes = $${pIdx++}`); params.push(notes); }
 
     params.push(id);
@@ -328,9 +379,10 @@ export const updateDiyaStatus = async (req, res) => {
     });
   } catch (error) {
     log.error('Error updating diya status', { error: error.message });
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
-      error: 'فشل في تحديث حالة الدية',
+      error: error.statusCode ? error.message : 'فشل في تحديث حالة الدية',
+      ...(error.code ? { code: error.code } : {}),
       message: config.isDevelopment ? error.message : undefined
     });
   }
@@ -363,6 +415,23 @@ export const updateDiya = async (req, res) => {
         error: 'قضية الدية غير موجودة'
       });
     }
+    const existingPayment = existingRows[0];
+    if (isGatewayManagedPayment(existingPayment)) {
+      return res.status(409).json({
+        success: false,
+        error: 'لا يمكن تعديل دفعة إلكترونية من مسار الدية اليدوي',
+        code: 'GATEWAY_MANAGED_PAYMENT_STATUS_IMMUTABLE',
+      });
+    }
+    if (existingPayment.status === 'paid' && (amount !== undefined || payment_method !== undefined)) {
+      return res.status(409).json({
+        success: false,
+        error: 'لا يمكن تغيير مبلغ أو طريقة دفع دية مدفوعة',
+      });
+    }
+    const normalizedMethod = payment_method === undefined
+      ? undefined
+      : assertManualPaymentMethod(payment_method, { allowBankTransfer: true });
 
     // Validate amount if provided
     if (amount && Number(amount) < 50) {
@@ -380,7 +449,7 @@ export const updateDiya = async (req, res) => {
     if (amount !== undefined) { setClauses.push(`amount = $${pIdx++}`); params.push(Number(amount)); }
     if (title !== undefined) { setClauses.push(`title = $${pIdx++}`); params.push(title); }
     if (description !== undefined) { setClauses.push(`description = $${pIdx++}`); params.push(description); }
-    if (payment_method !== undefined) { setClauses.push(`payment_method = $${pIdx++}`); params.push(payment_method); }
+    if (normalizedMethod !== undefined) { setClauses.push(`payment_method = $${pIdx++}`); params.push(normalizedMethod); }
     if (notes !== undefined) { setClauses.push(`notes = $${pIdx++}`); params.push(notes); }
 
     params.push(id);
@@ -397,9 +466,10 @@ export const updateDiya = async (req, res) => {
     });
   } catch (error) {
     log.error('Error updating diya', { error: error.message });
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
-      error: 'فشل في تحديث قضية الدية',
+      error: error.statusCode ? error.message : 'فشل في تحديث قضية الدية',
+      ...(error.code ? { code: error.code } : {}),
       message: config.isDevelopment ? error.message : undefined
     });
   }
@@ -426,8 +496,17 @@ export const deleteDiya = async (req, res) => {
       });
     }
 
+    const existingPayment = existingRows[0];
+    if (isGatewayManagedPayment(existingPayment)) {
+      return res.status(409).json({
+        success: false,
+        error: 'لا يمكن حذف سجل دفع إلكتروني؛ يجب الاحتفاظ به للمراجعة المالية',
+        code: 'GATEWAY_PAYMENT_DELETE_FORBIDDEN',
+      });
+    }
+
     // Don't allow deletion of paid diyas
-    if (existingRows[0].status === 'paid') {
+    if (existingPayment.status === 'paid') {
       return res.status(400).json({
         success: false,
         error: 'لا يمكن حذف قضية دية مدفوعة'
@@ -442,9 +521,10 @@ export const deleteDiya = async (req, res) => {
     });
   } catch (error) {
     log.error('Error deleting diya', { error: error.message });
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
-      error: 'فشل في حذف قضية الدية',
+      error: error.statusCode ? error.message : 'فشل في حذف قضية الدية',
+      ...(error.code ? { code: error.code } : {}),
       message: config.isDevelopment ? error.message : undefined
     });
   }
@@ -582,6 +662,20 @@ export const getMemberDiyas = async (req, res) => {
   try {
     const { memberId } = req.params;
     const { limit = 50, offset = 0 } = req.query;
+    const actorId = req.user?.id || req.user?.user_id;
+    const staffRoles = new Set([
+      'super_admin',
+      'admin',
+      'financial_manager',
+      'occasions_initiatives_diyas_admin',
+    ]);
+    if (!staffRoles.has(req.user?.role) && String(actorId) !== String(memberId)) {
+      return res.status(403).json({
+        success: false,
+        code: 'DIYA_MEMBER_ACCESS_FORBIDDEN',
+        error: 'غير مسموح لك بعرض سجل ديات عضو آخر'
+      });
+    }
 
     // Check if member exists
     const { rows: memberRows } = await query(

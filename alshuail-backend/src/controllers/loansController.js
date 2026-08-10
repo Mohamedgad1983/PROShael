@@ -11,7 +11,7 @@
 
 import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
-import { uploadToSupabase } from '../config/documentStorage.js';
+import { getSignedUrl, uploadToSupabase } from '../config/documentStorage.js';
 import {
   LOAN_STATUS,
   checkLoanEligibility,
@@ -20,6 +20,7 @@ import {
   transitionStatus,
 } from '../services/loanService.js';
 import { getStatusHistory } from '../services/statusHistoryService.js';
+import { FINANCING_PROGRAM, getRepaymentPlanByRequest } from '../services/financingRepaymentService.js';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -62,7 +63,10 @@ async function fetchDocuments(loanId) {
      ORDER BY uploaded_at ASC`,
     [loanId]
   );
-  return rows;
+  return rows.map(({ file_path: filePath, ...document }) => ({
+    ...document,
+    signed_url: getSignedUrl(filePath),
+  }));
 }
 
 // ─── handlers ─────────────────────────────────────────────────────────────────
@@ -111,7 +115,12 @@ export const getMyLoan = async (req, res) => {
       foreignKey: 'loan_request_id',
       recordId: loan.id,
     });
-    return res.json({ success: true, data: { ...loan, documents, history } });
+    const repaymentPlan = await getRepaymentPlanByRequest({
+      programType: FINANCING_PROGRAM.FAMILY,
+      requestId: loan.id,
+      memberId: req.user.id,
+    });
+    return res.json({ success: true, data: { ...loan, documents, history, repayment_plan: repaymentPlan } });
   } catch (err) {
     log.error('[loans] getMyLoan', { error: err.message });
     return res.status(500).json({ success: false, error: 'فشل جلب الطلب' });

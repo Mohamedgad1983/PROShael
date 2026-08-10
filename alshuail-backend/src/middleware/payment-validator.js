@@ -19,7 +19,8 @@ const PAYMENT_CONFIG = {
   MAX_AMOUNT: 50000,    // Maximum 50,000 SAR
 
   // Allowed payment methods
-  ALLOWED_METHODS: ['knet', 'card', 'bank_transfer'],
+  // Electronic methods are accepted only by the dedicated Moyasar routes.
+  ALLOWED_METHODS: ['cash', 'bank_transfer'],
 
   // Transaction ID format
   TRANSACTION_PREFIX: 'SAF',

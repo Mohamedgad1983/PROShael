@@ -1,6 +1,49 @@
 import { query, getClient } from './database.js';
 import { log } from '../utils/logger.js';
 import { sendPushNotification } from './notificationService.js';
+import {
+  SUBSCRIPTION_POLICY,
+  clampSubscriptionBalance,
+  remainingSubscriptionBalance,
+  subscriptionMonthsFromBalance,
+  subscriptionStatusFromBalance
+} from '../constants/subscriptionPolicy.js';
+import {
+  ELECTRONIC_PAYMENT_ALIASES,
+  isElectronicPaymentMethod,
+  normalizePaymentMethod,
+} from '../constants/paymentMethodPolicy.js';
+
+const GATEWAY_PAYMENT_METHODS = new Set(ELECTRONIC_PAYMENT_ALIASES);
+
+function isGatewayManagedPayment(payment) {
+  return Boolean(
+    payment?.financing_plan_id
+    || String(payment?.gateway_provider || '').trim()
+    || String(payment?.gateway_payment_id || '').trim()
+    || GATEWAY_PAYMENT_METHODS.has(String(payment?.payment_method || '').trim().toLowerCase())
+  );
+}
+
+function gatewayManagedStatusError() {
+  const error = new Error(
+    'لا يمكن تغيير حالة دفعة البوابة يدوياً؛ استخدم التحقق أو الاسترداد المعتمد'
+  );
+  error.code = 'GATEWAY_MANAGED_PAYMENT_STATUS_IMMUTABLE';
+  return error;
+}
+
+function assertBankTransferReceipt(payment, targetStatus) {
+  if (
+    targetStatus === 'paid'
+    && String(payment?.payment_method || '').trim().toLowerCase() === 'bank_transfer'
+    && !payment?.receipt_document_id
+  ) {
+    const error = new Error('يجب إرفاق إيصال التحويل البنكي قبل اعتماد الدفعة');
+    error.code = 'BANK_TRANSFER_RECEIPT_REQUIRED';
+    throw error;
+  }
+}
 
 /**
  * Payment Processing Service
@@ -15,6 +58,9 @@ export class PaymentProcessingService {
    */
   static async createPayment(paymentData) {
     try {
+      if (isGatewayManagedPayment(paymentData)) {
+        throw gatewayManagedStatusError();
+      }
       // Validate required fields
       if (!paymentData.payer_id || !paymentData.amount || !paymentData.category) {
         throw new Error('البيانات المطلوبة مفقودة: معرف الدافع، المبلغ، والفئة');
@@ -30,6 +76,21 @@ export class PaymentProcessingService {
       const amountValidation = await this.validatePaymentAmount(paymentData.amount, paymentData.category);
       if (!amountValidation.isValid) {
         throw new Error(amountValidation.message);
+      }
+
+      if (paymentData.category === 'subscription') {
+        const subscriptionMemberId = paymentData.beneficiary_id || paymentData.payer_id;
+        const { rows: memberRows } = await query(
+          'SELECT current_balance FROM members WHERE id = $1',
+          [subscriptionMemberId]
+        );
+        if (!memberRows.length) {
+          throw new Error('العضو المستفيد غير موجود في النظام');
+        }
+        const remaining = remainingSubscriptionBalance(memberRows[0].current_balance);
+        if (Number(paymentData.amount) > remaining) {
+          throw new Error(`مبلغ الاشتراك يتجاوز الرصيد المتبقي (${remaining} ريال)`);
+        }
       }
 
       // Check for duplicate payments
@@ -86,7 +147,8 @@ export class PaymentProcessingService {
     } catch (error) {
       return {
         success: false,
-        error: error.message || 'فشل في إنشاء المدفوع'
+        error: error.message || 'فشل في إنشاء المدفوع',
+        ...(error.code ? { code: error.code } : {})
       };
     }
   }
@@ -102,8 +164,12 @@ export class PaymentProcessingService {
     const client = await getClient();
     try {
       // Validate payment method
-      const validMethods = ['cash', 'card', 'transfer', 'online', 'check'];
-      if (!validMethods.includes(method)) {
+      if (isElectronicPaymentMethod(method)) {
+        throw gatewayManagedStatusError();
+      }
+      const normalizedMethod = normalizePaymentMethod(method);
+      const validMethods = ['cash', 'bank_transfer', 'check'];
+      if (!validMethods.includes(normalizedMethod)) {
         throw new Error('طريقة دفع غير صالحة');
       }
 
@@ -121,6 +187,10 @@ export class PaymentProcessingService {
 
       const currentPayment = paymentRows[0];
 
+      if (isGatewayManagedPayment(currentPayment)) {
+        throw gatewayManagedStatusError();
+      }
+
       if (currentPayment.status === 'paid') {
         throw new Error('المدفوع مدفوع مسبقاً');
       }
@@ -128,6 +198,14 @@ export class PaymentProcessingService {
       if (currentPayment.status === 'cancelled') {
         throw new Error('لا يمكن معالجة مدفوع ملغى');
       }
+
+      // The legacy `transfer` alias is canonicalized before checking evidence.
+      // Otherwise a cash row could be relabelled as transfer and paid without
+      // an archived receipt.
+      assertBankTransferReceipt({
+        ...currentPayment,
+        payment_method: normalizedMethod,
+      }, 'paid');
 
       const now = new Date().toISOString();
 
@@ -137,14 +215,18 @@ export class PaymentProcessingService {
          SET status = 'paid', payment_method = $1, processed_at = $2, updated_at = $2
          WHERE id = $3
          RETURNING *`,
-        [method, now, paymentId]
+        [normalizedMethod, now, paymentId]
       );
 
       const updatedPayment = updatedRows[0];
 
       // If subscription payment, update member's subscription within the same transaction
       if (currentPayment.category === 'subscription') {
-        await this.updateMemberSubscription(currentPayment.payer_id, currentPayment.amount, client);
+        await this.updateMemberSubscription(
+          currentPayment.beneficiary_id || currentPayment.payer_id,
+          currentPayment.amount,
+          client
+        );
       }
 
       await client.query('COMMIT');
@@ -167,7 +249,8 @@ export class PaymentProcessingService {
       await client.query('ROLLBACK');
       return {
         success: false,
-        error: error.message || 'فشل في معالجة المدفوع'
+        error: error.message || 'فشل في معالجة المدفوع',
+        ...(error.code ? { code: error.code } : {})
       };
     } finally {
       client.release();
@@ -198,6 +281,10 @@ export class PaymentProcessingService {
       if (!currentRows.length) {
         throw new Error('المدفوع غير موجود');
       }
+      if (isGatewayManagedPayment(currentRows[0])) {
+        throw gatewayManagedStatusError();
+      }
+      assertBankTransferReceipt(currentRows[0], status);
       const previousStatus = currentRows[0].status;
 
       const now = new Date().toISOString();
@@ -241,6 +328,13 @@ export class PaymentProcessingService {
       }
 
       const payment = rows[0];
+
+      if (payment.category === 'subscription' && previousStatus !== status) {
+        await this.updateMemberSubscription(
+          payment.beneficiary_id || payment.payer_id,
+          payment.amount
+        );
+      }
 
       // Fetch payer details
       const { rows: payerRows } = await query(
@@ -314,7 +408,8 @@ export class PaymentProcessingService {
     } catch (error) {
       return {
         success: false,
-        error: error.message || 'فشل في تحديث حالة المدفوع'
+        error: error.message || 'فشل في تحديث حالة المدفوع',
+        ...(error.code ? { code: error.code } : {})
       };
     }
   }
@@ -497,6 +592,13 @@ export class PaymentProcessingService {
             message: 'مبلغ الاشتراك يجب أن يكون من مضاعفات الـ 50 ريال'
           };
         }
+
+        if (numAmount > SUBSCRIPTION_POLICY.MAX_BALANCE) {
+          return {
+            isValid: false,
+            message: 'مبلغ الاشتراك يتجاوز الحد الأقصى (3,000 ريال)'
+          };
+        }
       }
 
       // Event fees validation
@@ -609,48 +711,76 @@ export class PaymentProcessingService {
       : (text, params) => query(text, params);
 
     try {
-      // Calculate subscription duration based on amount (50 SAR = 1 month)
-      const months = Math.floor(amount / 50);
+      const { rows: memberRows } = await exec(
+        'SELECT current_balance FROM members WHERE id = $1',
+        [memberId]
+      );
+      if (!memberRows.length) {
+        throw new Error('العضو غير موجود في النظام');
+      }
 
-      const startDate = new Date();
-      const endDate = new Date();
-      endDate.setMonth(endDate.getMonth() + months);
+      const balance = clampSubscriptionBalance(memberRows[0].current_balance);
+      const months = subscriptionMonthsFromBalance(balance);
+      const remaining = remainingSubscriptionBalance(balance);
+      const status = subscriptionStatusFromBalance(balance);
+      const paymentStatus = status === 'active' ? 'paid' : 'pending';
+      const nextPaymentDue = status === 'active' ? null : new Date().toISOString().split('T')[0];
 
-      // Check if member has active subscription
+      // Reuse the member's latest subscription row regardless of its current
+      // status. An overdue row is still the same closed 2021-2025 account and
+      // must be updated rather than duplicated.
       const { rows: subRows } = await exec(
-        `SELECT * FROM subscriptions WHERE member_id = $1 AND status = 'active' LIMIT 1`,
+        `SELECT * FROM subscriptions
+         WHERE member_id = $1
+         ORDER BY created_at DESC
+         LIMIT 1`,
         [memberId]
       );
 
       const existingSubscription = subRows[0];
 
       if (existingSubscription) {
-        // Extend existing subscription
-        const newEndDate = new Date(existingSubscription.end_date);
-        newEndDate.setMonth(newEndDate.getMonth() + months);
-
         await exec(
           `UPDATE subscriptions
-           SET end_date = $1, updated_at = $2
-           WHERE id = $3`,
+           SET amount = $1, total_amount = $1, paid_amount = $2,
+               remaining_amount = $3, current_balance = $2,
+               months_paid_ahead = $4, status = $5, payment_status = $6,
+               start_date = '2021-01-01', end_date = '2025-12-31',
+               next_payment_due = $7, last_payment_date = CURRENT_DATE,
+               last_payment_amount = $8, updated_at = NOW()
+           WHERE id = $9`,
           [
-            newEndDate.toISOString().split('T')[0],
-            new Date().toISOString(),
+            SUBSCRIPTION_POLICY.MAX_BALANCE,
+            balance,
+            remaining,
+            months,
+            status,
+            paymentStatus,
+            nextPaymentDue,
+            Number(amount) || null,
             existingSubscription.id
           ]
         );
       } else {
-        // Create new subscription
         await exec(
-          `INSERT INTO subscriptions (member_id, plan_name, amount, duration_months, status, start_date, end_date)
-           VALUES ($1, $2, $3, $4, 'active', $5, $6)`,
+          `INSERT INTO subscriptions (
+             member_id, amount, total_amount, paid_amount, remaining_amount,
+             status, payment_status, start_date, end_date, current_balance,
+             months_paid_ahead, next_payment_due, last_payment_date, last_payment_amount
+           ) VALUES (
+             $1, $2, $2, $3, $4, $5, $6, '2021-01-01', '2025-12-31',
+             $3, $7, $8, CURRENT_DATE, $9
+           )`,
           [
             memberId,
-            `اشتراك ${months} شهر`,
-            amount,
+            SUBSCRIPTION_POLICY.MAX_BALANCE,
+            balance,
+            remaining,
+            status,
+            paymentStatus,
             months,
-            startDate.toISOString().split('T')[0],
-            endDate.toISOString().split('T')[0]
+            nextPaymentDue,
+            Number(amount) || null
           ]
         );
       }

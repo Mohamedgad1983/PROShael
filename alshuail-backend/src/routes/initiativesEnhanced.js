@@ -5,8 +5,13 @@
 // ============================================
 
 import express from 'express';
-import { query } from '../services/database.js';
+import { query, getClient } from '../services/database.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { getSignedUrl } from '../config/documentStorage.js';
+import {
+    persistIdempotentMemberNotification,
+    sendPushNotification
+} from '../services/notificationService.js';
 import { log } from '../utils/logger.js';
 import {
     INITIATIVE_ADMIN_ROLES,
@@ -18,6 +23,181 @@ import {
 
 const router = express.Router();
 
+const DONATION_REVIEW_ROLES = new Set([
+    'super_admin',
+    'admin',
+    'financial_manager'
+]);
+
+const APPROVED_DONATION_STATUSES = new Set(['approved', 'completed', 'confirmed']);
+const CANONICAL_API_ORIGIN = 'https://api.alshailfund.com';
+
+const UNSAFE_RECEIPT_RESPONSE_KEYS = Object.freeze([
+    'receipt_url',
+    'receipt_path',
+    'receipt_file_path',
+    'file_path',
+    'path',
+    'receipt',
+    'receipt_metadata',
+    'receipt_document',
+    '_receipt_metadata_id',
+    '_receipt_storage_path',
+    '_receipt_original_name',
+    '_receipt_file_size',
+    '_receipt_mime_type'
+]);
+
+const normalizeStatus = (value) => String(value || '').trim().toLowerCase();
+
+const normalizeReviewReason = (value) => String(value || '').trim().replace(/\s+/g, ' ');
+
+const validateRejectionReason = (value) => {
+    const reason = normalizeReviewReason(value);
+    const meaningfulCharacters = reason.match(/[A-Za-z0-9ء-ي]/g) || [];
+
+    if (reason.length < 10 || reason.length > 500 || meaningfulCharacters.length < 8) {
+        return {
+            reason,
+            error: 'سبب الرفض يجب أن يكون واضحاً ومن 10 إلى 500 حرف'
+        };
+    }
+
+    return { reason, error: null };
+};
+
+const absoluteRequestUrl = (req, value) => {
+    if (!value) {
+        return null;
+    }
+
+    const protocol = req.protocol || 'https';
+    const host = req.get?.('host') || 'api.alshailfund.com';
+    const requestedOrigin = new URL(`${protocol}://${host}`).origin;
+    const requestedHostname = new URL(requestedOrigin).hostname;
+    const trustedRequestOrigin = requestedOrigin === CANONICAL_API_ORIGIN
+        || ['localhost', '127.0.0.1', '::1'].includes(requestedHostname)
+        ? requestedOrigin
+        : CANONICAL_API_ORIGIN;
+    const signedUrl = new URL(value, `${trustedRequestOrigin}/`);
+    const allowedOrigins = new Set([CANONICAL_API_ORIGIN, trustedRequestOrigin]);
+    if (!allowedOrigins.has(signedUrl.origin)) {
+        throw new Error('Signed document URL has an untrusted origin');
+    }
+    return signedUrl.toString();
+};
+
+const isApprovedDonation = (donation) =>
+    APPROVED_DONATION_STATUSES.has(normalizeStatus(donation?.status));
+
+const hasApprovalAudit = (donation) => Boolean(donation?.approved_by || donation?.approval_date);
+const hasRejectionAudit = (donation) => Boolean(
+    donation?.rejection_reason || donation?.rejected_by_id || donation?.rejected_at
+);
+
+const hasCompleteApprovalAudit = (donation) => Boolean(
+    isApprovedDonation(donation)
+    && donation?.approved_by
+    && donation?.approval_date
+    && !hasRejectionAudit(donation)
+);
+
+const donationReportReviewState = (donation) => {
+    if (hasCompleteApprovalAudit(donation)) {
+        return 'approved';
+    }
+    if (normalizeStatus(donation?.status) === 'rejected'
+        && donation?.rejection_reason
+        && donation?.rejected_by_id
+        && donation?.rejected_at
+        && !hasApprovalAudit(donation)) {
+        return 'rejected';
+    }
+    if (normalizeStatus(donation?.status) === 'pending'
+        && !hasApprovalAudit(donation)
+        && !hasRejectionAudit(donation)) {
+        return 'pending';
+    }
+    return 'inconsistent';
+};
+
+const donationWithoutRawReceipt = (donation) => {
+    const safeDonation = { ...donation };
+    for (const unsafeKey of UNSAFE_RECEIPT_RESPONSE_KEYS) {
+        delete safeDonation[unsafeKey];
+    }
+    return safeDonation;
+};
+
+const donationDecisionNotification = ({ donation, decision, reason = null }) => {
+    if (!donation?.member_id) {
+        throw new Error('Initiative donation has no member for review notification');
+    }
+
+    const approved = decision === 'approved';
+    const initiativeTitle = donation.initiative_title || 'المبادرة العائلية';
+    const amount = Number(donation.amount);
+    const formattedAmount = Number.isFinite(amount)
+        ? new Intl.NumberFormat('ar-SA', { maximumFractionDigits: 2 }).format(amount)
+        : String(donation.amount || '');
+    const title = approved ? 'تم اعتماد مساهمتك' : 'تم رفض مساهمتك';
+    const body = approved
+        ? `تم اعتماد مساهمتك بقيمة ${formattedAmount} ر.س في ${initiativeTitle}.`
+        : `تم رفض مساهمتك بقيمة ${formattedAmount} ر.س في ${initiativeTitle}. السبب: ${reason}`;
+
+    return {
+        title,
+        body,
+        type: 'initiative_contribution_review',
+        priority: 'high',
+        relatedId: donation.initiative_id,
+        relatedType: 'initiative',
+        actionUrl: '/initiatives',
+        data: {
+            contribution_id: donation.id,
+            decision
+        }
+    };
+};
+
+const persistDonationDecisionNotification = async ({ client, donation, decision, reason = null }) => {
+    const notification = donationDecisionNotification({ donation, decision, reason });
+    const persistence = await persistIdempotentMemberNotification(
+        donation.member_id,
+        notification,
+        {
+            client,
+            idempotencyKey: `initiative-donation-review:${donation.id}:${decision}`
+        }
+    );
+    return { notification, persistence };
+};
+
+const deliverDonationDecisionPush = async ({ donation, decision, notification }) => {
+    try {
+        const result = await sendPushNotification(
+            donation.member_id,
+            { title: notification.title, body: notification.body },
+            { ...notification.data, type: notification.type }
+        );
+        if (!result?.success) {
+            log.warn('Initiative contribution push was not delivered after commit', {
+                donationId: donation.id,
+                decision,
+                error: result?.error
+            });
+        }
+    } catch (error) {
+        // The durable in-app notification was committed with the decision. An
+        // idempotent HTTP replay will reuse it and retry this external delivery.
+        log.warn('Initiative contribution push failed after commit', {
+            donationId: donation.id,
+            decision,
+            error: error.message
+        });
+    }
+};
+
 // Helper function to check if user is admin
 const getAdmin = async (userId) => {
     if (!isUuid(userId)) {
@@ -26,9 +206,28 @@ const getAdmin = async (userId) => {
 
     try {
         const result = await query(
-            `SELECT id, role
-             FROM users
-             WHERE id = $1 AND role = ANY($2::text[])`,
+            `SELECT id, role, identity_source
+               FROM (
+                   SELECT id, role, 'users'::text AS identity_source, 1 AS source_priority
+                     FROM users
+                    WHERE id = $1
+                      AND role = ANY($2::text[])
+                      AND COALESCE(is_active, true) = true
+                      AND COALESCE(NULLIF(LOWER(BTRIM(status)), ''), 'active') = 'active'
+                   UNION ALL
+                   SELECT id, role, 'members'::text AS identity_source, 2 AS source_priority
+                     FROM members
+                    WHERE id = $1
+                      AND role = ANY($2::text[])
+                      AND COALESCE(is_active, true) = true
+                      AND COALESCE(NULLIF(LOWER(BTRIM(membership_status)), ''), 'active') = 'active'
+                      AND NOT (
+                          suspended_at IS NOT NULL
+                          AND (reactivated_at IS NULL OR reactivated_at < suspended_at)
+                      )
+               ) privileged_identity
+              ORDER BY source_priority
+              LIMIT 1`,
             [userId, INITIATIVE_ADMIN_ROLES]
         );
         return result.rows[0] || null;
@@ -51,6 +250,17 @@ const adminOnly = async (req, res, next) => {
     }
 
     req.adminUser = admin;
+    next();
+};
+
+const donationReviewerOnly = (req, res, next) => {
+    if (!DONATION_REVIEW_ROLES.has(req.adminUser?.role)) {
+        return res.status(403).json({
+            success: false,
+            error: 'ليس لديك صلاحية مراجعة المساهمات المالية'
+        });
+    }
+
     next();
 };
 
@@ -168,7 +378,14 @@ router.delete('/:id', authenticateToken, adminOnly, initiativeIdRequired, async 
         });
     } catch (error) {
         log.error('Delete initiative error', { error: error.message });
-        res.status(500).json({ error: error.message });
+        const isEvidenceConflict = error.code === '23514';
+        res.status(isEvidenceConflict ? 409 : 500).json({
+            success: false,
+            ...(isEvidenceConflict ? { code: 'INITIATIVE_EVIDENCE_CONFLICT' } : {}),
+            error: isEvidenceConflict
+                ? 'تعذر اعتماد المساهمة لأن إيصال التحويل غير صالح أو تغيرت بياناته'
+                : error.message
+        });
     }
 });
 
@@ -250,40 +467,94 @@ router.get('/admin/all', authenticateToken, adminOnly, async (req, res) => {
 
 // 5. GET INITIATIVE DETAILS WITH CONTRIBUTIONS (Admin)
 router.get('/:id/details', authenticateToken, adminOnly, initiativeIdRequired, async (req, res) => {
+    let client;
+    let transactionOpen = false;
     try {
         const { id } = req.params;
 
-        // Get initiative and donations in parallel
-        const [initResult, donResult] = await Promise.all([
-            query('SELECT * FROM initiatives WHERE id = $1', [id]),
-            query(
-                `SELECT d.*,
-                    json_build_object(
-                        'id', m.id,
-                        'full_name', m.full_name,
-                        'full_name_en', m.full_name_en,
-                        'membership_number', m.membership_number
-                    ) AS donor
-                 FROM initiative_donations d
-                 LEFT JOIN members m ON m.id = d.donor_member_id
-                 WHERE d.initiative_id = $1
-                 ORDER BY d.created_at DESC`,
-                [id]
-            )
-        ]);
+        // Initiative totals and donation-derived stats must come from one
+        // authoritative snapshot, especially immediately after a review.
+        client = await getClient();
+        await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
+        transactionOpen = true;
+        const initResult = await client.query(
+            'SELECT * FROM initiatives WHERE id = $1',
+            [id]
+        );
 
         const initiative = initResult.rows[0];
         if (!initiative) {
+            await client.query('ROLLBACK');
+            transactionOpen = false;
             return res.status(404).json({ error: 'Initiative not found' });
         }
 
-        const donations = donResult.rows;
+        const donResult = await client.query(
+            `SELECT d.*,
+                dm.id AS _receipt_metadata_id,
+                dm.file_path AS _receipt_storage_path,
+                dm.original_name AS _receipt_original_name,
+                dm.file_size AS _receipt_file_size,
+                dm.file_type AS _receipt_mime_type,
+                json_build_object(
+                    'id', m.id,
+                    'full_name', m.full_name,
+                    'full_name_en', m.full_name_en,
+                    'membership_number', m.membership_number
+                ) AS donor
+             FROM initiative_donations d
+             LEFT JOIN members m ON m.id = d.member_id
+             LEFT JOIN documents_metadata dm
+               ON dm.id = d.receipt_document_id
+              AND dm.status = 'active'
+              AND dm.member_id = d.member_id
+              AND dm.category = 'receipts'
+             WHERE d.initiative_id = $1
+             ORDER BY d.created_at DESC`,
+            [id]
+        );
+        await client.query('COMMIT');
+        transactionOpen = false;
+
+        const donations = (donResult.rows || []).map((row) => {
+            const receiptMetadataId = row._receipt_metadata_id;
+            const receiptStoragePath = row._receipt_storage_path;
+            const receiptOriginalName = row._receipt_original_name;
+            const receiptFileSize = row._receipt_file_size;
+            const receiptMimeType = row._receipt_mime_type;
+            const safeDonation = donationWithoutRawReceipt(row);
+
+            let signedReceiptUrl = null;
+            if (receiptMetadataId && receiptStoragePath) {
+                try {
+                    signedReceiptUrl = absoluteRequestUrl(req, getSignedUrl(receiptStoragePath));
+                } catch (error) {
+                    log.warn('Could not sign initiative receipt for report', {
+                        donationId: row.id,
+                        error: error.message
+                    });
+                }
+            }
+
+            return {
+                ...safeDonation,
+                review_state: donationReportReviewState(row),
+                receipt_url: signedReceiptUrl,
+                receipt_document: receiptMetadataId ? {
+                    id: receiptMetadataId,
+                    original_name: receiptOriginalName,
+                    file_size: receiptFileSize,
+                    mime_type: receiptMimeType,
+                    receipt_url: signedReceiptUrl
+                } : null
+            };
+        });
 
         // Calculate stats
         const totalDonations = donations.length;
-        const uniqueDonors = new Set(donations.map(d => d.donor_member_id)).size;
+        const uniqueDonors = new Set(donations.map(d => d.member_id)).size;
         const approvedAmount = donations
-            .filter(d => d.approved_by)
+            .filter(d => d.review_state === 'approved')
             .reduce((sum, d) => sum + parseFloat(d.amount), 0);
 
         res.json({
@@ -297,40 +568,407 @@ router.get('/:id/details', authenticateToken, adminOnly, initiativeIdRequired, a
             }
         });
     } catch (error) {
+        if (client && transactionOpen) {
+            try {
+                await client.query('ROLLBACK');
+            } catch {
+                // Preserve the report error that caused the rollback.
+            }
+        }
         res.status(500).json({ error: error.message });
+    } finally {
+        client?.release();
     }
 });
 
-// 6. APPROVE DONATION (Admin Only)
-router.patch('/donations/:donationId/approve', authenticateToken, adminOnly, donationIdRequired, async (req, res) => {
+// 6. APPROVE DONATION (Financial Admin Only)
+router.patch('/donations/:donationId/approve', authenticateToken, adminOnly, donationReviewerOnly, donationIdRequired, async (req, res) => {
+    let client;
+    let transactionOpen = false;
     try {
         const { donationId } = req.params;
 
-        const result = await query(
+        client = await getClient();
+        await client.query('BEGIN');
+        transactionOpen = true;
+        const { rows } = await client.query(
+            `SELECT d.*,
+                    COALESCE(NULLIF(i.title_ar, ''), NULLIF(i.title_en, ''), i.title) AS initiative_title
+               FROM initiative_donations d
+               JOIN initiatives i ON i.id = d.initiative_id
+              WHERE d.id = $1
+              FOR UPDATE OF i, d`,
+            [donationId]
+        );
+        const donation = rows[0];
+
+        if (!donation) {
+            await client.query('ROLLBACK');
+            transactionOpen = false;
+            return res.status(404).json({ success: false, error: 'المساهمة غير موجودة' });
+        }
+
+        // A lost HTTP response may cause the administrator to retry. Once the
+        // row is approved, return the original reviewer/timestamp untouched.
+        if (isApprovedDonation(donation)) {
+            if (!hasCompleteApprovalAudit(donation)) {
+                await client.query('ROLLBACK');
+                transactionOpen = false;
+                return res.status(409).json({
+                    success: false,
+                    code: 'INITIATIVE_APPROVAL_AUDIT_INCOMPLETE',
+                    error: 'سجل الاعتماد القديم غير مكتمل ولا يمكن اعتباره قراراً نهائياً'
+                });
+            }
+            const { notification } = await persistDonationDecisionNotification({
+                client,
+                donation,
+                decision: 'approved'
+            });
+            await client.query('COMMIT');
+            transactionOpen = false;
+            await deliverDonationDecisionPush({
+                donation,
+                decision: 'approved',
+                notification
+            });
+            return res.json({
+                success: true,
+                idempotent_replay: true,
+                message: 'تم اعتماد هذه المساهمة مسبقاً',
+                donation: donationWithoutRawReceipt(donation)
+            });
+        }
+
+        if (normalizeStatus(donation.status) === 'pending'
+            && (hasApprovalAudit(donation) || hasRejectionAudit(donation))) {
+            await client.query('ROLLBACK');
+            transactionOpen = false;
+            return res.status(409).json({
+                success: false,
+                code: 'INITIATIVE_DONATION_REVIEW_AUDIT_INCOMPLETE',
+                error: 'سجل المراجعة القديم غير متسق ولا يمكن تعديله تلقائياً'
+            });
+        }
+
+        if (normalizeStatus(donation.status) !== 'pending') {
+            await client.query('ROLLBACK');
+            transactionOpen = false;
+            return res.status(409).json({
+                success: false,
+                code: 'INITIATIVE_DONATION_NOT_PENDING',
+                error: 'لا يمكن اعتماد مساهمة خرجت من قائمة المراجعة'
+            });
+        }
+
+        if (String(donation.payment_method || '').trim().toLowerCase() !== 'bank_transfer') {
+            await client.query('ROLLBACK');
+            transactionOpen = false;
+            return res.status(409).json({
+                success: false,
+                code: 'UNVERIFIED_INITIATIVE_PAYMENT_METHOD',
+                error: 'لا يمكن اعتماد مساهمة إلكترونية غير موثقة'
+            });
+        }
+        if (!donation.receipt_document_id) {
+            await client.query('ROLLBACK');
+            transactionOpen = false;
+            return res.status(409).json({
+                success: false,
+                code: 'INITIATIVE_RECEIPT_REQUIRED',
+                error: 'لا يمكن اعتماد المساهمة قبل إرفاق إيصال التحويل المؤرشف'
+            });
+        }
+
+        await client.query(
+            'SELECT pg_advisory_xact_lock(hashtextextended($1::text, 0))',
+            [donation.receipt_document_id]
+        );
+        const receipt = await client.query(
+            `SELECT id
+               FROM documents_metadata
+              WHERE id = $1 AND member_id = $2
+                AND category = 'receipts' AND status = 'active'`,
+            [donation.receipt_document_id, donation.member_id]
+        );
+        if (!receipt.rows[0]) {
+            await client.query('ROLLBACK');
+            transactionOpen = false;
+            return res.status(409).json({
+                success: false,
+                code: 'INITIATIVE_RECEIPT_INVALID',
+                error: 'إيصال المساهمة غير متاح أو لا يخص العضو صاحب المساهمة'
+            });
+        }
+
+        const claimedReceipt = await client.query(
+            `SELECT id
+               FROM initiative_donations
+              WHERE receipt_document_id = $1
+                AND id <> $2
+                AND (
+                    LOWER(BTRIM(COALESCE(status, ''))) IN ('approved', 'completed', 'confirmed')
+                    OR approved_by IS NOT NULL
+                )
+              LIMIT 1`,
+            [donation.receipt_document_id, donationId]
+        );
+        if (claimedReceipt.rows[0]) {
+            await client.query('ROLLBACK');
+            transactionOpen = false;
+            return res.status(409).json({
+                success: false,
+                code: 'INITIATIVE_RECEIPT_ALREADY_CLAIMED',
+                error: 'هذا الإيصال مستخدم مسبقاً لاعتماد مساهمة أخرى'
+            });
+        }
+
+        const result = await client.query(
             `UPDATE initiative_donations
-             SET approved_by = $1, approval_date = $2
-             WHERE id = $3
-             RETURNING *`,
-            [req.adminUser.id, new Date(), donationId]
+                SET approved_by = $1, approval_date = NOW(), status = 'completed'
+              WHERE id = $2
+                AND LOWER(BTRIM(COALESCE(status, ''))) = 'pending'
+              RETURNING *`,
+            [req.adminUser.id, donationId]
         );
         const _data = result.rows[0];
-
         if (!_data) {
-            return res.status(404).json({ error: 'Donation not found' });
+            await client.query('ROLLBACK');
+            transactionOpen = false;
+            return res.status(409).json({
+                success: false,
+                code: 'INITIATIVE_DONATION_STATE_CHANGED',
+                error: 'تغيرت حالة المساهمة أثناء المراجعة، حدّث التقرير وحاول مجدداً'
+            });
         }
 
         // Trigger will auto-update initiative current_amount
+        const approvedDonation = { ..._data, initiative_title: donation.initiative_title };
+        const { notification } = await persistDonationDecisionNotification({
+            client,
+            donation: approvedDonation,
+            decision: 'approved'
+        });
+        await client.query('COMMIT');
+        transactionOpen = false;
+        await deliverDonationDecisionPush({
+            donation: approvedDonation,
+            decision: 'approved',
+            notification
+        });
 
         res.json({
-            message: 'Donation approved successfully',
-            donation: _data
+            success: true,
+            idempotent_replay: false,
+            message: 'تم اعتماد المساهمة بنجاح',
+            donation: donationWithoutRawReceipt(approvedDonation)
         });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        if (client && transactionOpen) {
+            try {
+                await client.query('ROLLBACK');
+            } catch {
+                // The original error remains authoritative.
+            }
+        }
+        const isEvidenceConflict = error.code === '23514';
+        log.error('Approve initiative donation error', { error: error.message, code: error.code });
+        res.status(isEvidenceConflict ? 409 : 500).json({
+            success: false,
+            ...(isEvidenceConflict ? { code: 'INITIATIVE_EVIDENCE_CONFLICT' } : {}),
+            error: isEvidenceConflict
+                ? 'تعذر اعتماد المساهمة لأن إيصال التحويل غير صالح أو تغيرت بياناته'
+                : 'تعذر اعتماد المساهمة، يرجى المحاولة مرة أخرى'
+        });
+    } finally {
+        client?.release();
     }
 });
 
-// 7. GET NON-CONTRIBUTORS FOR INITIATIVE (Admin Only)
+// 7. REJECT DONATION (Financial Admin Only)
+router.patch('/donations/:donationId/reject', authenticateToken, adminOnly, donationReviewerOnly, donationIdRequired, async (req, res) => {
+    const { reason, error: reasonError } = validateRejectionReason(req.body?.reason);
+    if (reasonError) {
+        return res.status(400).json({ success: false, error: reasonError });
+    }
+
+    let client;
+    let transactionOpen = false;
+    try {
+        const { donationId } = req.params;
+        client = await getClient();
+        await client.query('BEGIN');
+        transactionOpen = true;
+
+        const { rows } = await client.query(
+            `SELECT d.*,
+                    COALESCE(NULLIF(i.title_ar, ''), NULLIF(i.title_en, ''), i.title) AS initiative_title
+               FROM initiative_donations d
+               JOIN initiatives i ON i.id = d.initiative_id
+              WHERE d.id = $1
+              FOR UPDATE OF i, d`,
+            [donationId]
+        );
+        const donation = rows[0];
+
+        if (!donation) {
+            await client.query('ROLLBACK');
+            transactionOpen = false;
+            return res.status(404).json({ success: false, error: 'المساهمة غير موجودة' });
+        }
+
+        if (normalizeStatus(donation.status) === 'rejected') {
+            const originalReason = normalizeReviewReason(donation.rejection_reason);
+            if (!originalReason || !donation.rejected_by_id || !donation.rejected_at
+                || hasApprovalAudit(donation)) {
+                await client.query('ROLLBACK');
+                transactionOpen = false;
+                return res.status(409).json({
+                    success: false,
+                    code: 'INITIATIVE_REJECTION_AUDIT_INCOMPLETE',
+                    error: 'سجل الرفض القديم غير مكتمل ولا يمكن تعديله تلقائياً'
+                });
+            }
+            if (originalReason !== reason) {
+                await client.query('ROLLBACK');
+                transactionOpen = false;
+                return res.status(409).json({
+                    success: false,
+                    code: 'INITIATIVE_REJECTION_AUDIT_IMMUTABLE',
+                    error: 'تم رفض المساهمة مسبقاً ولا يمكن تغيير سبب الرفض المسجل'
+                });
+            }
+
+            const { notification } = await persistDonationDecisionNotification({
+                client,
+                donation,
+                decision: 'rejected',
+                reason: originalReason
+            });
+            await client.query('COMMIT');
+            transactionOpen = false;
+            await deliverDonationDecisionPush({
+                donation,
+                decision: 'rejected',
+                notification
+            });
+            return res.json({
+                success: true,
+                idempotent_replay: true,
+                message: 'تم رفض هذه المساهمة مسبقاً',
+                donation: donationWithoutRawReceipt(donation)
+            });
+        }
+
+        if (normalizeStatus(donation.status) === 'pending'
+            && (hasApprovalAudit(donation) || hasRejectionAudit(donation))) {
+            await client.query('ROLLBACK');
+            transactionOpen = false;
+            return res.status(409).json({
+                success: false,
+                code: 'INITIATIVE_DONATION_REVIEW_AUDIT_INCOMPLETE',
+                error: 'سجل المراجعة القديم غير متسق ولا يمكن تعديله تلقائياً'
+            });
+        }
+
+        if (normalizeStatus(donation.status) !== 'pending') {
+            await client.query('ROLLBACK');
+            transactionOpen = false;
+            return res.status(409).json({
+                success: false,
+                code: 'INITIATIVE_DONATION_NOT_PENDING',
+                error: isApprovedDonation(donation)
+                    ? 'لا يمكن رفض مساهمة معتمدة'
+                    : 'لا يمكن رفض مساهمة خرجت من قائمة المراجعة'
+            });
+        }
+
+        const canonicalAuditColumns = ['rejection_reason', 'rejected_by_id', 'rejected_at'];
+        const auditSchemaReady = canonicalAuditColumns.every((column) =>
+            Object.prototype.hasOwnProperty.call(donation, column)
+        );
+        if (!auditSchemaReady) {
+            await client.query('ROLLBACK');
+            transactionOpen = false;
+            log.error('Initiative rejection audit migration is not applied', { donationId });
+            return res.status(503).json({
+                success: false,
+                code: 'INITIATIVE_REVIEW_SCHEMA_NOT_READY',
+                error: 'تعذر تسجيل الرفض بأمان لأن تحديث قاعدة البيانات غير مكتمل'
+            });
+        }
+
+        const updatedAtAssignment = Object.prototype.hasOwnProperty.call(donation, 'updated_at')
+            ? ', updated_at = NOW()'
+            : '';
+        const { rows: updatedRows } = await client.query(
+            `UPDATE initiative_donations
+                SET status = 'rejected',
+                    rejection_reason = $1,
+                    rejected_by_id = $2,
+                    rejected_at = NOW()
+                    ${updatedAtAssignment}
+              WHERE id = $3
+                AND LOWER(BTRIM(COALESCE(status, ''))) = 'pending'
+              RETURNING *`,
+            [reason, req.adminUser.id, donationId]
+        );
+        const updatedDonation = updatedRows[0];
+        if (!updatedDonation) {
+            await client.query('ROLLBACK');
+            transactionOpen = false;
+            return res.status(409).json({
+                success: false,
+                code: 'INITIATIVE_DONATION_STATE_CHANGED',
+                error: 'تغيرت حالة المساهمة أثناء المراجعة، حدّث التقرير وحاول مجدداً'
+            });
+        }
+
+        // A pending contribution is excluded from initiative totals. Rejection
+        // updates only its review state; the amount ledger remains unchanged.
+        const rejectedDonation = {
+            ...updatedDonation,
+            initiative_title: donation.initiative_title
+        };
+        const { notification } = await persistDonationDecisionNotification({
+            client,
+            donation: rejectedDonation,
+            decision: 'rejected',
+            reason
+        });
+        await client.query('COMMIT');
+        transactionOpen = false;
+        await deliverDonationDecisionPush({
+            donation: rejectedDonation,
+            decision: 'rejected',
+            notification
+        });
+
+        res.json({
+            success: true,
+            idempotent_replay: false,
+            message: 'تم رفض المساهمة وتسجيل السبب',
+            donation: donationWithoutRawReceipt(rejectedDonation)
+        });
+    } catch (error) {
+        if (client && transactionOpen) {
+            try {
+                await client.query('ROLLBACK');
+            } catch {
+                // The original error remains authoritative.
+            }
+        }
+        log.error('Reject initiative donation error', { error: error.message, code: error.code });
+        res.status(500).json({
+            success: false,
+            error: 'تعذر رفض المساهمة، يرجى المحاولة مرة أخرى'
+        });
+    } finally {
+        client?.release();
+    }
+});
+
+// 8. GET NON-CONTRIBUTORS FOR INITIATIVE (Admin Only)
 router.get('/:id/non-contributors', authenticateToken, adminOnly, initiativeIdRequired, async (req, res) => {
     try {
         const { id } = req.params;
@@ -345,7 +983,7 @@ router.get('/:id/non-contributors', authenticateToken, adminOnly, initiativeIdRe
                  WHERE is_active = true AND membership_status = 'active'`
             ),
             query(
-                'SELECT donor_member_id FROM initiative_donations WHERE initiative_id = $1',
+                'SELECT member_id FROM initiative_donations WHERE initiative_id = $1',
                 [id]
             )
         ]);
@@ -354,7 +992,7 @@ router.get('/:id/non-contributors', authenticateToken, adminOnly, initiativeIdRe
         const donations = donationsResult.rows;
 
         // Create set of donor member IDs for fast lookup
-        const donorIds = new Set(donations.map(d => d.donor_member_id));
+        const donorIds = new Set(donations.map(d => d.member_id));
 
         // Filter members who haven't contributed
         const nonContributors = allMembers.filter(member => !donorIds.has(member.id));
@@ -414,7 +1052,7 @@ router.post('/:id/notify-non-contributors', authenticateToken, adminOnly, initia
                  WHERE is_active = true AND membership_status = 'active'`
             ),
             query(
-                'SELECT donor_member_id FROM initiative_donations WHERE initiative_id = $1',
+                'SELECT member_id FROM initiative_donations WHERE initiative_id = $1',
                 [id]
             )
         ]);
@@ -422,7 +1060,7 @@ router.post('/:id/notify-non-contributors', authenticateToken, adminOnly, initia
         const allMembers = membersResult.rows;
         const donations = donationsResult.rows;
 
-        const donorIds = new Set(donations.map(d => d.donor_member_id));
+        const donorIds = new Set(donations.map(d => d.member_id));
         const nonContributors = allMembers.filter(member => !donorIds.has(member.id));
 
         log.info('[Notify Non-Contributors] Found non-contributors', { count: nonContributors.length });
@@ -603,87 +1241,21 @@ router.get('/previous', authenticateToken, async (req, res) => {
 });
 
 // 9. CONTRIBUTE TO INITIATIVE (Members)
-router.post('/:id/contribute', authenticateToken, initiativeIdRequired, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { amount, payment_method, receipt_url } = req.body;
-
-        // Get user's member_id
-        const userResult = await query(
-            'SELECT member_id FROM users WHERE id = $1',
-            [req.user.id]
-        );
-        const userData = userResult.rows[0];
-
-        if (!userData?.member_id) {
-            return res.status(400).json({ error: 'User not associated with a member' });
-        }
-
-        // Get initiative details
-        const initResult = await query(
-            'SELECT * FROM initiatives WHERE id = $1',
-            [id]
-        );
-        const initiative = initResult.rows[0];
-
-        if (!initiative) {
-            return res.status(404).json({ error: 'Initiative not found' });
-        }
-
-        // Validation
-        if (initiative.status !== 'active') {
-            return res.status(400).json({ error: 'Initiative is not active' });
-        }
-
-        const contributionAmount = Number(amount);
-
-        if (!Number.isFinite(contributionAmount) || contributionAmount <= 0) {
-            return res.status(400).json({ success: false, error: 'مبلغ المساهمة يجب أن يكون أكبر من صفر' });
-        }
-
-        if (initiative.min_contribution && contributionAmount < initiative.min_contribution) {
-            return res.status(400).json({
-                error: `Minimum contribution is ${initiative.min_contribution} SAR`
-            });
-        }
-
-        if (initiative.max_contribution && contributionAmount > initiative.max_contribution) {
-            return res.status(400).json({
-                error: `Maximum contribution is ${initiative.max_contribution} SAR`
-            });
-        }
-
-        // Create donation record
-        const donResult = await query(
-            `INSERT INTO initiative_donations
-             (initiative_id, donor_member_id, amount, payment_method, receipt_url, payment_date)
-             VALUES ($1, $2, $3, $4, $5, $6)
-             RETURNING *`,
-            [id, userData.member_id, contributionAmount, payment_method || 'bank_transfer', receipt_url, new Date()]
-        );
-        const donation = donResult.rows[0];
-
-        res.status(201).json({
-            message: 'Contribution submitted successfully. Pending approval.',
-            donation
-        });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
+router.post('/:id/contribute', authenticateToken, initiativeIdRequired, (req, res) => {
+    return res.status(410).json({
+        success: false,
+        code: 'LEGACY_INITIATIVE_CONTRIBUTION_RETIRED',
+        error: 'تم إيقاف مسار المساهمة القديم. استخدم مسار المبادرات الموثق مع إيصال التحويل.'
+    });
 });
 
 // 10. GET MY CONTRIBUTIONS (Members)
 router.get('/my-contributions', authenticateToken, async (req, res) => {
     try {
-        // Get user's member_id
-        const userResult = await query(
-            'SELECT member_id FROM users WHERE id = $1',
-            [req.user.id]
-        );
-        const userData = userResult.rows[0];
-
-        if (!userData?.member_id) {
-            return res.status(400).json({ error: 'User not associated with a member' });
+        const memberId = req.user?.id;
+        const memberResult = await query('SELECT id FROM members WHERE id = $1', [memberId]);
+        if (!memberResult.rows[0]) {
+            return res.status(400).json({ success: false, error: 'حساب العضو غير مرتبط بسجل أعضاء صالح' });
         }
 
         const result = await query(
@@ -696,9 +1268,9 @@ router.get('/my-contributions', authenticateToken, async (req, res) => {
                 ) AS initiative
              FROM initiative_donations d
              LEFT JOIN initiatives i ON i.id = d.initiative_id
-             WHERE d.donor_member_id = $1
+             WHERE d.member_id = $1
              ORDER BY d.created_at DESC`,
-            [userData.member_id]
+            [memberId]
         );
 
         res.json({ contributions: result.rows });
