@@ -11,7 +11,13 @@
 
 import { query } from '../services/database.js';
 import { log } from '../utils/logger.js';
-import { getSignedUrl, uploadToSupabase } from '../config/documentStorage.js';
+import {
+  deleteFromSupabase,
+  getSignedUrl,
+  LOAN_DOCUMENT_ALLOWED_MIME_TYPES,
+  uploadToSupabase,
+  validateUploadedFile,
+} from '../config/documentStorage.js';
 import {
   LOAN_STATUS,
   checkLoanEligibility,
@@ -24,17 +30,31 @@ import { FINANCING_PROGRAM, getRepaymentPlanByRequest } from '../services/financ
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
-async function attachDocuments({ loanId, files, memberId }) {
+async function cleanupNewDocuments(documents) {
+  for (const document of [...documents].reverse()) {
+    try {
+      await deleteFromSupabase(document.file_path);
+    } catch (_error) {
+      log.error('[loans] failed to clean up a newly uploaded document');
+    }
+  }
+}
+
+async function uploadDocuments({ files, memberId, uploadedDocuments }) {
   // multer's upload.fields() puts files under their declared names. We accept:
   //   id_copy, salary_certificate, financial_statement
   // (Najiz acknowledgment + fee receipt are uploaded by Brouj later.)
   const allowed = ['id_copy', 'salary_certificate', 'financial_statement'];
-  const inserts = [];
   for (const fieldName of allowed) {
     const list = (files && files[fieldName]) || [];
     for (const file of list) {
-      const upload = await uploadToSupabase(file, memberId, `loan-${fieldName}`);
-      inserts.push({
+      const upload = await uploadToSupabase(
+        file,
+        memberId,
+        `loan-${fieldName}`,
+        { allowedMimeTypes: LOAN_DOCUMENT_ALLOWED_MIME_TYPES }
+      );
+      uploadedDocuments.push({
         document_type: fieldName,
         file_path: upload.path,
         file_size: upload.size,
@@ -43,21 +63,12 @@ async function attachDocuments({ loanId, files, memberId }) {
       });
     }
   }
-
-  for (const doc of inserts) {
-    await query(
-      `INSERT INTO loan_request_documents
-         (loan_request_id, document_type, file_path, file_size, file_type, original_name, uploaded_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [loanId, doc.document_type, doc.file_path, doc.file_size, doc.file_type, doc.original_name, memberId]
-    );
-  }
-  return inserts.length;
+  return uploadedDocuments;
 }
 
 async function fetchDocuments(loanId) {
   const { rows } = await query(
-    `SELECT id, document_type, file_path, file_size, file_type, original_name, uploaded_at
+    `SELECT id, document_type, file_path, file_size, file_type, uploaded_at
      FROM loan_request_documents
      WHERE loan_request_id = $1 AND deleted_at IS NULL
      ORDER BY uploaded_at ASC`,
@@ -128,6 +139,8 @@ export const getMyLoan = async (req, res) => {
 };
 
 export const createLoan = async (req, res) => {
+  const uploadedDocuments = [];
+  let creationCommitted = false;
   try {
     // 1. eligibility re-check (don't trust the client) ---------------------
     const elig = await checkLoanEligibility(req.user.id);
@@ -152,15 +165,39 @@ export const createLoan = async (req, res) => {
       });
     }
 
-    // 4. create the loan + initial status row -----------------------------------
-    const created = await createLoanRequest({ memberId: req.user.id, payload: req.body });
+    try {
+      for (const fieldName of ['id_copy', 'salary_certificate', 'financial_statement']) {
+        for (const file of req.files[fieldName]) {
+          await validateUploadedFile(file, {
+            allowedMimeTypes: LOAN_DOCUMENT_ALLOWED_MIME_TYPES,
+          });
+        }
+      }
+    } catch (_error) {
+      return res.status(400).json({
+        success: false,
+        code: 'INVALID_DOCUMENT_FILE',
+        message: 'صيغة أو محتوى أحد المستندات غير صالح',
+        message_en: 'A required document has an invalid format or content',
+      });
+    }
 
-    // 5. persist attachments ------------------------------------------------------
-    const docsAttached = await attachDocuments({
-      loanId: created.id,
+    // 4. upload all attachments before opening the loan DB transaction. Only
+    // paths created by this request are tracked for compensating cleanup.
+    await uploadDocuments({
       files: req.files,
       memberId: req.user.id,
+      uploadedDocuments,
     });
+
+    // 5. create the loan, all document metadata, and initial history atomically.
+    const created = await createLoanRequest({
+      memberId: req.user.id,
+      payload: req.body,
+      documents: uploadedDocuments,
+    });
+    creationCommitted = true;
+    const docsAttached = uploadedDocuments.length;
 
     log.info('[loans] created', {
       loanId: created.id,
@@ -174,6 +211,9 @@ export const createLoan = async (req, res) => {
       data: { ...created, attachments_count: docsAttached },
     });
   } catch (err) {
+    if (!creationCommitted && uploadedDocuments.length > 0) {
+      await cleanupNewDocuments(uploadedDocuments);
+    }
     log.error('[loans] createLoan', { error: err.message, stack: err.stack });
     return res.status(500).json({
       success: false,

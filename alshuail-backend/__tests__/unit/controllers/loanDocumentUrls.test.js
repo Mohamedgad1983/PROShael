@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, jest, test } from '@jest/globals';
 const mockQuery = jest.fn();
 const mockGetSignedUrl = jest.fn((filePath) => `/api/documents/file/signed-${filePath}`);
 const mockGetRepaymentPlan = jest.fn();
+const mockTransitionStatus = jest.fn();
 
 jest.unstable_mockModule('../../../src/services/database.js', () => ({
   query: mockQuery,
@@ -14,8 +15,11 @@ jest.unstable_mockModule('../../../src/utils/logger.js', () => ({
 }));
 
 jest.unstable_mockModule('../../../src/config/documentStorage.js', () => ({
+  deleteFromSupabase: jest.fn(),
   getSignedUrl: mockGetSignedUrl,
+  LOAN_DOCUMENT_ALLOWED_MIME_TYPES: ['image/jpeg', 'image/png'],
   uploadToSupabase: jest.fn(),
+  validateUploadedFile: jest.fn(),
 }));
 
 jest.unstable_mockModule('../../../src/services/loanService.js', () => ({
@@ -30,8 +34,13 @@ jest.unstable_mockModule('../../../src/services/loanService.js', () => ({
   checkLoanEligibility: jest.fn(),
   validateRequestPayload: jest.fn(),
   createLoanRequest: jest.fn(),
-  transitionStatus: jest.fn(),
+  transitionStatus: mockTransitionStatus,
   dispatchStatusNotification: jest.fn(),
+}));
+
+jest.unstable_mockModule('../../../src/services/loanDocumentEvidenceService.js', () => ({
+  LOAN_DOCUMENT_EVIDENCE_ERROR_CODE: 'LOAN_DOCUMENT_EVIDENCE_INVALID',
+  requireValidLoanDocumentEvidence: jest.fn(),
 }));
 
 jest.unstable_mockModule('../../../src/services/statusHistoryService.js', () => ({
@@ -53,7 +62,7 @@ jest.unstable_mockModule('../../../src/utils/hijriDateUtils.js', () => ({
   HijriDateManager: { convertToHijri: jest.fn() },
 }));
 
-const { getLoan } = await import('../../../src/controllers/adminLoansController.js');
+const { broujApprove, getLoan } = await import('../../../src/controllers/adminLoansController.js');
 const { getMyLoan } = await import('../../../src/controllers/loansController.js');
 
 const responseRecorder = () => {
@@ -122,5 +131,26 @@ describe('loan detail document delivery contract', () => {
       signed_url: '/api/documents/file/signed-member-1/loan-id_copy/id.pdf',
     }));
     expect(res.body.data.documents[0]).not.toHaveProperty('file_path');
+  });
+
+  test('Brouj receives a stable 409 when stale forwarded evidence is invalid', async () => {
+    mockTransitionStatus.mockRejectedValue(Object.assign(
+      new Error('Loan document evidence is invalid'),
+      { code: 'LOAN_DOCUMENT_EVIDENCE_INVALID' }
+    ));
+    const res = responseRecorder();
+
+    await broujApprove({
+      params: { id: loanFixture.id },
+      body: {},
+      user: { id: 'brouj-1', role: 'brouj_partner' },
+    }, res);
+
+    expect(res.statusCode).toBe(409);
+    expect(res.body).toMatchObject({
+      success: false,
+      code: 'LOAN_DOCUMENT_EVIDENCE_INVALID',
+    });
+    expect(res.body).not.toHaveProperty('detail');
   });
 });

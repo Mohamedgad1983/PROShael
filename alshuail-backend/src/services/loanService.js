@@ -40,6 +40,7 @@ import {
   normalizeFamilyFinancingTiers,
   resolveFamilyFinancingTier,
 } from './familyFinancingPolicy.js';
+import { requireValidLoanDocumentEvidence } from './loanDocumentEvidenceService.js';
 
 // ─── constants ────────────────────────────────────────────────────────────────
 
@@ -75,6 +76,43 @@ const ALLOWED_TRANSITIONS = {
   [LOAN_STATUS.REJECTED]:               [],
   [LOAN_STATUS.CANCELLED]:              [],
 };
+
+const DOCUMENT_EVIDENCE_GATED_STATUSES = new Set([
+  LOAN_STATUS.FORWARDED_TO_BROUJ,
+  LOAN_STATUS.BROUJ_PROCESSING,
+  LOAN_STATUS.NAJIZ_UPLOADED,
+  LOAN_STATUS.FEE_COLLECTED,
+  LOAN_STATUS.READY_FOR_DISBURSEMENT,
+  LOAN_STATUS.COMPLETED,
+]);
+
+const NAJIZ_EVIDENCE_REQUIRED_STATUSES = new Set([
+  LOAN_STATUS.NAJIZ_UPLOADED,
+  LOAN_STATUS.FEE_COLLECTED,
+  LOAN_STATUS.READY_FOR_DISBURSEMENT,
+  LOAN_STATUS.COMPLETED,
+]);
+
+function requiredEvidenceForTransition({ fromStatus, toStatus, adminFeeCollected }) {
+  const requiredDocumentTypes = [];
+  if (NAJIZ_EVIDENCE_REQUIRED_STATUSES.has(toStatus)) {
+    requiredDocumentTypes.push('najiz_acknowledgment');
+  }
+  if (
+    adminFeeCollected === true
+    || fromStatus === LOAN_STATUS.FEE_COLLECTED
+    || toStatus === LOAN_STATUS.FEE_COLLECTED
+  ) {
+    requiredDocumentTypes.push('fee_receipt');
+  }
+  return requiredDocumentTypes;
+}
+
+const REQUIRED_NEW_LOAN_DOCUMENT_TYPES = Object.freeze([
+  'id_copy',
+  'salary_certificate',
+  'financial_statement',
+]);
 
 // ─── notifications ────────────────────────────────────────────────────────────
 
@@ -359,17 +397,30 @@ export async function validateRequestPayload(payload) {
 // ─── creation ─────────────────────────────────────────────────────────────────
 
 /**
- * Insert a new loan_requests row + its initial status_history entry inside a
- * transaction. The caller separately attaches uploaded documents.
+ * Insert a new loan request, all three required document metadata rows, and its
+ * initial status-history entry inside one transaction.
  *
  * @returns {Promise<Object>} the inserted loan_requests row
  */
-export async function createLoanRequest({ memberId, payload }) {
+export async function createLoanRequest({ memberId, payload, documents }) {
   const settings = await getLoanSettings();
   const client = await getClient();
 
   try {
     await client.query('BEGIN');
+
+    const documentTypes = new Set(
+      Array.isArray(documents) ? documents.map((document) => document.document_type) : []
+    );
+    if (
+      !Array.isArray(documents)
+      || documents.length !== REQUIRED_NEW_LOAN_DOCUMENT_TYPES.length
+      || REQUIRED_NEW_LOAN_DOCUMENT_TYPES.some((type) => !documentTypes.has(type))
+    ) {
+      const error = new Error('All required loan documents must be attached atomically');
+      error.code = 'MISSING_ATTACHMENTS';
+      throw error;
+    }
 
     const seq = await allocateSequence({
       tableName: 'loan_requests',
@@ -442,6 +493,23 @@ export async function createLoanRequest({ memberId, payload }) {
     );
     const created = insert.rows[0];
 
+    for (const document of documents) {
+      await client.query(
+        `INSERT INTO loan_request_documents
+           (loan_request_id, document_type, file_path, file_size, file_type, original_name, uploaded_by)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [
+          created.id,
+          document.document_type,
+          document.file_path,
+          document.file_size,
+          document.file_type,
+          document.original_name,
+          memberId,
+        ]
+      );
+    }
+
     await recordStatusChange({
       tableName: 'loan_request_status_history',
       foreignKey: 'loan_request_id',
@@ -470,7 +538,8 @@ export async function createLoanRequest({ memberId, payload }) {
 /**
  * Move a request from one status to another, validating the transition is
  * allowed and writing the audit row. Pass `extraUpdates` to set additional
- * columns in the same UPDATE (e.g. reviewed_by_fund_id).
+ * columns in the same UPDATE (e.g. reviewed_by_fund_id). When `client` is
+ * supplied, the caller owns BEGIN/COMMIT/ROLLBACK and post-commit notification.
  *
  * @returns {Promise<Object>} updated loan_requests row
  */
@@ -480,13 +549,15 @@ export async function transitionStatus({
   changedById,
   note,
   extraUpdates = {},
+  client: providedClient = null,
 }) {
-  const client = await getClient();
+  const ownsTransaction = !providedClient;
+  const client = providedClient || await getClient();
   try {
-    await client.query('BEGIN');
+    if (ownsTransaction) {await client.query('BEGIN');}
 
     const { rows: current } = await client.query(
-      'SELECT id, status FROM loan_requests WHERE id = $1 FOR UPDATE',
+      'SELECT id, status, admin_fee_collected FROM loan_requests WHERE id = $1 FOR UPDATE',
       [loanId]
     );
     if (current.length === 0) {
@@ -501,6 +572,20 @@ export async function transitionStatus({
       const e = new Error(`Illegal transition ${fromStatus} → ${toStatus}`);
       e.code = 'ILLEGAL_TRANSITION';
       throw e;
+    }
+
+    if (DOCUMENT_EVIDENCE_GATED_STATUSES.has(toStatus)) {
+      await requireValidLoanDocumentEvidence({
+        client,
+        loanId,
+        requiredDocumentTypes: requiredEvidenceForTransition({
+          fromStatus,
+          toStatus,
+          adminFeeCollected:
+            current[0].admin_fee_collected === true
+            || extraUpdates.admin_fee_collected === true,
+        }),
+      });
     }
 
     // Build dynamic UPDATE: set status + any extras.
@@ -529,6 +614,8 @@ export async function transitionStatus({
       client,
     });
 
+    if (!ownsTransaction) {return updated[0];}
+
     await client.query('COMMIT');
 
     // Push notification to the borrower — AFTER commit so we never notify on
@@ -538,10 +625,10 @@ export async function transitionStatus({
 
     return { ...updated[0], notification_delivery: notificationDelivery };
   } catch (err) {
-    await client.query('ROLLBACK');
+    if (ownsTransaction) {await client.query('ROLLBACK');}
     throw err;
   } finally {
-    client.release();
+    if (ownsTransaction) {client.release();}
   }
 }
 

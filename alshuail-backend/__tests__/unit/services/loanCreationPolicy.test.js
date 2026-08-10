@@ -5,6 +5,7 @@ const mockGetClient = jest.fn();
 const mockAllocateSequence = jest.fn();
 const mockRecordStatusChange = jest.fn();
 const mockRunAll = jest.fn();
+const mockCreateMemberNotification = jest.fn();
 
 jest.unstable_mockModule('../../../src/services/database.js', () => ({
   query: mockQuery,
@@ -17,7 +18,7 @@ jest.unstable_mockModule('../../../src/services/statusHistoryService.js', () => 
   recordStatusChange: mockRecordStatusChange,
 }));
 jest.unstable_mockModule('../../../src/services/notificationService.js', () => ({
-  createMemberNotification: jest.fn().mockResolvedValue({ success: true, inAppStored: true, deliveredVia: 'in_app' }),
+  createMemberNotification: mockCreateMemberNotification,
 }));
 jest.unstable_mockModule('../../../src/services/sequenceGenerator.js', () => ({
   allocateSequence: mockAllocateSequence,
@@ -49,6 +50,18 @@ const payload = {
   terms_version: FAMILY_FINANCING_TERMS_VERSION,
 };
 
+const documents = [
+  ['id_copy', 'member-1/loan-id/id.jpg', 'image/jpeg', 'id.jpg'],
+  ['salary_certificate', 'member-1/loan-salary/salary.png', 'image/png', 'salary.png'],
+  ['financial_statement', 'member-1/loan-statement/statement.jpg', 'image/jpeg', 'statement.jpg'],
+].map(([documentType, filePath, fileType, originalName]) => ({
+  document_type: documentType,
+  file_path: filePath,
+  file_size: 1024,
+  file_type: fileType,
+  original_name: originalName,
+}));
+
 describe('loan creation fixed financing policy', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -72,6 +85,11 @@ describe('loan creation fixed financing policy', () => {
       formatted: '2026-0001',
       year: 2026,
       sequenceInYear: 1,
+    });
+    mockCreateMemberNotification.mockResolvedValue({
+      success: true,
+      inAppStored: true,
+      deliveredVia: 'in_app',
     });
   });
 
@@ -101,7 +119,7 @@ describe('loan creation fixed financing policy', () => {
     };
     mockGetClient.mockResolvedValue(client);
 
-    await createLoanRequest({ memberId: 'member-1', payload });
+    await createLoanRequest({ memberId: 'member-1', payload, documents });
 
     expect(insertParameters[10]).toBe(6000); // requested_item_amount
     expect(insertParameters[11]).toBe(6750); // loan_amount / displayed total
@@ -117,6 +135,8 @@ describe('loan creation fixed financing policy', () => {
       early_settlement_via_app: true,
     });
     expect(client.query).toHaveBeenCalledWith('COMMIT');
+    expect(client.query.mock.calls.filter(([sql]) => String(sql).includes('INSERT INTO loan_request_documents')))
+      .toHaveLength(3);
     expect(mockRecordStatusChange).toHaveBeenCalledTimes(1);
     expect(client.release).toHaveBeenCalledTimes(1);
   });
@@ -129,5 +149,33 @@ describe('loan creation fixed financing policy', () => {
     });
 
     expect(result).toMatchObject({ code: 'INVALID_FINANCING_TIER' });
+  });
+
+  test('a document INSERT failure rolls back the loan, document rows, and initial history', async () => {
+    let documentInsertCount = 0;
+    const client = {
+      query: jest.fn((sql) => {
+        const statement = String(sql);
+        if (statement.includes('INSERT INTO loan_requests')) {
+          return { rows: [{ id: 'loan-rollback', sequence_number: '2026-0001' }] };
+        }
+        if (statement.includes('INSERT INTO loan_request_documents')) {
+          documentInsertCount += 1;
+          if (documentInsertCount === 2) {throw new Error('injected document insert failure');}
+        }
+        return { rows: [] };
+      }),
+      release: jest.fn(),
+    };
+    mockGetClient.mockResolvedValue(client);
+
+    await expect(createLoanRequest({ memberId: 'member-1', payload, documents }))
+      .rejects.toThrow('injected document insert failure');
+
+    expect(client.query).toHaveBeenCalledWith('ROLLBACK');
+    expect(client.query).not.toHaveBeenCalledWith('COMMIT');
+    expect(mockRecordStatusChange).not.toHaveBeenCalled();
+    expect(mockCreateMemberNotification).not.toHaveBeenCalled();
+    expect(client.release).toHaveBeenCalledTimes(1);
   });
 });

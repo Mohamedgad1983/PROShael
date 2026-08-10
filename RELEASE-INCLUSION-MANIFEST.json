@@ -5,7 +5,7 @@
     "repository": "origin/main",
     "commit": "588cbe9d007b3f496ddbbaaf206778b61cef31e3"
   },
-  "generatedAt": "2026-08-10T01:30:30.707Z",
+  "generatedAt": "2026-08-10T02:51:37.775Z",
   "selfInventoryNote": "This manifest file is intentionally excluded from its own includedFiles array.",
   "releaseMigrationManifest": {
     "path": "alshuail-backend/migrations/release-20260810.manifest.json",
@@ -16,7 +16,7 @@
   "dependencyRemediation": {
     "adminPackageJsonSha256": "856e8fb1fac985d06211da065c675e856d2fcc8bb507dd7f418a2a480fa5d2ab",
     "adminPackageLockSha256": "b7c005e29d0f85914ee93390a8defc8ab758e83226ce20caaf632cffba561d64",
-    "backendAggregateSha256": "7f5ba391934d2e7ebba585edbf5e4bd412b02d9d4b9937c444ce5189015d4399"
+    "backendAggregateSha256": "8734d56ba299c4af54b619e64fe992229ccf251db2fd5e3ead1f08101f27dded"
   },
   "includedFiles": [
     {
@@ -190,14 +190,29 @@
       "sha256": "d2a01a950700dab82839004eafd8b5901d897a41e953213feb88118867531da9"
     },
     {
+      "path": "alshuail-backend/__tests__/helpers/documentFixtures.js",
+      "status": "added",
+      "sha256": "6ae533aab1e80dacd6a99403fd026ad8b6afd524ea3d1b1effb2c72f4a27e1a6"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/config/documentStorageAuthenticity.test.js",
+      "status": "added",
+      "sha256": "f1aba60c5429ebaba9dd98bceaa92897b717812c2eaf6c2771ffac56ab036c78"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/config/documentStoragePredecodeDimensions.test.js",
+      "status": "added",
+      "sha256": "8934c40799e270f8b68529973d824c28f909dfa02bed9cb91d3d947025dc2062"
+    },
+    {
       "path": "alshuail-backend/__tests__/unit/config/documentStorageSigning.test.js",
       "status": "added",
-      "sha256": "2d19f3d3ecde2aee8f943b3043e1618891d1e573f7ecc12700981112351e8e73"
+      "sha256": "035242942c499eeb1fbe21330c98b0a752f8a047ce1f4ce1d426e29a9fe895d3"
     },
     {
       "path": "alshuail-backend/__tests__/unit/config/documentStorageUniqueness.test.js",
       "status": "added",
-      "sha256": "b21a7780f2672be3860cab74d9c57ee9d723795b51d78678705bde7e20629022"
+      "sha256": "8b191add1b264e2f3202b15bcb4c40c499ab2d26ac22f7ec1f4742e84a18f4e5"
     },
     {
       "path": "alshuail-backend/__tests__/unit/config/paymentGatewayConfig.test.js",
@@ -260,9 +275,29 @@
       "sha256": "1d5a2caad83b9475d312871596966f604eb2aa8defec12eeb36327857a07ece2"
     },
     {
+      "path": "alshuail-backend/__tests__/unit/controllers/loanBroujUploadAtomicity.test.js",
+      "status": "added",
+      "sha256": "52daf4f63b0208bb9d34eb6cc300f8babfd99c3797cf0b5a3bc01c1f80ed39c5"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/controllers/loanCreationAtomicity.test.js",
+      "status": "added",
+      "sha256": "5b37b56a20972b89a3b54224348afa80c62fb0b2bed4faff8c20742e61b73883"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/controllers/loanDisbursementEvidenceGuard.test.js",
+      "status": "added",
+      "sha256": "156b520c866a92c4c3901a71e51173b772dc9109ddc9e1f4fbeafb96123f7dbe"
+    },
+    {
       "path": "alshuail-backend/__tests__/unit/controllers/loanDocumentUrls.test.js",
       "status": "added",
-      "sha256": "324462a7aa5b62a806f96c535288a8764487f3f4304c0baf325b64318e986ed9"
+      "sha256": "9918586d1f896fe64d744f0094c52b17c158b4e66357e8a339303b0207780399"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/controllers/loanUploadAuthenticity.test.js",
+      "status": "added",
+      "sha256": "9922f00a6862974a19e3f2301f230801dfcd38698997fc7bf308e7e3fff8a9c5"
     },
     {
       "path": "alshuail-backend/__tests__/unit/controllers/marriageContractDownload.test.js",
@@ -457,7 +492,12 @@
     {
       "path": "alshuail-backend/__tests__/unit/services/loanCreationPolicy.test.js",
       "status": "modified",
-      "sha256": "4a3440e7d61de2c457c2d1b2590a5c655827513b9f7d1aebafa4120b7ecab162"
+      "sha256": "c5766c20fb498cf50b4b141ae395f226ec590d06cf46ffd9be26eecd147fc319"
+    },
+    {
+      "path": "alshuail-backend/__tests__/unit/services/loanTransition.test.js",
+      "status": "modified",
+      "sha256": "11556449698eea451f7778ceb09c58e1b2bdea70b9a7fc575c12a373bf4274a1"
     },
     {
       "path": "alshuail-backend/__tests__/unit/services/marriageSupportCalc.test.js",
@@ -622,12 +662,12 @@
     {
       "path": "alshuail-backend/package-lock.json",
       "status": "modified",
-      "sha256": "7b0fc7ce4d6dec225451c6538fd300012ccaa3c343c435559d138a76205dd5af"
+      "sha256": "60f5dd6529a2d04d7f7e4a6fa3c6ac03fe168e00c7e680212f988aea6fc1f856"
     },
     {
       "path": "alshuail-backend/package.json",
       "status": "modified",
-      "sha256": "a2a2cc3caf495f6b2dc648c4a03c3212445b46eabf84e860ea18e5a468f3ce92"
+      "sha256": "59dee3167f30d377a2814449d3e65b6f2bb12bde03851e7cb6b6aef67dfdc92e"
     },
     {
       "path": "alshuail-backend/scripts/rehearse-document-archive.mjs",
@@ -662,7 +702,7 @@
     {
       "path": "alshuail-backend/src/config/documentStorage.js",
       "status": "modified",
-      "sha256": "e2d5d5d37de9e92f63e00eea6c944a9f32c5f0c27b208dab0f3664408d198dd0"
+      "sha256": "2b09180645caf9a02d0bcdfc02f4f6e57938157c0daee65e265e08fa8bace0b1"
     },
     {
       "path": "alshuail-backend/src/config/env.js",
@@ -682,7 +722,7 @@
     {
       "path": "alshuail-backend/src/controllers/adminLoansController.js",
       "status": "modified",
-      "sha256": "afc8dae4fdc4841136b2d192f8f5e1cf87ca241ddbecfe784830a48887a2e135"
+      "sha256": "bddc43ccb5197df6315491e3d0bc5e1a6a7496860e60026125afed4400a045f6"
     },
     {
       "path": "alshuail-backend/src/controllers/adminMarriageSupportController.js",
@@ -732,7 +772,7 @@
     {
       "path": "alshuail-backend/src/controllers/loansController.js",
       "status": "modified",
-      "sha256": "1c3e881071ed54e913dfda577ab9c618c1691fff6dfc433097f177851397c64a"
+      "sha256": "6ad60c1035939a955dc04e0d14248a258994ac293729870b7b69c570890a7efe"
     },
     {
       "path": "alshuail-backend/src/controllers/marriageSupportController.js",
@@ -795,6 +835,11 @@
       "sha256": "b6f10d1f17351acf0c256d897b172ca4f75ba95184cfed015e7cbe37f2917066"
     },
     {
+      "path": "alshuail-backend/src/routes/loans.js",
+      "status": "modified",
+      "sha256": "142a4f0133906068c52dc7f68c836cb38f1ac58baeb2f6516b38688b8da24ab8"
+    },
+    {
       "path": "alshuail-backend/src/routes/marriageSupport.js",
       "status": "modified",
       "sha256": "0e1d01eef2486f8677e8737983c0bf78119db10d69e0d8309bef0c64809fcacc"
@@ -840,6 +885,16 @@
       "sha256": "c53c6fe97c8122314037943370fff2ced9384fa5cf2105c09b4cddd33ea283a1"
     },
     {
+      "path": "alshuail-backend/src/services/loanDocumentEvidenceService.js",
+      "status": "added",
+      "sha256": "cf5d4e5982ee7e3e79fcc2ef36c944a245c8e88c1f87662d8b4713f853eb47cf"
+    },
+    {
+      "path": "alshuail-backend/src/services/loanService.js",
+      "status": "modified",
+      "sha256": "06839375d4e950d446ed0465497e56f702ad474f07057d12dda33c81aa284bcf"
+    },
+    {
       "path": "alshuail-backend/src/services/marriageSupportPdf.js",
       "status": "modified",
       "sha256": "95dab44b03b045c8b380c365aab6e763ba87853f27fe475606c5bee4e17135b7"
@@ -878,9 +933,9 @@
     "broad subscription lane except subscription policy/runtime and the required 20260801 prerequisite migration"
   ],
   "validation": {
-    "backendNpmCi": "passed; 945 packages audited; 0 vulnerabilities",
-    "backendJest": "passed; 168 suites, 4997 tests; 8 suites/33 tests skipped",
-    "backendLint": "passed with 0 errors and 1407 baseline warnings",
+    "backendNpmCi": "passed; clean install of 950 packages; npm audit 0 vulnerabilities",
+    "backendJest": "passed; 174 suites, 5061 tests; 8 suites/33 tests skipped",
+    "backendLint": "passed with 0 errors and 1404 baseline warnings",
     "backendNodeSyntax": "passed for all .js/.mjs files outside node_modules/coverage",
     "adminNpmCi": "passed; 1653 packages audited",
     "adminAudit": "4 moderate vulnerabilities; 0 low, 0 high, 0 critical",

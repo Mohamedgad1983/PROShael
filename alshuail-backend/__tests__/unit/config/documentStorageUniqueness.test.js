@@ -2,6 +2,7 @@ import { afterAll, describe, expect, jest, test } from '@jest/globals';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { makeValidPdf } from '../../helpers/documentFixtures.js';
 
 const uploadRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-document-uniqueness-'));
 process.env.UPLOAD_DIR = uploadRoot;
@@ -24,8 +25,8 @@ afterAll(async () => {
 describe('document storage evidence uniqueness', () => {
   test('concurrent same-millisecond uploads never share or overwrite a path', async () => {
     const now = jest.spyOn(Date, 'now').mockReturnValue(1_786_300_000_000);
-    const firstBytes = Buffer.from('first financial evidence');
-    const secondBytes = Buffer.from('second financial evidence');
+    const firstBytes = makeValidPdf('first financial evidence');
+    const secondBytes = makeValidPdf('second financial evidence');
     const baseFile = {
       originalname: 'receipt.pdf',
       mimetype: 'application/pdf',

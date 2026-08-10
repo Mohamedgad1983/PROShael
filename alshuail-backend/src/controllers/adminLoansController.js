@@ -16,8 +16,17 @@
 
 import { query, getClient } from '../services/database.js';
 import { log } from '../utils/logger.js';
-import { getSignedUrl, uploadToSupabase } from '../config/documentStorage.js';
+import {
+  deleteFromSupabase,
+  getSignedUrl,
+  LOAN_DOCUMENT_ALLOWED_MIME_TYPES,
+  uploadToSupabase,
+} from '../config/documentStorage.js';
 import { LOAN_STATUS, transitionStatus, dispatchStatusNotification } from '../services/loanService.js';
+import {
+  LOAN_DOCUMENT_EVIDENCE_ERROR_CODE,
+  requireValidLoanDocumentEvidence,
+} from '../services/loanDocumentEvidenceService.js';
 import { getStatusHistory, recordStatusChange } from '../services/statusHistoryService.js';
 import {
   FINANCING_PROGRAM,
@@ -68,9 +77,41 @@ function statusFilterForRole(user) {
   ];
 }
 
+async function lockLoanAndValidateEvidence({ client, loanId, allowedStatuses }) {
+  const { rows } = await client.query(
+    'SELECT id, status FROM loan_requests WHERE id = $1 FOR UPDATE',
+    [loanId]
+  );
+  if (rows.length === 0) {
+    throw Object.assign(new Error('Loan request not found'), { code: 'NOT_FOUND' });
+  }
+  if (!allowedStatuses.includes(rows[0].status)) {
+    throw Object.assign(new Error('Loan request is not in an uploadable state'), {
+      code: 'ILLEGAL_TRANSITION',
+    });
+  }
+  await requireValidLoanDocumentEvidence({ client, loanId });
+  return rows[0];
+}
+
+async function cleanupNewLoanDocument(filePath) {
+  if (!filePath) {return;}
+  try {
+    await deleteFromSupabase(filePath);
+  } catch (_error) {
+    log.error('[adminLoans] failed to clean up a newly uploaded document');
+  }
+}
+
+async function dispatchDeferredTransitions(transitions) {
+  for (const transition of transitions) {
+    await dispatchStatusNotification(transition.loan, transition.status);
+  }
+}
+
 async function fetchDocuments(loanId) {
   const { rows } = await query(
-    `SELECT id, document_type, file_path, file_size, file_type, original_name, uploaded_at, uploaded_by
+    `SELECT id, document_type, file_path, file_size, file_type, uploaded_at, uploaded_by
      FROM loan_request_documents
      WHERE loan_request_id = $1 AND deleted_at IS NULL
      ORDER BY uploaded_at ASC`,
@@ -407,6 +448,17 @@ export const recordDisbursement = async (req, res) => {
         message: 'الطلب غير جاهز للصرف'
       });
     }
+
+    const requiredDocumentTypes = ['najiz_acknowledgment'];
+    if (loan.admin_fee_collected === true) {
+      requiredDocumentTypes.push('fee_receipt');
+    }
+    await requireValidLoanDocumentEvidence({
+      client,
+      loanId: loan.id,
+      requiredDocumentTypes,
+    });
+
     const terms = resolveLoanDisbursementTerms(loan);
     if (
       req.body?.installment_count === null
@@ -575,33 +627,50 @@ export const broujReject = async (req, res) => {
 };
 
 export const broujUploadNajiz = async (req, res) => {
+  let client;
+  let newFilePath = null;
+  let committed = false;
   try {
     if (!canDoBroujActions(req.user)) {return res.status(403).json({ success: false, error: 'مخصص لبروز الريادة' });}
     if (!req.file) {
       return res.status(400).json({ success: false, code: 'NO_FILE', message: 'يرجى رفع إقرار ناجز' });
     }
-    const upload = await uploadToSupabase(req.file, req.params.id, 'loan-najiz_acknowledgment');
-    await query(
+
+    client = await getClient();
+    await client.query('BEGIN');
+    const lockedLoan = await lockLoanAndValidateEvidence({
+      client,
+      loanId: req.params.id,
+      allowedStatuses: [LOAN_STATUS.FORWARDED_TO_BROUJ, LOAN_STATUS.BROUJ_PROCESSING],
+    });
+
+    const upload = await uploadToSupabase(
+      req.file,
+      req.params.id,
+      'loan-najiz_acknowledgment',
+      { allowedMimeTypes: LOAN_DOCUMENT_ALLOWED_MIME_TYPES }
+    );
+    newFilePath = upload.path;
+    await client.query(
       `INSERT INTO loan_request_documents
          (loan_request_id, document_type, file_path, file_size, file_type, original_name, uploaded_by)
        VALUES ($1, 'najiz_acknowledgment', $2, $3, $4, $5, $6)`,
       [req.params.id, upload.path, upload.size, upload.type, req.file.originalname, req.user.id]
     );
 
-    const { rows: currentRows } = await query(
-      'SELECT status FROM loan_requests WHERE id = $1',
-      [req.params.id]
-    );
-    if (currentRows[0]?.status === LOAN_STATUS.FORWARDED_TO_BROUJ) {
-      await transitionStatus({
+    const deferredTransitions = [];
+    if (lockedLoan.status === LOAN_STATUS.FORWARDED_TO_BROUJ) {
+      const processing = await transitionStatus({
         loanId: req.params.id,
         toStatus: LOAN_STATUS.BROUJ_PROCESSING,
         changedById: req.user.id,
         note: 'بدء معالجة بروز الريادة',
+        client,
       });
+      deferredTransitions.push({ loan: processing, status: LOAN_STATUS.BROUJ_PROCESSING });
     }
 
-    await transitionStatus({
+    const najizUploaded = await transitionStatus({
       loanId: req.params.id,
       toStatus: LOAN_STATUS.NAJIZ_UPLOADED,
       changedById: req.user.id,
@@ -610,7 +679,9 @@ export const broujUploadNajiz = async (req, res) => {
         processed_by_brouj_id: req.user.id,
         najiz_uploaded_at: new Date(),
       },
+      client,
     });
+    deferredTransitions.push({ loan: najizUploaded, status: LOAN_STATUS.NAJIZ_UPLOADED });
 
     // New financing policy: there is no separate member-facing fee collection
     // step. The total item value already includes service/sustainability in the
@@ -621,27 +692,56 @@ export const broujUploadNajiz = async (req, res) => {
       toStatus: LOAN_STATUS.READY_FOR_DISBURSEMENT,
       changedById: req.user.id,
       note: 'جاهز للصرف من الصندوق',
+      client,
     });
+    deferredTransitions.push({ loan: ready, status: LOAN_STATUS.READY_FOR_DISBURSEMENT });
+    await client.query('COMMIT');
+    committed = true;
+    await dispatchDeferredTransitions(deferredTransitions);
     return res.json({ success: true, data: ready });
   } catch (err) {
+    if (client && !committed) {
+      try {await client.query('ROLLBACK');} catch (_rollbackError) { /* no-op */ }
+    }
+    if (!committed) {await cleanupNewLoanDocument(newFilePath);}
     return handleTransitionError(res, err);
+  } finally {
+    client?.release();
   }
 };
 
 export const broujConfirmFee = async (req, res) => {
+  let client;
+  let newFilePath = null;
+  let committed = false;
   try {
     if (!canDoBroujActions(req.user)) {return res.status(403).json({ success: false, error: 'مخصص لبروز الريادة' });}
     if (!req.file) {
       return res.status(400).json({ success: false, code: 'NO_FILE', message: 'يرجى رفع مستند المعالجة' });
     }
-    const upload = await uploadToSupabase(req.file, req.params.id, 'loan-fee_receipt');
-    await query(
+
+    client = await getClient();
+    await client.query('BEGIN');
+    await lockLoanAndValidateEvidence({
+      client,
+      loanId: req.params.id,
+      allowedStatuses: [LOAN_STATUS.NAJIZ_UPLOADED],
+    });
+
+    const upload = await uploadToSupabase(
+      req.file,
+      req.params.id,
+      'loan-fee_receipt',
+      { allowedMimeTypes: LOAN_DOCUMENT_ALLOWED_MIME_TYPES }
+    );
+    newFilePath = upload.path;
+    await client.query(
       `INSERT INTO loan_request_documents
          (loan_request_id, document_type, file_path, file_size, file_type, original_name, uploaded_by)
        VALUES ($1, 'fee_receipt', $2, $3, $4, $5, $6)`,
       [req.params.id, upload.path, upload.size, upload.type, req.file.originalname, req.user.id]
     );
-    await transitionStatus({
+    const feeCollected = await transitionStatus({
       loanId: req.params.id,
       toStatus: LOAN_STATUS.FEE_COLLECTED,
       changedById: req.user.id,
@@ -650,6 +750,7 @@ export const broujConfirmFee = async (req, res) => {
         admin_fee_collected: true,
         fee_collected_at: new Date(),
       },
+      client,
     });
     // Auto-advance: once the fee is collected, the loan is ready for fund disbursement.
     const ready = await transitionStatus({
@@ -657,16 +758,45 @@ export const broujConfirmFee = async (req, res) => {
       toStatus: LOAN_STATUS.READY_FOR_DISBURSEMENT,
       changedById: req.user.id,
       note: 'جاهز للصرف من الصندوق',
+      client,
     });
+    await client.query('COMMIT');
+    committed = true;
+    await dispatchDeferredTransitions([
+      { loan: feeCollected, status: LOAN_STATUS.FEE_COLLECTED },
+      { loan: ready, status: LOAN_STATUS.READY_FOR_DISBURSEMENT },
+    ]);
     return res.json({ success: true, data: ready });
   } catch (err) {
+    if (client && !committed) {
+      try {await client.query('ROLLBACK');} catch (_rollbackError) { /* no-op */ }
+    }
+    if (!committed) {await cleanupNewLoanDocument(newFilePath);}
     return handleTransitionError(res, err);
+  } finally {
+    client?.release();
   }
 };
 
 // ─── shared error handler ──────────────────────────────────────────────────────
 
 function handleTransitionError(res, err) {
+  if (err && err.code === LOAN_DOCUMENT_EVIDENCE_ERROR_CODE) {
+    return res.status(409).json({
+      success: false,
+      code: LOAN_DOCUMENT_EVIDENCE_ERROR_CODE,
+      message: 'مستندات الطلب الأساسية مفقودة أو غير صالحة',
+      message_en: 'Required loan document evidence is missing or invalid',
+    });
+  }
+  if (err && err.code === 'DOCUMENT_FILE_INVALID') {
+    return res.status(400).json({
+      success: false,
+      code: 'INVALID_DOCUMENT_FILE',
+      message: 'صيغة أو محتوى المستند غير صالح',
+      message_en: 'The document format or content is invalid',
+    });
+  }
   if (err && err.code === 'NOT_FOUND') {
     return res.status(404).json({ success: false, error: 'الطلب غير موجود' });
   }

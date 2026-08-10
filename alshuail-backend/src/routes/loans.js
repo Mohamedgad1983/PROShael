@@ -12,7 +12,7 @@
  */
 
 import express from 'express';
-import multer from 'multer';
+import { loanUpload } from '../config/documentStorage.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { requireRole } from '../middleware/rbacMiddleware.js';
 import {
@@ -36,17 +36,6 @@ import {
   broujConfirmFee,
 } from '../controllers/adminLoansController.js';
 
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
-  fileFilter: (req, file, cb) => {
-    const allowed = /jpeg|jpg|png|pdf|webp/;
-    const okMime = allowed.test(file.mimetype);
-    const okExt = allowed.test(file.originalname.toLowerCase().split('.').pop());
-    cb(okMime && okExt ? null : new Error('Unsupported file type'), okMime && okExt);
-  },
-});
-
 // =============================================================================
 // MEMBER ROUTER  (mounted at /api/loans)
 // =============================================================================
@@ -64,7 +53,7 @@ memberRouter.post(
   '/',
   authenticateToken,
   requireRole(['member', 'super_admin', 'admin', 'financial_manager']),
-  upload.fields([
+  loanUpload.fields([
     { name: 'id_copy', maxCount: 1 },
     { name: 'salary_certificate', maxCount: 1 },
     { name: 'financial_statement', maxCount: 1 },
@@ -114,7 +103,7 @@ broujRouter.post(
   '/:id/upload-najiz',
   authenticateToken,
   requireRole(BROUJ_ROLES),
-  upload.single('najiz_acknowledgment'),
+  loanUpload.single('najiz_acknowledgment'),
   broujUploadNajiz
 );
 
@@ -122,7 +111,7 @@ broujRouter.post(
   '/:id/confirm-fee',
   authenticateToken,
   requireRole(BROUJ_ROLES),
-  upload.single('fee_receipt'),
+  loanUpload.single('fee_receipt'),
   broujConfirmFee
 );
 
