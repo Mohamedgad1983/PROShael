@@ -20,6 +20,9 @@ fi
 
 app_dir="/proc/$backend_pid/cwd"
 cd "$app_dir"
+if [[ -z "${DATABASE_URL:-}" ]]; then
+  export DB_HOST=127.0.0.1
+fi
 
 echo "== Release ledger preflight =="
 node scripts/run-release-migrations.mjs --preflight
