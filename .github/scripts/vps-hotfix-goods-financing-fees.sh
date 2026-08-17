@@ -97,7 +97,6 @@ rewrite('src/services/financingRepaymentService.js', [
 
 rewrite('src/services/loanService.js', [
   ['التمويل العائلي', 'تمويل السلع'],
-  ['policy_version: 3,', 'policy_version: 4,'],
 ]);
 
 rewrite('src/controllers/loansController.js', [
