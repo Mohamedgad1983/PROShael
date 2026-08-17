@@ -60,16 +60,21 @@ const expectedMigrations = new Map([
 ]);
 
 try {
-  const ledger = await pool.query(
-    `SELECT filename, checksum
-       FROM public.schema_migrations
-      WHERE filename = ANY($1::text[])`,
-    [[...expectedMigrations.keys()]]
+  const ledgerStatus = await pool.query(
+    `SELECT to_regclass('public.schema_migrations') AS ledger`
   );
-  const ledgerMap = new Map(ledger.rows.map((row) => [row.filename, row.checksum]));
-  for (const [filename, checksum] of expectedMigrations) {
-    if (ledgerMap.get(filename) !== checksum) {
-      throw new Error(`Required migration is missing or mismatched: ${filename}`);
+  if (ledgerStatus.rows[0].ledger !== null) {
+    const ledger = await pool.query(
+      `SELECT filename, checksum
+         FROM public.schema_migrations
+        WHERE filename = ANY($1::text[])`,
+      [[...expectedMigrations.keys()]]
+    );
+    const ledgerMap = new Map(ledger.rows.map((row) => [row.filename, row.checksum]));
+    for (const [filename, checksum] of expectedMigrations) {
+      if (ledgerMap.get(filename) !== checksum) {
+        throw new Error(`Required migration is missing or mismatched: ${filename}`);
+      }
     }
   }
 
