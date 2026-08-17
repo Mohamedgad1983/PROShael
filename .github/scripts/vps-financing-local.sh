@@ -182,12 +182,12 @@ echo "FINANCING_REPAYMENT_ENABLED=$current_flag"
 
 if [[ "$operation" == "enable" ]]; then
   pm2_home=/var/lib/alshuail/.pm2
-  process_name="$(PM2_HOME="$pm2_home" pm2 jlist | BACKEND_PID="$backend_pid" \
+  process_name="$(runuser -u alshuail -- env PM2_HOME="$pm2_home" pm2 jlist | BACKEND_PID="$backend_pid" \
     node --input-type=module -e \
     "let d='';for await(const c of process.stdin)d+=c;const p=JSON.parse(d).find(x=>x.pid===Number(process.env.BACKEND_PID));if(!p)process.exit(1);console.log(p.name)")"
-  PM2_HOME="$pm2_home" FINANCING_REPAYMENT_ENABLED=true \
+  runuser -u alshuail -- env PM2_HOME="$pm2_home" FINANCING_REPAYMENT_ENABLED=true \
     pm2 restart "$process_name" --update-env
-  PM2_HOME="$pm2_home" pm2 save --force
+  runuser -u alshuail -- env PM2_HOME="$pm2_home" pm2 save --force
   for attempt in $(seq 1 20); do
     if curl --fail --silent --show-error https://api.alshailfund.com/api/health >/dev/null; then
       break
@@ -198,7 +198,7 @@ if [[ "$operation" == "enable" ]]; then
     fi
     sleep 2
   done
-  new_backend_pid="$(PM2_HOME="$pm2_home" pm2 pid "$process_name")"
+  new_backend_pid="$(runuser -u alshuail -- env PM2_HOME="$pm2_home" pm2 pid "$process_name")"
   BACKEND_PID="$new_backend_pid" node --input-type=module -e \
     "import fs from 'node:fs';const env=fs.readFileSync('/proc/'+process.env.BACKEND_PID+'/environ','utf8').split('\0');console.log(env.find(x=>x.startsWith('FINANCING_REPAYMENT_ENABLED='))||'FINANCING_REPAYMENT_ENABLED=unset')"
   echo "Backend health check passed after restart"
