@@ -20,15 +20,20 @@ fi
 
 app_dir="/proc/$backend_pid/cwd"
 cd "$app_dir"
-if [[ -z "${DATABASE_URL:-}" ]]; then
-  export DB_HOST=127.0.0.1
-fi
+db_runner=(
+  runuser -u postgres -- env
+  -u DATABASE_URL
+  -u DB_SSL
+  DB_HOST=/var/run/postgresql
+  DB_USER=postgres
+  DB_PASSWORD=
+)
 
 echo "== Release ledger preflight =="
-node scripts/run-release-migrations.mjs --preflight
+"${db_runner[@]}" node scripts/run-release-migrations.mjs --preflight
 
 echo "== Financing schema and request preflight =="
-node --input-type=module <<'NODE'
+"${db_runner[@]}" node --input-type=module <<'NODE'
 import pg from 'pg';
 
 const { Pool } = pg;
