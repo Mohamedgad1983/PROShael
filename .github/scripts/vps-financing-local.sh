@@ -7,6 +7,10 @@ if [[ "$operation" != "preflight" && "$operation" != "enable" ]]; then
   exit 2
 fi
 
+log_file=/tmp/codex-financing.log
+rm -f "$log_file"
+exec > >(tee "$log_file") 2>&1
+
 backend_pid="$(pgrep -f 'node /opt/alshuail/releases/.*/server.js' | head -1)"
 if [[ -z "$backend_pid" ]]; then
   echo "Active backend process was not found" >&2
@@ -130,6 +134,9 @@ try {
   if (!request.has_terms_snapshot) {
     throw new Error('Request has no immutable financing terms snapshot');
   }
+} catch (error) {
+  console.error(JSON.stringify({ code: error.code || null, message: error.message }));
+  throw error;
 } finally {
   await pool.end();
 }
