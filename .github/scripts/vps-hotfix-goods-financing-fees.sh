@@ -173,8 +173,8 @@ db_runner=(
 )
 
 "${db_runner[@]}" pg_dump --data-only --no-owner --no-privileges \
-  --table=public.loan_settings \
-  --file="$backup_dir/loan-settings-before.sql" "$db_name"
+  --table=public.loan_settings "$db_name" \
+  > "$backup_dir/loan-settings-before.sql"
 "${db_runner[@]}" psql --csv --dbname="$db_name" --command="
   SELECT id, sequence_number, status, requested_item_amount, loan_amount,
          financing_fee_amount, total_repayment_amount,
