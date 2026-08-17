@@ -24,15 +24,16 @@ fi
 
 app_dir="/proc/$backend_pid/cwd"
 cd "$app_dir"
+db_name="${DB_NAME:-alshuail_db}"
 db_runner=(
   runuser -u postgres -- env
   -u DATABASE_URL
   -u DB_SSL
   DB_HOST=/var/run/postgresql
+  DB_NAME="$db_name"
   DB_USER=postgres
   DB_PASSWORD=
 )
-db_name="${DB_NAME:-alshuail_db}"
 
 echo "== Release ledger preflight =="
 "${db_runner[@]}" node scripts/run-release-migrations.mjs --preflight
