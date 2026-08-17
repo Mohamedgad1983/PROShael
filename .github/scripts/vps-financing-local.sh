@@ -7,16 +7,25 @@ if [[ "$operation" != "preflight" && "$operation" != "enable" ]]; then
   exit 2
 fi
 
-app_dir=/var/www/PROShael/alshuail-backend
-env_file=.env.production
+backend_pid="$(pgrep -f 'node /opt/alshuail/releases/.*/server.js' | head -1)"
+if [[ -z "$backend_pid" ]]; then
+  echo "Active backend process was not found" >&2
+  exit 1
+fi
+
+if [[ "${CODEX_BACKEND_ENV_IMPORTED:-false}" != "true" ]]; then
+  exec xargs -0 -a "/proc/$backend_pid/environ" env \
+    CODEX_BACKEND_ENV_IMPORTED=true bash "$0" "$operation"
+fi
+
+app_dir="/proc/$backend_pid/cwd"
 cd "$app_dir"
-test -f "$env_file"
 
 echo "== Release ledger preflight =="
-node --env-file="$env_file" scripts/run-release-migrations.mjs --preflight
+node scripts/run-release-migrations.mjs --preflight
 
 echo "== Financing schema and request preflight =="
-node --env-file="$env_file" --input-type=module <<'NODE'
+node --input-type=module <<'NODE'
 import pg from 'pg';
 
 const { Pool } = pg;
@@ -118,30 +127,17 @@ try {
 }
 NODE
 
-current_flag="$(sed -n 's/^FINANCING_REPAYMENT_ENABLED=//p' "$env_file" | tail -1)"
-if [[ -z "$current_flag" ]]; then current_flag=unset; fi
+current_flag="${FINANCING_REPAYMENT_ENABLED:-unset}"
 echo "FINANCING_REPAYMENT_ENABLED=$current_flag"
 
 if [[ "$operation" == "enable" ]]; then
-  ENV_FILE="$env_file" node --input-type=module <<'NODE'
-  import fs from 'node:fs';
-
-  const file = process.env.ENV_FILE;
-  const stat = fs.statSync(file);
-  let contents = fs.readFileSync(file, 'utf8');
-  const line = 'FINANCING_REPAYMENT_ENABLED=true';
-  if (/^FINANCING_REPAYMENT_ENABLED=.*$/m.test(contents)) {
-    contents = contents.replace(/^FINANCING_REPAYMENT_ENABLED=.*$/m, line);
-  } else {
-    contents = `${contents.replace(/\s*$/, '')}\n${line}\n`;
-  }
-  const temporary = `${file}.codex-${process.pid}.tmp`;
-  fs.writeFileSync(temporary, contents, { mode: stat.mode });
-  fs.chmodSync(temporary, stat.mode);
-  fs.renameSync(temporary, file);
-NODE
-
-  pm2 restart alshuail-backend --update-env
+  pm2_home=/var/lib/alshuail/.pm2
+  process_name="$(PM2_HOME="$pm2_home" pm2 jlist | BACKEND_PID="$backend_pid" \
+    node --input-type=module -e \
+    "let d='';for await(const c of process.stdin)d+=c;const p=JSON.parse(d).find(x=>x.pid===Number(process.env.BACKEND_PID));if(!p)process.exit(1);console.log(p.name)")"
+  PM2_HOME="$pm2_home" FINANCING_REPAYMENT_ENABLED=true \
+    pm2 restart "$process_name" --update-env
+  PM2_HOME="$pm2_home" pm2 save --force
   for attempt in $(seq 1 20); do
     if curl --fail --silent --show-error https://api.alshailfund.com/api/health >/dev/null; then
       break
@@ -152,7 +148,8 @@ NODE
     fi
     sleep 2
   done
-  node --env-file="$env_file" --input-type=module -e \
-    "console.log('FINANCING_REPAYMENT_ENABLED=' + process.env.FINANCING_REPAYMENT_ENABLED)"
+  new_backend_pid="$(PM2_HOME="$pm2_home" pm2 pid "$process_name")"
+  BACKEND_PID="$new_backend_pid" node --input-type=module -e \
+    "import fs from 'node:fs';const env=fs.readFileSync('/proc/'+process.env.BACKEND_PID+'/environ','utf8').split('\0');console.log(env.find(x=>x.startsWith('FINANCING_REPAYMENT_ENABLED='))||'FINANCING_REPAYMENT_ENABLED=unset')"
   echo "Backend health check passed after restart"
 fi
