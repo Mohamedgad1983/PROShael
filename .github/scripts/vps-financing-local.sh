@@ -84,6 +84,7 @@ try {
            to_regclass('public.financing_balance_transactions') IS NOT NULL AS ledger,
            to_regclass('public.financing_reminder_log') IS NOT NULL AS reminders
   `);
+  console.log(JSON.stringify({ financing_tables: tables.rows[0] }));
   if (Object.values(tables.rows[0]).some((value) => value !== true)) {
     throw new Error('One or more financing tables are missing');
   }
