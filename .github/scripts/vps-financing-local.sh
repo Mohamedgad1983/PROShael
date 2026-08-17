@@ -2,7 +2,7 @@
 set -euo pipefail
 
 operation="${1:-preflight}"
-if [[ "$operation" != "preflight" && "$operation" != "repair" && "$operation" != "enable" ]]; then
+if [[ "$operation" != "runtime" && "$operation" != "preflight" && "$operation" != "repair" && "$operation" != "enable" ]]; then
   echo "Unsupported operation: $operation" >&2
   exit 2
 fi
@@ -20,6 +20,12 @@ fi
 if [[ "${CODEX_BACKEND_ENV_IMPORTED:-false}" != "true" ]]; then
   exec xargs -0 -a "/proc/$backend_pid/environ" env \
     CODEX_BACKEND_ENV_IMPORTED=true bash "$0" "$operation"
+fi
+
+node --input-type=module -e \
+  "console.log(JSON.stringify({runtime_env:{node_env:process.env.NODE_ENV||null,jwt_secret:Boolean(process.env.JWT_SECRET),csrf_secret:Boolean(process.env.CSRF_SECRET),db_password:Boolean(process.env.DB_PASSWORD),financing_repayment:process.env.FINANCING_REPAYMENT_ENABLED||null}}))"
+if [[ "$operation" == "runtime" ]]; then
+  exit 0
 fi
 
 app_dir="/proc/$backend_pid/cwd"
