@@ -2,7 +2,7 @@
 set -euo pipefail
 
 operation="${1:-preflight}"
-if [[ "$operation" != "preflight" && "$operation" != "enable" ]]; then
+if [[ "$operation" != "preflight" && "$operation" != "repair" && "$operation" != "enable" ]]; then
   echo "Unsupported operation: $operation" >&2
   exit 2
 fi
@@ -32,9 +32,37 @@ db_runner=(
   DB_USER=postgres
   DB_PASSWORD=
 )
+db_name="${DB_NAME:-alshuail_db}"
 
 echo "== Release ledger preflight =="
 "${db_runner[@]}" node scripts/run-release-migrations.mjs --preflight
+
+if [[ "$operation" == "repair" ]]; then
+  backup_stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+  backup_dir=/var/backups/proshael
+  schema_backup="/tmp/financing-schema-$backup_stamp.sql"
+  settings_backup="/tmp/financing-settings-$backup_stamp.sql"
+  install -d -m 700 "$backup_dir"
+  "${db_runner[@]}" pg_dump --schema-only --no-owner --no-privileges \
+    --table=public.loan_settings \
+    --table=public.loan_requests \
+    --table=public.payments \
+    --table=public.notifications \
+    --file="$schema_backup" "$db_name"
+  "${db_runner[@]}" pg_dump --data-only --no-owner --no-privileges \
+    --table=public.loan_settings \
+    --file="$settings_backup" "$db_name"
+  install -m 600 -o root -g root "$schema_backup" "$backup_dir/"
+  install -m 600 -o root -g root "$settings_backup" "$backup_dir/"
+  rm -f "$schema_backup" "$settings_backup"
+  echo "Backups saved under $backup_dir with stamp $backup_stamp"
+
+  "${db_runner[@]}" psql --set=ON_ERROR_STOP=1 --dbname="$db_name" \
+    --file=migrations/20260731_family_financing_installments.sql
+  "${db_runner[@]}" psql --set=ON_ERROR_STOP=1 --dbname="$db_name" \
+    --file=migrations/20260810_harden_financing_reminders.sql
+  echo "Financing schema migrations applied"
+fi
 
 echo "== Financing schema and request preflight =="
 "${db_runner[@]}" node --input-type=module <<'NODE'
