@@ -77,13 +77,13 @@ function rewrite(relativePath, replacements, { optional = false } = {}) {
   let contents = fs.readFileSync(filePath, 'utf8');
   let changed = 0;
   for (const [before, after] of replacements) {
-    if (contents.includes(after)) continue;
+    if (contents.includes(after) && !contents.includes(before)) continue;
     const occurrences = contents.split(before).length - 1;
-    if (occurrences !== 1) {
-      throw new Error(`Expected exactly one hotfix target in ${relativePath}: ${before}`);
+    if (occurrences < 1) {
+      throw new Error(`Required hotfix target is missing in ${relativePath}: ${before}`);
     }
-    contents = contents.replace(before, after);
-    changed += 1;
+    contents = contents.split(before).join(after);
+    changed += occurrences;
   }
   if (changed > 0) fs.writeFileSync(filePath, contents, 'utf8');
   console.log(JSON.stringify({ file: relativePath, status: changed > 0 ? 'patched' : 'already_patched', changes: changed }));
